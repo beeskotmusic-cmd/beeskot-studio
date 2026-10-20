@@ -51,7 +51,8 @@
         ],
         "displayLanguageSelector": false
       }
-    }
+    },
+    "longDescription": "BEESKOT Studio - un logiciel de la suite DARI"
   },
   "plugins": {
     "updater": {

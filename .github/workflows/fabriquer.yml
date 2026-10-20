@@ -1,10 +1,12 @@
 # Fabrique l'installeur Windows et publie la mise à jour.
-# Se lance tout seul quand on publie une nouvelle version (étiquette « v0.2.0 », etc.).
+# Se lance tout seul quand le numéro de version change (src-tauri/tauri.conf.json),
+# ou à la main depuis l'onglet « Actions » de GitHub (bouton « Run workflow »).
 name: Fabriquer BEESKOT Studio
 
 on:
   push:
-    tags: ['v*']
+    branches: [main]
+    paths: ['src-tauri/tauri.conf.json']
   workflow_dispatch:
 
 permissions:
@@ -29,8 +31,8 @@ jobs:
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ''
         with:
-          tagName: ${{ github.ref_name }}
-          releaseName: 'BEESKOT Studio ${{ github.ref_name }}'
+          tagName: v__VERSION__
+          releaseName: 'BEESKOT Studio v__VERSION__'
           releaseBody: 'Nouvelle version de BEESKOT Studio.'
           releaseDraft: false
           prerelease: false
