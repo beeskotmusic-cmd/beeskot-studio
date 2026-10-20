@@ -297,12 +297,21 @@ BK.module('biblio', function (page) {
   }
   function photo(m) {
     const v = document.createElement('div'); v.className = 'voile';
-    v.innerHTML = `<div class="stopbox" style="width:380px"><span class="dymo">Photo de ${esc(m.nom)}</span>
+    v.innerHTML = `<div class="stopbox" style="width:560px"><span class="dymo">Photo de ${esc(m.nom)}</span>
+      ${BK.drive.relie() ? `<span class="lb" style="align-self:flex-start">🏷 Les photos de ${esc(m.nom)} (Médias)</span><div class="ph-tags" id="phTags"><span class="nt"><span class="spin"></span>Recherche des photos étiquetées…</span></div>` : ''}
       <div class="stopbox-btns" style="flex-direction:column">${BK.drive.relie() ? '<button class="btn pri" data-p="drive">Choisir dans le Drive…</button>' : ''}<button class="btn" data-p="pc">Choisir sur ce PC…</button>${m.photo ? '<button class="btn" data-p="x">Enlever la photo</button>' : ''}</div>
       <button class="btn sm" data-p="annuler">Annuler</button><input type="file" accept="image/*" hidden></div>`;
     document.body.appendChild(v);
     const fin = async url => { v.remove(); if (url === undefined) return; m.photo = url; await sauver(m); msg(url ? 'Photo enregistrée' : 'Photo enlevée'); rendre(); };
-    v.onclick = async e => { const b = e.target.closest('[data-p]'); if (!b) return;
+    // d'abord : les images déjà étiquetées pour ce morceau dans Médias (un clic suffit)
+    if (BK.drive.relie()) (async () => { const z = $('#phTags', v);
+      try { await BK.dossiers.assurer(); const l = (await BK.dossiers.duMorceau(m, B.morceaux)).filter(f => /^image\//.test(f.mimeType || '')).slice(0, 24);
+        z.innerHTML = l.length ? l.map(f => `<button class="ph-t" data-ph="${f.id}" title="${esc(f.name)}"><span class="spin"></span></button>`).join('') : '<span class="nt">Aucune photo étiquetée pour ce morceau. Dans Médias, glisse une photo sur sa case.</span>';
+        for (const f of l) { const u = await BK.drive.vignette(f), b = $(`[data-ph="${f.id}"]`, z); if (b) b.innerHTML = u ? `<img src="${u}" draggable="false">` : '🖼'; }
+      } catch (e) { z.innerHTML = '<span class="nt">Drive injoignable pour l\'instant.</span>'; } })();
+    v.onclick = async e => { const t = e.target.closest('[data-ph]');
+      if (t) { msg('Chargement de la photo…'); try { const r = await BK.drive.api(`/files/${t.dataset.ph}?alt=media`); return fin(await reduire(await r.blob())); } catch (er) { msg('Image illisible'); return; } }
+      const b = e.target.closest('[data-p]'); if (!b) return;
       if (b.dataset.p === 'annuler') return fin(undefined);
       if (b.dataset.p === 'x') return fin('');
       if (b.dataset.p === 'pc') return $('input', v).click();

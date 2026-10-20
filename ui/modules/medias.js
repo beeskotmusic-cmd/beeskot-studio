@@ -135,7 +135,7 @@ BK.module('medias', function (page) {
           <button class="md-x" data-x="${f.id}" title="Ranger dans la corbeille">✕</button></div>`;
       }).join('');
     $$('.md-dos').forEach(b => b.onclick = () => { M.pile.push({ id: b.dataset.dos, nom: b.dataset.nom }); charger(); });
-    if (!filtre) $('#mdPlus').onclick = () => $('#mdInput').click();
+    if (!filtre) $('#mdPlus').onclick = e => menuAjout(e.currentTarget);
     $$('.md-tag').forEach(b => b.onclick = e => { e.stopPropagation(); menuTag(b); });
     $$('.md-tuile[data-id]').forEach(t => { t.ondragstart = e => { e.dataTransfer.setData('text/bk-media', t.dataset.id); e.dataTransfer.effectAllowed = 'link'; $('#mdPaniers').classList.add('actif'); };
       t.ondragend = () => $('#mdPaniers').classList.remove('actif'); });
@@ -197,21 +197,49 @@ BK.module('medias', function (page) {
     M.envoi = false; charger();
   }
   $('#mdAjout').onclick = () => $('#mdInput').click();
+  // « + Ajouter ici » : depuis ce PC, depuis le Drive ou depuis Discord
+  function menuAjout(el) {
+    $$('.md-menu').forEach(x => x.remove());
+    const r = el.getBoundingClientRect(), menu = document.createElement('div'); menu.className = 'md-menu';
+    menu.style.left = Math.min(r.left, innerWidth - 230) + 'px'; menu.style.top = Math.min(r.top + 30, innerHeight - 160) + 'px';
+    menu.innerHTML = '<button data-aj="pc">💻 Depuis ce PC…</button><button data-aj="drive">☁ Depuis le Drive…</button><button data-aj="discord">🍞 Depuis Discord…</button>';
+    document.body.appendChild(menu);
+    const fermer = e => { if (!menu.contains(e.target)) { menu.remove(); document.removeEventListener('pointerdown', fermer, true); } };
+    setTimeout(() => document.addEventListener('pointerdown', fermer, true));
+    menu.onclick = async e => { const b = e.target.closest('[data-aj]'); if (!b) return; menu.remove();
+      if (b.dataset.aj === 'pc') $('#mdInput').click();
+      if (b.dataset.aj === 'discord') $('#mdDiscord').click();
+      if (b.dataset.aj === 'drive') depuisDrive(); };
+  }
+  // copier des fichiers du Drive dans le dossier ouvert (une copie : l'original ne bouge pas)
+  async function depuisDrive() {
+    const cur = ici(); if (!cur) return msg('Ouvre d\'abord un dossier');
+    const l = await BK.explorerDrive({ titre: 'Copier dans « ' + cur.nom + ' »', mode: 'images', depart: 'photovideo' }); if (!l || !l.length) return;
+    let n = 0;
+    for (const f of l) { try { msg(`Copie ${++n}/${l.length}…`); await BK.drive.api(`/files/${f.id}/copy?fields=id`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name: f.name, parents: [cur.id] }) }); } catch (e) { msg('Copie impossible : ' + f.name); } }
+    BK.dossiers.oublier(); msg(l.length + ' fichier(s) copié(s) ici'); charger();
+  }
   // ---------- ajouter depuis Discord : les photos et vidéos postées dans le salon « media » (et voisins) ----------
   $('#mdDiscord').onclick = async () => {
     const cur = M.filtre ? await dossierPour(M.filtre) : ici(); if (!cur) return msg('Ouvre d\'abord un dossier');
     const v = document.createElement('div'); v.className = 'voile ex-voile';
     v.innerHTML = `<div class="ex-box"><div class="ex-tete"><span class="lb">🍞 Photos et vidéos de Discord → ${esc(cur.nom)}</span><button class="btn xs" data-dc="x">✕</button></div>
       <div class="ex-liste md-dc" id="mdDcL"><span class="nt"><span class="spin"></span>Miette regarde les salons « media »…</span></div>
-      <div class="ex-pied"><span class="nt" id="mdDcInfo">Clique les fichiers à ajouter.</span><button class="btn" data-dc="x">Annuler</button><button class="btn pri" data-dc="ok" disabled>Ajouter dans le Drive</button></div></div>`;
+      <div class="ex-pied"><span class="nt" id="mdDcInfo">Clique les fichiers à ajouter (Maj + clic : tous ceux entre les deux).</span><button class="btn" data-dc="tout">Tout sélectionner</button><button class="btn" data-dc="x">Annuler</button><button class="btn pri" data-dc="ok" disabled>Ajouter dans le Drive</button></div></div>`;
     document.body.appendChild(v);
-    const choisis = new Set(); let l = [];
+    const choisis = new Set(); let l = [], dernierClic = null;
+    const majChoix = () => { $$('[data-dci]', v).forEach(t => t.classList.toggle('on', choisis.has(t.dataset.dci)));
+      $('#mdDcInfo', v).textContent = choisis.size ? choisis.size + ' fichier(s) choisi(s)' : 'Clique les fichiers à ajouter (Maj + clic : tous ceux entre les deux).'; $('[data-dc="ok"]', v).disabled = !choisis.size;
+      const t = $('[data-dc="tout"]', v); if (t) t.textContent = choisis.size && choisis.size === $$('[data-dci]', v).length ? 'Tout désélectionner' : 'Tout sélectionner'; };
     const fermer = () => v.remove();
     v.addEventListener('click', async e => {
       const a = e.target.closest('[data-dc]'), t = e.target.closest('[data-dci]');
-      if (t) { const id = t.dataset.dci; choisis.has(id) ? choisis.delete(id) : choisis.add(id); t.classList.toggle('on', choisis.has(id));
-        $('#mdDcInfo', v).textContent = choisis.size ? choisis.size + ' fichier(s) choisi(s)' : 'Clique les fichiers à ajouter.'; $('[data-dc="ok"]', v).disabled = !choisis.size; return; }
+      if (t) { const id = t.dataset.dci, tous = $$('[data-dci]', v).map(x => x.dataset.dci);
+        if (e.shiftKey && dernierClic && tous.includes(dernierClic)) { const [i, j] = [tous.indexOf(dernierClic), tous.indexOf(id)].sort((a, b) => a - b); for (const k of tous.slice(i, j + 1)) choisis.add(k); }
+        else choisis.has(id) ? choisis.delete(id) : choisis.add(id);
+        dernierClic = id; majChoix(); return; }
       if (!a) return; if (a.dataset.dc === 'x') return fermer();
+      if (a.dataset.dc === 'tout') { const tous = $$('[data-dci]', v).map(x => x.dataset.dci); if (choisis.size === tous.length) choisis.clear(); else tous.forEach(k => choisis.add(k)); return majChoix(); }
       if (a.dataset.dc === 'ok') {
         const fs = l.filter(x => choisis.has(x.id)); fermer(); msg('Téléchargement depuis Discord…'); const blobs = [];
         for (const f of fs) { try { const r = await BK.discord.fetch(f.url); if (!r.ok) throw 0; blobs.push(new File([await r.blob()], f.nom, { type: f.video ? 'video/mp4' : 'image/jpeg' })); } catch (er) { msg('Impossible de récupérer ' + f.nom); } }
