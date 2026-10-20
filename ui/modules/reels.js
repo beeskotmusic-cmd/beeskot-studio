@@ -41,10 +41,10 @@ BK.module('reels', function (page) {
             <label><span class="eng">Version</span><select class="fld" id="reVersion"><option value="">—</option></select></label></div>
           <button class="btn xs" id="reCharger">Charger</button>
         </div>
-        <div class="box grow">
+        <div class="box">
           <div class="ligne-titre"><span class="lb">Passage</span>
             <span class="nt" style="margin:0 0 0 auto">Glisse le bloc · tire ses bords · <b>I</b> / <b>O</b> = début / fin à la tête de lecture</span></div>
-          <div class="onde" id="reOnde">
+          <div class="onde reel-onde" id="reOnde">
             <canvas id="reCanvas"></canvas>
             <div class="onde-bloc hidden" id="reBloc"><span class="poignee g"></span><span class="bloc-txt" id="reBlocTxt"></span><span class="poignee d"></span></div>
             <div class="onde-tete hidden" id="reTete"></div>
@@ -52,8 +52,6 @@ BK.module('reels', function (page) {
           </div>
           <div class="regle" id="reRegle"></div>
           <div class="compteurs">
-            <button class="btn ecoute" id="rePlay" disabled title="Écouter le fichier montage (barre d'espace = écoute libre du morceau)">▶ Montage</button>
-            <button class="btn ecoute warm" id="reEcouteT" disabled>▶ Tournage</button>
             <div><span class="eng">Début</span><span class="vfd" id="reDeb">—</span></div>
             <div><span class="eng">Fin</span><span class="vfd" id="reFin">—</span></div>
             <div><span class="eng">Reel (montage)</span><span class="vfd" id="reDurM">—</span></div>
@@ -63,6 +61,13 @@ BK.module('reels', function (page) {
               <button class="btn sm" id="reO" title="Fin ici (touche O)">O</button>
             </div>
           </div>
+        </div>
+        <div class="box reel-ecoute"><span class="lb">Écouter</span>
+          <div class="reel-ecoute-btns">
+            <button class="btn ecoute warm" id="reEcouteT" disabled>▶ Version pour le tournage</button>
+            <button class="btn ecoute" id="rePlay" disabled>▶ Version pour le Reel</button>
+          </div>
+          <span class="nt" id="reEcouteTxt">Tu entends exactement les fichiers qui seront exportés. Barre d'espace : écoute libre du morceau.</span>
         </div>
       </section>
 
@@ -166,7 +171,7 @@ BK.module('reels', function (page) {
   const dureeClic = () => R.clic && R.bpm ? 8 * 60 / (R.bpm * R.v) : 0;
   function maj() {
     majBouton();
-    $('#reEcouteT').textContent = '▶ Tournage ×' + x2(R.v);
+    if (!R.src) $('#reEcouteT').textContent = '▶ Version pour le tournage ×' + x2(R.v);
     if (!R.buffer) return;
     const D = R.buffer.duration;
     R.duree = Math.min(R.duree, D); R.debut = Math.max(0, Math.min(R.debut, D - R.duree));
@@ -232,7 +237,7 @@ BK.module('reels', function (page) {
   function stop() {
     audio.pause(); cancelAnimationFrame(R.lecture); R.lecture = null;
     if (R.src) { try { R.src.onended = null; R.src.stop(); } catch (e) {} R.src = null; }
-    $('#rePlay').textContent = '▶ Montage'; $('#reEcouteT').textContent = '▶ Tournage ×' + x2(R.v);
+    $('#reEcouteT').textContent = '▶ Version pour le tournage ×' + x2(R.v); majBouton();
   }
   async function ecouter(tournage) {
     if (!R.buffer) return;
@@ -297,6 +302,8 @@ BK.module('reels', function (page) {
     const deux = deuxFichiers();
     $('#reExport').textContent = deux ? 'Exporter les 2 fichiers ▶' : 'Exporter le fichier ▶';
     $('#reEcouteT').classList.toggle('hidden', !deux);
+    $('.reel-ecoute-btns').classList.toggle('seul', !deux);
+    if (!R.src) $('#rePlay').textContent = deux ? '▶ Version pour le Reel' : '▶ Écouter (même fichier pour tourner et monter)';
     $('#reQuoi').innerHTML = deux ? '<b>Tournage</b> = à passer pendant qu\'on filme · <b>Montage</b> = à poser dans Premiere' : 'Vitesse normale, sans clic : un seul fichier, pour filmer et monter.';
   }
 

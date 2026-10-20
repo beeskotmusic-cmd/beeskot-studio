@@ -294,3 +294,9 @@ a.lien{color:var(--mus);text-decoration:none}a.lien:hover{text-decoration:underl
 .rv-l{display:flex;align-items:center;gap:8px;padding:3px 6px;border-radius:4px;background:rgba(0,0,0,.2);font-size:12.5px;color:var(--ink2)}
 .rv-l.ok{color:var(--ink)}.rv-l.encours{box-shadow:inset 0 0 0 2px #ffb23e;color:#ffd48e}
 .rv-t{width:52px;background:#0a0604;border:0;color:#ffb23e;font-size:11px;padding:3px 5px;border-radius:3px;box-shadow:0 0 0 1px var(--laiton)}
+
+/* Assistant audio Reel : forme d'onde plus petite, zone « Écouter » claire */
+.onde.reel-onde{flex:none;height:130px;min-height:130px}
+.reel-ecoute-btns{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:10px}
+.reel-ecoute-btns .btn{justify-content:center;min-height:46px!important;font-size:13px}
+.reel-ecoute-btns.seul{grid-template-columns:1fr}
