@@ -1,0 +1,152 @@
+// =====================================================================
+// BEESKOT Studio — le cœur : petits outils communs à tous les onglets.
+// Chaque onglet vit dans son propre fichier (modules/xxx.js) et s'inscrit
+// avec BK.module('id', function(page){ ... }).
+// =====================================================================
+const $ = (s, r = document) => r.querySelector(s);
+const $$ = (s, r = document) => [...r.querySelectorAll(s)];
+
+const BK = {
+  version: '0.1 bêta',
+  modules: {},
+  onglets: [],
+  cotes: [],
+
+  // ---------- réglages propres à CE PC (jamais partagés) ----------
+  reglage(cle, defaut) {
+    try { const v = localStorage.getItem('bk.' + cle); return v === null ? defaut : JSON.parse(v); }
+    catch (e) { return defaut; }
+  },
+  regler(cle, valeur) {
+    try { localStorage.setItem('bk.' + cle, JSON.stringify(valeur)); } catch (e) {}
+  },
+  ongletVisible(o) {
+    if (o.fixe) return true;
+    return BK.reglage('visible.' + o.id, o.defaut);
+  },
+
+  // ---------- inscription d'un onglet ----------
+  module(id, dessiner) { BK.modules[id] = dessiner; },
+
+  // ---------- fabrique une page avec l'en-tête console (vis + étiquette Dymo + afficheurs) ----------
+  page(o, droite = '') {
+    const s = document.createElement('section');
+    s.id = 'p-' + o.id; s.className = 'hidden';
+    s.innerHTML = `
+      <header class="hdr"><span class="screw tl" style="--r:60deg"></span><span class="screw bl" style="--r:-30deg"></span><span class="screw tr" style="--r:5deg"></span><span class="screw br" style="--r:85deg"></span>
+        <h1 class="h1">${o.titre}</h1><p class="sub">${o.sous || ''}</p>
+        <div class="right">${droite}</div></header>
+      <div class="grid"></div>`;
+    return s;
+  },
+
+  // ---------- menu de gauche ----------
+  construireMenu() {
+    const nav = $('#nav');
+    let html = '';
+    for (const c of BK.cotes) {
+      const liste = BK.onglets.filter(o => o.cote === c.id && BK.ongletVisible(o));
+      if (!liste.length) continue;
+      if (c.titre) html += `<span class="eng cote cote-${c.id}">${c.titre}</span>`;
+      for (const o of liste) {
+        html += `<button class="tab${o.mini ? ' mini' : ''}${o.pret ? '' : ' bientot'}" data-p="${o.id}">
+          <span class="nchip" style="--c:${o.couleur}"></span>
+          <span class="t"><span class="lab">${o.titre}</span>${o.sous && !o.mini ? `<span class="nsub">${o.sous}</span>` : ''}</span>
+          <span class="led"></span></button>`;
+      }
+    }
+    html += `<div class="navfoot">
+        <div class="st"><span id="ledDrive" class="led"></span><span class="eng">Drive BEESKOT</span></div>
+        <div class="st"><span id="ledLive" class="led"></span><span class="eng">Ableton Live</span></div>
+      </div>`;
+    nav.innerHTML = html;
+    $$('.tab', nav).forEach(b => b.onclick = () => BK.ouvrir(b.dataset.p));
+  },
+
+  // ---------- pages ----------
+  construirePages() {
+    const zone = $('#pages'); zone.innerHTML = '';
+    for (const o of BK.onglets) {
+      const p = BK.page(o, o.droite || '');
+      zone.appendChild(p);
+      const dessiner = BK.modules[o.id] || (o.pret ? null : BK.modules['_en-construction']);
+      try { if (dessiner) dessiner(p, o); }
+      catch (e) { $('.grid', p).innerHTML = `<div class="pane vit"><span class="nt">Cet onglet a un souci : ${e.message}</span></div>`; console.error(e); }
+    }
+  },
+
+  ouvrir(id) {
+    if (!$('#p-' + id)) id = 'accueil';
+    $$('#pages > section').forEach(s => s.classList.toggle('hidden', s.id !== 'p-' + id));
+    $$('#nav .tab').forEach(t => {
+      const on = t.dataset.p === id;
+      t.classList.toggle('on', on);
+      $('.led', t).classList.toggle('amb', on);
+    });
+    BK.regler('dernierOnglet', id);
+    if (BK.surOuvrir && BK.surOuvrir[id]) BK.surOuvrir[id]();      // un onglet peut se rafraîchir quand on l'ouvre
+  },
+
+  // ---------- bandeau du haut ----------
+  horloge() {
+    const d = new Date();
+    $('#syDate').textContent = d.toLocaleDateString('fr-CA', { weekday: 'short', day: '2-digit', month: 'short' }).toUpperCase();
+    $('#syHeure').textContent = d.toLocaleTimeString('fr-CA', { hour: '2-digit', minute: '2-digit' });
+  },
+
+  // ---------- bouton STOP : relancer / fermer / version ----------
+  // (dans le .exe, ces deux gestes passeront par le moteur du logiciel ; ici, version de secours)
+  relancer() { if (window.__TAURI__?.process) window.__TAURI__.process.relaunch(); else location.reload(); },
+  fermer()   { if (window.__TAURI__?.process) window.__TAURI__.process.exit(0); else window.close(); },
+  boutonStop() {
+    const voile = $('#stopVoile'), montrer = v => voile.classList.toggle('hidden', !v);
+    $('#stVer').textContent = BK.version.toUpperCase();
+    $('#btStop').onclick = () => montrer(true);
+    $('#stAnnuler').onclick = () => montrer(false);
+    voile.onclick = e => { if (e.target === voile) montrer(false); };
+    document.addEventListener('keydown', e => { if (e.key === 'Escape') montrer(false); });
+    $('#stRelancer').onclick = BK.relancer;
+    $('#stFermer').onclick = BK.fermer;
+  },
+
+  demarrer() {
+    BK.boutonStop();
+    BK.construireMenu();
+    BK.construirePages();
+    $$('.knobify').forEach(BK.knobify);
+    $('#syVer').textContent = BK.version.toUpperCase();
+    $('#syPc').textContent = BK.reglage('nomPc', 'CE PC').toUpperCase();
+    BK.etatDrive && BK.etatDrive();
+    BK.horloge(); setInterval(BK.horloge, 20000);   // léger : une mise à jour toutes les 20 s
+    document.documentElement.style.zoom = BK.reglage('zoom', 100) / 100;
+    BK.ouvrir(BK.reglage('dernierOnglet', 'accueil'));
+  },
+
+  // ---------- boutons rotatifs (repris tel quel de Dari Audio Live) ----------
+  // <input type=range> ou <select> avec la classe « knobify » : l'élément d'origine reste la source de vérité
+  knobify(el) {
+    const sel = el.tagName === 'SELECT', min = sel ? 0 : +el.min, max = sel ? el.options.length - 1 : +el.max, step = sel ? 1 : +(el.step || 1);
+    const ticks = (el.dataset.ticks || '').split(',').filter(Boolean), short = (el.dataset.short || '').split(','), fmt = el.dataset.fmt || '{}';
+    const w = document.createElement('div'); w.className = 'knob'; w.tabIndex = 0; w.setAttribute('role', 'slider');
+    const out = document.createElement('div'); out.className = 'glass amber kval';
+    w.innerHTML = ticks.map((tk, i) => { const a = (-135 + 270 * i / Math.max(1, ticks.length - 1)) * Math.PI / 180;
+      return `<span class="tk" data-i="${i}" style="left:${59 + 54 * Math.sin(a)}px;top:${59 - 54 * Math.cos(a)}px">${tk}</span>`; }).join('') + '<img src="textures/knob.png" alt="">';
+    el.style.display = 'none'; el.after(w, out);
+    const get = () => sel ? el.selectedIndex : +el.value;
+    const draw = () => { const v = get(), p = (v - min) / ((max - min) || 1);
+      $('img', w).style.transform = `rotate(${-135 + 270 * p}deg)`;
+      out.textContent = sel ? (short[v] || el.options[v].text) : fmt.replace('{}', v);
+      w.setAttribute('aria-valuetext', out.textContent);
+      $$('.tk', w).forEach((x, i) => x.classList.toggle('on', Math.abs(i / Math.max(1, ticks.length - 1) - p) < .01)); };
+    const set = v => { v = Math.max(min, Math.min(max, Math.round(v / step) * step)); if (v === get()) return;
+      if (sel) el.selectedIndex = v; else el.value = v;
+      el.dispatchEvent(new Event('input', { bubbles: true })); el.dispatchEvent(new Event('change', { bubbles: true })); draw(); };
+    let y0 = null, v0 = 0;
+    w.addEventListener('pointerdown', e => { if (e.target.classList.contains('tk')) return; y0 = e.clientY; v0 = get(); w.setPointerCapture(e.pointerId); });
+    w.addEventListener('pointermove', e => { if (y0 === null) return; set(v0 + (y0 - e.clientY) / (sel ? 28 : 3) * (sel ? 1 : step)); });
+    w.addEventListener('pointerup', () => y0 = null);
+    w.addEventListener('keydown', e => { if (e.key === 'ArrowUp' || e.key === 'ArrowRight') set(get() + step); if (e.key === 'ArrowDown' || e.key === 'ArrowLeft') set(get() - step); });
+    $$('.tk', w).forEach(x => x.onclick = () => set(min + (max - min) * (+x.dataset.i) / Math.max(1, ticks.length - 1)));
+    draw();
+  },
+};

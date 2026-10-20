@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>BEESKOT Studio</title>
+<link rel="icon" href="look/beeskot.png">
+<!-- Le look : exactement la base de Dari Audio Live (base.css + dari-look.css), puis les ajouts BEESKOT -->
+<link rel="stylesheet" href="style/fonts.css">
+<link rel="stylesheet" href="style/base.css">
+<link rel="stylesheet" href="style/dari-look.css">
+<link rel="stylesheet" href="style/beeskot.css">
+</head>
+<body>
+<div class="app">
+  <header class="top">
+    <img class="patch" src="look/logo-beeskot-studio.png" alt="DARI · BEESKOT Studio">
+    <div class="sys" aria-label="État">
+      <button class="estop" id="btStop" title="Relancer, fermer, version"><img src="look/stop-patch.png" alt=""><span class="led" id="stopLed"></span><span class="plate">STOP</span></button>
+      <div class="sysgrid">
+        <span class="vfd"><b>DATE</b> <span id="syDate">—</span><em id="syHeure">·</em></span>
+        <span class="vfd"><b>DRIVE</b> <span id="syDrive">—</span><em id="syDriveD">·</em></span>
+        <span class="vfd"><b>PC</b> <span id="syPc">—</span><em>·</em></span>
+        <span class="vfd"><b>VERSION</b> <span id="syVer">—</span><em id="syMaj">·</em></span>
+      </div>
+    </div>
+  </header>
+  <div class="stripe" aria-hidden="true"></div>
+
+  <div class="rowm">
+    <div class="side">
+      <nav id="nav" aria-label="Sections"><!-- rempli par js/coeur.js à partir de modules/registre.js --></nav>
+    </div>
+    <main class="mainc" id="pages"><!-- une <section> par module --></main>
+  </div>
+</div>
+
+<!-- fenêtre du bouton STOP : relancer / fermer / version -->
+<div class="voile hidden" id="stopVoile">
+  <div class="stopbox" role="dialog" aria-label="Logiciel">
+    <span class="screw tl" style="--r:60deg"></span><span class="screw tr" style="--r:5deg"></span><span class="screw bl" style="--r:-30deg"></span><span class="screw br" style="--r:85deg"></span>
+    <img class="stopbox-patch" src="look/logo-beeskot-studio.png" alt="">
+    <div class="stopbox-ver"><span class="eng" style="font-size:9px">Version</span><span class="vfd" id="stVer">—</span></div>
+    <span class="nt" style="text-align:center;margin:0">Un logiciel de la suite DARI</span>
+    <div class="stopbox-btns">
+      <button class="btn warm" id="stRelancer">↻ Relancer</button>
+      <button class="btn" id="stFermer">✕ Fermer</button>
+    </div>
+    <button class="btn sm" id="stAnnuler">Annuler</button>
+  </div>
+</div>
+
+<!-- 1. le cœur (outils communs)  2. la liste des onglets  3. un fichier par onglet -->
+<script src="js/coeur.js"></script>
+<script src="js/donnees.js"></script>
+<script src="js/audio.js"></script>
+<script src="js/inventaire.js"></script>
+<script src="modules/registre.js"></script>
+<script src="modules/accueil.js"></script>
+<script src="modules/reglages.js"></script>
+<script src="modules/reels.js"></script>
+<script src="modules/biblio.js"></script>
+<script src="modules/agenda.js"></script>
+<script src="modules/taches.js"></script>
+<script src="modules/en-construction.js"></script>
+<script>BK.demarrer()</script>
+</body>
+</html>

@@ -1,0 +1,27 @@
+BEESKOT STUDIO - suite DARI - version 0.1 beta
+==============================================
+
+OU SE TROUVE QUOI
+- ui\index.html            : la coquille (bandeau, menu, pages)
+- ui\modules\registre.js   : LA LISTE DES ONGLETS (ajouter / renommer / cacher un onglet = ici)
+- ui\modules\*.js          : un fichier par onglet
+     accueil.js  biblio.js  reels.js  agenda.js  taches.js  reglages.js
+- ui\js\coeur.js           : outils communs (menu, pages, boutons rotatifs, bouton STOP)
+- ui\js\donnees.js         : lecture / ecriture des fiches dans le Drive BEESKOT
+- ui\js\inventaire.js      : fouille des dossiers (projets Ableton, exports)
+- ui\js\audio.js           : forme d'onde, vitesse (garder la note), export WAV 24 bits
+- ui\style\base.css + dari-look.css : copies EXACTES du look de Dari Audio Live (ne pas modifier)
+- ui\style\beeskot.css     : les ajouts propres a BEESKOT Studio (bois palissandre, tapis, onglets)
+- src-tauri\               : le petit moteur qui fait du tout un vrai .exe
+- .github\workflows\       : fabrication automatique du .exe + mises a jour (quand le GitHub BEESKOT existera)
+- installeur\              : installeur de TEST (fabrique sans GitHub)
+- sources\                 : originaux en grand (logo, tapis, bois)
+- cles\                    : cle secrete des mises a jour (NE JAMAIS PARTAGER, a mettre dans GitHub)
+
+DANS LE DRIVE BEESKOT (cree tout seul)
+  BEESKOT Studio\morceaux\      une fiche par morceau
+  BEESKOT Studio\evenements\    rendez-vous crees dans le logiciel
+  BEESKOT Studio\taches\        une tache par fichier
+  BEESKOT Studio\inventaires\   ce que chaque PC a trouve
+  BEESKOT Studio\Reels\         les WAV exportes par l'onglet Reels
+  BEESKOT Studio\corbeille\     rien n'est jamais efface : on range ici

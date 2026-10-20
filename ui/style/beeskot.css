@@ -1,0 +1,182 @@
+/* ===========================================================================
+   BEESKOT STUDIO — ajouts au look Dari Audio Live (posés PAR-DESSUS).
+   base.css et dari-look.css sont des copies : on ne les modifie pas ici.
+   =========================================================================== */
+
+/* ---------- bandeau : patch brodé DARI · BEESKOT Studio ---------- */
+.top{background:linear-gradient(180deg,rgba(14,7,3,.38),rgba(14,7,3,.55)),url(../look/bandeau-beeskot.jpg) left center/auto 100% repeat-x}
+.top .patch{height:82px;margin-top:2px;filter:drop-shadow(0 3px 3px rgba(0,0,0,.75)) drop-shadow(0 1px 0 rgba(255,235,200,.12))}
+/* bouton STOP : le rond pile au milieu du bandeau, l'étiquette STOP en dessous */
+.top .estop{height:52px}
+.top .estop .plate{position:absolute;top:54px;left:0;right:0;text-align:center}
+
+/* ---------- fenêtre du bouton STOP ---------- */
+.voile{position:fixed;inset:0;z-index:50;display:flex;align-items:center;justify-content:center;background:rgba(10,5,2,.62);backdrop-filter:blur(2px)}
+.stopbox{position:relative;width:380px;display:flex;flex-direction:column;align-items:center;gap:16px;padding:28px 30px 24px;border-radius:8px;
+  background:linear-gradient(180deg,rgba(255,255,255,.05),rgba(0,0,0,.25)),url(../look/plate.jpg) center/cover;
+  box-shadow:0 0 0 1px var(--laiton),inset 0 1px 0 rgba(255,255,255,.1),inset 0 0 30px rgba(0,0,0,.45),4px 18px 30px rgba(0,0,0,.65)}
+.stopbox-patch{width:260px;height:auto;filter:drop-shadow(0 4px 5px rgba(0,0,0,.6))}
+.stopbox-ver{display:flex;flex-direction:column;align-items:center;gap:5px}
+.stopbox-ver .vfd{font-size:18px;padding:7px 18px}
+.stopbox-btns{display:flex;gap:12px;width:100%}
+.stopbox-btns .btn{flex:1;justify-content:center}
+
+/* ---------- menu : titres de côté AUDIO / VISUEL / ORGANISATION ---------- */
+#nav .cote{display:flex;align-items:center;gap:8px;padding:8px 4px 0;font-size:10px}
+#nav .cote::after{content:"";flex:1;height:2px;border-radius:1px;opacity:.75}
+#nav .cote-audio::after{background:linear-gradient(90deg,var(--org),var(--mus))}
+#nav .cote-visuel::after{background:linear-gradient(90deg,var(--teal),var(--navy))}
+#nav .cote-outils::after{background:linear-gradient(90deg,var(--ox),var(--rust))}
+#nav .tab{height:56px}
+#nav .tab.mini{height:40px}
+#nav .tab.bientot .lab{opacity:.75}
+
+/* ---------- petits outils de mise en page ---------- */
+.ligne-titre{display:flex;align-items:center;gap:12px}
+.ligne-titre .dymo{margin-left:auto}
+
+/* ---------- Accueil : la semaine ---------- */
+.evts{display:flex;flex-direction:column;gap:8px;margin-top:12px}
+.evt{display:flex;align-items:center;gap:12px;padding:8px 10px;border-radius:5px;background:rgba(0,0,0,.18);box-shadow:inset 0 0 0 1px rgba(239,230,210,.08)}
+.evt .nchip{width:5px;height:34px;border-radius:3px;background:var(--c);flex:none}
+.evt-jour{font-size:15px;text-align:center;width:66px;line-height:1.05;padding:5px 6px}
+.evt-jour small{font-size:11px;opacity:.75}
+.evt-type{display:block;font-weight:600;font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:var(--ink)}
+
+/* ---------- Accueil : avancement (barre à 6 cases, une par étape) ---------- */
+.legende-l{margin-bottom:-8px}
+.legende{display:flex;gap:3px;padding:0 3px;font-weight:600;font-size:9px;letter-spacing:.12em;text-transform:uppercase;color:rgba(239,230,210,.5)}
+.legende span{text-align:center;white-space:nowrap;overflow:hidden}
+.avances{display:flex;flex-direction:column;gap:14px;margin-top:14px}
+.avance{display:flex;align-items:center;gap:14px}
+.avance-nom{width:120px;flex:none;font-weight:600;font-size:13px;letter-spacing:.06em;text-transform:uppercase;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.avance-piste{flex:1;min-width:0}
+.etapes{display:flex;gap:3px;height:16px;padding:3px;border-radius:4px;background:linear-gradient(180deg,#0a0604,#1b110a);box-shadow:inset 0 2px 5px rgba(0,0,0,.95),0 0 0 1px var(--laiton)}
+.seg-etape{position:relative;border-radius:2px;background:rgba(255,178,62,.1);overflow:hidden}
+.seg-etape i{position:absolute;left:0;top:0;bottom:0;background:linear-gradient(180deg,#ffd27a,#ffb23e 50%,#d98a16);box-shadow:0 0 6px rgba(255,160,40,.7)}
+.seg-etape.fait i{background:linear-gradient(180deg,#e9c46a,#c99a2e 55%,#9b7417);box-shadow:none;opacity:.9}
+.avance-etape{margin:5px 0 0;font-size:11px}
+.avance-pc{width:74px;text-align:right;font-size:15px;flex:none}
+
+/* ---------- Accueil : à surveiller / ajouts ---------- */
+.surv{display:flex;flex-direction:column;gap:10px;margin-top:12px}
+.surv-l{display:flex;align-items:center;gap:10px}
+.surv-l .led{margin:0}
+.ajout-q{font-size:11px;width:62px;text-align:center;padding:4px 6px;flex:none}
+
+/* ---------- Réglages : interrupteurs d'onglets ---------- */
+.interrupteurs{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:12px;margin-top:14px}
+.inter{display:flex;align-items:center;gap:10px;height:54px;padding:0 12px;border:0;border-radius:5px;cursor:pointer;text-align:left;font-family:inherit;color:var(--ink);
+  background:radial-gradient(ellipse 80% 60% at 35% 20%,rgba(255,255,255,.07),transparent 60%),linear-gradient(180deg,#2a221c,#120d09);
+  box-shadow:0 0 0 1px var(--laiton),0 4px 0 2px #160f09,0 7px 8px 2px rgba(0,0,0,.45),inset 0 1px 0 rgba(255,255,255,.1);transition:transform .07s}
+.inter .nchip{flex:none;width:5px;align-self:stretch;margin:10px 0;border-radius:3px;background:var(--c)}
+.inter .t{display:flex;flex-direction:column;gap:3px;min-width:0}
+.inter .lab{font-weight:600;font-size:12px;letter-spacing:.07em;text-transform:uppercase}
+.inter .nsub{font-size:10.5px;color:var(--ink2)}
+.inter:not(.on){opacity:.6}
+.inter:active{transform:translateY(2px)}
+
+/* ---------- page « en construction » ---------- */
+.chantier{align-items:center;justify-content:center;gap:18px}
+.chantier .dymo{font-size:22px!important}
+
+/* une seule lampe sur la touche active (celle de Dari Audio Live) */
+#nav .tab.on::after{display:none}
+
+/* bois propres à BEESKOT Studio (palissandre) — remplacent le noyer de Dari Audio Live */
+body{background:#24140c url(../look/bois-fond.jpg) center/cover fixed}
+#nav{background:url(../textures/bois-menu.jpg) 0 0/420px!important}
+
+/* ---------- Reels : forme d'onde + bloc du passage ---------- */
+.btn.rond{width:56px;height:56px;border-radius:50%!important;font-size:16px;justify-content:center;padding:0!important;flex:none}
+.onde{position:relative;flex:1;min-height:150px;margin-top:12px;border-radius:5px;overflow:hidden;cursor:crosshair;
+  background:linear-gradient(180deg,#0a0604,#1b110a);box-shadow:inset 0 3px 9px #000,0 0 0 1px var(--laiton)}
+.onde canvas{position:absolute;inset:0;display:block}
+.onde-vide{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;margin:0}
+.onde-bloc{position:absolute;top:0;bottom:0;cursor:grab;touch-action:none;
+  background:linear-gradient(180deg,rgba(47,115,119,.38),rgba(47,115,119,.22));box-shadow:inset 0 0 0 2px #5fd3ff,0 0 14px rgba(60,190,255,.35)}
+.onde-bloc:active{cursor:grabbing}
+.onde-bloc .poignee{position:absolute;top:0;bottom:0;width:10px;cursor:ew-resize;background:rgba(95,211,255,.55)}
+.onde-bloc .poignee.g{left:0}.onde-bloc .poignee.d{right:0}
+.bloc-txt{position:absolute;top:6px;left:50%;transform:translateX(-50%);font-family:'Share Tech Mono',monospace;font-size:12px;color:#bfefff;text-shadow:0 0 6px rgba(60,190,255,.9);white-space:nowrap;pointer-events:none}
+.onde-tete{position:absolute;top:0;bottom:0;width:2px;background:#ff5a3c;box-shadow:0 0 8px #ff5a3c;pointer-events:none}
+.regle{position:relative;height:16px;margin-top:4px;font:500 10px/16px 'Share Tech Mono',monospace;color:rgba(255,178,62,.7)}
+.regle span{position:absolute;top:0;padding-left:3px;border-left:1px solid rgba(168,135,78,.5)}
+.compteurs{display:flex;align-items:flex-end;gap:14px;margin-top:14px;flex-wrap:wrap}
+.compteurs>div{display:flex;flex-direction:column;gap:5px}
+.compteurs .eng{font-size:9px}
+.compteurs .vfd{font-size:15px;min-width:92px;text-align:center}
+.compteurs-btn{flex-direction:row!important;gap:8px!important;margin-left:auto}
+.compteurs-btn .btn{width:44px;justify-content:center;padding:0}
+.conseil{margin-top:4px!important}
+.conseil b,#reExplique b{color:var(--mus);font-weight:600}
+
+/* ---------- Bibliothèque : fiches à tiroirs ---------- */
+.bi-liste{flex:1;min-height:0;overflow:auto;display:flex;flex-direction:column;gap:10px;padding:2px 4px 8px 2px}
+.fiche{border-radius:6px;background:rgba(239,230,210,.04);box-shadow:inset 0 0 0 1px rgba(239,230,210,.14);flex:none}
+.fiche.ouverte{background:rgba(239,230,210,.06);box-shadow:inset 0 0 0 1px rgba(217,169,60,.45),0 6px 14px rgba(0,0,0,.35)}
+.fiche-tete{display:flex;align-items:center;gap:14px;width:100%;padding:12px 16px;border:0;background:none;color:var(--ink);cursor:pointer;font-family:inherit;text-align:left}
+.fiche-nom{font-weight:600;font-size:14px;letter-spacing:.07em;text-transform:uppercase;width:210px;flex:none;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.fiche-tete .dymo{flex:none}
+.mini-etapes{flex:1;display:flex;gap:2px;height:8px;padding:2px;border-radius:3px;background:#0a0604;box-shadow:inset 0 1px 3px #000,0 0 0 1px var(--laiton)}
+.mini-etapes i{border-radius:1px;background:rgba(255,178,62,.1)}
+.mini-etapes i.fait{background:#c99a2e}.mini-etapes i.encours{background:#ffb23e;box-shadow:0 0 5px rgba(255,160,40,.8)}
+.fiche-pc{font-size:13px;width:66px;text-align:right;flex:none}
+.fleche{color:var(--mus);width:12px;flex:none}
+.fiche-corps{padding:0 16px 14px;display:flex;flex-direction:column;gap:6px}
+.tiroir{border-top:1px solid rgba(168,135,78,.2)}
+.tiroir-tete{display:flex;align-items:center;gap:10px;width:100%;padding:9px 2px;border:0;background:none;color:var(--ink);cursor:pointer;font-family:inherit;text-align:left}
+.tiroir-tete .lb{width:150px;flex:none}
+.tiroir-resume{margin:0!important;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
+.tiroir-corps{padding:4px 0 12px 22px;display:flex;flex-direction:column;gap:6px}
+.ligne-f{display:flex;align-items:center;gap:10px;padding:5px 8px;border-radius:4px;background:rgba(0,0,0,.18)}
+.ligne-f.recent{box-shadow:inset 0 0 0 1px rgba(217,169,60,.5)}
+.etoile{color:var(--mus);width:12px;flex:none}
+.f-nom{flex:1;min-width:0;font-size:12px}
+.f-nom em{color:var(--ink2);font-style:normal}
+.f-meta{margin:0!important;font-size:11px;white-space:nowrap}
+.f-note{max-width:200px;min-height:28px!important;font-size:12px}
+.f-sel{max-width:220px;min-height:28px!important;font-size:12px}
+textarea.fld.paroles{min-height:180px;font-family:'Jost',sans-serif!important;color:var(--crm)!important;text-shadow:none;font-size:14px}
+.infos{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px}
+.infos label{display:flex;flex-direction:column;gap:5px}
+.infos .eng{font-size:9px}
+.etapes-clic{display:flex;gap:4px}
+.etape-b{flex:1;min-height:34px;border:0;border-radius:4px;cursor:pointer;font:600 10px Jost,sans-serif;letter-spacing:.1em;text-transform:uppercase;color:rgba(239,230,210,.6);
+  background:linear-gradient(180deg,#2e251d,#161009);box-shadow:0 0 0 1px rgba(168,135,78,.4),0 2px 0 #14100a}
+.etape-b.fait{color:#2a1c06;background:linear-gradient(180deg,#e9c46a,#b8891f)}
+.etape-b.encours{color:#ffd48e;box-shadow:0 0 0 2px #ffb23e,0 0 10px rgba(255,160,40,.5)}
+.fiche-actions{display:flex;gap:8px;justify-content:flex-end;margin-top:8px}
+.bi-dossiers{display:flex;flex-direction:column;gap:6px;margin-top:10px}
+.bi-dossiers .dos{display:flex;align-items:center;gap:8px}
+.bi-dossiers .mono{flex:1;font-size:11px;color:var(--ink2)}
+/* paroles en plein écran */
+.voile.plein{flex-direction:column;gap:18px;background:rgba(10,5,2,.94)}
+.plein-txt{max-width:900px;max-height:80vh;overflow:auto;text-align:center;display:flex;flex-direction:column;align-items:center;gap:22px}
+.plein-txt pre{margin:0;font:500 30px/1.5 Jost,sans-serif;color:var(--crm);white-space:pre-wrap}
+
+/* ---------- Calendrier ---------- */
+.cal{flex:1;min-height:0;display:grid;grid-template-columns:repeat(7,1fr);grid-template-rows:auto;grid-auto-rows:minmax(62px,1fr);gap:4px;margin-top:12px}
+.cal-j{text-align:center;font-weight:600;font-size:10px;letter-spacing:.16em;color:rgba(239,230,210,.5);align-self:end;padding-bottom:2px}
+.cal-c{position:relative;border-radius:4px;padding:4px 5px;background:rgba(0,0,0,.2);box-shadow:inset 0 0 0 1px rgba(239,230,210,.08);cursor:pointer;overflow:hidden;display:flex;flex-direction:column;gap:2px;min-height:62px}
+.cal-c:hover{box-shadow:inset 0 0 0 1px rgba(217,169,60,.5)}
+.cal-c.vide{background:none;box-shadow:none;cursor:default}
+.cal-c.auj{box-shadow:inset 0 0 0 2px #ffb23e,0 0 10px rgba(255,160,40,.25)}
+.cal-n{font-family:'Share Tech Mono',monospace;font-size:12px;color:#ffb23e}
+.cal-ev{font-size:10.5px;line-height:1.2;padding:2px 4px;border-radius:2px;background:color-mix(in srgb,var(--c) 45%,transparent);border-left:3px solid var(--c);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:var(--crm)}
+.cal-plus{margin:0!important;font-size:10px}
+.form-rdv{display:flex;flex-direction:column;gap:9px}
+.form-rdv label{display:flex;flex-direction:column;gap:4px}
+.form-rdv .eng{font-size:9px}
+.form-rdv .deux{display:flex;gap:8px}.form-rdv .deux label{flex:1}
+
+/* ---------- Tâches ---------- */
+.ta-colonnes{flex:1;min-height:0;overflow:auto;display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:14px;margin-top:12px;align-content:start}
+.ta-col{display:flex;flex-direction:column;gap:8px;padding:12px;border-radius:6px;background:rgba(239,230,210,.04);box-shadow:inset 0 0 0 1px rgba(239,230,210,.12)}
+.ta-col .dymo{align-self:flex-start;margin-bottom:4px}
+.ta-t{display:flex;align-items:flex-start;gap:10px;padding:8px;border-radius:4px;background:rgba(0,0,0,.2)}
+.ta-t.retard{box-shadow:inset 3px 0 0 #ff3b26}
+.ta-case{flex:none;width:22px;height:22px;border-radius:4px;border:0;cursor:pointer;font:700 13px Jost,sans-serif;color:#2a1c06;background:#0a0604;box-shadow:inset 0 1px 3px #000,0 0 0 1px var(--laiton)}
+.ta-case.on{background:linear-gradient(180deg,#e9c46a,#b8891f)}
+.ta-t>div{flex:1;min-width:0}
+.ta-x{margin-left:auto;opacity:.6}

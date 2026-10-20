@@ -1,0 +1,256 @@
+/* ===========================================================================
+   DARI AUDIO LIVE — nouveau look (console noyer, années 70) + agencement
+   « vitrine / réglages / barre » commun à toutes les pages.
+   Feuille posée PAR-DESSUS le style d'origine : index.html ne porte aucun style en dur.
+   Pour revenir en arrière : « Revenir a l ancien look.bat » (dans ce dossier).
+   Version 2 — la version 1 (habillage seul) est gardée à côté : dari-look_v1.css
+   =========================================================================== */
+
+@font-face{font-family:'Impact Label';src:url(../look/impact-label.ttf) format('truetype');font-display:block}
+
+:root{
+  --esp:#1d140e;--rust:#a8432a;--org:#d2722e;--mus:#d9a93c;--olv:#8a8a4a;--teal:#2f7377;--navy:#2a3f6a;--ox:#7a2430;--crm:#efe4cc;
+  --ink:#efe6d2;--ink2:#bfae92;--brass:#a8874e;--laiton:rgba(168,135,78,.5);
+  /* variables d'origine redéfinies : tout ce qui existe suit */
+  --muted:#b9a888;--cream:#efe4cc;--paper:#241a12;--paper2:#2c2017;--line:rgba(168,135,78,.45);--line2:rgba(168,135,78,.3);
+  --brown:#efe6d2;--brown2:#e4d8bf;--brown3:#d9a93c;--orange:#d2722e;--mustard:#d9a93c;--olive:#8a8a4a;--wine:#7a2430;--amber:#ffb23e;
+  --screw:radial-gradient(circle at 40% 35%,#8d8577 0,#6a6256 1.5px,#3b352c 4px,#241f19 5.5px,rgba(0,0,0,.5) 6.5px,transparent 7.5px)}
+
+/* ---------- le meuble ---------- */
+html,body{height:100%}
+body{margin:0;overflow:hidden;color:var(--ink);font-family:'Jost','Work Sans',system-ui,sans-serif;background:#2a1a10 url(../look/wood.jpg) center/cover fixed}
+.app{position:relative;height:100vh;display:flex;flex-direction:column}
+.app::before{content:"";position:absolute;inset:0;background:radial-gradient(130% 100% at 35% 0%,rgba(255,200,140,.06),rgba(8,4,0,.62));pointer-events:none}
+.app>*{position:relative;z-index:1}
+
+/* ---------- bandeau du haut : tapis + patch brodé + afficheurs ---------- */
+.top{height:88px;flex:none;display:flex;align-items:center;gap:16px;padding:0 26px;
+  background:linear-gradient(180deg,rgba(20,10,5,.22),rgba(20,10,5,.42)),url(../look/bandeau.jpg) center/auto 100%;
+  box-shadow:inset 0 -1px 0 rgba(255,235,190,.12),0 4px 10px rgba(0,0,0,.5)}
+.patch{height:62px;width:auto;display:block;filter:drop-shadow(0 3px 4px rgba(0,0,0,.55)) drop-shadow(0 1px 0 rgba(255,235,200,.15))}
+.sys{margin-left:auto;display:flex;align-items:center;gap:14px}
+.sysgrid{display:grid;grid-template-columns:1fr 1fr;gap:4px 6px}
+.sys .vfd{font-size:10px;padding:3px 8px;display:flex;align-items:center;gap:6px;min-width:150px;line-height:1.1}
+.sys .vfd b{font-weight:400;opacity:.7;letter-spacing:.06em}
+.sys .vfd em{font-style:normal;margin-left:auto;color:#5fd3ff;text-shadow:0 0 5px rgba(60,190,255,.6);white-space:nowrap}
+.gauge{display:inline-flex;gap:2px;vertical-align:-1px}
+.gauge i{display:block;width:4px;height:9px;background:rgba(255,178,62,.22);border-radius:1px}
+.gauge i.on{background:#ffb23e;box-shadow:0 0 4px rgba(255,160,40,.8)}
+.gauge i.me{background:#5fd3ff;box-shadow:0 0 5px rgba(60,190,255,.9)}
+/* bouton STOP PROCESSUS : simple rond rouge brodé, comme le patch DARI Audio Live */
+.estop{position:relative;width:64px;height:72px;border:0;background:none;padding:0;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:1px;font-family:inherit}
+.estop img{width:52px;height:52px;display:block;filter:drop-shadow(0 3px 3px rgba(0,0,0,.55)) drop-shadow(0 1px 0 rgba(255,235,200,.15));transition:transform .08s,filter .08s}
+.estop:hover img{transform:scale(1.04);filter:drop-shadow(0 4px 5px rgba(0,0,0,.6)) brightness(1.08)}
+.estop.pressed img,.estop:active img{transform:scale(.95) translateY(1px);filter:drop-shadow(0 1px 1px rgba(0,0,0,.6)) brightness(.95)}
+.estop .plate{font-family:'Barlow Condensed',Jost,sans-serif;font-weight:700;font-size:9px;letter-spacing:.18em;color:#efe2c4;text-shadow:0 1px 0 rgba(0,0,0,.7)}
+.estop .led{position:absolute;right:4px;top:2px;width:7px;height:7px;border-radius:50%;background:#3a2a1c;box-shadow:inset 0 1px 1px rgba(0,0,0,.7)}
+.estop .led.on{background:#ffb23e;box-shadow:0 0 6px #ffb23e,0 0 12px rgba(255,160,40,.6);animation:blink 1.2s infinite}
+@keyframes blink{50%{opacity:.35}}
+.stripe{height:16px;flex:none;background:linear-gradient(180deg,var(--ox) 0 4px,transparent 4px 6px,var(--org) 6px 10px,transparent 10px 12px,var(--mus) 12px 16px);box-shadow:0 3px 6px rgba(0,0,0,.45)}
+
+/* ---------- la rangée : menu + page ---------- */
+.rowm{flex:1;min-height:0;display:flex;align-items:stretch;gap:18px;padding:16px 18px 18px}
+.side{width:232px;flex:none;display:flex;flex-direction:column;min-height:0}
+.mainc{flex:1;min-width:0;min-height:0;display:flex;flex-direction:column;gap:14px}
+main{flex:1;min-height:0;display:flex;flex-direction:column}
+main>section{flex:1;min-height:0;display:flex;flex-direction:column;gap:16px;padding:0;background:none;box-shadow:none;border-radius:0}
+
+/* ---------- menu de gauche : plaque + touches ---------- */
+#nav{flex:1;min-height:0;border-radius:6px;padding:16px 14px 14px;display:flex;flex-direction:column;gap:10px;overflow:auto;
+  background:linear-gradient(180deg,rgba(255,255,255,.04),rgba(0,0,0,.22)),url(../look/plate.jpg) center/cover;
+  box-shadow:0 0 0 1px var(--laiton),inset 0 1px 0 rgba(255,255,255,.08),inset 0 0 30px rgba(0,0,0,.45),3px 10px 14px rgba(0,0,0,.55)}
+.eng{font-weight:600;font-size:10px;letter-spacing:.2em;text-transform:uppercase;line-height:1.25;color:var(--ink);text-shadow:0 1px 0 rgba(0,0,0,.7)}
+.tab{position:relative;display:flex;align-items:center;gap:11px;height:64px;flex:none;width:100%;padding:0 12px;border:0;border-radius:5px;cursor:pointer;text-align:left;
+  background:radial-gradient(ellipse 80% 60% at 35% 20%,rgba(255,255,255,.08),transparent 60%),linear-gradient(180deg,#2a221c,#120d09);
+  box-shadow:0 0 0 1px var(--laiton),0 5px 0 3px #160f09,0 8px 8px 3px rgba(0,0,0,.45),inset 0 1px 0 rgba(255,255,255,.1);color:var(--ink);transition:transform .07s;font-family:inherit}
+.tab.on{transform:translateY(3px);background:radial-gradient(ellipse at 50% 50%,rgba(255,170,60,.22),transparent 75%),linear-gradient(180deg,#3a2a1a,#1b130b);
+  box-shadow:0 0 0 2px #b8934f,0 0 0 3px #22180c,0 2px 0 3px #160f09,0 4px 4px 3px rgba(0,0,0,.45),inset 0 1px 0 rgba(255,220,160,.2)}
+.tab .t{display:flex;flex-direction:column;gap:4px;min-width:0;flex:1}
+.tab .lab{font-weight:600;font-size:12.5px;letter-spacing:.07em;text-transform:uppercase;line-height:1.1;text-shadow:0 1px 0 rgba(0,0,0,.6)}
+.tab.on .lab{color:#ffd48e;text-shadow:0 0 8px rgba(255,170,60,.55),0 1px 0 rgba(0,0,0,.5)}
+.tab .nsub{font-size:11px;color:var(--ink2);line-height:1.2;font-weight:500}
+.tab .nchip{flex:none;width:6px;align-self:stretch;margin:12px 0;border-radius:3px;background:var(--c,#777)}
+.tab.mini{height:42px}
+.tab.mini .lab{font-size:11px}
+.led{flex:none;width:11px;height:11px;border-radius:50%;background:radial-gradient(circle at 38% 32%,#5a4a38,#1e1812);box-shadow:inset 0 1px 1px rgba(0,0,0,.7),0 0 0 1px var(--laiton),1px 2px 2px 3px rgba(0,0,0,.3)}
+.led.amb{background:radial-gradient(circle at 40% 35%,#fff4c9,#ffb02e 45%,#c46a00);box-shadow:0 0 10px 3px rgba(255,170,40,.6),0 0 0 1px var(--laiton)}
+.led.grn{background:radial-gradient(circle at 40% 35%,#eaffdc,#55dd66 45%,#167f2a);box-shadow:0 0 10px 3px rgba(80,230,100,.5),0 0 0 1px var(--laiton)}
+.led.red{background:radial-gradient(circle at 40% 35%,#ffe3dc,#ff3b26 45%,#9a1308);box-shadow:0 0 10px 3px rgba(255,60,40,.55),0 0 0 1px var(--laiton)}
+.tab .led{margin-left:auto}
+.navfoot{margin-top:auto;display:flex;flex-direction:column;gap:10px;padding:6px 4px 0}
+.navfoot .bk{width:100%;height:auto;display:block;filter:drop-shadow(0 3px 4px rgba(0,0,0,.6))}
+.navfoot .st{display:flex;align-items:center;gap:10px}
+
+/* ---------- en-tête de page ---------- */
+.hdr{position:relative;height:78px;flex:none;border-radius:6px;display:flex;align-items:center;gap:20px;padding:0 34px 6px;overflow:hidden;
+  background:linear-gradient(180deg,rgba(255,255,255,.05),rgba(0,0,0,.2)),url(../look/plate.jpg) center/cover;
+  box-shadow:0 0 0 1px var(--laiton),inset 0 1px 0 rgba(255,255,255,.1),3px 10px 14px rgba(0,0,0,.55)}
+.hdr::after{content:"";position:absolute;left:0;right:0;bottom:0;height:6px;background:linear-gradient(90deg,var(--ox) 0 20%,var(--rust) 20% 40%,var(--org) 40% 60%,var(--mus) 60% 80%,var(--teal) 80%)}
+.hdr .sub{font-weight:600;font-size:10px;letter-spacing:.14em;text-transform:uppercase;line-height:1.5;max-width:380px;color:var(--ink);text-shadow:0 1px 0 rgba(0,0,0,.7);margin:0}
+.hdr .right{margin-left:auto;display:flex;align-items:center;gap:18px}
+.hdr .right>div{display:flex;flex-direction:column;gap:5px}
+.hdr .right .vfd{font-size:15px}
+.screw{position:absolute;width:12px;height:12px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#8c7b62 0,#4a3f32 35%,#1c1712 82%);box-shadow:1px 2px 2px rgba(0,0,0,.65),inset 0 0 0 1px rgba(0,0,0,.5)}
+.screw::after{content:"";position:absolute;left:2px;right:2px;top:5px;height:2px;border-radius:1px;background:#0c0906;box-shadow:0 1px 0 rgba(255,220,170,.18);transform:rotate(var(--r,20deg))}
+.screw.tl{top:7px;left:7px;padding:0;background:radial-gradient(circle at 35% 30%,#8c7b62 0,#4a3f32 35%,#1c1712 82%)}.screw.tr{top:7px;right:7px}.screw.bl{bottom:7px;left:7px}.screw.br{bottom:7px;right:7px}
+
+/* ---------- étiquettes Impact Label : blanc sur ruban noir ---------- */
+.h2,.dymo,.badge,.tl-name,.h1{font-family:'Impact Label',sans-serif!important;font-weight:400!important;letter-spacing:0!important;text-transform:uppercase;line-height:1!important;
+  color:#0d0907!important;background:#f4efe4!important;padding:0!important;border-radius:0!important;text-shadow:none!important;box-shadow:none!important;
+  filter:drop-shadow(1px 2px 1.5px rgba(0,0,0,.55));font-size:15px!important;display:inline-block;margin:0}
+.h1{font-size:30px!important;transform:rotate(-.9deg);margin:0 10px 0 0!important;flex:none}
+.h2{font-size:22px!important;transform:rotate(-.9deg)}
+.dymo.sm,.badge,.tl-name{font-size:12px!important}
+.dymo.red,.b-keep,.b-heavy,.b-manual,.b-source{background:#f4efe4!important;color:#0d0907!important}
+
+/* ---------- afficheurs ambre ---------- */
+.vfd{position:relative;font-family:'Share Tech Mono','DM Mono',monospace;background:linear-gradient(180deg,#0a0604,#1b110a);border-radius:4px;padding:7px 12px;color:#ffb23e;
+  text-shadow:0 0 7px rgba(255,160,40,.75),0 0 1px #ffd48a;box-shadow:inset 0 2px 6px rgba(0,0,0,.95),0 0 0 1px rgba(168,135,78,.35);letter-spacing:.06em;line-height:1.15;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.vfd.dim{color:rgba(255,178,62,.45);text-shadow:none}
+
+/* ---------- la grille des pages : vitrine / réglages / barre ---------- */
+.grid{flex:1;min-height:0;display:flex;flex-direction:column;gap:16px}
+.cols{flex:1;min-height:0;display:flex;gap:16px}
+.pane{position:relative;border-radius:6px;background:rgba(18,12,8,.55);box-shadow:0 0 0 1px var(--laiton),inset 0 1px 0 rgba(255,255,255,.05),inset 0 0 36px rgba(0,0,0,.4),3px 12px 16px rgba(0,0,0,.5)}
+.vit{flex:1;min-width:0;display:flex;flex-direction:column;gap:12px;padding:14px 16px;overflow:auto}
+.reg{width:330px;flex:none;display:flex;flex-direction:column;gap:12px;padding:14px 16px;overflow:auto}
+.abar{height:76px;flex:none;display:flex;align-items:center;gap:14px;padding:0 18px}
+.abar .right{margin-left:auto;display:flex;gap:12px;align-items:center}
+.abar .vfd{font-size:13px}
+.ptitle{display:block;font-weight:600;font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:rgba(239,230,210,.5);flex:none}
+.abar .ptitle{width:70px}
+.box{position:relative;border-radius:6px;padding:14px 16px;background:rgba(239,230,210,.04);box-shadow:inset 0 0 0 1px rgba(239,230,210,.14);flex:none}
+.box.grow{flex:1;min-height:0;display:flex;flex-direction:column}
+.box.pick{display:flex;align-items:center;gap:14px}
+.box.pick>div{flex:1;min-width:0}
+.lb{display:block;font-weight:600;font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:rgba(239,230,210,.85);margin:0}
+.nt{display:block;font-weight:500;font-size:12px;line-height:1.4;color:rgba(239,230,210,.55);margin:6px 0 0}
+.nt.mono,.mono{font-family:'Share Tech Mono','DM Mono',monospace;letter-spacing:.03em;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.kb{display:flex;flex-direction:column;align-items:center;gap:0;min-width:0}
+.kb .lb{font-size:9px;letter-spacing:.1em;text-align:center;margin-top:2px;white-space:nowrap}
+.kb .knob{zoom:.7}
+.kb .kval{font-size:11px;padding:3px 9px;margin-top:0}
+.kb.soon{opacity:.45}
+.knobs{display:flex;justify-content:space-between;gap:4px;margin-top:10px}
+.soon{opacity:.45;cursor:not-allowed!important}
+.soon::after{content:"bientôt";margin-left:8px;font-size:9px;letter-spacing:.14em;opacity:.8}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.posters{display:flex;align-items:center;gap:6px;height:210px;margin-top:10px}
+.poster{display:flex;align-items:flex-end;justify-content:center;border-radius:5px;padding:8px;cursor:pointer;overflow:hidden;color:var(--ink);flex:none;border:0;position:relative;background:#1a1109 center/cover no-repeat;box-shadow:inset 0 0 0 1px rgba(239,230,210,.22)}
+.poster.cur{box-shadow:0 0 0 1.5px #efe6d2,0 8px 16px rgba(0,0,0,.6)}
+.poster.side{opacity:.55;filter:saturate(.7)}
+.posters .arrow{height:44px}
+/* colonnes poster + nom : chaque nom centré pile sous son poster, sans chevauchement */
+.posters{height:236px;perspective:600px;justify-content:center;gap:5px;width:100%;overflow:hidden}
+.posters .arrow{width:24px;flex:none}
+.pcol{display:flex;flex-direction:column;align-items:center;gap:5px;flex:none}
+.pcol.cur{width:min(118px,40%)}
+.pcol.side{width:min(46px,15%)}
+.pcol .poster{flex:none;width:100%;height:186px}
+.pcol.side .poster{height:130px}
+.pcol .pn{flex:none;height:34px;display:flex;align-items:center;justify-content:center}
+.pn{display:block;text-align:center;font-weight:600;color:var(--ink);cursor:pointer;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;line-height:1.1}
+.pcol.cur .pn{font-size:13px;max-width:100%;white-space:normal;line-height:1.1}
+.pcol.side .pn{font-size:9px;font-weight:500;color:rgba(239,230,210,.6);max-width:130%;white-space:normal;line-height:1.15}
+@keyframes turnR{from{transform:rotateY(-55deg) scale(.8);opacity:.2}to{transform:none;opacity:1}}
+@keyframes turnL{from{transform:rotateY(55deg) scale(.8);opacity:.2}to{transform:none;opacity:1}}
+.turnR{animation:turnR .32s cubic-bezier(.2,.7,.3,1)}
+.turnL{animation:turnL .32s cubic-bezier(.2,.7,.3,1)}
+.arrow{width:28px;height:44px;padding:0!important;flex:none;min-height:0!important;justify-content:center}
+.frise{position:relative;height:54px;border-radius:4px;background:rgba(239,230,210,.08);box-shadow:inset 0 0 0 1px rgba(239,230,210,.2)}
+.wave{height:44px;border-radius:4px;background:repeating-linear-gradient(90deg,rgba(239,230,210,.18) 0 2px,transparent 2px 5px)}
+
+/* ---------- touches, puces, champs ---------- */
+.btn,.chip,.dec,.seg button{--c:#241c16;color:var(--ink)!important;background:linear-gradient(180deg,#2e251d,#161009)!important;border-radius:5px;
+  box-shadow:0 0 0 1px rgba(239,230,210,.5),inset 0 1px 0 rgba(255,255,255,.1),0 3px 0 #14100a,0 5px 9px rgba(0,0,0,.45)!important;
+  font-family:'Jost',sans-serif;font-weight:600;letter-spacing:.14em;text-transform:uppercase;font-size:12px!important;min-height:44px}
+.btn.pri{min-height:52px;padding:0 28px;font-size:13px!important;color:#241709!important;background:linear-gradient(180deg,#e0a43c,#b97c1c)!important;
+  box-shadow:0 0 0 1px #b8934f,inset 0 1px 0 rgba(255,245,210,.5),0 3px 0 #6e4a0e,0 6px 12px rgba(0,0,0,.5),0 0 16px rgba(255,170,40,.3)!important}
+.btn.warm{background:linear-gradient(180deg,#c9682c,#8e4318)!important;color:#fff1dc!important}
+.btn.sm{min-height:32px;padding:0 12px;font-size:10.5px!important;letter-spacing:.1em}
+.btn.xs{min-height:24px;padding:0 8px;font-size:9.5px!important;letter-spacing:.08em}
+.chip{min-height:32px;padding:0 12px;font-size:10.5px!important}
+.chip.on,.seg button.on,.btn.on{background:linear-gradient(180deg,#8a4426,#5d2a13)!important;color:#ffe6c8!important;box-shadow:0 0 0 2px #b8934f,inset 0 2px 5px rgba(0,0,0,.4)!important}
+.dec{min-height:30px}
+.dec.k{background:linear-gradient(180deg,#5c7a3e,#3a5227)!important;color:#f0f6dd!important}
+.dec.r{background:linear-gradient(180deg,#8d2b36,#5a1420)!important;color:#ffe2e2!important}
+.dec.m{background:linear-gradient(180deg,#c99a2e,#8d6713)!important;color:#2a1c06!important}
+.seg{background:#140d08!important;box-shadow:inset 0 2px 7px #000,0 0 0 1px var(--laiton)!important;border-radius:7px;padding:5px;gap:5px}
+.seg button{min-height:34px}
+.btn:active,.chip:active,.seg button:active{transform:translateY(2px)}
+.btn[disabled]{opacity:.5}
+.fld{background:linear-gradient(180deg,#0a0604,#1b110a)!important;color:#ffb23e!important;border:0!important;box-shadow:inset 0 2px 6px rgba(0,0,0,.95),0 0 0 1px var(--laiton)!important;
+  font-family:'Share Tech Mono','DM Mono',monospace!important;text-shadow:0 0 6px rgba(255,160,40,.5);border-radius:4px;min-height:36px}
+.fld:focus{box-shadow:inset 0 2px 6px rgba(0,0,0,.95),0 0 0 2px var(--mus)!important}
+.fld::placeholder{color:rgba(255,178,62,.4)}
+select.fld option{background:#1b110a;color:#ffb23e}
+textarea.fld{min-height:84px;padding:10px 12px;resize:vertical;line-height:1.4}
+
+/* ---------- modules et textes d'origine ---------- */
+.card,.note,.tray{background:linear-gradient(180deg,rgba(239,230,210,.055),rgba(0,0,0,.26))!important;border:0!important;color:var(--ink)!important;border-radius:6px;
+  box-shadow:0 0 0 1px rgba(239,230,210,.14),inset 0 1px 0 rgba(255,255,255,.05)!important}
+.lbl{color:var(--mus)!important;text-shadow:0 1px 0 rgba(0,0,0,.5)!important;font-family:'Jost',sans-serif;letter-spacing:.16em}
+.sub,.note{color:#c9b89a!important}
+.num{color:var(--mus)}
+.row.r{border-top-color:rgba(168,135,78,.22)!important}
+.ok{background:rgba(90,130,70,.18)!important;color:#d5e8bd!important;box-shadow:inset 0 0 0 1px rgba(140,190,110,.4)!important}
+.err{background:rgba(150,50,35,.2)!important;color:#ffd2c0!important;box-shadow:inset 0 0 0 1px rgba(220,120,90,.45)!important}
+#liveBanner,#updBanner{flex:none;margin:0;background:rgba(224,164,60,.14)!important;border-color:var(--mus)!important;color:var(--crm)!important;border-radius:6px}
+#liveBanner span,#updBanner span{color:#c9b89a!important}
+#updBanner{background:rgba(90,130,70,.18)!important;border-color:rgba(140,190,110,.5)!important}
+
+/* ---------- écrans, voyants, frises, Stream Deck ---------- */
+.glass,.tl{box-shadow:inset 0 3px 9px #000,inset 0 0 0 1px #000,0 0 0 1px var(--laiton)!important}
+.lamp{box-shadow:0 0 0 3px #22180c,0 0 0 4px rgba(168,135,78,.6),0 0 12px var(--l)!important}
+.lamp.off{box-shadow:0 0 0 3px #22180c,0 0 0 4px rgba(168,135,78,.4)!important}
+.bar{box-shadow:inset 0 1px 3px #000,0 0 0 1px var(--laiton)!important}
+.knob .tk{color:#b9a888!important}
+.knob .tk.on{color:var(--mus)!important}
+.cell{box-shadow:inset 0 0 0 1px rgba(0,0,0,.4)}
+input[type=range],input[type=checkbox]{accent-color:var(--mus)}
+#sdDeck{background:#1a1613!important;box-shadow:inset 0 1px 0 rgba(255,255,255,.08),0 0 0 1px var(--laiton),0 10px 22px rgba(0,0,0,.5)!important}
+#sdDeck .eng{color:#8f8779}
+.scroll{max-height:none}
+::-webkit-scrollbar{width:10px;height:10px}
+::-webkit-scrollbar-thumb{background:rgba(168,135,78,.35);border-radius:5px}
+::-webkit-scrollbar-track{background:rgba(0,0,0,.25)}
+
+/* glisser-déposer : la zone « Charger » de la page s'allume */
+body.dropping main>section:not(.hidden) .box.pick{box-shadow:inset 0 0 0 2px var(--mus),0 0 18px rgba(217,169,60,.45)}
+body.dropping main>section:not(.hidden) .box.pick::after{content:"Lâche ton fichier ici";position:absolute;right:14px;bottom:8px;font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--mus)}
+
+/* colonne Réglages : une boîte ne se tasse jamais sous son contenu (la colonne défile à la place) */
+.reg>.box{flex-shrink:0}
+.reg>.box.grow{flex:1 0 auto;min-height:auto}
+
+/* une fenêtre « Choisir un fichier » est ouverte : on le dit, et on grise les boutons Charger */
+body.picking .btn{pointer-events:none;opacity:.6}
+body.picking::after{content:"Une fenêtre « Choisir un fichier » est ouverte (regarde derrière ou dans la barre des tâches)";position:fixed;left:50%;bottom:18px;transform:translateX(-50%);background:#2a1d12;color:#F1E2BC;border:1px solid #d9a93c;padding:8px 14px;border-radius:6px;font-size:13px;z-index:99}
+
+/* ---- vue DAW (Composition) */
+.daw{position:relative;flex:1;min-height:120px;max-height:380px;overflow-y:auto;overflow-x:hidden;border-radius:6px;background:#1a110a;box-shadow:inset 0 0 0 1px rgba(241,226,188,.14)}
+.daw .druler,.daw .drow{display:flex;align-items:stretch;border-bottom:1px solid rgba(241,226,188,.08)}
+.daw .druler{position:sticky;top:0;z-index:2;background:#1e140c}
+.daw .dname{width:150px;flex:none;display:flex;align-items:center;gap:6px;padding:0 8px;cursor:pointer;background:#2a1d12;border-right:1px solid rgba(241,226,188,.14)}
+.daw .drow.sel .dname{background:#5a3418;box-shadow:inset 3px 0 0 #FF8A3D}
+.daw .drow.off{opacity:.45}
+.daw .dlane{flex:1;overflow-x:auto;overflow-y:hidden;scrollbar-width:thin}
+.daw .dlane canvas{display:block}
+.daw .dbtn{width:20px;height:20px;border-radius:4px;border:0;background:rgba(241,226,188,.12);color:#F1E2BC;font:600 10px Jost,sans-serif;cursor:pointer;flex:none}
+.daw .dbtn.on{background:#d9a93c;color:#1a110a}
+.daw .dot{width:8px;height:8px;border-radius:50%;flex:none}
+/* ---- bouton qui travaille : petite roue */
+.spin{display:inline-block;width:12px;height:12px;border:2px solid rgba(241,226,188,.35);border-top-color:#F1E2BC;border-radius:50%;margin-right:8px;vertical-align:-2px;animation:spin .9s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.btn.busy,.chip.busy{opacity:1!important}
+
+/* petit lecteur par morceau (Référence ▸ Dans ta banque) */
+.mini{height:8px;margin-top:6px;border-radius:4px;background:#0f0a06;box-shadow:inset 0 0 0 1px rgba(241,226,188,.18);cursor:pointer;overflow:hidden}
+.mini .fill{height:100%;width:0;background:linear-gradient(90deg,#d9a93c,#FF8A3D);box-shadow:0 0 6px rgba(255,160,40,.6)}
+
+.sw{display:inline-block;width:10px;height:10px;border-radius:2px;vertical-align:-1px;margin-right:4px}
+#inAnBox #inCtxInfo{color:#5fd3ff}
+
+/* tête de lecture de la vue DAW : bien visible, avec un petit triangle */
+.daw .dhead{position:absolute;top:0;bottom:0;width:2px;background:#ff5a3c;box-shadow:0 0 8px #ff5a3c,0 0 2px #fff;pointer-events:none;z-index:4}
+.daw .dhead::before{content:"";position:absolute;top:0;left:-6px;border:7px solid transparent;border-top:9px solid #ff5a3c;border-bottom:0}

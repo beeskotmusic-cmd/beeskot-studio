@@ -1,0 +1,37 @@
+# Fabrique l'installeur Windows et publie la mise à jour.
+# Se lance tout seul quand on publie une nouvelle version (étiquette « v0.2.0 », etc.).
+name: Fabriquer BEESKOT Studio
+
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri
+      - run: npm ci
+      - uses: tauri-apps/tauri-action@v0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ''
+        with:
+          tagName: ${{ github.ref_name }}
+          releaseName: 'BEESKOT Studio ${{ github.ref_name }}'
+          releaseBody: 'Nouvelle version de BEESKOT Studio.'
+          releaseDraft: false
+          prerelease: false
+          updaterJsonPreferNsis: true

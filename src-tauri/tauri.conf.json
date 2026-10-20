@@ -1,0 +1,67 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "productName": "BEESKOT Studio",
+  "version": "0.1.0",
+  "identifier": "com.dari.beeskot-studio",
+  "build": {
+    "frontendDist": "../ui"
+  },
+  "app": {
+    "withGlobalTauri": true,
+    "windows": [
+      {
+        "label": "main",
+        "title": "BEESKOT Studio",
+        "width": 1600,
+        "height": 960,
+        "minWidth": 1200,
+        "minHeight": 760,
+        "center": true,
+        "backgroundColor": "#1d140e",
+        "dragDropEnabled": false
+      }
+    ],
+    "security": {
+      "csp": null
+    }
+  },
+  "bundle": {
+    "active": true,
+    "targets": [
+      "nsis"
+    ],
+    "icon": [
+      "icons/32x32.png",
+      "icons/128x128.png",
+      "icons/128x128@2x.png",
+      "icons/icon.ico"
+    ],
+    "publisher": "DARI",
+    "copyright": "DARI",
+    "shortDescription": "BEESKOT Studio",
+    "createUpdaterArtifacts": true,
+    "windows": {
+      "webviewInstallMode": {
+        "type": "downloadBootstrapper"
+      },
+      "nsis": {
+        "installMode": "currentUser",
+        "languages": [
+          "French"
+        ],
+        "displayLanguageSelector": false
+      }
+    }
+  },
+  "plugins": {
+    "updater": {
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDVCM0VFNzczNEMxMDdBQTMKUldTamVoQk1jK2MrVytxVlJKN0Z1dHJvbkNBa1JsdmJzcTRPMzQrb25VRWFXRHJ3N3NVeHdETkYK",
+      "endpoints": [
+        "https://github.com/beeskotmusic-cmd/beeskot-studio./releases/latest/download/latest.json"
+      ],
+      "windows": {
+        "installMode": "passive"
+      }
+    }
+  }
+}
