@@ -26,10 +26,7 @@ BK.module('reglages', function (page) {
         <div class="box"><span class="lb">Ableton Live</span>
           <span class="nt">Installe le petit pont BEESKOT dans Ableton (une fois par PC).</span>
           <div class="chips" style="margin-top:10px"><button class="chip" id="rgAbleton">Relier Ableton…</button></div></div>
-        <div class="box"><span class="lb">Drive BEESKOT</span>
-          <span class="nt">Le dossier Google Drive du groupe sur ce PC. Le logiciel y range ses fiches dans un sous-dossier « BEESKOT Studio » (tes fichiers existants ne sont pas touchés).</span>
-          <span class="vfd" id="rgDrive" style="display:block;margin-top:10px;font-size:11px">${BK.reglage('drive', '') || 'AUCUN DOSSIER'}</span>
-          <div class="chips" style="margin-top:10px"><button class="chip" id="rgDriveBtn">Choisir le dossier…</button></div></div>
+        <div class="box"><span class="lb">Drive BEESKOT</span><div id="rgDriveZone"></div></div>
       </section>
     </div>
     <div class="pane abar"><span class="ptitle">③ Barre</span><span class="vfd" id="rgMsg">PRÊT</span></div>`;
@@ -42,13 +39,33 @@ BK.module('reglages', function (page) {
     $('#rgMsg', page).textContent = (o.titre + (v ? ' AFFICHÉ' : ' CACHÉ')).toUpperCase();
   });
   $('#rgNom', page).onchange = e => { BK.regler('nomPc', e.target.value.trim()); $('#syPc').textContent = (e.target.value.trim() || 'CE PC').toUpperCase(); };
-  $('#rgDriveBtn', page).onclick = async () => {
-    if (!BK.estExe) { $('#rgMsg', page).textContent = 'DISPONIBLE DANS LE LOGICIEL INSTALLÉ'; return; }
-    const d = await BK.fichier.choisirDossier('Dossier Google Drive BEESKOT');
-    if (!d) return;
-    BK.regler('drive', d); await BK.fichier.creerDossier(BK.db.racine());
-    $('#rgDrive', page).textContent = d; BK.etatDrive(); $('#rgMsg', page).textContent = 'DRIVE RELIÉ';
-  };
+  // ---------- Drive : 3 états (rien / fichier client importé / relié) ----------
+  const rmsg = t => $('#rgMsg', page).textContent = String(t).toUpperCase();
+  function zoneDrive() {
+    const c = BK.drive.conf(), z = $('#rgDriveZone', page);
+    if (!BK.estExe) { z.innerHTML = '<span class="nt">Disponible dans le logiciel installé.</span>'; return; }
+    if (BK.drive.relie()) z.innerHTML = `<span class="nt">✅ Relié. Les fiches sont partagées avec tous les PC (dossier « BEESKOT Studio » du Drive).</span>
+      <div class="chips" style="margin-top:10px"><button class="chip" data-d="carte">Fabriquer la carte d'accès…</button><button class="chip" data-d="sync">↻ Relire le Drive</button><button class="chip" data-d="off">Déconnecter</button></div>
+      <span class="nt">La carte d'accès sert à relier les autres PC sans mot de passe. Ne l'envoie qu'aux membres.</span>`;
+    else z.innerHTML = `<span class="nt"><b>Chez Yacine (1 fois)</b> : importe le fichier client Google, puis connecte-toi.<br><b>Autres PC</b> : importe la carte d'accès.</span>
+      <div class="chips" style="margin-top:10px">
+        <button class="chip" data-d="client">${c && c.client_id ? '✓ Fichier client importé' : '1. Importer le fichier client…'}</button>
+        <button class="chip" data-d="connecter" ${c && c.client_id ? '' : 'disabled'}>2. Se connecter au Drive</button></div>
+      <div class="chips" style="margin-top:8px"><button class="chip" data-d="importer">Importer une carte d'accès…</button></div>`;
+    $$('[data-d]', z).forEach(b => b.onclick = async () => {
+      const a = b.dataset.d;
+      try {
+        if (a === 'client') { if (await BK.drive.importerClient()) rmsg('Fichier client importé'); }
+        if (a === 'connecter') { rmsg('Autorise BEESKOT Studio dans la page Google…'); await BK.drive.connecter(); rmsg('Drive relié'); BK.synchro(); }
+        if (a === 'importer') { if (await BK.drive.importerCarte()) { rmsg('Drive relié avec la carte'); BK.synchro(); } }
+        if (a === 'carte') { const p = await BK.drive.exporterCarte(); if (p) rmsg('Carte enregistrée'); }
+        if (a === 'sync') { rmsg('Lecture du Drive…'); await BK.synchro(); rmsg('Drive relu'); }
+        if (a === 'off') { if (confirm('Déconnecter ce PC du Drive BEESKOT ? (rien n\'est effacé)')) { BK.drive.deconnecter(); rmsg('Déconnecté'); } }
+      } catch (e) { rmsg(e.message || 'Erreur'); }
+      zoneDrive(); BK.etatDrive();
+    });
+  }
+  zoneDrive();
   $('#rgAbleton', page).onclick = async () => {
     if (!BK.estExe) { $('#rgMsg', page).textContent = 'DISPONIBLE DANS LE LOGICIEL INSTALLÉ'; return; }
     try { const d = await BK.ableton.installerPont(); if (d) BK.ableton.fenetre(d); } catch (e) { $('#rgMsg', page).textContent = 'INSTALLATION IMPOSSIBLE'; }

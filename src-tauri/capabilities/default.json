@@ -57,6 +57,9 @@
         },
         {
           "url": "https://*.googleusercontent.com/*"
+        },
+        {
+          "url": "https://*.googleapis.com/*"
         }
       ]
     }

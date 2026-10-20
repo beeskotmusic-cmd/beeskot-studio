@@ -7,7 +7,7 @@ const $ = (s, r = document) => r.querySelector(s);
 const $$ = (s, r = document) => [...r.querySelectorAll(s)];
 
 const BK = {
-  version: '0.2.1 bêta',
+  version: '0.3.0 bêta',
   modules: {},
   onglets: [],
   cotes: [],
@@ -141,7 +141,8 @@ const BK = {
     document.documentElement.style.zoom = BK.reglage('zoom', 100) / 100;
     BK.ouvrir(BK.reglage('dernierOnglet', 'accueil'));
     setTimeout(BK.verifierMaj, 3000);
-    BK.ableton && BK.ableton.surveiller();              // quelques secondes après l'ouverture, sans gêner
+    BK.ableton && BK.ableton.surveiller();
+    setInterval(() => BK.synchro && BK.synchro(), 60000);          // partage avec les autres PC : toutes les minutes              // quelques secondes après l'ouverture, sans gêner
   },
 
   // ---------- boutons rotatifs (repris tel quel de Dari Audio Live) ----------

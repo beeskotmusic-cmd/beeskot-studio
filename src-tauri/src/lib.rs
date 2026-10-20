@@ -62,6 +62,75 @@ async fn zipper(dossier: String, destination: String) -> Result<u64, String> {
         .map_err(|e| e.to_string())?
 }
 
+// ---------- connexion Google : on attend le retour du navigateur sur ce PC (127.0.0.1) ----------
+static ECOUTE: std::sync::Mutex<Option<std::net::TcpListener>> = std::sync::Mutex::new(None);
+
+#[tauri::command]
+fn oauth_port() -> Result<u16, String> {
+    let l = std::net::TcpListener::bind("127.0.0.1:0").map_err(|e| e.to_string())?;
+    let port = l.local_addr().map_err(|e| e.to_string())?.port();
+    *ECOUTE.lock().unwrap() = Some(l);
+    Ok(port)
+}
+
+#[tauri::command]
+async fn oauth_code() -> Result<String, String> {
+    let l = ECOUTE.lock().unwrap().take().ok_or("pas d'écoute")?;
+    tauri::async_runtime::spawn_blocking(move || {
+        l.set_nonblocking(false).ok();
+        let (mut s, _) = l.accept().map_err(|e| e.to_string())?;
+        s.set_read_timeout(Some(Duration::from_secs(10))).ok();
+        let mut ligne = String::new();
+        BufReader::new(s.try_clone().map_err(|e| e.to_string())?).read_line(&mut ligne).map_err(|e| e.to_string())?;
+        let page = "<html><body style='background:#1d140e;color:#efe4cc;font-family:sans-serif;text-align:center;padding-top:80px'><h2>BEESKOT Studio est relié au Drive ✅</h2><p>Tu peux fermer cette page.</p></body></html>";
+        let _ = s.write_all(format!("HTTP/1.1 200 OK\r\nContent-Type: text/html; charset=utf-8\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{}", page.len(), page).as_bytes());
+        // ligne = "GET /?code=...&scope=... HTTP/1.1"
+        let chemin = ligne.split_whitespace().nth(1).unwrap_or("");
+        let q = chemin.splitn(2, '?').nth(1).unwrap_or("");
+        for kv in q.split('&') {
+            let mut it = kv.splitn(2, '=');
+            if it.next() == Some("code") { return Ok(it.next().unwrap_or("").to_string()); }
+        }
+        Err("Google n'a pas donné d'autorisation".to_string())
+    }).await.map_err(|e| e.to_string())?
+}
+
+// ---------- envoyer un gros fichier (zip…) dans le Drive, par morceaux de 8 Mo, sans tout charger en mémoire ----------
+#[tauri::command]
+async fn drive_envoyer(chemin: String, nom: String, dossier: String, jeton: String) -> Result<String, String> {
+    tauri::async_runtime::spawn_blocking(move || {
+        use std::io::Read;
+        let taille = std::fs::metadata(&chemin).map_err(|e| e.to_string())?.len();
+        let meta = format!("{{\"name\":{},\"parents\":[\"{}\"]}}", serde_json::to_string(&nom).unwrap(), dossier);
+        let r = ureq::post("https://www.googleapis.com/upload/drive/v3/files?uploadType=resumable&fields=id,webViewLink")
+            .set("Authorization", &format!("Bearer {jeton}"))
+            .set("Content-Type", "application/json; charset=UTF-8")
+            .set("X-Upload-Content-Length", &taille.to_string())
+            .send_string(&meta).map_err(|e| format!("Drive : {e}"))?;
+        let url = r.header("Location").ok_or("Drive : pas d'adresse d'envoi")?.to_string();
+        let mut f = std::fs::File::open(&chemin).map_err(|e| e.to_string())?;
+        const BLOC: usize = 8 * 1024 * 1024;
+        let mut buf = vec![0u8; BLOC];
+        let mut envoye: u64 = 0;
+        loop {
+            let mut n = 0;
+            while n < BLOC { let k = f.read(&mut buf[n..]).map_err(|e| e.to_string())?; if k == 0 { break; } n += k; }
+            if n == 0 && envoye > 0 { break; }
+            let fin = envoye + n as u64;
+            let plage = if taille == 0 { "bytes */0".to_string() } else { format!("bytes {}-{}/{}", envoye, fin - 1, taille) };
+            let rep = ureq::put(&url).set("Content-Range", &plage).send_bytes(&buf[..n]);
+            match rep {
+                Ok(r) => { return Ok(r.into_string().unwrap_or_default()); }             // 200/201 : terminé
+                Err(ureq::Error::Status(308, _)) => { envoye = fin; }                      // morceau reçu, on continue
+                Err(e) => return Err(format!("Drive : {e}")),
+            }
+            std::thread::sleep(Duration::from_millis(20));                                   // laisser respirer le PC
+            if envoye >= taille { break; }
+        }
+        Err("Envoi interrompu".to_string())
+    }).await.map_err(|e| e.to_string())?
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
@@ -71,7 +140,7 @@ pub fn run() {
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_http::init())
         .plugin(tauri_plugin_updater::Builder::new().build())
-        .invoke_handler(tauri::generate_handler![ableton, zipper])
+        .invoke_handler(tauri::generate_handler![ableton, zipper, oauth_port, oauth_code, drive_envoyer])
         .run(tauri::generate_context!())
         .expect("BEESKOT Studio n'a pas pu démarrer");
 }

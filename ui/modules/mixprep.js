@@ -179,7 +179,19 @@ BK.module('mixprep', function (page) {
       <div class="box"><span class="lb">Zip</span>
         <span class="nt">Le zip est créé à côté du dossier du projet : <span class="mono">${esc(propre(M.morceau) || 'MORCEAU')}_MIX_${new Date().toISOString().slice(0, 10)}.zip</span>. Le PC reste utilisable pendant ce temps.</span>
         <button class="btn pri" id="mpZip" style="margin-top:10px;align-self:flex-start">Zipper le projet ▶</button></div>
-      <div class="box"><span class="lb">Envoi dans le Drive BEESKOT</span><span class="nt">Arrive avec la connexion Drive (version 0.3.0) : le zip sera déposé dans le Drive et relié à la fiche du morceau.</span></div>`;
+      <div class="box"><span class="lb">Envoi dans le Drive BEESKOT</span>
+        <span class="nt">${BK.drive.relie() ? (M.zip ? `Prêt à envoyer : <span class="mono">${esc(M.zip.split(/[\\/]/).pop())}</span> → Drive › BEESKOT Studio › Mixages` : 'Fais d\'abord le zip.') : 'Relie d\'abord le Drive (Réglages).'}</span>
+        <button class="btn" id="mpEnvoi" style="margin-top:10px;align-self:flex-start" ${BK.drive.relie() && M.zip ? '' : 'disabled'}>Envoyer dans le Drive ▶</button></div>`;
+    $('#mpEnvoi').onclick = async () => {
+      const b = $('#mpEnvoi'); b.disabled = true; b.innerHTML = '<span class="spin"></span>Envoi…'; msg('Envoi dans le Drive (le PC reste utilisable)');
+      try {
+        const nom = M.zip.split(/[\\/]/).pop(), r = await BK.drive.envoyerFichier(M.zip, nom, 'Mixages');
+        const fiche = (await BK.db.liste('morceaux')).find(x => BK.inv.normaliser(x.nom) === BK.inv.normaliser(M.morceau));
+        if (fiche && r.webViewLink) { (fiche.liens = fiche.liens || []).push({ titre: 'Mixage · ' + nom, url: r.webViewLink }); await BK.db.ecrire('morceaux', fiche); }
+        msg('Envoyé dans le Drive' + (fiche ? ' et relié à la fiche ' + fiche.nom : ''));
+      } catch (e) { msg('Envoi impossible : ' + e); }
+      b.disabled = false; b.textContent = 'Envoyer dans le Drive ▶';
+    };
     $('#mpRass').onclick = () => { M.rassemble = !M.rassemble; etape5(); };
     $('#mpZip').onclick = async () => {
       if (!BK.estExe) return msg('Disponible dans le logiciel installé');
@@ -189,7 +201,7 @@ BK.module('mixprep', function (page) {
       const parent = dos.replace(/[\\/][^\\/]+$/, ''); let dest = BK.chemin(parent, nom), n = 2;
       while (await BK.fichier.existe(dest)) dest = BK.chemin(parent, nom.replace('.zip', ` (${n++}).zip`));   // ne jamais écraser
       const b = $('#mpZip'); b.disabled = true; b.innerHTML = '<span class="spin"></span>Zip en cours…'; msg('Zip en cours (le PC reste utilisable)');
-      try { const o = await BK.T.core.invoke('zipper', { dossier: dos, destination: dest }); msg(`Zip prêt : ${dest.split(/[\\/]/).pop()} (${(o / 1e6).toFixed(0)} Mo)`); }
+      try { const o = await BK.T.core.invoke('zipper', { dossier: dos, destination: dest }); M.zip = dest; etape5(); msg(`Zip prêt : ${dest.split(/[\\/]/).pop()} (${(o / 1e6).toFixed(0)} Mo)`); }
       catch (e) { msg('Zip impossible : ' + e); }
       b.disabled = false; b.textContent = 'Zipper le projet ▶';
     };

@@ -65,6 +65,29 @@ BK.module('biblio', function (page) {
     const l = (B.vue === 'sorti' ? S : C).filter(m => !f || BK.inv.normaliser(m.nom).includes(f)).sort((a, b) => (b.maj || '').localeCompare(a.maj || ''));
     liste.innerHTML = l.length ? l.map(fiche).join('') : `<span class="nt" style="padding:20px">${B.vue === 'sorti' ? 'Aucun morceau sorti pour l\'instant.' : 'Aucun morceau en chantier. Crée une fiche à droite, ou lance « Scanner ce PC ».'}</span>`;
     brancherFiches();
+    remplirDrive();
+  }
+
+  // ---------- fichiers du Drive qui parlent de ce morceau (ex. zips du bot Discord) ----------
+  const trouves = {};
+  async function remplirDrive() {
+    for (const el of $$('.drive-res', page)) {
+      const m = B.morceaux.find(x => x.id === el.dataset.m); if (!m) continue;
+      try {
+        if (!trouves[m.id]) {
+          const mots = BK.inv.normaliser(m.nom).split(' ').sort((a, b) => b.length - a.length);
+          const l = await BK.drive.chercher([mots[0] || m.nom]);
+          trouves[m.id] = l.filter(f => BK.inv.trouverMorceau(f.name, [m]) === m && !/\.json$/.test(f.name));
+        }
+        const l = trouves[m.id];
+        el.innerHTML = l.length ? l.map(f => `<div class="ligne-f"><span class="etoile">${/zip/i.test(f.name) ? '🗜' : /\.(wav|mp3)$/i.test(f.name) ? '♪' : /\.als$/i.test(f.name) ? '▤' : '📄'}</span>
+            <a href="#" class="f-nom lien" data-url="${esc(f.webViewLink)}">${esc(f.name)}</a><span class="nt f-meta">${date(f.modifiedTime)}${f.size ? ' · ' + (f.size / 1e6).toFixed(0) + ' Mo' : ''}</span>
+            ${/\.(wav|mp3)$/i.test(f.name) ? `<button class="btn xs" data-dreel="${f.id}" data-nom="${esc(f.name)}">→ Reel</button>` : ''}</div>`).join('')
+          : '<span class="nt">Rien trouvé dans le Drive pour ce morceau.</span>';
+        $$('.lien', el).forEach(a => a.onclick = e => { e.preventDefault(); BK.ouvrirLien(a.dataset.url); });
+        $$('[data-dreel]', el).forEach(b => b.onclick = async () => { try { msg('Téléchargement depuis le Drive…'); const o = await BK.drive.telecharger(b.dataset.dreel); BK.ouvrir('reels'); await BK.reelsCharger(new File([o], b.dataset.nom)); } catch (e) { msg('Téléchargement impossible'); } });
+      } catch (e) { el.innerHTML = '<span class="nt">Drive injoignable pour l\'instant.</span>'; }
+    }
   }
 
   function fiche(m) {
@@ -104,10 +127,11 @@ BK.module('biblio', function (page) {
         ${t('avance', 'Avancement', `${BK.etapes[Math.min(m.fait || 0, 5)].nom} · ${pc} %`, () => `
           <div class="etapes-clic">${BK.etapes.map((e, i) => `<button class="etape-b ${i < (m.fait || 0) ? 'fait' : i === (m.fait || 0) ? 'encours' : ''}" data-etape="${i}">${e.nom}</button>`).join('')}</div>
           <span class="nt">Clique sur une étape quand elle est terminée.</span>`)}
-        ${t('liens', 'Liens Drive', (m.liens || []).length ? (m.liens.length + ' lien(s)') : 'aucun', () => `
+        ${t('liens', 'Drive', ((m.liens || []).length ? m.liens.length + ' lien(s)' : '') + (BK.drive.relie() ? ' · recherche dans le Drive' : ''), () => `
+          ${BK.drive.relie() ? `<div class="drive-res" data-m="${m.id}"><span class="nt"><span class="spin"></span>Recherche dans le Drive…</span></div>` : ''}
           ${(m.liens || []).map((l, i) => `<div class="ligne-f"><span class="etoile">🔗</span><a href="#" class="f-nom lien" data-url="${esc(l.url)}" title="${esc(l.url)}">${esc(l.titre || l.url)}</a><button class="btn xs" data-lienx="${i}">✕</button></div>`).join('')}
           <div class="lien-aj"><input class="fld" data-lien="titre" placeholder="ex. Projet Ableton v8 (zipper)"><input class="fld" data-lien="url" placeholder="colle le lien Google Drive…"><button class="btn xs" data-act="lien">+ Ajouter</button></div>
-          <span class="nt">Bientôt : les fichiers déposés dans le Drive (par le zipper Discord) apparaîtront ici tout seuls.</span>`)}
+          ${BK.drive.relie() ? '' : '<span class="nt">Relie le Drive (Réglages) : les fichiers déposés dans le Drive, par ex. par le zipper Discord, apparaîtront ici tout seuls.</span>'}`)}
         ${t('notes', 'Notes du groupe', m.notes ? m.notes.split('\n')[0].slice(0, 50) : '—', () => `<textarea class="fld" data-champ="notes" placeholder="ex. attention au break à 2:10">${esc(m.notes || '')}</textarea>`)}
         <div class="fiche-actions">
           <button class="btn sm" data-act="statut">${m.statut === 'sorti' ? '↩ Remettre en chantier' : '✓ Marquer comme sorti'}</button>

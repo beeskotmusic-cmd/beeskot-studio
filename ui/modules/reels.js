@@ -139,6 +139,7 @@ BK.module('reels', function (page) {
     } catch (e) { msg('Fichier illisible'); console.error(e); }
   }
   BK.reelsCharger = charger;                       // la Bibliothèque peut envoyer un morceau ici
+  BK.reelAudio = () => R.buffer ? { nom: R.nom, url: R.url, debut: R.debut, duree: R.duree } : null;   // pour l'Assistant visuel
   $('#rePick').onclick = () => $('#reInput').click();
   $('#reInput').onchange = e => e.target.files[0] && charger(e.target.files[0]);
   page.addEventListener('dragover', e => { e.preventDefault(); document.body.classList.add('dropping'); });
