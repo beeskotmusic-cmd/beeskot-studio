@@ -64,6 +64,7 @@ BK.db = {
     fiche.maj = new Date().toISOString();
     fiche.par = BK.reglage('nomPc', '') || 'ce PC';
     (BK.db.cache[col] = BK.db.cache[col] || {})[fiche.id] = fiche;
+    setTimeout(() => window.dispatchEvent(new CustomEvent('bk:change', { detail: { col, id: fiche.id } })), 0);   // les autres onglets se mettent à jour
     if (!BK.db.drive()) { BK.db.memoire(col, fiche); return fiche; }
     try { await BK.drive.ecrire(col, fiche); BK.db.enLigne = true; }
     catch (e) { BK.db.attendre({ col, fiche }); }                    // hors ligne : envoyé plus tard

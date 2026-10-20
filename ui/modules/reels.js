@@ -112,12 +112,15 @@ BK.module('reels', function (page) {
     sel.innerHTML = '<option value="">— choisir —</option>' + ms.map(m => `<option value="${m.id}">${esc(m.nom)}</option>`).join('');
     sel.value = avant; R.morceaux = ms; remplirVersions();
   }
+  window.addEventListener('bk:change', e => { if (R.source === 'biblio' && /morceaux|inventaires/.test(e.detail.col)) remplirMorceaux(); });
+  BK.surOuvrir = BK.surOuvrir || {}; BK.surOuvrir.reels = () => { if (R.source === 'biblio') remplirMorceaux(); };
   async function remplirVersions() {
-    const m = (R.morceaux || []).find(x => x.id === $('#reMorceau').value), v = $('#reVersion');
+    const m = (R.morceaux || []).find(x => x.id === $('#reMorceau').value), v = $('#reVersion'), avant = v.value;
     if (!m) { v.innerHTML = '<option value="">—</option>'; return; }
     const fs = BK.inv.exportsDe(m, await BK.inv.tous(), R.morceaux).filter(f => f.ici);
     v.innerHTML = fs.length ? fs.map((f, i) => `<option value="${esc(f.chemin)}">${i === 0 ? '★ ' : ''}${esc(f.nom)}</option>`).join('')
-      : '<option value="">aucun export sur ce PC (Bibliothèque › Scanner ce PC)</option>';
+      : '<option value="">aucun export sur ce PC : ajoute-le dans la fiche (Bibliothèque › Exports)</option>';
+    if (avant && fs.some(f => f.chemin === avant)) v.value = avant;
     if (m.bpm && !R.clicBpmManuel) { R.bpm = parseFloat(String(m.bpm).replace(',', '.')) || 0; $('#reBpm').value = m.bpm; }
   }
   $('#reMorceau').onchange = remplirVersions;
