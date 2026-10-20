@@ -235,7 +235,7 @@ BK.module('biblio', function (page) {
           + ((m.exportsDiscord || []).length ? `<span class="nt" style="margin-top:8px">Vu sur Discord (Miette) :</span>` + m.exportsDiscord.slice(0, 5).map(x => `<div class="ligne-f"><span class="etoile">💬</span><span class="mono f-nom">${esc(x.fichier || '—')}</span>
             <span class="nt f-meta">${x.date ? date(x.date) : ''}${x.detail ? ' · ' + esc(x.detail) : ''}</span>${x.lien ? `<a href="#" class="lien btn xs" data-url="${esc(x.lien)}">voir</a>` : ''}</div>`).join('') : '')
           + (BK.drive.relie() ? `<div class="exp-drive" data-m="${m.id}"><span class="nt"><span class="spin"></span>Exports dans le Drive…</span></div>` : '')
-          + `<div class="chips" style="margin-top:8px"><button class="chip" data-act="ajexport">+ Ajouter un export de ce PC…</button>${BK.drive.relie() ? '<button class="chip" data-act="ajexportdrive">+ Ajouter un export du Drive…</button>' : ''}</div>`)}
+          + `<div class="chips" style="margin-top:8px"><button class="btn sm" data-act="ajexport">+ Ajouter un export</button></div>`)}
         ${t('projets', 'Projets Ableton', als.length ? `${als.filter(x => !x.sauvegarde).length} version(s) · ${als.some(x => !x.ici && als[0] === x) ? '⚠ la plus récente n\'est pas sur ce PC' : 'à jour'}` : 'aucun', () => als.length ? als.map((x, i) => `
           <div class="ligne-f${i === 0 ? ' recent' : ''}"><span class="etoile">${i === 0 ? '★' : ''}</span><span class="mono f-nom" title="${esc(x.chemin)}">${esc(x.nom)}${x.sauvegarde ? ' <em>(sauvegarde auto)</em>' : ''}</span>
             <span class="nt f-meta">${date(x.modif)} · ${esc(x.pc)}${/[\\/]my drive[\\/]|[\\/]mon drive[\\/]|^g:/i.test(x.chemin) ? ' · Drive ✓' : ''}</span>
@@ -321,6 +321,21 @@ BK.module('biblio', function (page) {
     $('input', v).onchange = async e => { const f = e.target.files[0]; if (!f) return; try { fin(await reduire(f)); } catch (er) { msg(er.message); fin(undefined); } };
   }
 
+  // ---------- choisir un export : sur ce PC ou dans le Drive (un seul bouton, un petit menu) ----------
+  function menuExport(el, suite, m) {
+    $$('.md-menu').forEach(x => x.remove());
+    const r = el.getBoundingClientRect(), menu = document.createElement('div'); menu.className = 'md-menu';
+    menu.style.left = Math.min(r.left, innerWidth - 230) + 'px'; menu.style.top = Math.min(r.bottom + 4, innerHeight - 120) + 'px';
+    menu.innerHTML = '<button data-ex="pc">💻 Sur ce PC…</button>' + (BK.drive.relie() ? '<button data-ex="drive">☁ Dans le Drive…</button>' : '');
+    document.body.appendChild(menu);
+    const fermer = e => { if (!menu.contains(e.target)) { menu.remove(); document.removeEventListener('pointerdown', fermer, true); } };
+    setTimeout(() => document.addEventListener('pointerdown', fermer, true));
+    menu.onclick = async e => { const b = e.target.closest('[data-ex]'); if (!b) return; menu.remove();
+      if (b.dataset.ex === 'pc') { const f = await choisirExport(); if (f) suite(f); return; }
+      const l = await BK.explorerDrive({ titre: 'Export de « ' + m.nom + ' » dans le Drive', mode: 'audio', depart: 'cl' }); if (!l || !l[0]) return;
+      const f = l[0]; suite({ chemin: 'drive:' + f.id, driveId: f.id, drive: true, nom: f.name, pc: 'Drive', modif: f.modifiedTime || new Date().toISOString() }); };
+  }
+
   // ---------- actions ----------
   async function sauver(m) { await BK.db.ecrire('morceaux', m); }
   async function choisirExport() {                 // choisir un WAV / MP3 sur ce PC
@@ -355,24 +370,19 @@ BK.module('biblio', function (page) {
         const c = b.dataset.expx; m.exportsManuels = (m.exportsManuels || []).filter(f => f.chemin !== c);
         if (B.fichiers.some(f => f.chemin === c)) (m.exportsCaches = m.exportsCaches || []).push(c);
         if (m.exportPrincipal === c) m.exportPrincipal = ''; await sauver(m); msg('Retiré de la fiche'); rendre(); });
-      $$('[data-remplacer]', el).forEach(b => b.onclick = async () => {
-        const f = await choisirExport(); if (!f) return; const c = b.dataset.remplacer;
+      $$('[data-remplacer]', el).forEach(b => b.onclick = () => menuExport(b, async f => {
+        const c = b.dataset.remplacer;
         m.exportsManuels = (m.exportsManuels || []).filter(x => x.chemin !== c && x.chemin !== f.chemin);
         if (B.fichiers.some(x => x.chemin === c)) (m.exportsCaches = m.exportsCaches || []).push(c);
-        m.exportsManuels.push(f); m.exportPrincipal = f.chemin; await sauver(m); msg('Export remplacé'); rendre(); });
+        m.exportsManuels.push(f); m.exportPrincipal = f.chemin; await sauver(m); msg('Export remplacé'); rendre(); }, m));
       $$('[data-lienx]', el).forEach(b => b.onclick = async () => { m.liens.splice(+b.dataset.lienx, 1); await sauver(m); rendre(); });
       $$('[data-act]', el).forEach(b => b.onclick = async () => {
         const a = b.dataset.act;
         if (/^st-/.test(a)) { m.statut = a.slice(3); await sauver(m); rendre(); }
         if (a === 'renommer') { const n = prompt('Nouveau nom du morceau', m.nom); if (n && n.trim()) { (m.alias = m.alias || []).push(m.nom); m.nom = n.trim(); await sauver(m); rendre(); } }
         if (a === 'suppr') { if (confirm(`Retirer « ${m.nom} » de la Bibliothèque ?\n(La fiche est rangée dans la corbeille du Drive, et aucun fichier audio ou Ableton n'est touché.)`)) { await BK.db.supprimer('morceaux', m.id); await charger(); } }
-        if (a === 'ajexport') { const f = await choisirExport(); if (!f) return; m.exportsManuels = (m.exportsManuels || []).filter(x => x.chemin !== f.chemin); m.exportsManuels.push(f);
-          m.exportsCaches = (m.exportsCaches || []).filter(c => c !== f.chemin); await sauver(m); msg('Export ajouté'); rendre(); }
-        if (a === 'ajexportdrive') {
-          const l = await BK.explorerDrive({ titre: 'Export de « ' + m.nom + ' » dans le Drive', mode: 'audio', depart: 'cl' }); if (!l || !l[0]) return;
-          const f = l[0], x = { chemin: 'drive:' + f.id, driveId: f.id, drive: true, nom: f.name, pc: 'Drive', modif: f.modifiedTime || new Date().toISOString() };
-          m.exportsManuels = (m.exportsManuels || []).filter(y => y.chemin !== x.chemin); m.exportsManuels.push(x); m.exportPrincipal = x.chemin;
-          await sauver(m); msg('Export du Drive ajouté'); rendre(); }
+        if (a === 'ajexport') menuExport(b, async f => { m.exportsManuels = (m.exportsManuels || []).filter(x => x.chemin !== f.chemin); m.exportsManuels.push(f);
+          m.exportsCaches = (m.exportsCaches || []).filter(c => c !== f.chemin); if (f.drive) m.exportPrincipal = f.chemin; await sauver(m); msg('Export ajouté'); rendre(); }, m);
         if (a === 'photo') photo(m);
         if (a === 'paroles') BK.ouvrirLien('https://www.google.com/search?q=' + encodeURIComponent(['paroles', m.artiste, m.nom, 'lyrics'].filter(Boolean).join(' ')));
         if (a === 'analyser') {
