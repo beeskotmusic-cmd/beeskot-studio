@@ -265,7 +265,7 @@ a.lien{color:var(--mus);text-decoration:none}a.lien:hover{text-decoration:underl
   background:linear-gradient(160deg,#2a221c,#0c0907);box-shadow:0 0 0 1px var(--laiton),inset 0 1px 0 rgba(255,255,255,.08),4px 14px 22px rgba(0,0,0,.6)}
 .rv-ecran{position:relative;width:100%;aspect-ratio:9/16;border-radius:16px;overflow:hidden;background:#000;cursor:grab;touch-action:none}
 .rv-ecran.survol{box-shadow:0 0 0 3px #ffb23e}
-.rv-ecran video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;transform-origin:center;pointer-events:none}
+.rv-ecran canvas{position:absolute;inset:0;width:100%;height:100%;display:block;pointer-events:none}
 .rv-vide{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;text-align:center;padding:20px}
 .rv-zones i{position:absolute;background:repeating-linear-gradient(45deg,rgba(255,90,60,.28) 0 6px,rgba(255,90,60,.08) 6px 12px);box-shadow:inset 0 0 0 1px rgba(255,90,60,.6);pointer-events:none}
 .rv-ui{position:absolute;inset:0;pointer-events:none;color:#fff;font:600 12px/1.3 'Work Sans',system-ui,sans-serif;text-shadow:0 1px 3px rgba(0,0,0,.7)}
@@ -287,3 +287,10 @@ a.lien{color:var(--mus);text-decoration:none}a.lien:hover{text-decoration:underl
 .rv-cote{flex:1;min-width:0;display:flex;flex-direction:column;gap:12px;overflow:auto}
 .rv-trim{display:flex;align-items:center;gap:10px;margin-top:10px}
 .rv-trim .eng{width:40px;font-size:9px}.rv-trim input{flex:1}.rv-trim .vfd{font-size:12px;width:76px;text-align:center}
+
+.rv-sous-src{display:flex;gap:8px;margin:10px 0 8px}.rv-sous-src .fld{flex:1;min-height:30px;font-size:12px}
+#rvCaler{align-self:flex-start}
+.rv-sous{flex:1;min-height:60px;overflow:auto;display:flex;flex-direction:column;gap:4px;margin-top:8px}
+.rv-l{display:flex;align-items:center;gap:8px;padding:3px 6px;border-radius:4px;background:rgba(0,0,0,.2);font-size:12.5px;color:var(--ink2)}
+.rv-l.ok{color:var(--ink)}.rv-l.encours{box-shadow:inset 0 0 0 2px #ffb23e;color:#ffd48e}
+.rv-t{width:52px;background:#0a0604;border:0;color:#ffb23e;font-size:11px;padding:3px 5px;border-radius:3px;box-shadow:0 0 0 1px var(--laiton)}
