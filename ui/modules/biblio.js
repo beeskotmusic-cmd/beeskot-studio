@@ -418,18 +418,18 @@ BK.module('biblio', function (page) {
   }
 
   $$('#biVues .chip').forEach(c => c.onclick = () => { B.vue = c.dataset.v; BK.regler('biblio.vue', B.vue); rendre(); });
-  // ---------- clic maintenu sur un morceau, puis glisser sur « Next release », « Work in progress » ou « Sortis » ----------
+  // ---------- attraper un morceau et le glisser sur « Next release », « Work in progress » ou « Sortis » ----------
   let gl = null;
   const ongletSous = (x, y) => { const el = document.elementFromPoint(x, y); return el && el.closest('#biVues .chip[data-v]:not([data-v="ranger"])'); };
   $('#biListe').addEventListener('pointerdown', e => {
     const t = e.target.closest('.fiche-tete'), bt = e.target.closest('button,input,select,a,.lecteur'); if (!t || e.button !== 0 || (bt && bt !== t)) return;
     const f = t.closest('.fiche');
-    gl = { id: f.dataset.id, tete: t, x: e.clientX, y: e.clientY, fantome: null, pret: false };
-    gl.minuteur = setTimeout(() => { if (gl) { gl.pret = true; t.classList.add('prise'); $('#biVues').classList.add('cible'); msg('Glisse sur Next release, Work in progress ou Sortis'); } }, 350);
+    gl = { id: f.dataset.id, tete: t, x: e.clientX, y: e.clientY, fantome: null, pret: false };   // on attrape et on glisse, comme une tâche
   });
   window.addEventListener('pointermove', e => {
     if (!gl) return;
-    if (!gl.pret) { if (Math.hypot(e.clientX - gl.x, e.clientY - gl.y) > 8) { clearTimeout(gl.minuteur); gl = null; } return; }
+    if (!gl.pret) { if (Math.hypot(e.clientX - gl.x, e.clientY - gl.y) < 6) return;
+      gl.pret = true; gl.tete.classList.add('prise'); $('#biVues').classList.add('cible'); msg('Lâche-le sur Next release, Work in progress ou Sortis'); }
     if (!gl.fantome) { const r = gl.tete.getBoundingClientRect(); gl.fantome = gl.tete.cloneNode(true); gl.fantome.className = 'fiche-tete fiche-fantome';
       gl.fantome.style.width = Math.min(r.width, 420) + 'px'; gl.dx = Math.min(gl.x - r.left, 400); gl.dy = gl.y - r.top; document.body.appendChild(gl.fantome); }
     gl.fantome.style.left = (e.clientX - gl.dx) + 'px'; gl.fantome.style.top = (e.clientY - gl.dy) + 'px';

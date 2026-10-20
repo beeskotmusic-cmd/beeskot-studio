@@ -714,3 +714,11 @@ body.miette-scan .bk-reflexion:not(.bk-scan){display:none}
 .mini-equerre{position:relative;width:64px;height:16px;clip-path:polygon(0 100%,100% 0,100% 100%);background:rgba(239,230,210,.18)}
 .mini-niveau{position:absolute;left:0;top:0;bottom:0;background:linear-gradient(90deg,#d48a1c,#ffcf7a)}
 .mini-range{position:absolute;inset:0;width:100%;height:100%;margin:0;opacity:0;cursor:pointer}
+.ta-plier{background:none;border:0;padding:0;cursor:pointer;color:inherit;font:inherit;text-align:left}
+.todo-miette.replie > :not(.ligne-titre){display:none}
+.ta-props{max-height:150px}
+.ta-faites-box.survol{box-shadow:0 0 0 2px #7ee08a,0 0 14px rgba(120,220,130,.35)!important}
+.todo-miette .ligne-titre{flex-wrap:wrap;row-gap:8px}
+.todo-miette .ta-plier{flex:1;font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--ink2)}
+.todo-miette #taLire{width:100%;justify-content:center;font-size:10px}
+.todo-miette .ligne-titre > span:has(#taLire){flex-basis:100%;margin-left:0!important}

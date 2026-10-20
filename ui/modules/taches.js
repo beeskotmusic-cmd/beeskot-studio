@@ -6,7 +6,7 @@
 // Une tâche = un petit fichier dans le Drive (partagé avec tout le groupe).
 // =====================================================================
 (() => {
-const T = { taches: [], membres: [], masquerFaites: !BK.reglage('todo.voirFaites', false), morceaux: [], choisie: null };
+const T = { taches: [], membres: [], masquerFaites: true, morceaux: [], choisie: null };
 const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 const MEMBRES_DEFAUT = ['Yacine', 'Pierre', 'Baptiste'];
 const GROUPE = 'BEESKOT';
@@ -25,17 +25,15 @@ BK.module('taches', function (page) {
           <input class="fld" id="taDate" type="date" title="Pour quand ?">
           <button class="btn pri" id="taAjout">+ Ajouter</button>
         </div>
-        <div class="box todo-miette" id="taMiette"></div>
         <div class="box grow todo-vrac zone" data-zone="">
           <span class="lb">Tâches en vrac</span>
           <div class="vrac-cartes" id="taVrac"></div>
         </div>
         <div class="paniers" id="taPaniers"></div>
       </section>
-      <section class="pane reg" style="width:250px"><span class="ptitle">② Réglages</span>
-        <div class="box"><span class="lb">Affichage</span>
-          <div class="chips" style="margin-top:10px"><button class="chip${T.masquerFaites ? '' : ' on'}" id="taMasq">Afficher les tâches faites</button></div></div>
-        <div class="box grow ta-faites-box"><span class="lb">✓ Déjà fait <span id="taNbF"></span></span><div class="ta-faites" id="taFaites"></div></div>
+      <section class="pane reg" style="width:300px"><span class="ptitle">② Miette et réglages</span>
+        <div class="box todo-miette" id="taMiette"></div>
+        <div class="box grow ta-faites-box zone" data-zone="__fait"><span class="lb">✓ Déjà fait <span id="taNbF"></span></span><div class="ta-faites" id="taFaites"></div></div>
         <div class="box"><span class="lb">Paniers</span>
           <span class="nt">Les membres, séparés par des virgules. Le panier BEESKOT est toujours là.</span>
           <input class="fld" id="taMembres" style="margin-top:8px"></div>
@@ -64,12 +62,15 @@ BK.module('taches', function (page) {
     const props = (await BK.db.liste('propositions')).filter(p => p.type === 'tache' && p.statut === 'attente').sort((a, b) => (b.vu || '').localeCompare(a.vu || ''));
     T.props = props;
     const bouton = `<button class="btn sm${props.length ? '' : ' pri'}" id="taLire"${!pret || !d.jeton ? ' disabled title="Il faut Miette (Discord) et la clé Gemini : Réglages"' : ''}>${T.lecture ? '<span class="spin"></span>Miette lit Discord…' : '🍞 Lire Discord et proposer des tâches'}</button>`;
-    z.innerHTML = `<div class="ligne-titre"><span class="lb">🍞 Miette propose (${props.length})</span>
+    const ouvert = BK.reglage('todo.mietteOuvert', true);
+    z.classList.toggle('replie', !ouvert);
+    z.innerHTML = `<div class="ligne-titre"><button class="lb ta-plier" id="taPlier" title="Ouvrir / replier">${ouvert ? '▾' : '▸'} 🍞 Miette propose (${props.length})</button>
         ${props.length > 1 ? '<button class="btn xs pri" id="taToutOk" style="margin-left:auto">✓ Tout ajouter</button>' : ''}<span style="${props.length > 1 ? '' : 'margin-left:auto'}">${bouton}</span></div>
       ${props.length ? `<div class="ta-props">${props.slice(0, 12).map(p => `<div class="ta-prop" data-p="${p.id}">
           <div class="carte-c"><span class="carte-t">${esc(p.texte)}</span><span class="carte-m">${esc([p.qui && '→ ' + p.qui, p.morceau, p.date && 'pour le ' + p.date].filter(Boolean).join(' · '))}${p.pourquoi ? ' — « ' + esc(p.pourquoi) + ' »' : ''}</span></div>
           <button class="btn xs pri" data-pok="${p.id}" title="Ajouter à la liste">✓</button><button class="btn xs" data-pnon="${p.id}" title="Ignorer">✕</button></div>`).join('')}</div>`
         : `<span class="nt">${pret && d.jeton ? 'Miette lit vos messages Discord (toutes les 30 min) et prépare ici les tâches qui en ressortent. Tu valides d\'un clic.' : 'Ajoute Miette (Discord) et la clé Gemini dans les Réglages : elle lira vos messages et préparera les tâches ici.'}</span>`}`;
+    $('#taPlier').onclick = () => { BK.regler('todo.mietteOuvert', !BK.reglage('todo.mietteOuvert', true)); miette(); };
     const lb = $('#taLire'); if (lb) lb.onclick = async () => {
       T.lecture = true; miette();
       try { await BK.discord.ronde(msg, true).catch(() => {}); const n = await BK.discord.tachesProposer(); msg(n ? n + ' tâche(s) proposée(s)' : 'Rien de nouveau à faire'); }
@@ -137,13 +138,14 @@ BK.module('taches', function (page) {
   // ---------- déplacer une tâche vers un panier ----------
   async function deplacer(id, qui) {
     const t = T.taches.find(x => x.id === id); T.choisie = null;
+    if (qui === '__fait') { if (!t || t.fait) return rendre(); t.fait = true; t.faitLe = new Date().toISOString(); t.faitPar = BK.reglage('nomPc', '') || 'ce PC'; rendre(); await BK.db.ecrire('taches', t); return msg('Bravo ! (rangée dans « Déjà fait »)'); }
     if (!t || (t.qui || '') === qui) return rendre();
     t.qui = qui; t.ordre = Date.now(); rendre();
     await BK.db.ecrire('taches', t); msg(qui ? 'Pour ' + qui : 'Remise en vrac');
   }
 
   // attraper au clic maintenu (souris ou doigt) ; un simple clic = choisir puis cliquer un panier
-  const zoneSous = (x, y) => { const el = document.elementFromPoint(x, y); return el && el.closest('.todo-vit .zone'); };
+  const zoneSous = (x, y) => { const el = document.elementFromPoint(x, y); return el && el.closest('.todo-vit .zone, .ta-faites-box.zone'); };
   let g = null;
   const vit = $('.todo-vit');
   vit.addEventListener('pointerdown', e => {
@@ -159,12 +161,12 @@ BK.module('taches', function (page) {
       g.dx = g.x - r.left; g.dy = g.y - r.top; document.body.appendChild(g.fantome); g.carte.classList.add('glisse');
     }
     g.fantome.style.left = (e.clientX - g.dx) + 'px'; g.fantome.style.top = (e.clientY - g.dy) + 'px';
-    $$('.todo-vit .zone').forEach(z => z.classList.remove('survol'));
+    $$('.todo-vit .zone, .ta-faites-box').forEach(z => z.classList.remove('survol'));
     const z = zoneSous(e.clientX, e.clientY); z && z.classList.add('survol');
   });
   window.addEventListener('pointerup', e => {
     if (!g) return; const d = g; g = null;
-    $$('.todo-vit .zone').forEach(z => z.classList.remove('survol'));
+    $$('.todo-vit .zone, .ta-faites-box').forEach(z => z.classList.remove('survol'));
     if (d.fantome) { d.fantome.remove(); d.carte.classList.remove('glisse'); const z = zoneSous(e.clientX, e.clientY); if (z) deplacer(d.id, z.dataset.zone); return; }
     T.choisie = T.choisie === d.id ? null : d.id; rendre();             // simple clic : choisir
     if (T.choisie) msg('Clique sur un panier');
@@ -183,6 +185,7 @@ BK.module('taches', function (page) {
   });
   $('#taFaites').addEventListener('click', async e => { const b = e.target.closest('[data-case]'); if (!b) return;
     const t = T.taches.find(y => y.id === b.dataset.case); if (!t) return; t.fait = false; delete t.faitLe; delete t.faitPar; rendre(); await BK.db.ecrire('taches', t); msg('Remise à faire'); });
+  $('.ta-faites-box').addEventListener('click', e => { if (T.choisie && !e.target.closest('[data-case]')) deplacer(T.choisie, '__fait'); });
   vit.addEventListener('dblclick', e => {
     const c = e.target.closest('.carte'); if (!c) return;
     const s = $('.carte-t', c), t = T.taches.find(x => x.id === c.dataset.id); T.choisie = null;
@@ -191,7 +194,7 @@ BK.module('taches', function (page) {
     s.onblur = fin; s.onkeydown = ev => { ev.stopPropagation(); if (ev.key === 'Enter') { ev.preventDefault(); s.blur(); } };
   });
 
-  $('#taMasq').onclick = e => { T.masquerFaites = !T.masquerFaites; BK.regler('todo.voirFaites', !T.masquerFaites); e.target.classList.toggle('on', !T.masquerFaites); rendre(); };
+  
   $('#taMembres').addEventListener('keydown', e => e.stopPropagation());
   $('#taMembres').onchange = async e => { const l = e.target.value.split(',').map(s => s.trim()).filter(s => s && s !== GROUPE); await BK.db.ecrire('config', { id: 'membres', liste: l }); msg('Paniers enregistrés'); charger(); };
   charger();
