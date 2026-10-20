@@ -4,10 +4,10 @@
 (() => {
 const T = { voir: 'afaire', taches: [], membres: [] };
 const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
-const MEMBRES_DEFAUT = ['Dari', 'Pierre', 'Baptiste'];
+const MEMBRES_DEFAUT = ['Yacine', 'Pierre', 'Baptiste'];
 
 BK.module('taches', function (page) {
-  $('.sub', page).textContent = 'Qui fait quoi, et pour quel morceau';
+  $('.sub', page).textContent = 'Ce qu\'il reste à faire, et pour quel morceau';
   $('.hdr .right', page).innerHTML = `<div><span class="eng" style="font-size:9px">À faire</span><span class="vfd" id="taNb">00</span></div>
     <div><span class="eng" style="font-size:9px">En retard</span><span class="vfd" id="taRet">00</span></div>`;
   $('.grid', page).innerHTML = `
@@ -35,6 +35,9 @@ BK.module('taches', function (page) {
     T.taches = await BK.db.liste('taches');
     const cfg = (await BK.db.liste('config')).find(c => c.id === 'membres');
     T.membres = cfg && cfg.liste && cfg.liste.length ? cfg.liste : MEMBRES_DEFAUT;
+    // ancien nom « Dari » → « Yacine » (une seule fois, y compris dans les tâches déjà créées)
+    if (T.membres.includes('Dari')) { T.membres = T.membres.map(m => m === 'Dari' ? 'Yacine' : m); await BK.db.ecrire('config', { id: 'membres', liste: T.membres }); }
+    for (const t of T.taches.filter(t => t.qui === 'Dari')) { t.qui = 'Yacine'; await BK.db.ecrire('taches', t); }
     $('#taMembres').value = T.membres.join(', ');
     $('#taQui').innerHTML = [...T.membres, 'Tout le groupe'].map(m => `<option>${esc(m)}</option>`).join('');
     $('#taMorceau').innerHTML = '<option value="">—</option>' + (await BK.db.liste('morceaux')).map(m => `<option>${esc(m.nom)}</option>`).join('');
@@ -48,7 +51,7 @@ BK.module('taches', function (page) {
     const l = T.taches.filter(t => T.voir === 'faites' ? t.fait : !t.fait).sort((a, b) => (a.date || '9').localeCompare(b.date || '9'));
     const qui = [...T.membres, 'Tout le groupe'];
     $('#taListe').innerHTML = qui.map(m => { const lm = l.filter(t => t.qui === m); return `
-      <div class="ta-col"><span class="dymo sm">${esc(m)}</span>${lm.length ? lm.map(t => `
+      <div class="ta-col"><span class="ta-nom">${esc(m)}</span>${lm.length ? lm.map(t => `
         <div class="ta-t${t.date && t.date < auj && !t.fait ? ' retard' : ''}"><button class="ta-case${t.fait ? ' on' : ''}" data-id="${t.id}">${t.fait ? '✓' : ''}</button>
           <div><span class="nt" style="margin:0;color:var(--ink)">${esc(t.texte)}</span><span class="nt" style="margin:2px 0 0;font-size:11px">${[t.morceau, t.date && 'pour le ' + new Date(t.date + 'T12:00').toLocaleDateString('fr-CA', { day: 'numeric', month: 'short' })].filter(Boolean).map(esc).join(' · ') || '&nbsp;'}</span></div>
           <button class="btn xs ta-x" data-x="${t.id}">✕</button></div>`).join('') : '<span class="nt">—</span>'}</div>`; }).join('');

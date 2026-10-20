@@ -30,7 +30,7 @@ const EXEMPLE = {
     { led: 'amb', txt: '2 tâches en retard' },
   ],
   ajouts: [
-    { quand: 'HIER',   txt: 'Master Morceau B v4', qui: 'Dari' },
+    { quand: 'HIER',   txt: 'Master Morceau B v4', qui: 'Yacine' },
     { quand: '18 OCT', txt: 'Photos shooting (24)', qui: 'Baptiste' },
     { quand: '16 OCT', txt: 'Reel « refrain » Morceau B', qui: 'Pierre' },
   ],

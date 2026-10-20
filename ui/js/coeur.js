@@ -7,7 +7,7 @@ const $ = (s, r = document) => r.querySelector(s);
 const $$ = (s, r = document) => [...r.querySelectorAll(s)];
 
 const BK = {
-  version: '0.1.1 bêta',
+  version: '0.2.0 bêta',
   modules: {},
   onglets: [],
   cotes: [],
@@ -139,7 +139,8 @@ const BK = {
     BK.horloge(); setInterval(BK.horloge, 20000);   // léger : une mise à jour toutes les 20 s
     document.documentElement.style.zoom = BK.reglage('zoom', 100) / 100;
     BK.ouvrir(BK.reglage('dernierOnglet', 'accueil'));
-    setTimeout(BK.verifierMaj, 3000);              // quelques secondes après l'ouverture, sans gêner
+    setTimeout(BK.verifierMaj, 3000);
+    BK.ableton && BK.ableton.surveiller();              // quelques secondes après l'ouverture, sans gêner
   },
 
   // ---------- boutons rotatifs (repris tel quel de Dari Audio Live) ----------

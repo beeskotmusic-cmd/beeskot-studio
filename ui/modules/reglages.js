@@ -23,6 +23,9 @@ BK.module('reglages', function (page) {
         <div class="box"><span class="lb">Taille de l'interface</span>
           <div class="knobs" style="justify-content:center"><div class="kb">
             <input id="rgZoom" type="range" min="80" max="130" step="5" value="${BK.reglage('zoom', 100)}" class="knobify" data-ticks="80,,,,,130" data-fmt="{} %"><span class="lb">Zoom</span></div></div></div>
+        <div class="box"><span class="lb">Ableton Live</span>
+          <span class="nt">Installe le petit pont BEESKOT dans Ableton (une fois par PC).</span>
+          <div class="chips" style="margin-top:10px"><button class="chip" id="rgAbleton">Relier Ableton…</button></div></div>
         <div class="box"><span class="lb">Drive BEESKOT</span>
           <span class="nt">Le dossier Google Drive du groupe sur ce PC. Le logiciel y range ses fiches dans un sous-dossier « BEESKOT Studio » (tes fichiers existants ne sont pas touchés).</span>
           <span class="vfd" id="rgDrive" style="display:block;margin-top:10px;font-size:11px">${BK.reglage('drive', '') || 'AUCUN DOSSIER'}</span>
@@ -45,6 +48,10 @@ BK.module('reglages', function (page) {
     if (!d) return;
     BK.regler('drive', d); await BK.fichier.creerDossier(BK.db.racine());
     $('#rgDrive', page).textContent = d; BK.etatDrive(); $('#rgMsg', page).textContent = 'DRIVE RELIÉ';
+  };
+  $('#rgAbleton', page).onclick = async () => {
+    if (!BK.estExe) { $('#rgMsg', page).textContent = 'DISPONIBLE DANS LE LOGICIEL INSTALLÉ'; return; }
+    try { const d = await BK.ableton.installerPont(); if (d) BK.ableton.fenetre(d); } catch (e) { $('#rgMsg', page).textContent = 'INSTALLATION IMPOSSIBLE'; }
   };
   $('#rgZoom', page).onchange = e => { BK.regler('zoom', +e.target.value); document.documentElement.style.zoom = e.target.value / 100; };
 });
