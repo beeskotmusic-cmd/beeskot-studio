@@ -212,6 +212,10 @@ BK.module('renforts', function (page) {
     try {
       R.salons = await BK.discord.salons(jeton);
       if (j) await BK.discord.enregistrer({ jeton: j }); $('#raJeton').value = '';
+      if (!(d.salons || []).length && R.salons.length) {          // 1re fois : on coche les salons utiles (modifiable)
+        const utiles = /^(g[ée]n[ée]ral|vrac|[ée]v[ée]nements|tournage|logistique|projets_able|maquettes|media|outfits|annonces|drum-record|\d+_.+)$/i;
+        await BK.discord.enregistrer({ salons: R.salons.filter(x => utiles.test(x.nom)) });
+      }
       msg(R.salons.length ? R.salons.length + ' salon(s) trouvés : coche ceux à lire' : 'Aucun salon : invite le bot sur votre serveur');
     } catch (e) { msg(e.message); }
     majEtat();

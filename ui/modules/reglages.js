@@ -7,7 +7,7 @@ BK.module('reglages', function (page) {
   $('.grid', page).innerHTML = `
     <div class="cols">
       <section class="pane vit"><span class="ptitle">① Onglets de ce PC</span>
-        <div class="box grow"><span class="lb">Onglets affichés</span>
+        <div class="box"><span class="lb">Onglets affichés</span>
           <span class="nt">Allume seulement ce qui sert sur cet ordinateur (ex. Lumières : au studio et chez Pierre).</span>
           <div class="interrupteurs">${choix.map(o => `
             <button class="inter${BK.ongletVisible(o) ? ' on' : ''}" data-id="${o.id}">
@@ -16,6 +16,10 @@ BK.module('reglages', function (page) {
               <span class="t"><span class="lab">${o.titre}</span><span class="nsub">${(c => c.titre || c.nom)(BK.cotes.find(c => c.id === o.cote))}${o.pret ? '' : ' · bientôt'}</span></span>
             </button>`).join('')}
           </div></div>
+        <div class="box grow rg-dos"><div class="ligne-titre"><span class="lb">Vos dossiers du Drive</span>
+            <button class="btn xs" id="rgDetecter" style="margin-left:auto">↻ Chercher à nouveau</button><button class="btn xs" id="rgPlan">Copier le plan du Drive</button></div>
+          <span class="nt">Le logiciel lit ces dossiers (il ne déplace et ne renomme rien). « Changer… » si un dossier n'est pas le bon. Pour tout le groupe.</span>
+          <div class="rg-dos-liste" id="rgDos"></div></div>
       </section>
       <section class="pane reg"><span class="ptitle">② Ce PC</span>
         <div class="box"><span class="lb">Nom de cet ordinateur</span>
@@ -67,6 +71,33 @@ BK.module('reglages', function (page) {
     });
   }
   zoneDrive();
+
+  // ---------- vos dossiers du Drive ----------
+  async function rendreDossiers() {
+    const z = $('#rgDos', page);
+    if (!BK.drive.relie()) { z.innerHTML = '<span class="nt">Relie d\'abord le Drive (à droite).</span>'; return; }
+    const c = await BK.dossiers.config();
+    z.innerHTML = BK.dossiers.ROLES.map(r => { const d = c.roles[r.id];
+      return `<div class="rg-dos-l"><span class="eng">${r.nom}</span><span class="nt mono">${d ? '📁 ' + (d.chemin || d.nom).replace(/[<>&]/g, '') : '— pas trouvé —'}${d && d.manuel ? ' ✋' : ''}</span>
+        <button class="btn xs" data-role="${r.id}">Changer…</button></div>`; }).join('');
+    $$('[data-role]', z).forEach(b => b.onclick = async () => {
+      const d = await BK.explorerDrive({ titre: 'Dossier « ' + BK.dossiers.ROLES.find(r => r.id === b.dataset.role).nom + ' »', mode: 'dossier' });
+      if (d) { await BK.dossiers.regler(b.dataset.role, d); rmsg('Dossier enregistré'); rendreDossiers(); }
+    });
+  }
+  $('#rgDetecter', page).onclick = async () => {
+    if (!BK.drive.relie()) return rmsg('Relie d\'abord le Drive');
+    try { const t = await BK.dossiers.detecter(rmsg); rmsg(Object.keys(t).length + ' dossier(s) trouvés'); } catch (e) { rmsg('Problème : ' + e.message); }
+    rendreDossiers();
+  };
+  $('#rgPlan', page).onclick = async () => {
+    if (!BK.drive.relie()) return rmsg('Relie d\'abord le Drive');
+    rmsg('Lecture du plan…');
+    try { const t = await BK.dossiers.plan(); await navigator.clipboard.writeText(t); rmsg('Plan copié (noms des dossiers seulement)'); } catch (e) { rmsg('Problème : ' + e.message); }
+  };
+  BK.surOuvrir = BK.surOuvrir || {};
+  BK.surOuvrir.reglages = async () => { if (BK.drive.relie()) await BK.dossiers.assurer(); rendreDossiers(); };
+  rendreDossiers();
   $('#rgAbleton', page).onclick = async () => {
     if (!BK.estExe) { $('#rgMsg', page).textContent = 'DISPONIBLE DANS LE LOGICIEL INSTALLÉ'; return; }
     try { const d = await BK.ableton.installerPont(); if (d) BK.ableton.fenetre(d); } catch (e) { $('#rgMsg', page).textContent = 'INSTALLATION IMPOSSIBLE'; }

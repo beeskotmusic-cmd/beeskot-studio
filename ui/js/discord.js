@@ -52,9 +52,28 @@ BK.discord = {
     return out.sort((a, b) => (BigInt(a.id) < BigInt(b.id) ? -1 : 1));
   },
 
+  // pseudos Discord → prénoms (modifiable dans la config « discord », champ membres)
+  MEMBRES: { 'drumblebee.skot': 'Baptiste', 'pierrec1.': 'Pierre', 'yaya': 'Yacine' },
+  prenom(a, nick, membres) {
+    const t = { ...BK.discord.MEMBRES, ...(membres || {}) };
+    for (const k of [a.username, a.global_name, nick]) if (k && t[String(k).toLowerCase()]) return t[String(k).toLowerCase()];
+    return nick || a.global_name || a.username;
+  },
+  // les messages du bot « zipper » (Cracotte APP) se lisent sans IA
+  RE_BOT: /le projet\s+(.+?)\s+est upload/i,
+  depuisBot(lignes, morceaux) {
+    const out = [];
+    for (const l of lignes) {
+      const m = l.txt.match(BK.discord.RE_BOT); if (!m || !/\.(wav|mp3|aiff?|flac)$/i.test(m[1])) continue;
+      const mo = BK.inv.trouverMorceau(m[1], morceaux); if (!mo) continue;
+      out.push({ type: 'export', morceau: mo.nom, fichier: m[1], date: l.t.slice(0, 10), detail: 'déposé dans le Drive par le bot', source: 'msg ' + l.id, lien: l.lien, pourquoi: `Message du bot : « ${m[0]} »` });
+    }
+    return out;
+  },
+
   // un message → une ligne lisible du journal
-  ligne(m, s) {
-    const qui = (m.member && m.member.nick) || m.author.global_name || m.author.username;
+  ligne(m, s, membres) {
+    const qui = BK.discord.prenom(m.author, m.member && m.member.nick, membres);
     const pj = (m.attachments || []).map(a => a.filename).join(', ');
     const txt = (m.content || '').replace(/\s+/g, ' ').trim();
     return { id: m.id, salon: s.nom, t: m.timestamp, qui, txt: txt.slice(0, 1500), pj, lien: `https://discord.com/channels/${s.gid || '@me'}/${m.channel_id}/${m.id}` };
@@ -92,18 +111,20 @@ BK.discord = {
         progression('Lecture de #' + s.nom + '…');
         try {
           const ms = await BK.discord.nouveaux(s.id, c.jeton, dernier[s.id]);
-          if (ms.length) { dernier[s.id] = ms[ms.length - 1].id; nouvelles.push(...ms.filter(m => (m.content || '').trim() || (m.attachments || []).length).map(m => BK.discord.ligne(m, s))); }
+          if (ms.length) { dernier[s.id] = ms[ms.length - 1].id; nouvelles.push(...ms.filter(m => (m.content || '').trim() || (m.attachments || []).length).map(m => BK.discord.ligne(m, s, c.membres))); }
         } catch (e) { progression('#' + s.nom + ' : ' + e.message); }
       }
       if (nouvelles.length) await BK.discord.ajouterAuJournal(nouvelles);
       await BK.discord.enregistrer({ dernier });
-      let props = [];
-      if (nouvelles.length && await BK.ia.pret()) {
-        progression(`Gemini lit ${nouvelles.length} message(s)…`);
-        for (let i = 0; i < nouvelles.length; i += 400) props.push(...await BK.discord.analyser(nouvelles.slice(i, i + 400)));
-        for (const p of props) { const l = nouvelles.find(x => x.id === String(p.source || '').replace(/\D/g, '')); if (l) { p.lien = l.lien; p.date = p.date || l.t.slice(0, 10); } }
-        await BK.discord.ranger(props);
+      const morceaux = await BK.db.liste('morceaux');
+      let props = BK.discord.depuisBot(nouvelles, morceaux);
+      const humains = nouvelles.filter(l => !BK.discord.RE_BOT.test(l.txt));
+      if (humains.length && await BK.ia.pret()) {
+        progression(`Gemini lit ${humains.length} message(s)…`);
+        for (let i = 0; i < humains.length; i += 400) props.push(...await BK.discord.analyser(humains.slice(i, i + 400)));
       }
+      for (const p of props) { const l = nouvelles.find(x => x.id === String(p.source || '').replace(/\D/g, '')); if (l) { p.lien = p.lien || l.lien; p.date = p.date || l.t.slice(0, 10); } }
+      if (props.length) await BK.discord.ranger(props);
       return { messages: nouvelles.length, propositions: props.length };
     } finally { BK.discord.enCours = false; }
   },
@@ -120,7 +141,7 @@ Types possibles :
 - {"type":"sortie","morceau":"nom exact","date":"AAAA-MM-JJ"}  (date de sortie décidée)
 - {"type":"note","morceau":"nom exact ou vide","texte":"…"}  (décision importante à retenir)
 Chaque objet a aussi "source" : l'identifiant (msg …) du message principal, et "pourquoi" : 1 phrase courte qui cite ce qui a été dit.
-Les dates relatives (« samedi », « demain ») se calculent à partir de la date du message. Noms de morceaux connus : ${ms.map(m => m.nom).join(', ')}.
+Les dates relatives (« samedi », « demain ») se calculent à partir de la date du message. Noms de morceaux connus (avec leurs surnoms entre parenthèses ; réponds toujours avec le nom principal) : ${ms.map(m => m.nom + ((m.alias || []).length ? ' (' + m.alias.join(', ') + ')' : '')).join(', ')}. Membres : Yacine (Yaya), Pierre, Baptiste (Bat).
 Si rien n'est décidé, réponds [].`;
     const r = await BK.ia.demander(`${await BK.ia.contexte()}\n\nMessages :\n${BK.discord.texte(lignes)}`, { systeme, json: true, temperature: 0.1 });
     return Array.isArray(r) ? r : (r && r.propositions) || [];

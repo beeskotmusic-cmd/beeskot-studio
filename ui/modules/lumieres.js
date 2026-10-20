@@ -42,20 +42,21 @@ async function tuya(methode, chemin, corps, sansJeton) {
 }
 
 BK.module('lumieres', function (page) {
-  $('.sub', page).textContent = 'Lampes Globe et LED vidéo de Pierre, depuis le PC';
+  $('.sub', page).textContent = 'Light Show (Pulse LED, TouchDesigner) et lampes Globe, depuis le PC';
   $('.hdr .right', page).innerHTML = `<div><span class="eng" style="font-size:9px">Lampes</span><span class="vfd" id="luNb">—</span></div>`;
   $('.grid', page).innerHTML = `
     <div class="cols">
       <section class="pane vit lu-vit"><span class="ptitle">① Vitrine</span>
-        <div class="box"><div class="ligne-titre"><span class="lb">LED vidéo de Pierre</span></div>
-          <div class="lu-pierre"><button class="btn pri" id="luPierre">▶ Lancer le programme LED</button><span class="nt" id="luPierreTxt"></span></div></div>
+        <div class="box"><div class="ligne-titre"><span class="lb">Light Show (dossier 8 du Drive)</span><span class="nt" id="luIp" style="margin:0 0 0 auto"></span></div>
+          <div class="lu-show" id="luShow"><span class="nt">Relie le Drive pour voir le Light Show.</span></div>
+          <div class="lu-pierre"><button class="btn sm hidden" id="luPierre">▶ Autre programme LED (ce PC)</button><span class="nt" id="luPierreTxt"></span></div></div>
         <div class="box"><div class="ligne-titre"><span class="lb">Ambiances</span><span class="nt" style="margin:0 0 0 auto">S'applique aux lampes cochées</span></div>
           <div class="lu-scenes">${SCENES.map((s, i) => `<button class="lu-scene" data-sc="${i}" style="--c:${s.blanc ? (s.temp > 500 ? '#dfe9ff' : '#ffd9a0') : `hsl(${s.h},90%,55%)`}"><i></i>${s.nom}</button>`).join('')}
             <button class="lu-scene" data-tout="1" style="--c:#fff8e0"><i></i>Tout allumer</button><button class="lu-scene" data-tout="0" style="--c:#222"><i></i>Tout éteindre</button></div></div>
         <div class="box grow"><span class="lb">Les lampes</span><div class="lu-lampes" id="luLampes"></div></div>
       </section>
       <section class="pane reg" style="width:300px"><span class="ptitle">② Réglages</span>
-        <div class="box"><span class="lb">Programme de Pierre (ce PC)</span>
+        <div class="box"><span class="lb">Autre programme LED (ce PC, facultatif)</span>
           <span class="nt" id="luExe">Pas encore choisi.</span>
           <button class="btn sm" id="luExeB" style="margin-top:8px">Choisir le programme…</button></div>
         <div class="box"><span class="lb">Lampes : compte Tuya (gratuit)</span>
@@ -73,14 +74,44 @@ BK.module('lumieres', function (page) {
   function majPierre() {
     const p = BK.reglage('lum.pierreExe', '');
     $('#luExe').textContent = p ? p.split(/[\\/]/).pop() : 'Pas encore choisi.';
-    $('#luPierre').disabled = !p;
-    $('#luPierreTxt').textContent = p ? '' : 'Choisis d\'abord le programme dans les Réglages (à droite), sur le PC du studio.';
+    $('#luPierre').classList.toggle('hidden', !p);
+    $('#luPierreTxt').textContent = '';
   }
   $('#luExeB').onclick = async () => {
     if (!BK.estExe) return msg('Disponible dans le logiciel installé');
     const p = await BK.fichier.choisirFichier('Le programme LED de Pierre', [{ name: 'Programme', extensions: ['exe', 'lnk', 'bat'] }]); if (!p) return;
     BK.regler('lum.pierreExe', p); majPierre(); msg('Programme enregistré pour ce PC');
   };
+  // ---------- le dossier Light Show : Pulse LED (Pierre), TouchDesigner ----------
+  async function lightShow() {
+    const z = $('#luShow'); if (!BK.drive.relie()) return;
+    try {
+      await BK.dossiers.assurer(); const d = await BK.dossiers.get('lightshow');
+      if (!d) { z.innerHTML = '<span class="nt">Dossier Light Show introuvable : choisis-le dans Réglages › Vos dossiers du Drive.</span>'; return; }
+      const fs = await BK.dossiers.enfants(d.id), dernier = re => fs.filter(f => re.test(f.name)).sort((a, b) => b.name.localeCompare(a.name, undefined, { numeric: true }))[0];
+      const pulse = dernier(/\.html?$/i), toe = dernier(/\.toe$/i), td = dernier(/touchdesigner.*\.exe$/i), ip = fs.find(f => /^\d{1,3}(\.\d{1,3}){3}/.test(f.name));
+      $('#luIp').textContent = ip ? 'Adresse des LED : ' + ip.name.match(/^\d{1,3}(\.\d{1,3}){3}/)[0] : '';
+      z.innerHTML = `
+        ${pulse ? `<div class="lu-app"><span class="lu-app-ic">♫</span><div><b>Pulse LED</b><span class="nt">Le logiciel de Pierre : musique → vidéo pour les LED (${esc(pulse.name)})</span></div><button class="btn pri" data-ls="${pulse.id}" data-nom="${esc(pulse.name)}">▶ Ouvrir</button></div>` : ''}
+        ${toe ? `<div class="lu-app"><span class="lu-app-ic">◈</span><div><b>Light Show TouchDesigner</b><span class="nt">${esc(toe.name)}</span></div><button class="btn" data-ls="${toe.id}" data-nom="${esc(toe.name)}">▶ Ouvrir dans TouchDesigner</button></div>` : ''}
+        ${td ? `<div class="lu-app"><span class="lu-app-ic">⬇</span><div><b>Installer TouchDesigner</b><span class="nt">${esc(td.name)} (dans le Drive, à installer une fois sur le PC du studio)</span></div><button class="btn" data-lien="${esc(td.webViewLink)}">Ouvrir dans le Drive</button></div>` : ''}
+        <div class="chips"><button class="chip" data-lien="https://drive.google.com/drive/folders/${d.id}">Ouvrir le dossier Light Show</button></div>`;
+      $$('[data-lien]', z).forEach(b => b.onclick = () => BK.ouvrirLien(b.dataset.lien));
+      $$('[data-ls]', z).forEach(b => b.onclick = () => ouvrirDuDrive(b.dataset.ls, b.dataset.nom, d.id));
+    } catch (e) { z.innerHTML = '<span class="nt">Drive injoignable pour l\'instant.</span>'; }
+  }
+  // on prend toujours la dernière version du Drive, copiée sur ce PC, puis ouverte (navigateur ou TouchDesigner)
+  async function ouvrirDuDrive(id, nom, dossierId) {
+    if (!BK.estExe) return BK.ouvrirLien('https://drive.google.com/file/d/' + id + '/view');
+    try {
+      let base = BK.reglage('dossierExports', '');
+      if (!base || !(await BK.fichier.existe(base))) { base = await BK.fichier.choisirDossier('Dossier où ranger les fichiers créés par BEESKOT Studio'); if (!base) return; BK.regler('dossierExports', base); }
+      const dos = BK.chemin(base, 'BEESKOT Studio', 'Light Show'); await BK.fichier.creerDossier(dos);
+      msg('Copie de ' + nom + '…'); const p = BK.chemin(dos, nom);
+      await BK.fichier.ecrireOctets(p, await BK.drive.telecharger(id));
+      await BK.fichier.ouvrir(p); msg(nom + ' ouvert');
+    } catch (e) { msg(/toe$/i.test(nom) ? 'TouchDesigner ne semble pas installé sur ce PC' : 'Ouverture impossible'); }
+  }
   $('#luPierre').onclick = async () => { try { await BK.fichier.ouvrir(BK.reglage('lum.pierreExe', '')); msg('Programme lancé'); } catch (e) { msg('Impossible de lancer le programme'); } };
 
   // ---------- lampes ----------
@@ -132,7 +163,7 @@ BK.module('lumieres', function (page) {
   [$('#luId'), $('#luSecret')].forEach(c => c.addEventListener('keydown', e => e.stopPropagation()));
   $('#luRelire').onclick = chercher;
   BK.surOuvrir = BK.surOuvrir || {};
-  BK.surOuvrir.lumieres = async () => { await config(); $('#luId').value = L.conf.acces || ''; $('#luSecret').placeholder = L.conf.secret ? '•••••••• (enregistré)' : 'Access Secret'; $('#luRegion').value = L.conf.region || 'us'; majPierre(); chercher(); };
+  BK.surOuvrir.lumieres = async () => { await config(); $('#luId').value = L.conf.acces || ''; $('#luSecret').placeholder = L.conf.secret ? '•••••••• (enregistré)' : 'Access Secret'; $('#luRegion').value = L.conf.region || 'us'; majPierre(); lightShow(); chercher(); };
   majPierre();
 });
 })();

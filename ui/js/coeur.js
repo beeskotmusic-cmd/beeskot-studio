@@ -7,7 +7,7 @@ const $ = (s, r = document) => r.querySelector(s);
 const $$ = (s, r = document) => [...r.querySelectorAll(s)];
 
 const BK = {
-  version: '0.6.0 bêta',
+  version: '0.7.0 bêta',
   modules: {},
   onglets: [],
   cotes: [],
@@ -129,7 +129,7 @@ const BK = {
 
   async demarrer() {
     BK.boutonStop();
-    try { await BK.semer(); } catch (e) { console.error(e); }
+    try { await BK.semer(); await BK.semerAlias(); } catch (e) { console.error(e); }
     BK.construireMenu();
     BK.construirePages();
     $$('.knobify').forEach(BK.knobify);

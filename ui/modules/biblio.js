@@ -60,7 +60,7 @@ BK.module('biblio', function (page) {
     $('#biNbR').textContent = O.length ? `(${O.length})` : '';
     $$('#biVues .chip').forEach(c => c.classList.toggle('on', c.dataset.v === B.vue));
     const liste = $('#biListe');
-    if (B.vue === 'ranger') { liste.innerHTML = rendreOrphelins(O); brancherOrphelins(); return; }
+    if (B.vue === 'ranger') { liste.innerHTML = '<div id="biDriveNeufs"></div>' + rendreOrphelins(O); brancherOrphelins(); neufsDuDrive(); return; }
     const f = BK.inv.normaliser(B.filtre);
     const l = (B.vue === 'sorti' ? S : C).filter(m => !f || BK.inv.normaliser(m.nom).includes(f)).sort((a, b) => (b.maj || '').localeCompare(a.maj || ''));
     liste.innerHTML = l.length ? l.map(fiche).join('') : `<span class="nt" style="padding:20px">${B.vue === 'sorti' ? 'Aucun morceau sorti pour l\'instant.' : 'Aucun morceau en chantier. Crée une fiche à droite, ou lance « Scanner ce PC ».'}</span>`;
@@ -68,26 +68,52 @@ BK.module('biblio', function (page) {
     remplirDrive();
   }
 
-  // ---------- fichiers du Drive qui parlent de ce morceau (ex. zips du bot Discord) ----------
+  // ---------- fichiers du Drive de ce morceau, rangés par dossier du groupe ----------
+  // (Recording › Ableton Projects, CL, WAV de tournage… et le reste du Drive, ex. les fichiers du bot Discord)
   const trouves = {};
+  const SECTIONS = [['ableton', 'Projets Ableton'], ['cl', 'Exports clean (CL)'], ['wavtournage', 'WAV de tournage']];
+  const icone = n => /\.(zip|rar|7z)$/i.test(n) ? '🗜' : /\.(wav|mp3|aiff?|flac)$/i.test(n) ? '♪' : /\.als$/i.test(n) ? '▤' : '📄';
+  async function fichiersDrive(m) {
+    const estA = f => BK.inv.trouverMorceau(f.name, B.morceaux) === m || (f.dossiers || []).some(d => BK.inv.trouverMorceau(d, B.morceaux) === m);
+    await BK.dossiers.assurer();
+    const parts = [], vus = new Set();
+    for (const [role, titre] of SECTIONS) {
+      const l = (await BK.dossiers.fichiersSous(role).catch(() => [])).filter(estA).sort((a, b) => (b.modifiedTime || '').localeCompare(a.modifiedTime || ''));
+      l.forEach(f => vus.add(f.id)); if (l.length) parts.push({ titre, l });
+    }
+    const mots = [m.nom, ...(m.alias || [])].map(x => BK.inv.normaliser(x).split(' ').sort((a, b) => b.length - a.length)[0]).filter(x => x && x.length >= 3);
+    const autres = [];
+    for (const mot of [...new Set(mots)]) for (const f of await BK.drive.chercher([mot]).catch(() => []))
+      if (!vus.has(f.id) && !/\.json$/.test(f.name) && BK.inv.trouverMorceau(f.name, B.morceaux) === m) { vus.add(f.id); autres.push(f); }
+    if (autres.length) parts.push({ titre: 'Ailleurs dans le Drive', l: autres.sort((a, b) => (b.modifiedTime || '').localeCompare(a.modifiedTime || '')) });
+    return parts;
+  }
   async function remplirDrive() {
     for (const el of $$('.drive-res', page)) {
       const m = B.morceaux.find(x => x.id === el.dataset.m); if (!m) continue;
       try {
-        if (!trouves[m.id]) {
-          const mots = BK.inv.normaliser(m.nom).split(' ').sort((a, b) => b.length - a.length);
-          const l = await BK.drive.chercher([mots[0] || m.nom]);
-          trouves[m.id] = l.filter(f => BK.inv.trouverMorceau(f.name, [m]) === m && !/\.json$/.test(f.name));
-        }
-        const l = trouves[m.id];
-        el.innerHTML = l.length ? l.map(f => `<div class="ligne-f"><span class="etoile">${/zip/i.test(f.name) ? '🗜' : /\.(wav|mp3)$/i.test(f.name) ? '♪' : /\.als$/i.test(f.name) ? '▤' : '📄'}</span>
-            <a href="#" class="f-nom lien" data-url="${esc(f.webViewLink)}">${esc(f.name)}</a><span class="nt f-meta">${date(f.modifiedTime)}${f.size ? ' · ' + (f.size / 1e6).toFixed(0) + ' Mo' : ''}</span>
-            ${/\.(wav|mp3)$/i.test(f.name) ? `<button class="btn xs" data-dreel="${f.id}" data-nom="${esc(f.name)}">→ Reel</button>` : ''}</div>`).join('')
+        if (!trouves[m.id]) trouves[m.id] = await fichiersDrive(m);
+        const parts = trouves[m.id];
+        el.innerHTML = parts.length ? parts.map(p => `<span class="nt drive-sec">${p.titre} (${p.l.length})</span>` + p.l.slice(0, 12).map((f, i) => `<div class="ligne-f${i === 0 ? ' recent' : ''}"><span class="etoile">${i === 0 ? '★' : icone(f.name)}</span>
+            <a href="#" class="f-nom lien" data-url="${esc(f.webViewLink)}" title="${esc([...(f.dossiers || []), f.name].join(' / '))}">${esc(f.name)}</a><span class="nt f-meta">${date(f.modifiedTime)}${f.size ? ' · ' + Math.max(1, Math.round(f.size / 1e6)) + ' Mo' : ''}</span>
+            ${/\.(wav|mp3)$/i.test(f.name) ? `<button class="btn xs" data-dreel="${f.id}" data-nom="${esc(f.name)}">→ Reel</button>` : ''}</div>`).join('')).join('')
           : '<span class="nt">Rien trouvé dans le Drive pour ce morceau.</span>';
         $$('.lien', el).forEach(a => a.onclick = e => { e.preventDefault(); BK.ouvrirLien(a.dataset.url); });
         $$('[data-dreel]', el).forEach(b => b.onclick = async () => { try { msg('Téléchargement depuis le Drive…'); const o = await BK.drive.telecharger(b.dataset.dreel); BK.ouvrir('reels'); await BK.reelsCharger(new File([o], b.dataset.nom)); } catch (e) { msg('Téléchargement impossible'); } });
       } catch (e) { el.innerHTML = '<span class="nt">Drive injoignable pour l\'instant.</span>'; }
     }
+  }
+
+  // morceaux qui ont un dossier dans « Ableton Projects » mais pas encore de fiche
+  async function morceauxDuDrive() {
+    if (!BK.drive.relie()) return [];
+    const d = await BK.dossiers.get('ableton'); if (!d) return [];
+    const ds = await BK.dossiers.enfants(d.id, true), out = [];
+    for (const x of ds) {
+      if (/^wip$/i.test(x.name)) { for (const y of await BK.dossiers.enfants(x.id, true)) if (!BK.inv.trouverMorceau(y.name, B.morceaux)) out.push(y.name); }
+      else if (!BK.inv.trouverMorceau(x.name, B.morceaux)) out.push(x.name);
+    }
+    return out;
   }
 
   function fiche(m) {
@@ -133,7 +159,7 @@ BK.module('biblio', function (page) {
         ${t('avance', 'Avancement', `${BK.etapes[Math.min(m.fait || 0, 5)].nom} · ${pc} %`, () => `
           <div class="etapes-clic">${BK.etapes.map((e, i) => `<button class="etape-b ${i < (m.fait || 0) ? 'fait' : i === (m.fait || 0) ? 'encours' : ''}" data-etape="${i}">${e.nom}</button>`).join('')}</div>
           <span class="nt">Clique sur une étape quand elle est terminée.</span>`)}
-        ${t('liens', 'Drive', ((m.liens || []).length ? m.liens.length + ' lien(s)' : '') + (BK.drive.relie() ? ' · recherche dans le Drive' : ''), () => `
+        ${t('liens', 'Drive BEESKOT', ((m.liens || []).length ? m.liens.length + ' lien(s) · ' : '') + (BK.drive.relie() ? 'projets, exports CL, WAV de tournage…' : 'Drive non relié'), () => `
           ${BK.drive.relie() ? `<div class="drive-res" data-m="${m.id}"><span class="nt"><span class="spin"></span>Recherche dans le Drive…</span></div>` : ''}
           ${(m.liens || []).map((l, i) => `<div class="ligne-f"><span class="etoile">🔗</span><a href="#" class="f-nom lien" data-url="${esc(l.url)}" title="${esc(l.url)}">${esc(l.titre || l.url)}</a><button class="btn xs" data-lienx="${i}">✕</button></div>`).join('')}
           <div class="lien-aj"><input class="fld" data-lien="titre" placeholder="ex. Projet Ableton v8 (zipper)"><input class="fld" data-lien="url" placeholder="colle le lien Google Drive…"><button class="btn xs" data-act="lien">+ Ajouter</button></div>
@@ -147,6 +173,14 @@ BK.module('biblio', function (page) {
     </article>`;
   }
 
+  async function neufsDuDrive() {
+    const z = $('#biDriveNeufs'); if (!z) return;
+    const l = await morceauxDuDrive().catch(() => []); if (!l.length || !$('#biDriveNeufs')) return;
+    const joli = n => n.toLowerCase().replace(/(^|\s)\S/g, c => c.toUpperCase());
+    z.innerHTML = `<div class="box" style="margin-bottom:12px"><span class="lb">Dans le Drive (Ableton Projects), sans fiche</span>
+      ${l.map(n => `<div class="ligne-f"><span class="etoile">▤</span><span class="f-nom">${esc(joli(n))}</span><button class="btn xs" data-neuf="${esc(joli(n))}">+ Créer la fiche</button></div>`).join('')}</div>`;
+    $$('[data-neuf]', z).forEach(b => b.onclick = async () => { await BK.db.ecrire('morceaux', { nom: b.dataset.neuf, statut: 'chantier', fait: 0 }); msg('Fiche créée'); await charger(); });
+  }
   function rendreOrphelins(O) {
     if (!O.length) return '<span class="nt" style="padding:20px">Rien à ranger : tous les fichiers trouvés sont reliés à un morceau.</span>';
     const opts = B.morceaux.map(m => `<option value="${m.id}">${esc(m.nom)}</option>`).join('');

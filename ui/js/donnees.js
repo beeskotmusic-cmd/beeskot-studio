@@ -146,6 +146,17 @@ BK.semer = async function () {
   for (const f of BK.FICHES_DEPART) if (!deja.has(f.id)) await BK.db.ecrire('morceaux', { ...f, statut: 'chantier', fait: 0 });
   BK.regler('seme.v1', true);
 };
+// les petits noms utilisés dans le Drive et sur Discord (OPP, GLAM…) : ajoutés une fois aux fiches
+BK.ALIAS_DEPART = { 'glamorous-sky': ['GLAM', 'GLAMOROUSSKY'], 'one-point-perspective': ['OPP'], 'moon-blue': ['MOONBLUE'] };
+BK.semerAlias = async function () {
+  if (BK.reglage('alias.v1', false)) return;
+  for (const m of await BK.db.liste('morceaux')) {
+    const a = BK.ALIAS_DEPART[m.id]; if (!a) continue;
+    const l = new Set((m.alias || []).map(x => x.toUpperCase())), manque = a.filter(x => !l.has(x));
+    if (manque.length) { m.alias = [...(m.alias || []), ...manque]; await BK.db.ecrire('morceaux', m); }
+  }
+  BK.regler('alias.v1', true);
+};
 
 // ---------- ouvrir un lien (Drive…) dans le navigateur ----------
 BK.ouvrirLien = url => { if (!/^https?:\/\//i.test(url)) return; BK.estExe ? BK.T.opener.openUrl(url) : window.open(url, '_blank'); };

@@ -27,6 +27,8 @@ BK.module('tournage', function (page) {
       <section class="pane vit to-vit"><span class="ptitle">① Vitrine</span><div class="to-fiche" id="toFiche"></div></section>
       <section class="pane reg" style="width:270px"><span class="ptitle">② Tournages</span>
         <button class="btn pri" id="toNouveau" style="width:100%;justify-content:center">+ Nouveau tournage</button>
+        <button class="btn" id="toPlanXl" style="width:100%;justify-content:center;margin-top:8px">📋 PLAN.xlsx du Drive</button>
+        <div class="chips" style="margin-top:8px"><button class="chip" data-md="tournage">Dossier Tournages</button><button class="chip" data-md="outfits">Outfits</button><button class="chip" data-md="moodboard">Moodboards</button></div>
         <div class="box grow" style="margin-top:10px"><div class="to-liste" id="toListe"></div></div>
       </section>
     </div>
@@ -72,14 +74,14 @@ BK.module('tournage', function (page) {
         </div></div>
       <div class="box"><div class="ligne-titre"><span class="lb">Moodboard</span><span class="nt" style="margin:0 0 0 auto">Glisse des images ici (captures, photos, Pinterest…)</span></div>
         <div class="to-mood" id="toMood">${t.moodboard.map((u, i) => `<div class="to-img" style="background-image:url(${u})"><button class="md-x" data-mx="${i}">✕</button></div>`).join('')}
-          <button class="to-img to-plus" id="toMoodPlus">+</button></div>
+          <button class="to-img to-plus" id="toMoodPlus" title="Images de ce PC">+</button><button class="to-img to-plus to-plus-drive" id="toMoodDrive" title="Images du Drive">+ Drive</button></div>
         <input type="file" id="toMoodIn" accept="image/*" multiple hidden></div>
       <div class="box"><div class="ligne-titre"><span class="lb">Découpage</span>
           <button class="btn xs" id="toRenfort" style="margin-left:auto">Idées avec le Renfort AI</button></div>
         <table class="to-plans"><thead><tr><th>#</th><th>Cadrage</th><th>Ce qu'on voit / ce qui se passe</th><th>Durée</th><th>Notes</th><th></th></tr></thead>
           <tbody>${t.plans.map((p, i) => `<tr data-i="${i}"><td class="mono">${i + 1}</td>
             <td><select class="fld" data-p="cadrage"><option value="">—</option>${CADRAGES.map(c => `<option${p.cadrage === c ? ' selected' : ''}>${c}</option>`).join('')}</select></td>
-            <td><input class="fld" data-p="action" value="${esc(p.action)}"></td>
+            <td>${p.reel ? `<div class="to-reel"><b>${esc(p.reel)}</b><span>${esc([p.audio, p.horaire, p.lieu, p.camera ? '🎥 cameraman' : ''].filter(Boolean).join(' · '))}</span><button class="btn xs" data-audio="${i}">→ Audio</button></div>` : ''}<input class="fld" data-p="action" value="${esc(p.action)}"></td>
             <td><input class="fld court" data-p="duree" value="${esc(p.duree)}" placeholder="5 s"></td>
             <td><input class="fld" data-p="notes" value="${esc(p.notes)}"></td>
             <td class="to-btns"><button class="btn xs" data-haut="${i}" title="Monter">↑</button><button class="btn xs" data-px="${i}" title="Retirer">✕</button></td></tr>`).join('')}</tbody></table>
@@ -108,11 +110,82 @@ BK.module('tournage', function (page) {
     $$('[data-haut]', z).forEach(b => b.onclick = () => { const i = +b.dataset.haut; if (!i) return; [t.plans[i - 1], t.plans[i]] = [t.plans[i], t.plans[i - 1]]; sauver(t); rendreFiche(); });
     $$('[data-mx]', z).forEach(b => b.onclick = () => { t.moodboard.splice(+b.dataset.mx, 1); sauver(t); rendreFiche(); });
     $('#toMoodPlus').onclick = () => $('#toMoodIn').click();
+    $('#toMoodDrive').onclick = async () => {
+      if (!BK.drive.relie()) return msg('Relie d\'abord le Drive');
+      const l = await BK.explorerDrive({ titre: 'Images du Drive pour le moodboard', mode: 'images', depart: 'moodboard' }); if (!l || !l.length) return;
+      msg('Ajout des images…');
+      for (const f of l) { try { const u = await BK.drive.vignette(f); if (u) t.moodboard.push(await enDataUrl(u)); } catch (e) {} }
+      await BK.db.ecrire('tournages', t); msg('Moodboard enregistré'); rendreFiche();
+    };
+    $$('[data-audio]', z).forEach(b => b.onclick = () => versAudio(t.plans[+b.dataset.audio]));
     $('#toMoodIn').onchange = e => { ajouterImages(t, e.target.files); e.target.value = ''; };
     $('#toSuppr').onclick = async () => { if (!confirm(`Retirer « ${t.titre || 'ce tournage'} » ? (rangé dans la corbeille du Drive)`)) return; await BK.db.supprimer('tournages', t.id); T.courant = null; msg('Retiré'); charger(); };
     $('#toRenfort').onclick = () => BK.renfortDemander ? BK.renfortDemander('decoupage', { tournage: t }) : msg('Renfort AI pas encore disponible');
     $$('input,textarea', z).forEach(c => c.addEventListener('keydown', e => e.stopPropagation()));
   }
+
+  async function enDataUrl(u) { const b = await (await fetch(u)).blob(); return reduire(new File([b], 'i.jpg', { type: b.type || 'image/jpeg' })); }
+
+  // ---------- un plan du PLAN.xlsx → l'Assistant audio Reel (morceau + passage) ----------
+  function passage(txt) {
+    const t = String(txt || '').replace(/\s*:\s*/g, ':'), m = t.match(/(\d{1,2}):(\d{2})\s*[-–—à]\s*(\d{1,2}):(\d{2})/);
+    return m ? { debut: +m[1] * 60 + +m[2], fin: +m[3] * 60 + +m[4] } : null;
+  }
+  async function versAudio(p) {
+    const ms = await BK.db.liste('morceaux'), m = BK.inv.trouverMorceau(p.reel, ms);
+    if (!m) return msg('Morceau inconnu : ' + p.reel);
+    const ps = passage(p.audio);
+    if (!BK.reelsPasser) return msg('Assistant audio indisponible');
+    BK.reelsPasser({ morceau: m, ...(ps || {}) });
+    if (!ps) setTimeout(() => BK.reelsMsg && BK.reelsMsg('Passage : ' + p.audio + ' → place le bloc à la main'), 1500);
+  }
+
+  // ---------- lire le PLAN.xlsx (dossier Tournages du Drive) ----------
+  async function lirePlan() {
+    if (!BK.drive.relie()) return msg('Relie d\'abord le Drive');
+    msg('Lecture du PLAN.xlsx…');
+    await BK.dossiers.assurer();
+    const d = await BK.dossiers.get('tournage'); if (!d) return msg('Dossier Tournages introuvable (Réglages › Vos dossiers)');
+    const f = (await BK.dossiers.enfants(d.id)).find(x => /plan.*\.xlsx$/i.test(x.name) || x.mimeType === 'application/vnd.google-apps.spreadsheet' && /plan/i.test(x.name));
+    if (!f) return msg('Pas de PLAN.xlsx dans le dossier Tournages');
+    const octets = f.mimeType === 'application/vnd.google-apps.spreadsheet'
+      ? new Uint8Array(await (await BK.drive.api(`/files/${f.id}/export?mimeType=application/vnd.openxmlformats-officedocument.spreadsheetml.sheet`)).arrayBuffer())
+      : await BK.drive.telecharger(f.id);
+    const lignes = await BK.xlsx.lignes(octets);
+    const h = lignes.findIndex(l => l.some(c => /^chanson$/i.test(c))); if (h < 0) return msg('Colonnes du PLAN non reconnues');
+    const col = re => lignes[h].findIndex(c => re.test(c));
+    const C = { num: col(/^$/) , chanson: col(/chanson/i), audio: col(/audio/i), plans: col(/^plans?$/i), action: col(/action/i), lieu: col(/lieu/i), jour: col(/tourn/i), enjeux: col(/enjeu/i), horaire: col(/horaire|heure/i), camera: col(/camera/i) };
+    const rows = lignes.slice(h + 1).filter(l => l[C.chanson]).map(l => ({ reel: l[C.chanson], audio: l[C.audio] || '', plans: l[C.plans] || '', action: l[C.action] || '', lieu: l[C.lieu] || '',
+      jour: l[C.jour] || '?', enjeux: l[C.enjeux] || '', horaire: l[C.horaire] || '', camera: C.camera >= 0 && /x/i.test(l[C.camera] || '') }));
+    montrerPlan(rows, f);
+  }
+  function montrerPlan(rows, f) {
+    const jours = [...new Set(rows.map(r => r.jour))];
+    $('#toFiche').innerHTML = `<div class="box"><div class="ligne-titre"><span class="lb">PLAN.xlsx · ${rows.length} reels · ${jours.length} jour(s) de tournage</span>
+        <button class="btn xs" id="toPlanOuvrir" style="margin-left:auto">Ouvrir dans le Drive</button></div>
+        <span class="nt">Lu dans le Drive (rien n'est modifié). « Créer la fiche » range le jour de tournage dans BEESKOT Studio (moodboard, tenues, PDF…). « → Audio » prépare le passage dans l'Assistant audio Reel.</span></div>
+      ${jours.map(j => { const rs = rows.filter(r => r.jour === j);
+        return `<div class="box"><div class="ligne-titre"><span class="lb">Tournage ${esc(j)}</span><span class="nt" style="margin:0 12px">${esc([...new Set(rs.map(r => r.lieu.split(/\n/)[0]))].join(' · '))}</span>
+          <button class="btn xs pri" data-jour="${esc(j)}" style="margin-left:auto">${T.liste.some(t => t.source === 'plan-' + j) ? '↻ Mettre à jour la fiche' : '+ Créer la fiche'}</button></div>
+          ${rs.map((r, i) => `<div class="to-pl"><div class="to-pl-t"><b>${esc(r.reel)}</b><span class="nt">${esc(r.horaire)}${r.camera ? ' · 🎥' : ''}</span>
+            <button class="btn xs" data-pa="${esc(j)}|${i}" title="Ouvrir ce morceau dans l'Assistant audio Reel${passage(r.audio) ? ' avec le passage déjà placé' : ''}">→ Audio</button></div>
+            <span class="nt"><b>Audio :</b> ${esc(r.audio)}</span><span class="nt"><b>Plans :</b> ${esc(r.plans)}</span><span class="nt"><b>Action :</b> ${esc(r.action)}</span>
+            ${r.enjeux ? `<span class="nt"><b>Enjeux :</b> ${esc(r.enjeux)}</span>` : ''}</div>`).join('')}</div>`; }).join('')}`;
+    $('#toPlanOuvrir').onclick = () => BK.ouvrirLien(f.webViewLink);
+    $$('[data-pa]').forEach(b => b.onclick = () => { const [j, i] = b.dataset.pa.split('|'); versAudio(rows.filter(r => r.jour === j)[+i]); });
+    $$('[data-jour]').forEach(b => b.onclick = async () => {
+      const j = b.dataset.jour, rs = rows.filter(r => r.jour === j);
+      let t = T.liste.find(x => x.source === 'plan-' + j);
+      const plans = rs.map(r => ({ reel: r.reel, audio: r.audio, horaire: r.horaire, lieu: r.lieu.split(/\n/)[0], camera: r.camera, cadrage: '', action: r.plans, duree: '', notes: [r.action, r.enjeux].filter(Boolean).join(' — ') }));
+      if (t) { t.plans = plans; }
+      else t = { titre: 'Tournage ' + j + ' (PLAN)', type: 'Reel', morceau: '', date: '', heure: (rs[0].horaire.match(/\d{1,2}h\d{0,2}/) || [''])[0].replace('h', ':').replace(/:$/, ':00').padStart(5, '0'), lieu: [...new Set(rs.map(r => r.lieu.split(/\n/)[0]))].join(' / '),
+        idee: '', moodboard: [], plans, tenues: {}, materiel: [...new Set(rs.map(r => r.enjeux).filter(Boolean))].join('\n'), notes: '', source: 'plan-' + j };
+      t = await BK.db.ecrire('tournages', t); msg('Fiche du tournage ' + j + ' prête'); T.courant = t; await charger();
+    });
+    msg('PLAN lu ✓');
+  }
+  $('#toPlanXl').onclick = () => lirePlan().catch(e => msg('Lecture impossible : ' + e.message));
+  $$('[data-md]', page).forEach(b => b.onclick = () => BK.ouvrirMedias ? BK.ouvrirMedias(b.dataset.md) : null);
 
   async function ajouterImages(t, fichiers) {
     const fs = [...fichiers].filter(f => /^image\//.test(f.type)); if (!fs.length) return msg('Seulement des images');

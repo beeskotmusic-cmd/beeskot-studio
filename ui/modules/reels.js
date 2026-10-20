@@ -92,7 +92,7 @@ BK.module('reels', function (page) {
     <div class="pane abar" aria-label="Barre"><span class="ptitle">③ Barre</span>
       <span class="vfd" id="reMsg">CHARGE UN MORCEAU</span>
       <span class="nt" id="reQuoi" style="margin:0 12px"></span>
-      <div class="right"><button class="btn pri" id="reExport" disabled>Exporter ▶</button></div></div>`;
+      <div class="right"><button class="btn hidden" id="reDrive" title="Dans Photos/Vidéos › Tournages › WAV tournages › le morceau">⇪ Tournage → Drive</button><button class="btn pri" id="reExport" disabled>Exporter ▶</button></div></div>`;
 
   const msg = t => $('#reMsg').textContent = String(t).toUpperCase();
   const cv = $('#reCanvas'), onde = $('#reOnde'), bloc = $('#reBloc'), tete = $('#reTete');
@@ -148,6 +148,27 @@ BK.module('reels', function (page) {
     } catch (e) { msg('Fichier illisible'); console.error(e); }
   }
   BK.reelsCharger = charger;                       // la Bibliothèque peut envoyer un morceau ici
+  BK.reelsMsg = msg;
+
+  // depuis Tournages (PLAN.xlsx) : le morceau + le passage déjà placés.
+  // On prend l'export principal de ce PC, sinon le plus récent du Drive (CL, Ableton Projects…).
+  BK.reelsPasser = async ({ morceau, debut, fin }) => {
+    BK.ouvrir('reels'); source('biblio'); await remplirMorceaux();
+    $('#reMorceau').value = morceau.id; await remplirVersions();
+    try {
+      const v = $('#reVersion').value;
+      if (v && BK.estExe) { msg('Lecture…'); const o = await BK.fichier.lireOctets(v); await charger(new File([o], v.split(/[\\/]/).pop())); }
+      else if (BK.drive.relie()) {
+        msg('Recherche dans le Drive…'); await BK.dossiers.assurer();
+        const l = [];
+        for (const r of ['cl', 'ableton', 'wavtournage']) l.push(...(await BK.dossiers.fichiersSous(r).catch(() => [])).filter(f => /\.(wav|mp3)$/i.test(f.name) && !/tournage/i.test(f.name) && (BK.inv.trouverMorceau(f.name, R.morceaux) || {}).id === morceau.id));
+        l.sort((a, b) => (b.modifiedTime || '').localeCompare(a.modifiedTime || ''));
+        if (!l[0]) return msg('Aucun export de ' + morceau.nom + ' : ajoute-le dans sa fiche');
+        msg('Téléchargement de ' + l[0].name + '…'); await charger(new File([await BK.drive.telecharger(l[0].id)], l[0].name));
+      } else return msg('Aucun export de ' + morceau.nom + ' sur ce PC');
+      if (debut != null && fin > debut && R.buffer) { R.debut = debut; R.duree = Math.min(fin - debut, R.buffer.duration - debut); suivreDuree(); maj(); msg(`Passage ${BK.audio.temps(debut)} → ${BK.audio.temps(fin)} placé`); }
+    } catch (e) { msg('Impossible : ' + e.message); }
+  };
   BK.reelAudio = () => R.buffer ? { nom: R.nom, url: R.url, debut: R.debut, duree: R.duree } : null;   // pour l'Assistant visuel
   $('#rePick').onclick = () => $('#reInput').click();
   $('#reInput').onchange = e => e.target.files[0] && charger(e.target.files[0]);
@@ -297,9 +318,22 @@ BK.module('reels', function (page) {
         const t = await fabriquer('T'), nomV = String(Math.round(R.v * 100)).padStart(3, '0');
         await BK.enregistrerFichier(dossier, `${R.nom}_REEL_${d}s_TOURNAGE_${nomV}pc${R.clic ? '_CLIC' : ''}.wav`, BK.audio.wav(t.canaux, t.sr), 'audio/wav');
         msg('2 fichiers prêts');
+        R.dernierTournage = { octets: BK.audio.wav(t.canaux, t.sr), nom: `${R.nom}_REEL_${d}s_TOURNAGE_${nomV}pc${R.clic ? '_CLIC' : ''}.wav` };
+        $('#reDrive').classList.toggle('hidden', !BK.drive.relie());
       }
     } catch (e) { msg('Erreur à l\'export'); console.error(e); }
     b.disabled = false; majBouton();
+  };
+  $('#reDrive').onclick = async () => {
+    const f = R.dernierTournage; if (!f) return;
+    try {
+      await BK.dossiers.assurer(); const w = await BK.dossiers.get('wavtournage'); if (!w) return msg('Dossier « WAV tournages » introuvable (Réglages)');
+      const ms = R.morceaux || await BK.db.liste('morceaux'), m = BK.inv.trouverMorceau(R.nom, ms);
+      const sous = (await BK.dossiers.enfants(w.id, true)).find(x => m && BK.inv.trouverMorceau(x.name, ms) === m);
+      const dos = sous ? sous.id : await BK.drive.dossier((m ? m.nom : R.nom).toUpperCase().replace(/\s+/g, ''), w.id);
+      await BK.drive.envoyerBlob(new Blob([f.octets], { type: 'audio/wav' }), f.nom, dos, p => msg('Envoi · ' + Math.round(p * 100) + ' %'));
+      msg('Dans le Drive ✓ (WAV tournages)'); $('#reDrive').classList.add('hidden');
+    } catch (e) { msg('Envoi impossible : ' + e.message); }
   };
   function majBouton() {
     const deux = deuxFichiers();
