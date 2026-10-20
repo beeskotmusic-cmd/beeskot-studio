@@ -4,7 +4,7 @@
 // avec si on veut un élan musical ou un clic 1-2-3-4 ×2 avant le passage).
 // =====================================================================
 (() => {
-const R = { nom: '', buffer: null, url: '', pics: null, debut: 0, duree: 30, v: 1, garderNote: true, elan: 0, clic: false, bpm: 0,
+const R = { nom: '', buffer: null, url: '', pics: null, debut: 0, duree: 30, v: 1, elan: 0, clic: false, bpm: 0,
   fondu: false, lecture: null, source: BK.reglage('reel.source', 'fichier'), timers: [] };
 const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 const x2 = (n, d = 2) => n.toLocaleString('fr-CA', { maximumFractionDigits: d });
@@ -52,7 +52,7 @@ BK.module('reels', function (page) {
           </div>
           <div class="regle" id="reRegle"></div>
           <div class="compteurs">
-            <button class="btn ecoute" id="rePlay" disabled title="Écouter le passage (barre d'espace)">▶ Normal</button>
+            <button class="btn ecoute" id="rePlay" disabled title="Écouter le fichier montage (barre d'espace = écoute libre du morceau)">▶ Montage</button>
             <button class="btn ecoute warm" id="reEcouteT" disabled>▶ Tournage</button>
             <div><span class="eng">Début</span><span class="vfd" id="reDeb">—</span></div>
             <div><span class="eng">Fin</span><span class="vfd" id="reFin">—</span></div>
@@ -75,7 +75,7 @@ BK.module('reels', function (page) {
               <span class="lb">Vitesse tournage</span></div></div>
           <span class="nt conseil">Clique sur un afficheur pour taper ta valeur. Conseillé : <b>15 à 30 s</b> (jusqu'à 90 s).</span>
           <span class="nt" id="reExplique"></span>
-          <div class="chips" style="margin-top:10px"><button class="chip on" id="reNote" title="Sinon, accélérer fait monter la musique dans les aigus">Garder la note</button></div></div>
+          <span class="nt">La note reste toujours la même (ni plus aiguë, ni plus grave).</span></div>
         <div class="box"><span class="lb">Avant le passage (tournage)</span>
           <div class="chips" style="margin-top:8px"><button class="chip" id="reClic">Clic d'élan 1-2-3-4 ×2</button></div>
           <div class="reel-bpm"><span class="eng">Tempo</span><input class="fld" id="reBpm" inputmode="decimal" placeholder="BPM"><button class="btn xs" id="reTap" title="Tape en rythme 4 fois ou plus">Taper</button></div>
@@ -86,7 +86,8 @@ BK.module('reels', function (page) {
     </div>
     <div class="pane abar" aria-label="Barre"><span class="ptitle">③ Barre</span>
       <span class="vfd" id="reMsg">CHARGE UN MORCEAU</span>
-      <div class="right"><button class="btn pri" id="reExport" disabled>Exporter les 2 fichiers ▶</button></div></div>`;
+      <span class="nt" id="reQuoi" style="margin:0 12px"></span>
+      <div class="right"><button class="btn pri" id="reExport" disabled>Exporter ▶</button></div></div>`;
 
   const msg = t => $('#reMsg').textContent = String(t).toUpperCase();
   const cv = $('#reCanvas'), onde = $('#reOnde'), bloc = $('#reBloc'), tete = $('#reTete');
@@ -164,6 +165,7 @@ BK.module('reels', function (page) {
   // ---------- afficheurs ----------
   const dureeClic = () => R.clic && R.bpm ? 8 * 60 / (R.bpm * R.v) : 0;
   function maj() {
+    majBouton();
     $('#reEcouteT').textContent = '▶ Tournage ×' + x2(R.v);
     if (!R.buffer) return;
     const D = R.buffer.duration;
@@ -207,37 +209,50 @@ BK.module('reels', function (page) {
   onde.addEventListener('pointerdown', e => { if (!R.buffer || e.target !== cv) return; audio.currentTime = tempsA(e.clientX); montrerTete(); });
   function suivreDuree() { const el = $('#reDuree'); el.value = Math.min(90, Math.round(R.duree)); el.knobMaj && el.knobMaj(); }
 
-  // ---------- écoute (le tournage s'écoute avec son clic ou son élan) ----------
-  function montrerTete() { if (!R.buffer) return; tete.classList.remove('hidden'); tete.style.left = (audio.currentTime / R.buffer.duration * 100) + '%'; }
-  function stop() {
-    audio.pause(); cancelAnimationFrame(R.lecture); R.lecture = null; R.timers.forEach(clearTimeout); R.timers = [];
-    $('#rePlay').textContent = '▶ Normal'; $('#reEcouteT').textContent = '▶ Tournage ×' + x2(R.v);
+  // ---------- les 2 fichiers (fabriqués une fois, écoutés puis exportés tels quels) ----------
+  const deuxFichiers = () => R.v !== 1 || R.elan || R.clic;
+  const cle = t => [t, R.nom, R.debut.toFixed(3), R.duree.toFixed(3), R.fondu, ...(t === 'T' ? [R.v, R.clic ? 0 : R.elan, R.clic, R.bpm] : [])].join('|');
+  const cache = {};
+  async function fabriquer(t) {
+    const k = cle(t); if (cache[t] && cache[t].k === k) return cache[t];
+    const sr = R.buffer.sampleRate; let canaux, decal = 0;      // decal = secondes avant le passage (clic ou élan)
+    if (t === 'M') canaux = BK.audio.extraire(R.buffer, R.debut, R.debut + R.duree, 0.01, R.fondu ? 1 : 0.02);
+    else {
+      const elan = R.clic ? 0 : R.elan, deb = Math.max(0, R.debut - elan);
+      const brut = BK.audio.extraire(R.buffer, deb, R.debut + R.duree, elan ? Math.min(1, elan) : 0.01, R.fondu ? 1 : 0.02);
+      canaux = await BK.audio.vitesse(brut, sr, R.v, true, p => msg('Préparation tournage… ' + Math.round(p * 100) + ' %'));
+      decal = -(R.debut - deb) / R.v;
+      if (R.clic) { const c = fabriquerClic(sr, R.bpm * R.v, canaux.length); decal = c[0].length / sr; canaux = coller(c, canaux); }
+    }
+    return cache[t] = { k, canaux, sr, decal };
   }
-  function ecouter(tournage) {
+
+  // ---------- écoute : on entend EXACTEMENT le fichier qui sera exporté ----------
+  function montrerTete(t = audio.currentTime) { if (!R.buffer) return; tete.classList.remove('hidden'); tete.style.left = (t / R.buffer.duration * 100) + '%'; }
+  function stop() {
+    audio.pause(); cancelAnimationFrame(R.lecture); R.lecture = null;
+    if (R.src) { try { R.src.onended = null; R.src.stop(); } catch (e) {} R.src = null; }
+    $('#rePlay').textContent = '▶ Montage'; $('#reEcouteT').textContent = '▶ Tournage ×' + x2(R.v);
+  }
+  async function ecouter(tournage) {
     if (!R.buffer) return;
-    if (R.lecture || R.timers.length) return stop();
-    const v = tournage ? R.v : 1, debut = tournage && !R.clic ? Math.max(0, R.debut - R.elan) : R.debut;
-    audio.preservesPitch = audio.mozPreservesPitch = audio.webkitPreservesPitch = R.garderNote;
-    audio.playbackRate = v; audio.currentTime = debut;
-    (tournage ? $('#reEcouteT') : $('#rePlay')).textContent = '■ Stop';
-    const lancer = () => {
-      audio.play(); const fin = R.debut + R.duree;
-      const tic = () => { montrerTete(); if (audio.currentTime >= fin || audio.paused) return stop(); R.lecture = requestAnimationFrame(tic); };
-      R.lecture = requestAnimationFrame(tic);
-    };
-    if (tournage && R.clic && R.bpm) {                       // 8 clics, puis la musique
-      const ctx = BK.audio.contexte(), t0 = ctx.currentTime + 0.1, temps = 60 / (R.bpm * v);
-      for (let k = 0; k < 8; k++) { const o = ctx.createOscillator(), g = ctx.createGain(); o.frequency.value = k % 4 ? 1400 : 2000;
-        g.gain.setValueAtTime(0.5, t0 + k * temps); g.gain.exponentialRampToValueAtTime(0.001, t0 + k * temps + 0.05);
-        o.connect(g).connect(ctx.destination); o.start(t0 + k * temps); o.stop(t0 + k * temps + 0.06); }
-      R.timers.push(setTimeout(() => { R.timers = []; lancer(); }, (0.1 + 8 * temps) * 1000));
-    } else lancer();
+    if (R.lecture || R.src) return stop();
+    if (tournage && R.clic && !R.bpm) return msg('Indique le tempo pour le clic d\'élan');
+    const b = tournage ? $('#reEcouteT') : $('#rePlay'); b.textContent = '…';
+    const f = await fabriquer(tournage ? 'T' : 'M'); msg('Écoute du fichier ' + (tournage ? 'tournage' : 'montage'));
+    const ctx = BK.audio.contexte(); if (ctx.state === 'suspended') await ctx.resume();
+    const ab = ctx.createBuffer(f.canaux.length, f.canaux[0].length, f.sr); f.canaux.forEach((c, i) => ab.copyToChannel(c, i));
+    const src = ctx.createBufferSource(); src.buffer = ab; src.connect(ctx.destination);
+    const v = tournage ? R.v : 1, t0 = ctx.currentTime + 0.05; src.start(t0); R.src = src; b.textContent = '■ Stop';
+    src.onended = () => { R.src = null; stop(); };
+    const tic = () => { const e = ctx.currentTime - t0 - f.decal; if (e >= 0) montrerTete(R.debut + e * v); R.lecture = requestAnimationFrame(tic); };
+    R.lecture = requestAnimationFrame(tic);
   }
   $('#rePlay').onclick = () => ecouter(false);
   $('#reEcouteT').onclick = () => ecouter(true);
   document.addEventListener('keydown', e => {
     if (page.classList.contains('hidden') || !R.buffer || /INPUT|SELECT|TEXTAREA/.test(document.activeElement.tagName)) return;
-    if (e.code === 'Space') { e.preventDefault(); ecouter(false); }
+    if (e.code === 'Space') { e.preventDefault(); if (R.src) stop(); if (audio.paused) { audio.play(); const tic = () => { montrerTete(); if (!audio.paused) R.lecture = requestAnimationFrame(tic); }; R.lecture = requestAnimationFrame(tic); } else stop(); }
     if (e.key === 'i' || e.key === 'I') $('#reI').click();
     if (e.key === 'o' || e.key === 'O') $('#reO').click();
   });
@@ -247,7 +262,6 @@ BK.module('reels', function (page) {
   // ---------- réglages ----------
   $('#reDuree').onchange = e => { R.duree = Math.max(3, +e.target.value); maj(); };
   $('#reVit').oninput = $('#reVit').onchange = e => { R.v = +e.target.value / 100; expliquer(); majClic(); };
-  $('#reNote').onclick = e => { R.garderNote = !R.garderNote; e.target.classList.toggle('on', R.garderNote); };
   $$('#reElan .chip').forEach(c => c.onclick = () => { R.elan = +c.dataset.e; $$('#reElan .chip').forEach(x => x.classList.toggle('on', x === c)); maj(); });
   $('#reFondu').onclick = e => { R.fondu = !R.fondu; e.target.classList.toggle('on', R.fondu); };
   $('#reClic').onclick = () => { R.clic = !R.clic; majClic(); };
@@ -265,23 +279,26 @@ BK.module('reels', function (page) {
     if (R.clic && !R.bpm) return msg('Indique le tempo pour le clic d\'élan');
     const b = $('#reExport'); b.disabled = true; b.innerHTML = '<span class="spin"></span>Export…';
     try {
-      const sr = R.buffer.sampleRate, d = Math.round(R.duree), dossier = BK.chemin('Reels', R.nom);
-      const montage = BK.audio.extraire(R.buffer, R.debut, R.debut + R.duree, 0.01, R.fondu ? 1 : 0.02);
-      msg('Fichier montage…'); await BK.audio.pause();
-      await BK.enregistrerFichier(dossier, `${R.nom}_REEL_${d}s_MONTAGE.wav`, BK.audio.wav(montage, sr), 'audio/wav');
-      let p2 = null;
-      if (R.v !== 1 || R.elan || R.clic) {
-        const elan = R.clic ? 0 : R.elan, deb = Math.max(0, R.debut - elan);
-        const brut = BK.audio.extraire(R.buffer, deb, R.debut + R.duree, elan ? Math.min(1, elan) : 0.01, R.fondu ? 1 : 0.02);
-        let t = await BK.audio.vitesse(brut, sr, R.v, R.garderNote, p => msg('Fichier tournage… ' + Math.round(p * 100) + ' %'));
-        if (R.clic) t = coller(fabriquerClic(sr, R.bpm * R.v, t.length), t);
-        const nomV = String(Math.round(R.v * 100)).padStart(3, '0');
-        p2 = await BK.enregistrerFichier(dossier, `${R.nom}_REEL_${d}s_TOURNAGE_${nomV}pc${R.clic ? '_CLIC' : ''}.wav`, BK.audio.wav(t, sr), 'audio/wav');
+      const d = Math.round(R.duree), dossier = BK.chemin('Reels', R.nom), m = await fabriquer('M');
+      if (!deuxFichiers()) {
+        await BK.enregistrerFichier(dossier, `${R.nom}_REEL_${d}s.wav`, BK.audio.wav(m.canaux, m.sr), 'audio/wav');
+        msg('Fichier prêt');
+      } else {
+        await BK.enregistrerFichier(dossier, `${R.nom}_REEL_${d}s_MONTAGE.wav`, BK.audio.wav(m.canaux, m.sr), 'audio/wav');
+        await BK.audio.pause();
+        const t = await fabriquer('T'), nomV = String(Math.round(R.v * 100)).padStart(3, '0');
+        await BK.enregistrerFichier(dossier, `${R.nom}_REEL_${d}s_TOURNAGE_${nomV}pc${R.clic ? '_CLIC' : ''}.wav`, BK.audio.wav(t.canaux, t.sr), 'audio/wav');
+        msg('2 fichiers prêts');
       }
-      msg(p2 ? '2 fichiers prêts' : 'Fichier prêt (vitesse normale : un seul fichier)');
     } catch (e) { msg('Erreur à l\'export'); console.error(e); }
-    b.disabled = false; b.textContent = 'Exporter les 2 fichiers ▶';
+    b.disabled = false; majBouton();
   };
+  function majBouton() {
+    const deux = deuxFichiers();
+    $('#reExport').textContent = deux ? 'Exporter les 2 fichiers ▶' : 'Exporter le fichier ▶';
+    $('#reEcouteT').classList.toggle('hidden', !deux);
+    $('#reQuoi').innerHTML = deux ? '<b>Tournage</b> = à passer pendant qu\'on filme · <b>Montage</b> = à poser dans Premiere' : 'Vitesse normale, sans clic : un seul fichier, pour filmer et monter.';
+  }
 
   source(R.source); expliquer(); majClic();
 });
