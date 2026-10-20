@@ -7,7 +7,7 @@ const $ = (s, r = document) => r.querySelector(s);
 const $$ = (s, r = document) => [...r.querySelectorAll(s)];
 
 const BK = {
-  version: '0.9.13 bêta',
+  version: '0.9.14 bêta',
   modules: {},
   onglets: [],
   cotes: [],
@@ -47,13 +47,17 @@ const BK = {
     for (const c of BK.cotes) {
       const liste = BK.onglets.filter(o => o.cote === c.id && BK.ongletVisible(o));
       if (!liste.length) continue;
-      if (c.titre) html += `<span class="eng cote cote-${c.id}">${c.titre}</span>`;
+      // chaque côté (Audio, Visuel, Show, Organisation) se replie d'un clic ; l'onglet ouvert reste toujours visible
+      const replie = c.titre && BK.reglage('menu.replie', {})[c.id];
+      if (c.titre) html += `<button class="eng cote cote-${c.id}" data-cote="${c.id}" title="Replier / déplier">${replie ? '▸' : '▾'} ${c.titre}</button>`;
+      html += `<div class="cote-groupe${replie ? ' replie' : ''}" data-g="${c.id}">`;
       for (const o of liste) {
         html += `<button class="tab${o.mini ? ' mini' : ''}${o.pret ? '' : ' bientot'}" data-p="${o.id}">
           <span class="nchip" style="--c:${o.couleur}"></span>
           <span class="t"><span class="lab">${o.titre}</span>${o.sous && !o.mini ? `<span class="nsub">${o.sous}</span>` : ''}</span>
           <span class="led"></span></button>`;
       }
+      html += '</div>';
     }
     const ia = BK.reglage('ia.active', true);
     html += `<div class="navfoot">
@@ -63,6 +67,8 @@ const BK = {
       </div>`;
     nav.innerHTML = html;
     $$('.tab', nav).forEach(b => b.onclick = () => BK.ouvrir(b.dataset.p));
+    $$('[data-cote]', nav).forEach(b => b.onclick = () => { const r = BK.reglage('menu.replie', {}); r[b.dataset.cote] = !r[b.dataset.cote]; BK.regler('menu.replie', r);
+      $(`.cote-groupe[data-g="${b.dataset.cote}"]`, nav).classList.toggle('replie', r[b.dataset.cote]); b.textContent = (r[b.dataset.cote] ? '▸ ' : '▾ ') + b.textContent.replace(/^[▸▾]\s*/, ''); });
     $('#iaBascule').onclick = () => { BK.regler('ia.active', !BK.reglage('ia.active', true)); const id = ($('#nav .tab.on') || {}).dataset; BK.construireMenu(); BK.etatDrive && BK.etatDrive(); BK.ableton && BK.ableton.majLed && BK.ableton.majLed();
       if (id && id.p) $$('#nav .tab').forEach(t => { const on = t.dataset.p === id.p; t.classList.toggle('on', on); $('.led', t).classList.toggle('amb', on); });
       window.dispatchEvent(new CustomEvent('bk:ia')); };

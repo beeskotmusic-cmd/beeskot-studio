@@ -37,7 +37,7 @@ BK.module('medias', function (page) {
       </section>
     </div>
     <div class="pane md-ajouter"><span class="ptitle">Ajouter à</span>
-      <div class="md-aj-tete"><div class="seg" id="mdRub"><button data-rub="morceaux">♪ Morceaux</button><button data-rub="tournage">🎬 Tournage</button><button data-rub="lumiere">💡 Lumière / scène</button></div>
+      <div class="md-aj-tete"><div class="seg" id="mdRub"><button data-rub="morceaux">♪ Morceaux</button><button data-rub="tournage">🎬 Tournage</button><button data-rub="lumiere">💡 Lumière / scène</button><button data-rub="reseaux">📣 Réseaux</button></div>
         <span class="nt">Glisse un média sur une case (ou clique le média, puis la case). Un fichier peut aller dans plusieurs cases.</span></div>
       <div class="md-paniers" id="mdPaniers"></div></div>
     <div class="pane abar"><span class="vfd" id="mdMsg">PRÊT</span>
@@ -60,7 +60,7 @@ BK.module('medias', function (page) {
     M.morceaux = (await BK.db.liste('morceaux')).sort((a, b) => a.nom.localeCompare(b.nom)); M.tags = await BK.etiquettes.tous();
     M.tournages = (await BK.db.liste('tournages')).sort((a, b) => (b.date || b.maj || '').localeCompare(a.date || a.maj || ''));
     const sel = $('#mdFiltre'), v = sel.value, rubs = cases();
-    sel.innerHTML = '<option value="">Tous (dossier ouvert)</option>' + [['morceaux', 'Morceaux'], ['tournage', 'Tournage'], ['lumiere', 'Lumière / scène']]
+    sel.innerHTML = '<option value="">Tous (dossier ouvert)</option>' + [['morceaux', 'Morceaux'], ['tournage', 'Tournage'], ['lumiere', 'Lumière / scène'], ['reseaux', 'Réseaux']]
       .map(([r, t]) => `<optgroup label="${t}">${rubs[r].map(c => `<option value="${c.k}">${esc(c.nom)}</option>`).join('')}</optgroup>`).join(''); sel.value = v;
     paniers();
   }
@@ -72,6 +72,7 @@ BK.module('medias', function (page) {
       tournage: [{ k: 'c:tournage', nom: 'Tournage (général)', ic: '🎬' }, { k: 'c:outfits', nom: 'Tenues', ic: '👕' }, { k: 'c:moodboard', nom: 'Moodboard', ic: '🖼' },
         ...(M.tournages || []).map(t => ({ k: 't:' + t.id, nom: t.titre || 'Tournage', ic: '🎬' }))],
       lumiere: [{ k: 'c:lumiere', nom: 'Light show', ic: '💡' }, { k: 'c:scenographie', nom: 'Scénographie', ic: '🎭' }, { k: 'c:live', nom: 'Live / concert', ic: '🎤' }],
+      reseaux: [{ k: 'c:cover', nom: 'Covers', ic: '💿' }, { k: 'c:insta', nom: 'Posts Instagram', ic: '📷' }, { k: 'c:story', nom: 'Stories', ic: '⭕' }, { k: 'c:reel', nom: 'Reels / TikTok', ic: '🎬' }, { k: 'c:affiche', nom: 'Affiches / flyers', ic: '📰' }, { k: 'c:presse', nom: 'Presse / EPK', ic: '🗞' }],
     };
   }
   const nomCase = k => Object.values(cases()).flat().find(c => c.k === k);
@@ -159,7 +160,7 @@ BK.module('medias', function (page) {
     menu.style.left = Math.min(r.left, innerWidth - 230) + 'px'; menu.style.top = Math.min(r.bottom + 4, innerHeight - 320) + 'px';
     const l = BK.etiquettes.liste(M.tags, id), rubs = cases();
     const dessiner = () => { const l = BK.etiquettes.liste(M.tags, id);
-      menu.innerHTML = [['morceaux', 'Morceaux'], ['tournage', 'Tournage'], ['lumiere', 'Lumière / scène']].map(([r, t]) => `<span class="md-menu-t">${t}</span>`
+      menu.innerHTML = [['morceaux', 'Morceaux'], ['tournage', 'Tournage'], ['lumiere', 'Lumière / scène'], ['reseaux', 'Réseaux']].map(([r, t]) => `<span class="md-menu-t">${t}</span>`
         + rubs[r].map(c => `<button data-m="${esc(c.k)}"${l.includes(c.k) ? ' class="on"' : ''}>${l.includes(c.k) ? '☑' : '☐'} ${esc(c.nom)}</button>`).join('')).join('')
         + `<span class="md-menu-t"></span><button data-m="-"${l.includes('-') ? ' class="on"' : ''}>— Aucun morceau</button>${l.length ? '<button data-m="">↺ Tout enlever (deviner par le nom)</button>' : ''}`; };
     dessiner();
