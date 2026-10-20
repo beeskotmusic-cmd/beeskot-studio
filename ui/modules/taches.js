@@ -34,7 +34,7 @@ BK.module('taches', function (page) {
       <section class="pane reg" style="width:300px"><span class="ptitle">② Miette et réglages</span>
         <div class="box todo-miette" id="taMiette"></div>
         <div class="box grow ta-faites-box zone" data-zone="__fait"><button class="lb ta-plier" id="taFaitesPli">▾ ✓ Déjà fait <span id="taNbF"></span></button><div class="ta-faites" id="taFaites"></div></div>
-        <div class="box"><span class="lb">Paniers</span>
+        <div class="box" id="taPanBox"><button class="lb ta-plier" id="taPanPli">▾ Paniers</button>
           <span class="nt">Les membres, séparés par des virgules. Le panier BEESKOT est toujours là.</span>
           <input class="fld" id="taMembres" style="margin-top:8px"></div>
       </section>
@@ -202,6 +202,9 @@ BK.module('taches', function (page) {
   });
 
   
+  const panPli = () => { const p = BK.reglage('todo.panPli', false); $('#taPanBox').classList.toggle('replie', p); $('#taPanPli').textContent = (p ? '▸' : '▾') + ' Paniers'; };
+  $('#taPanPli').onclick = () => { BK.regler('todo.panPli', !BK.reglage('todo.panPli', false)); panPli(); };
+  panPli();
   $('#taMembres').addEventListener('keydown', e => e.stopPropagation());
   $('#taMembres').onchange = async e => { const l = e.target.value.split(',').map(s => s.trim()).filter(s => s && s !== GROUPE); await BK.db.ecrire('config', { id: 'membres', liste: l }); msg('Paniers enregistrés'); charger(); };
   charger();

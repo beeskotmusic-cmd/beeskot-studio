@@ -7,7 +7,7 @@ const $ = (s, r = document) => r.querySelector(s);
 const $$ = (s, r = document) => [...r.querySelectorAll(s)];
 
 const BK = {
-  version: '0.9.28 bêta',
+  version: '0.9.29 bêta',
   modules: {},
   onglets: [],
   cotes: [],

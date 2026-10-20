@@ -793,11 +793,14 @@ body.dropping main>section:not(.hidden) .box.pick::after{content:none!important;
 .panier-pli{position:absolute;left:6px;font-size:13px;color:#ffb23e;opacity:.9}
 .ta-plier{display:flex;align-items:center;gap:6px;width:100%;padding:4px 6px;border-radius:4px;transition:background .15s}
 .ta-plier:hover{background:rgba(255,178,62,.16)}
-.panier{max-height:none;min-height:120px}
-.panier-cartes{max-height:290px}
+.panier{max-height:none;min-height:84px;padding:8px}
+.paniers{max-height:34vh}
+.panier-cartes{max-height:26vh}
+.panier .ta-nom{font-size:11px}
+.panier-tete{padding:3px 8px 4px}
 .panier.serre .panier-cartes{gap:3px}
-.panier.serre .carte{padding:4px 6px 4px 8px;align-items:center;gap:6px}
-.panier.serre .carte-t{font-size:11.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:block}
+.panier.serre .carte{padding:2px 5px 2px 6px;align-items:center;gap:5px;border-radius:4px}
+.panier.serre .carte-t{font-size:10.5px;line-height:1.25;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:block}
 .panier.serre .carte-m{display:none}
 .panier.serre .ta-case{width:16px;height:16px;font-size:10px;flex:none}
 .panier.serre .carte-x{font-size:10px}
@@ -825,3 +828,8 @@ body.dropping main>section:not(.hidden) .box.pick::after{content:none!important;
 .to-af-pli{position:absolute;right:14px;bottom:12px;font:600 10px Jost,sans-serif;letter-spacing:.12em;text-transform:uppercase;color:#ffcf7a;background:rgba(0,0,0,.45);padding:5px 10px;border-radius:5px}
 .to-corps{display:flex;flex-direction:column;gap:12px;margin-top:12px}
 .to-corps.replie{display:none}
+.ph-src{flex-wrap:wrap;justify-content:center;gap:5px;margin-bottom:4px}
+.ph-src .chip{font-size:10px;padding:4px 8px}
+
+/* To-do : la case « Paniers » des réglages se replie aussi */
+.box.replie > :not(.lb):not(.ta-plier){display:none}
