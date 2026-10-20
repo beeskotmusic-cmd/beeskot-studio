@@ -300,3 +300,8 @@ a.lien{color:var(--mus);text-decoration:none}a.lien:hover{text-decoration:underl
 .reel-ecoute-btns{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:10px}
 .reel-ecoute-btns .btn{justify-content:center;min-height:46px!important;font-size:13px}
 .reel-ecoute-btns.seul{grid-template-columns:1fr}
+
+/* la suite DARI dans la fenêtre du bouton rouge */
+.stopbox-suite{display:flex;flex-direction:column;align-items:center;gap:10px;width:100%;padding:14px 0 4px;border-top:1px solid rgba(255,220,170,.12)}
+.stopbox-suite .patch-suite{width:210px;height:auto;filter:drop-shadow(0 3px 4px rgba(0,0,0,.6))}
+.stopbox-suite .plaque-suite{width:210px;height:34px;object-fit:contain;background:#181818;padding:0 6px;border-radius:6px;box-shadow:0 3px 6px rgba(0,0,0,.55)}
