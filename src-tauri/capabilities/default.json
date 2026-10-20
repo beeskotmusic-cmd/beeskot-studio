@@ -68,6 +68,12 @@
           "url": "https://*.discord.com/*"
         },
         {
+          "url": "https://cdn.discordapp.com/*"
+        },
+        {
+          "url": "https://media.discordapp.net/*"
+        },
+        {
           "url": "https://*.tuyaus.com/*"
         },
         {

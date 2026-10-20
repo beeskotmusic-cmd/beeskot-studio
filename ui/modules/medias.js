@@ -27,6 +27,7 @@ BK.module('medias', function (page) {
         <div class="box"><span class="lb">Ajouter</span>
           <span class="nt">Glisse des fichiers sur la page, ou « + » : ils vont dans le dossier ouvert.</span>
           <button class="btn sm" id="mdAjout" style="margin-top:10px">+ Choisir des fichiers…</button>
+          <button class="btn sm" id="mdDiscord" style="margin-top:8px">+ Depuis Discord…</button>
           <button class="btn sm" id="mdDossier" style="margin-top:8px">+ Nouveau dossier ici…</button>
           <input type="file" id="mdInput" multiple hidden></div>
         <div class="box"><span class="lb">Drive</span>
@@ -196,6 +197,34 @@ BK.module('medias', function (page) {
     M.envoi = false; charger();
   }
   $('#mdAjout').onclick = () => $('#mdInput').click();
+  // ---------- ajouter depuis Discord : les photos et vidéos postées dans le salon « media » (et voisins) ----------
+  $('#mdDiscord').onclick = async () => {
+    const cur = M.filtre ? await dossierPour(M.filtre) : ici(); if (!cur) return msg('Ouvre d\'abord un dossier');
+    const v = document.createElement('div'); v.className = 'voile ex-voile';
+    v.innerHTML = `<div class="ex-box"><div class="ex-tete"><span class="lb">🍞 Photos et vidéos de Discord → ${esc(cur.nom)}</span><button class="btn xs" data-dc="x">✕</button></div>
+      <div class="ex-liste md-dc" id="mdDcL"><span class="nt"><span class="spin"></span>Miette regarde les salons « media »…</span></div>
+      <div class="ex-pied"><span class="nt" id="mdDcInfo">Clique les fichiers à ajouter.</span><button class="btn" data-dc="x">Annuler</button><button class="btn pri" data-dc="ok" disabled>Ajouter dans le Drive</button></div></div>`;
+    document.body.appendChild(v);
+    const choisis = new Set(); let l = [];
+    const fermer = () => v.remove();
+    v.addEventListener('click', async e => {
+      const a = e.target.closest('[data-dc]'), t = e.target.closest('[data-dci]');
+      if (t) { const id = t.dataset.dci; choisis.has(id) ? choisis.delete(id) : choisis.add(id); t.classList.toggle('on', choisis.has(id));
+        $('#mdDcInfo', v).textContent = choisis.size ? choisis.size + ' fichier(s) choisi(s)' : 'Clique les fichiers à ajouter.'; $('[data-dc="ok"]', v).disabled = !choisis.size; return; }
+      if (!a) return; if (a.dataset.dc === 'x') return fermer();
+      if (a.dataset.dc === 'ok') {
+        const fs = l.filter(x => choisis.has(x.id)); fermer(); msg('Téléchargement depuis Discord…'); const blobs = [];
+        for (const f of fs) { try { const r = await BK.discord.fetch(f.url); if (!r.ok) throw 0; blobs.push(new File([await r.blob()], f.nom, { type: f.video ? 'video/mp4' : 'image/jpeg' })); } catch (er) { msg('Impossible de récupérer ' + f.nom); } }
+        if (blobs.length) envoyer(blobs, M.filtre || '');
+      }
+    });
+    try { l = await BK.discord.medias(); } catch (er) { $('#mdDcL', v).innerHTML = `<span class="nt">${esc(er.message)}</span>`; return; }
+    const deja = new Set((M.fichiers || []).map(f => f.name));
+    $('#mdDcL', v).innerHTML = l.length ? l.slice(0, 200).map(f => `<button class="md-dc-t${deja.has(f.nom) ? ' deja' : ''}" data-dci="${f.id}" title="${esc(f.texte || f.nom)}">
+        <span class="md-dc-img">${f.video ? '<span>▶</span>' : `<img src="${esc(f.apercu)}?width=240&height=240" loading="lazy" draggable="false" referrerpolicy="no-referrer">`}</span>
+        <span class="md-nom">${esc(f.nom)}</span><span class="nt">${esc(f.qui)} · #${esc(f.salon)} · ${new Date(f.t).toLocaleDateString('fr-CA', { day: 'numeric', month: 'short' })}${deja.has(f.nom) ? ' · déjà ici' : ''}</span></button>`).join('')
+      : '<span class="nt">Aucune photo ni vidéo trouvée dans les salons « media ». Vérifie que Miette a le droit de lire ce salon.</span>';
+  };
   $('#mdInput').onchange = e => { envoyer(e.target.files); e.target.value = ''; };
   $('#mdDossier').onclick = async () => {
     const cur = ici(); if (!cur) return; const n = prompt('Nom du nouveau dossier'); if (!n || !n.trim()) return;

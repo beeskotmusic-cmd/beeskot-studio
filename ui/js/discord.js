@@ -192,6 +192,27 @@ Si rien n'est décidé, réponds [].`;
     } finally { BK.discord.resumeEnCours = false; window.dispatchEvent(new CustomEvent('bk:resume')); }
   },
 
+  // ---------- MÉDIAS : les photos / vidéos postées dans les salons (surtout « media ») ----------
+  async medias(pages = 4) {
+    const c = await BK.discord.config(); if (!c.jeton) throw new Error('Règle d\'abord Miette (code du bot) dans Réglages');
+    let salons = [];
+    try { salons = (await BK.discord.salons(c.jeton)).filter(x => !x.forum); } catch (e) { salons = c.salons || []; }
+    const rang = s => /m[ée]dia/i.test(s.nom) ? 0 : /photo|video|vid[ée]o|outfit|tournage|shoot/i.test(s.nom) ? 1 : 9;
+    salons = salons.filter(x => rang(x) < 9).sort((a, b) => rang(a) - rang(b)).slice(0, 4);
+    const out = [];
+    for (const s of salons) {
+      let avant = null;
+      for (let p = 0; p < pages; p++) {
+        const l = await BK.discord.api(`/channels/${s.id}/messages?limit=100${avant ? '&before=' + avant : ''}`, c.jeton).catch(() => []);
+        if (!l.length) break; avant = l[l.length - 1].id;
+        for (const m of l) for (const a of m.attachments || []) if (/^(image|video)\//.test(a.content_type || '') || /\.(jpe?g|png|webp|heic|mp4|mov|m4v|webm)$/i.test(a.filename))
+          out.push({ id: a.id, nom: a.filename, url: a.url, apercu: a.proxy_url, video: /^video|\.(mp4|mov|m4v|webm)$/i.test(a.content_type || a.filename), taille: a.size,
+            t: m.timestamp, salon: s.nom, qui: BK.discord.prenom(m.author, m.member && m.member.nick, c.membres), texte: (m.content || '').slice(0, 120) });
+      }
+    }
+    return out.sort((a, b) => b.t.localeCompare(a.t));
+  },
+
   // ---------- PLANNING : les dates dont on a parlé (validées ou juste possibles) → le Calendrier ----------
   async planning() {
     if (!(await BK.ia.pret())) throw new Error('Il faut la clé Gemini et l\'AI allumée');

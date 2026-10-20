@@ -670,3 +670,11 @@ a.lien{color:var(--mus);text-decoration:none}a.lien:hover{text-decoration:underl
 .ta-f-t{font-size:12px;text-decoration:line-through;opacity:.8}
 .ta-f-m{grid-column:1;font-size:10px;color:#ffb23e;opacity:.85}
 .ta-f .btn{grid-row:1/span 2;grid-column:2}
+/* Médias : choisir des fichiers postés sur Discord */
+.md-dc{display:grid!important;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px;align-content:start}
+.md-dc-t{display:flex;flex-direction:column;gap:3px;padding:6px;border-radius:6px;border:1px solid rgba(239,230,210,.14);background:rgba(0,0,0,.3);color:inherit;font:inherit;text-align:left;cursor:pointer}
+.md-dc-t.on{border-color:#ffb23e;box-shadow:0 0 0 2px #ffb23e}
+.md-dc-t.deja{opacity:.55}
+.md-dc-img{aspect-ratio:1;display:flex;align-items:center;justify-content:center;background:#000;border-radius:4px;overflow:hidden;font-size:22px}
+.md-dc-img img{width:100%;height:100%;object-fit:cover;pointer-events:none}
+.md-dc-t .nt{font-size:9.5px;margin:0}
