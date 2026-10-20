@@ -7,7 +7,7 @@ const $ = (s, r = document) => r.querySelector(s);
 const $$ = (s, r = document) => [...r.querySelectorAll(s)];
 
 const BK = {
-  version: '0.5.1 bêta',
+  version: '0.6.0 bêta',
   modules: {},
   onglets: [],
   cotes: [],
@@ -142,6 +142,7 @@ const BK = {
     BK.ouvrir(BK.reglage('dernierOnglet', 'accueil'));
     setTimeout(BK.verifierMaj, 3000);
     BK.ableton && BK.ableton.surveiller();
+    BK.discord && BK.discord.surveiller();                         // le Veilleur : toutes les 30 min, s'il est réglé
     setInterval(() => BK.synchro && BK.synchro(), 60000);          // partage avec les autres PC : toutes les minutes              // quelques secondes après l'ouverture, sans gêner
   },
 

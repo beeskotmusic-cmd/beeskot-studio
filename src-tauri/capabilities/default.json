@@ -60,6 +60,24 @@
         },
         {
           "url": "https://*.googleapis.com/*"
+        },
+        {
+          "url": "https://discord.com/*"
+        },
+        {
+          "url": "https://*.discord.com/*"
+        },
+        {
+          "url": "https://*.tuyaus.com/*"
+        },
+        {
+          "url": "https://*.tuyaeu.com/*"
+        },
+        {
+          "url": "https://*.tuyacn.com/*"
+        },
+        {
+          "url": "https://*.tuyain.com/*"
         }
       ]
     }

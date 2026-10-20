@@ -16,11 +16,11 @@ BK.onglets = [
   { id: 'reelvis',  cote: 'visuel',  titre: 'Assistant visuel Reel', sous: 'Montage, sous-titres, MP4',    couleur: 'var(--teal)', pret: true , defaut: true },
   { id: 'tournage', cote: 'visuel',  titre: 'Tournages',      sous: 'Moodboard, découpage, PDF',     couleur: 'var(--navy)', pret: true, defaut: true },
   { id: 'medias',   cote: 'visuel',  titre: 'Médias',         sous: 'Photos, pochettes, vidéos',     couleur: 'var(--ox)',   pret: true, defaut: true },
-  { id: 'lumieres', cote: 'visuel',  titre: 'Lumières',       sous: 'Lampes Globe, LED du studio',   couleur: 'var(--olv)',  pret: false, defaut: false },
+  { id: 'lumieres', cote: 'visuel',  titre: 'Lumières',       sous: 'Lampes Globe, LED du studio',   couleur: 'var(--olv)',  pret: true, defaut: true },
 
   { id: 'agenda',   cote: 'outils',  titre: 'Calendrier',     sous: 'Agenda BEESKOT, promo',         couleur: 'var(--mus)',  pret: true , defaut: true },
   { id: 'taches',   cote: 'outils',  titre: 'To-do list',     sous: 'À faire',                       couleur: 'var(--crm)',  pret: true , defaut: true },
-  { id: 'renforts', cote: 'outils',  titre: 'Renforts AI',    sous: 'Gemini, Codex…',                couleur: '#555',        pret: false, defaut: true, mini: true },
+  { id: 'renforts', cote: 'outils',  titre: 'Renfort AI',     sous: 'Veilleur Discord, aides',       couleur: 'var(--teal)', pret: true,  defaut: true, mini: true },
   { id: 'reglages', cote: 'outils',  titre: 'Réglages',       sous: '',                              couleur: '#555',        pret: true,  defaut: true, mini: true, fixe: true },
 ];
 

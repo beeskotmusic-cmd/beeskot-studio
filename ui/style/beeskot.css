@@ -397,3 +397,42 @@ a.lien{color:var(--mus);text-decoration:none}a.lien:hover{text-decoration:underl
   #impression .imp-nom{width:90px;font-weight:600}#impression .imp-txt{white-space:pre-wrap;margin:0}
   #impression tr,#impression img{break-inside:avoid}
 }
+
+/* ===== Renfort AI ===== */
+.ra-vit{display:flex;flex-direction:column;gap:12px;min-height:0}
+.ra-volets{align-self:flex-start}
+.ra-volet{flex:1;min-height:0;display:flex;flex-direction:column;gap:12px;overflow:auto}
+.ra-props{overflow:auto}
+.ra-prop{display:flex;align-items:center;gap:12px;padding:10px 12px;margin-top:8px;border-radius:6px;background:linear-gradient(180deg,#2e251d,#1a130d);box-shadow:0 0 0 1px rgba(239,230,210,.14),0 3px 6px rgba(0,0,0,.4)}
+.ra-prop.faite{opacity:.5}
+.ra-ic{font-size:20px;flex:none}
+.ra-c{flex:1;min-width:0;display:flex;flex-direction:column;gap:3px}.ra-c b{font:600 14px Jost,sans-serif;color:var(--ink)}
+.ra-lien{color:#ffb23e}
+.ra-rep{flex:1;overflow:auto;margin-top:8px}
+.ra-texte{white-space:pre-wrap;font:15px/1.55 Jost,sans-serif;color:var(--ink)}
+.ra-sans{display:flex;flex-direction:column;gap:12px}
+.ra-champs{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px}
+.ra-champs label{display:flex;flex-direction:column;gap:5px}.ra-champs .eng{font-size:9px}.ra-champs .large{grid-column:1/-1}
+.ra-reg{overflow:auto}
+.ra-salons{display:flex;flex-direction:column;gap:4px;margin-top:8px;max-height:260px;overflow:auto}
+.ra-salon{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--ink);cursor:pointer}
+.ra-salon em{margin-left:auto;font-size:10px;color:var(--ink2);font-style:normal}
+
+/* menu un peu plus compact : tous les onglets tiennent sur un écran 1080p */
+#nav{gap:7px!important;padding-top:16px!important;padding-bottom:12px!important}
+#nav .tab{min-height:46px;padding-top:6px;padding-bottom:6px}
+#nav .tab.mini{height:36px;min-height:36px}
+#nav .cote{padding-top:4px}
+
+/* ===== Lumières ===== */
+.lu-vit{display:flex;flex-direction:column;gap:12px;min-height:0}
+.lu-pierre{display:flex;align-items:center;gap:14px;margin-top:10px}
+.lu-scenes{display:flex;flex-wrap:wrap;gap:10px;margin-top:10px}
+.lu-scene{display:flex;align-items:center;gap:9px;padding:9px 14px 9px 10px;border:0;border-radius:6px;cursor:pointer;font:600 12px Jost,sans-serif;letter-spacing:.06em;text-transform:uppercase;color:var(--ink);
+  background:linear-gradient(180deg,#2e251d,#1a130d);box-shadow:0 0 0 1px rgba(239,230,210,.16),0 3px 6px rgba(0,0,0,.45)}
+.lu-scene:hover{box-shadow:0 0 0 1px var(--c),0 0 12px color-mix(in srgb,var(--c) 50%,transparent)}
+.lu-scene i{width:16px;height:16px;border-radius:50%;background:var(--c);box-shadow:0 0 8px var(--c),inset 0 -2px 3px rgba(0,0,0,.3)}
+.lu-lampes{display:flex;flex-direction:column;gap:8px;margin-top:10px;overflow:auto}
+.lu-lampe{display:flex;align-items:center;gap:12px;padding:10px 12px;border-radius:6px;background:rgba(239,230,210,.05);box-shadow:inset 0 0 0 1px rgba(239,230,210,.1)}
+.lu-lampe b{font:600 14px Jost,sans-serif;color:var(--ink)}.lu-lampe .btn{margin-left:auto}
+.lu-lampe.horsligne{opacity:.5}

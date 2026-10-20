@@ -112,6 +112,8 @@ BK.module('biblio', function (page) {
             ${x.ici ? `<button class="btn xs" data-reel="${esc(x.chemin)}" data-nom="${esc(x.nom)}">→ Reel</button>` : ''}
             <button class="btn xs" data-remplacer="${esc(x.chemin)}" title="Choisir une autre version à la place">Remplacer…</button>
             <button class="btn xs" data-expx="${esc(x.chemin)}" title="Retirer de la fiche (le fichier n'est pas effacé)">✕</button></div>`).join('') : '<span class="nt">Aucun export trouvé. Lance « Scanner ce PC », ou ajoute-le à la main.</span>')
+          + ((m.exportsDiscord || []).length ? `<span class="nt" style="margin-top:8px">Vu sur Discord (Le Veilleur) :</span>` + m.exportsDiscord.slice(0, 5).map(x => `<div class="ligne-f"><span class="etoile">💬</span><span class="mono f-nom">${esc(x.fichier || '—')}</span>
+            <span class="nt f-meta">${x.date ? date(x.date) : ''}${x.detail ? ' · ' + esc(x.detail) : ''}</span>${x.lien ? `<a href="#" class="lien btn xs" data-url="${esc(x.lien)}">voir</a>` : ''}</div>`).join('') : '')
           + `<div class="chips" style="margin-top:8px"><button class="chip" data-act="ajexport">+ Ajouter un export…</button></div>`)}
         ${t('projets', 'Projets Ableton', als.length ? `${als.filter(x => !x.sauvegarde).length} version(s) · ${als.some(x => !x.ici && als[0] === x) ? '⚠ la plus récente n\'est pas sur ce PC' : 'à jour'}` : 'aucun', () => als.length ? als.map((x, i) => `
           <div class="ligne-f${i === 0 ? ' recent' : ''}"><span class="etoile">${i === 0 ? '★' : ''}</span><span class="mono f-nom" title="${esc(x.chemin)}">${esc(x.nom)}${x.sauvegarde ? ' <em>(sauvegarde auto)</em>' : ''}</span>
