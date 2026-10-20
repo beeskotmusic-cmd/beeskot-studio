@@ -47,7 +47,11 @@ BK.drive = {
   async exporterCarte() {
     const c = BK.drive.conf(); if (!c || !c.refresh_token) throw new Error('Connecte d\'abord le Drive');
     const txt = JSON.stringify({ type: 'carte-acces-beeskot', ...c }, null, 1);
-    return BK.enregistrerFichierLocal('BEESKOT-carte-acces.json', new TextEncoder().encode(txt));
+    if (!BK.estExe) return BK.enregistrerFichier('', 'BEESKOT-carte-acces.json', new TextEncoder().encode(txt), 'application/json');
+    const p = await BK.T.dialog.save({ title: 'Enregistrer la carte d\'accès', defaultPath: 'BEESKOT-carte-acces.json', filters: [{ name: 'Carte d\'accès', extensions: ['json'] }] });
+    if (!p) return null;
+    await BK.T.fs.writeTextFile(p, txt);
+    return p;
   },
   async importerCarte() {
     const p = await BK.fichier.choisirFichier('Carte d\'accès BEESKOT', [{ name: 'Carte', extensions: ['json'] }]); if (!p) return false;
