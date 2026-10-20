@@ -10,6 +10,7 @@ BK.bienvenue = {
   async etapes() {
     const d = BK.discord ? await BK.discord.config().catch(() => ({})) : {};
     const ia = BK.ia ? await BK.ia.config().catch(() => ({})) : {};
+    const miettePrete = !!(d.jeton && (d.salons || []).length && ia.gemini);
     return [
       { id: 'nom', titre: 'Bienvenue dans BEESKOT Studio', ic: '🍞',
         txt: 'Le logiciel du groupe : les morceaux, les tournages, les reels, le calendrier et le budget, au même endroit pour tout le monde.<br><br>Donne d\'abord un nom à cet ordinateur (ex. <b>Studio</b>, <b>Pierre</b>, <b>Baptiste</b>). Il sert juste à savoir qui a fait quoi.',
@@ -17,7 +18,7 @@ BK.bienvenue = {
         fait: () => !!BK.reglage('nomPc', ''),
         action: null },
       { id: 'drive', titre: 'Le Drive BEESKOT', ic: '☁',
-        txt: 'Tout le travail du groupe est rangé dans le Drive BEESKOT : chaque PC voit les mêmes fiches, tâches et dépenses.<br><br>Yacine t\'a envoyé une <b>carte d\'accès</b> (un petit fichier <span class="mono">BEESKOT-carte-acces.json</span>). Clique ci-dessous et choisis-la : il n\'y a aucun mot de passe à taper.',
+        txt: 'Tout le travail du groupe est rangé dans le Drive BEESKOT : chaque PC voit les mêmes fiches, tâches, dépenses… et Miette, la bot Discord, arrive avec.<br><br>Yacine t\'a envoyé une <b>carte d\'accès</b> (un petit fichier <span class="mono">BEESKOT-carte-acces.json</span>). Clique ci-dessous et choisis-la : <b>aucun code, aucun mot de passe à taper</b>.',
         bouton: 'Importer la carte d\'accès…',
         fait: () => BK.drive && BK.drive.relie(),
         action: async () => { if (await BK.drive.importerCarte()) { await BK.synchro(); return 'Drive relié ✓'; } return null; } },
@@ -27,14 +28,15 @@ BK.bienvenue = {
         option: true,
         fait: () => BK.ableton && BK.ableton.relie,
         action: async () => { const p = await BK.ableton.installerPont(); if (p) { BK.ableton.fenetre(p); return 'Pont installé ✓'; } return null; } },
-      { id: 'miette', titre: 'Miette, la bot Discord', ic: '🍞',
-        txt: 'Miette lit votre Discord et prépare tout : le résumé de la semaine, les tâches, les dates du calendrier, les passages des morceaux.<br><br>Elle a besoin de deux codes (le bot Discord et la clé Gemini gratuite), les mêmes pour tout le groupe. Demande-les à Yacine, ou fais-le plus tard dans <b>Réglages</b>.',
+      // Miette : cette étape n'apparaît QUE si personne du groupe ne l'a encore réglée
+      ...(miettePrete ? [] : [{ id: 'miette', titre: 'Miette, la bot Discord', ic: '🍞',
+        txt: 'Miette lit votre Discord et prépare tout : le résumé de la semaine, les tâches, les dates du calendrier.<br><br>Personne du groupe ne l\'a encore réglée. Il faut le faire <b>une seule fois</b> : après, elle arrivera toute seule sur les autres PC avec la carte d\'accès.',
         bouton: 'Ouvrir les réglages de Miette',
         option: true,
-        fait: () => !!(d.jeton && (d.salons || []).length && ia.gemini),
-        action: async () => { BK.bienvenue.fermer(); BK.ouvrir('reglages'); setTimeout(() => { const z = document.getElementById('raReglages'); z && z.scrollIntoView({ behavior: 'smooth' }); }, 300); return null; } },
+        fait: () => false,
+        action: async () => { BK.bienvenue.fermer(); BK.ouvrir('reglages'); setTimeout(() => { const z = document.getElementById('raReglages'); z && z.scrollIntoView({ behavior: 'smooth' }); }, 300); return null; } }]),
       { id: 'fin', titre: 'C\'est prêt !', ic: '✓',
-        txt: 'Quelques repères :<br><br>• Le <b>bouton jaune</b> en haut : Miette relit Discord et le Drive, et remplit tous les onglets.<br>• Le <b>menu de gauche</b> : chaque titre (Audio, Organisation…) se replie d\'un clic.<br>• Tout ce que tu fais arrive sur les autres PC tout seul.<br>• <b>Ctrl + Z</b> annule la dernière action.<br><br>Ce guide ne reviendra plus. Pour le revoir : <b>Réglages › Revoir le guide</b>.',
+        txt: 'Quelques repères :<br><br>• Le <b>bouton jaune</b> (la biscotte) en haut : Miette relit Discord et le Drive, et remplit tous les onglets.<br>• Le <b>menu de gauche</b> : chaque titre (Audio, Organisation…) se replie d\'un clic.<br>• Tout ce que tu fais arrive sur les autres PC tout seul.<br>• <b>Ctrl + Z</b> annule la dernière action.<br><br>Ce guide ne reviendra plus. Pour le revoir : <b>Réglages › Revoir le guide</b>.',
         fait: () => true, action: null },
     ];
   },
@@ -52,7 +54,9 @@ BK.bienvenue = {
 
   async dessiner(msg) {
     const v = BK.bienvenue.v; if (!v) return;
-    const l = await BK.bienvenue.etapes(), e = l[BK.bienvenue.i], n = l.length, fait = e.fait();
+    const l = await BK.bienvenue.etapes(), n = l.length;
+    if (BK.bienvenue.i >= n) BK.bienvenue.i = n - 1;                    // une étape a pu disparaître (Miette déjà réglée)
+    const e = l[BK.bienvenue.i], fait = e.fait();
     const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
     v.querySelector('.bv-c').innerHTML = `
       <div class="bv-pas">${l.map((x, k) => `<span class="bv-p${k === BK.bienvenue.i ? ' on' : ''}${x.fait() ? ' fini' : ''}"></span>`).join('')}</div>
