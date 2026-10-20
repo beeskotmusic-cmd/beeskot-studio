@@ -184,7 +184,7 @@ BK.explorerDrive = function ({ titre = 'Choisir dans le Drive', mode = 'dossier'
     v.innerHTML = `<div class="ex-box"><span class="screw tl" style="--r:60deg"></span><span class="screw tr" style="--r:5deg"></span>
       <div class="ex-tete"><span class="lb">${esc(titre)}</span><button class="btn xs" data-ex="x">✕</button></div>
       <div class="ex-fil" id="exFil"></div><div class="ex-liste" id="exListe"></div>
-      <div class="ex-pied"><span class="nt" id="exInfo"></span><button class="btn" data-ex="annuler">Annuler</button><button class="btn pri" data-ex="ok">${mode === 'dossier' ? 'Choisir ce dossier' : mode === 'audio' ? 'Choisir ce fichier' : mode === 'image' ? 'Choisir cette image' : 'Ajouter les images'}</button></div></div>`;
+      <div class="ex-pied"><span class="nt" id="exInfo"></span><button class="btn" data-ex="annuler">Annuler</button><button class="btn pri" data-ex="ok">${mode === 'dossier' ? 'Choisir ce dossier' : mode === 'audio' || mode === 'video' ? 'Choisir ce fichier' : mode === 'image' ? 'Choisir cette image' : 'Ajouter les images'}</button></div></div>`;
     document.body.appendChild(v);
     let pile = [{ id: 'root', nom: 'Mon Drive' }], choisis = new Set(), fichiers = [];
     const fermer = r => { v.remove(); fin(r); };
@@ -200,10 +200,10 @@ BK.explorerDrive = function ({ titre = 'Choisir dans le Drive', mode = 'dossier'
       $('#exListe', v).innerHTML = '<span class="nt"><span class="spin"></span>Lecture…</span>';
       try {
         const l = await BK.dossiers.enfants(cur.id, mode === 'dossier');
-        const ds = l.filter(f => f.mimeType === BK.dossiers.FOLDER); fichiers = l.filter(f => mode === 'audio' ? /^audio\//.test(f.mimeType) || /\.(wav|mp3|aiff?|flac|m4a)$/i.test(f.name) : /^image\//.test(f.mimeType));
+        const ds = l.filter(f => f.mimeType === BK.dossiers.FOLDER); fichiers = l.filter(f => mode === 'audio' ? /^audio\//.test(f.mimeType) || /\.(wav|mp3|aiff?|flac|m4a)$/i.test(f.name) : mode === 'video' ? /^video\//.test(f.mimeType) || /\.(mp4|mov|m4v|webm)$/i.test(f.name) : /^image\//.test(f.mimeType));
         $('#exListe', v).innerHTML = ds.map(d => `<button class="ex-dos" data-id="${d.id}" data-nom="${esc(d.name)}">📁 ${esc(d.name)}</button>`).join('')
           + (/^images?$/.test(mode) ? fichiers.map(f => `<button class="ex-img${choisis.has(f.id) ? ' on' : ''}" data-f="${f.id}" title="${esc(f.name)}"><span class="spin"></span></button>`).join('') : '')
-          + (mode === 'audio' ? fichiers.map(f => `<button class="ex-dos ex-son${choisis.has(f.id) ? ' on' : ''}" data-f="${f.id}" title="${esc(f.name)}">♪ ${esc(f.name)}</button>`).join('') : '')
+          + (mode === 'audio' || mode === 'video' ? fichiers.map(f => `<button class="ex-dos ex-son${choisis.has(f.id) ? ' on' : ''}" data-f="${f.id}" title="${esc(f.name)}">${mode === 'video' ? '🎬' : '♪'} ${esc(f.name)}${f.size ? ' · ' + Math.round(f.size / 1e6) + ' Mo' : ''}</button>`).join('') : '')
           + (!ds.length && (mode === 'dossier' || !fichiers.length) ? '<span class="nt">Rien ici.</span>' : '');
         $$('.ex-dos', v).forEach(b => b.onclick = () => { pile.push({ id: b.dataset.id, nom: b.dataset.nom }); aller(); });
         $$('.ex-img,.ex-son', v).forEach(b => b.onclick = () => {

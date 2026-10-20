@@ -37,7 +37,7 @@ async function donnees() {
     { ok: !!BK.reglage('dernierScan', ''), txt: 'Scanner ce PC', va: 'biblio' },
     { ok: morceaux.length > BK.FICHES_DEPART.length, txt: 'Créer les fiches de vos morceaux', va: 'biblio' },
     { ok: !!BK.ableton.relie, txt: 'Relier Ableton', va: 'mixprep' },
-    { ok: false, txt: 'Relier le Drive BEESKOT (bientôt)', va: 'reglages' },
+    { ok: BK.drive.relie(), txt: 'Relier le Drive BEESKOT', va: 'reglages' },
   ];
   return { next, afaire, morceaux: morceaux.filter(m => m.statut !== 'sorti'), alertes, demarrer, auj };
 }
@@ -64,6 +64,7 @@ BK.module('accueil', function (page) {
             ${n ? `<div class="next-l"><span class="nchip" style="--c:${t.c}"></span><span class="vfd next-q">${quand}</span>
               <div><span class="evt-type">${esc(t.nom)}</span><span class="nt" style="margin:2px 0 0;font-size:14px;color:var(--ink)">${esc(n.titre || '')}${n.morceau ? ' · ' + esc(n.morceau) : ''}</span></div></div>`
               : `<span class="nt">Aucun rendez-vous prévu. <a href="#" data-va="agenda">Ajouter dans le Calendrier</a></span>`}</div>
+          <div class="box ac-resume" id="acResume"></div>
           <div class="box grow"><div class="ligne-titre"><span class="lb">À faire</span><button class="btn xs" data-va="taches" style="margin-left:auto">Ouvrir la To-do list</button></div>
             <div class="af-liste">${d.afaire.length ? d.afaire.map(x => `<div class="af-l${x.date && x.date < d.auj ? ' retard' : ''}">
                 <button class="ta-case" data-id="${x.id}"></button><span class="af-t">${esc(x.texte)}</span>
@@ -80,9 +81,27 @@ BK.module('accueil', function (page) {
         <span class="vfd">${new Date().toLocaleDateString('fr-CA', { weekday: 'long', day: 'numeric', month: 'long' }).toUpperCase()}</span>
         <div class="right"><button class="btn" data-va="agenda">Calendrier</button><button class="btn pri" data-va="biblio">Bibliothèque ▶</button></div></div>`;
     $$('[data-va]', page).forEach(b => b.onclick = e => { e.preventDefault(); BK.ouvrir(b.dataset.va); });
+    resume();
     $$('.af-l .ta-case', page).forEach(b => b.onclick = async () => {
       const x = d.afaire.find(t => t.id === b.dataset.id); x.fait = true; await BK.db.ecrire('taches', x);
       BK.tachesRecharger && BK.tachesRecharger(); BK.surOuvrir.accueil(); });
   }
+
+  // ---------- « Cette semaine » : le résumé de Miette (Discord + Gemini) ----------
+  async function resume() {
+    const z = $('#acResume', page); if (!z) return;
+    const pret = BK.ia && await BK.ia.pret(), d = await BK.discord.config().catch(() => ({}));
+    if (!d.jeton) { z.innerHTML = `<span class="lb">🍞 Cette semaine</span><span class="nt">Règle Miette (Renfort AI) pour voir ici le résumé de ce que vous vous êtes dit sur Discord.</span>`; return; }
+    const doc = (await BK.db.liste('veille')).find(x => x.id === 'resume');
+    const enCours = BK.discord.resumeEnCours;
+    z.innerHTML = `<div class="ligne-titre"><span class="lb">🍞 Cette semaine, sur Discord</span>
+        <span class="nt" style="margin:0 0 0 auto">${enCours ? '<span class="spin"></span>AI en cours de lecture…' : doc && doc.t ? 'mis à jour ' + new Date(doc.t).toLocaleString('fr-CA', { weekday: 'short', hour: '2-digit', minute: '2-digit' }) : ''}</span>
+        ${pret && !enCours ? '<button class="btn xs" id="acResumeMaj" title="Refaire le résumé maintenant">↻</button>' : ''}</div>
+      ${doc && doc.texte ? `<p class="ac-texte">${esc(doc.texte)}</p>${(doc.afaire || []).length ? `<span class="eng" style="font-size:9px">Ce qui ressort à faire</span><ul class="ac-afaire">${doc.afaire.map(x => `<li>${esc(x)}</li>`).join('')}</ul>` : ''}`
+        : `<span class="nt">${!pret ? 'Ajoute la clé Gemini (Renfort AI) et allume l\'interrupteur AI pour avoir le résumé.' : enCours ? 'Miette lit les messages de la semaine…' : 'Pas encore de résumé : clique ↻ (ou attends la prochaine lecture de Miette).'}</span>`}`;
+    const b = $('#acResumeMaj', z); if (b) b.onclick = async () => { b.disabled = true; try { await BK.discord.ronde(() => {}, true).catch(() => {}); await BK.discord.resume(true); } catch (e) { z.insertAdjacentHTML('beforeend', `<span class="nt">${esc(e.message)}</span>`); } resume(); };
+  }
+  window.addEventListener('bk:resume', () => { if (!page.classList.contains('hidden')) resume(); });
+  window.addEventListener('bk:ia', () => resume());
 });
 })();

@@ -133,7 +133,7 @@ BK.drive = {
 
   // ---------- ce qui a été créé sur ce PC avant la connexion part dans le Drive ----------
   async envoyerLocal() {
-    for (const col of ['morceaux', 'taches', 'evenements', 'config', 'inventaires', 'tournages', 'renforts']) {
+    for (const col of ['morceaux', 'taches', 'evenements', 'config', 'inventaires', 'tournages', 'renforts', 'veille', 'propositions']) {
       const loc = BK.reglage('db.' + col, {}); if (!Object.keys(loc).length) continue;
       const dist = await BK.drive.liste(col);
       for (const f of Object.values(loc)) if (!dist[f.id] || (f.maj || '') > (dist[f.id].maj || '')) await BK.drive.ecrire(col, f);

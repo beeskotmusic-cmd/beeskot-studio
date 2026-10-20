@@ -43,7 +43,9 @@ BK.module('postvis', function (page) {
               <input type="file" id="pvLutIn" accept=".cube" hidden><span class="nt" id="pvLutNom"></span></div>
             <div class="box grow"><span class="lb">Légende</span>
               <textarea class="fld" id="pvLeg" rows="4" placeholder="Le texte du post, les hashtags…"></textarea>
-              <div class="chips" style="margin-top:8px"><button class="chip" id="pvRenfort">Idées de légende (Renfort AI)</button><button class="chip" id="pvCopier">Copier la légende</button></div></div>
+              <div class="pv-idees-l"><select class="fld" id="pvMorceau"><option value="">Morceau (pour l'AI)…</option></select><input class="fld" id="pvIdee" placeholder="ce que montre le post (facultatif)"></div>
+              <div class="chips" style="margin-top:8px"><button class="chip" id="pvRenfort">✨ Idées de légende</button><button class="chip" id="pvCopier">Copier la légende</button></div>
+              <div class="pv-idees" id="pvIdees"></div></div>
           </div>
         </div>
       </section>
@@ -158,7 +160,24 @@ BK.module('postvis', function (page) {
   $('#pvLeg').oninput = e => { P.legende = e.target.value; $('#pvLegAff').textContent = P.legende.split('\n')[0] || 'La légende du post…'; };
   $('#pvLeg').addEventListener('keydown', e => e.stopPropagation());
   $('#pvCopier').onclick = async () => { await navigator.clipboard.writeText(P.legende); msg('Légende copiée'); };
-  $('#pvRenfort').onclick = () => BK.renfortDemander ? BK.renfortDemander('legende', {}) : msg('Renfort AI indisponible');
+  // ---------- idées de légende, ici même (Gemini ; sans clé : la demande est copiée) ----------
+  (async () => { const ms = (await BK.db.liste('morceaux')).sort((a, b) => a.nom.localeCompare(b.nom));
+    $('#pvMorceau').innerHTML = '<option value="">Morceau (pour l\'AI)…</option>' + ms.map(m => `<option>${esc(m.nom)}</option>`).join(''); })();
+  $('#pvIdee').addEventListener('keydown', e => e.stopPropagation());
+  $('#pvRenfort').onclick = async () => {
+    const morceau = $('#pvMorceau').value, idee = $('#pvIdee').value.trim();
+    const demande = `Écris 5 légendes courtes et différentes pour un post Instagram de BEESKOT (groupe de musique, prononcé « Biscotte »)${P.slides.length > 1 ? ', un carrousel de ' + P.slides.length + ' photos' : ''}${morceau ? ', pour le morceau « ' + morceau + ' »' : ''}${idee ? '. Le post montre : ' + idee : ''}${P.legende ? '. Brouillon actuel : « ' + P.legende + ' »' : ''}. Ton naturel, pas trop marketing, 1 ou 2 emojis maximum, et 6 à 8 hashtags pertinents à la fin de chaque légende. Réponds en JSON : un tableau de 5 textes.`;
+    const z = $('#pvIdees');
+    if (!BK.ia || !(await BK.ia.pret())) { try { await navigator.clipboard.writeText(demande); } catch (e) {} z.innerHTML = '<span class="nt">Pas de clé Gemini (ou AI coupée) : la demande est copiée, colle-la dans ChatGPT ou Gemini.</span>'; return; }
+    const b = $('#pvRenfort'); b.disabled = true; z.innerHTML = '<span class="nt"><span class="spin"></span>AI en cours…</span>';
+    try {
+      const r = await BK.ia.demander(demande, { json: true, vite: true, temperature: 0.8 }), l = (Array.isArray(r) ? r : r.legendes || []).map(String).slice(0, 6);
+      z.innerHTML = l.map((t, i) => `<div class="pv-idee"><p>${esc(t)}</p><button class="btn xs" data-pi="${i}">Utiliser</button></div>`).join('') || '<span class="nt">Pas d\'idée reçue, réessaie.</span>';
+      $$('[data-pi]', z).forEach(x => x.onclick = () => { P.legende = l[+x.dataset.pi]; $('#pvLeg').value = P.legende; $('#pvLegAff').textContent = P.legende.split('\n')[0]; msg('Légende choisie'); });
+      BK.renfortGarder && BK.renfortGarder({ type: 'legende', q: 'Légende Insta' + (morceau ? ' · ' + morceau : '') + (idee ? ' · ' + idee : ''), r: l.join('\n\n———\n\n') });
+    } catch (e) { z.innerHTML = `<span class="nt">${esc(e.message)}</span>`; }
+    b.disabled = false;
+  };
   $('#pvNom').onchange = e => { P.nom = e.target.value.trim() || 'post'; };
   $('#pvNom').addEventListener('keydown', e => e.stopPropagation());
 

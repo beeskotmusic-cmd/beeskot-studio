@@ -125,7 +125,7 @@ BK.discord = {
         for (let i = 0; i < humains.length; i += 400) props.push(...await BK.discord.analyser(humains.slice(i, i + 400)));
       }
       for (const p of props) { const l = nouvelles.find(x => x.id === String(p.source || '').replace(/\D/g, '')); if (l) { p.lien = p.lien || l.lien; p.date = p.date || l.t.slice(0, 10); } }
-      if (props.length) await BK.discord.ranger(props);
+      if (props.length) await BK.discord.rangerPropositions(props);
       return { messages: nouvelles.length, propositions: props.length };
     } finally { BK.discord.enCours = false; }
   },
@@ -147,7 +147,7 @@ Si rien n'est décidé, réponds [].`;
     const r = await BK.ia.demander(`${await BK.ia.contexte()}\n\nMessages :\n${BK.discord.texte(lignes)}`, { systeme, json: true, temperature: 0.1 });
     return Array.isArray(r) ? r : (r && r.propositions) || [];
   },
-  async ranger(props) {                                    // en attente de validation (sans doublons)
+  async rangerPropositions(props) {                         // en attente de validation (sans doublons)
     const deja = await BK.db.liste('propositions'), cle = p => [p.type, p.source, p.titre || p.fichier || p.texte || p.date].join('|');
     const vus = new Set(deja.map(cle));
     for (const p of props) { if (vus.has(cle(p))) continue; vus.add(cle(p)); await BK.db.ecrire('propositions', { ...p, statut: 'attente', vu: new Date().toISOString() }); }
@@ -163,12 +163,72 @@ Si rien n'est décidé, réponds [].`;
     const pertinents = mots.length ? j.filter(l => { const t = n(l.txt + ' ' + l.pj).replace(/ /g, ''); return mots.some(w => t.includes(w.replace(/ /g, ''))); }) : [];
     const choisis = [...new Map([...pertinents.slice(-250), ...j.slice(-150)].map(l => [l.id, l])).values()].sort((a, b) => a.t.localeCompare(b.t));
     const systeme = 'Tu es l\'assistant du groupe BEESKOT. Réponds en français, très simplement, en 1 à 5 phrases, en t\'appuyant sur les messages Discord et les infos du logiciel. Donne les dates et qui l\'a dit. Si tu ne trouves pas, dis-le franchement.';
-    return BK.ia.demander(`${await BK.ia.contexte()}\n\nMessages Discord utiles (du plus ancien au plus récent) :\n${BK.discord.texte(choisis) || '(aucun message lu pour l\'instant)'}\n\nQuestion : ${q}`, { systeme, temperature: 0.2 });
+    return BK.ia.demander(`${await BK.ia.contexte()}\n\nMessages Discord utiles (du plus ancien au plus récent) :\n${BK.discord.texte(choisis) || '(aucun message lu pour l\'instant)'}\n\nQuestion : ${q}`, { systeme, temperature: 0.2, vite: true, delai: 60 });
+  },
+
+  // ---------- le résumé de la semaine (pour l'Accueil), refait quand il y a du neuf, au plus une fois par heure ----------
+  async resume(force = false) {
+    if (!(await BK.ia.pret())) return null;
+    const doc = (await BK.db.liste('veille')).find(d => d.id === 'resume') || { id: 'resume' };
+    const j = await BK.discord.journal(2), semaine = new Date(Date.now() - 7 * 864e5).toISOString(), recents = j.filter(l => l.t >= semaine);
+    const dernier = recents.length ? recents[recents.length - 1].id : '';
+    if (!force && doc.texte && (doc.dernier === dernier || Date.now() - (doc.t || 0) < 60 * 60e3)) return doc;
+    if (!recents.length) return doc;
+    BK.discord.resumeEnCours = true; window.dispatchEvent(new CustomEvent('bk:resume'));
+    try {
+      const systeme = 'Tu es l\'assistant du groupe BEESKOT. Écris en français simple, comme un message à un ami. Pas de titre, pas de blabla.';
+      const r = await BK.ia.demander(`${await BK.ia.contexte()}\n\nMessages Discord des 7 derniers jours :\n${BK.discord.texte(recents.slice(-600))}\n\n`
+        + 'Réponds en JSON : {"semaine": "ce qu\'on s\'est dit cette semaine, en 3 à 6 phrases courtes (décisions, dates, nouveautés)", "afaire": ["les choses à faire qui ressortent, 3 à 6 lignes courtes, avec qui si on le sait"]}',
+        { systeme, json: true, temperature: 0.3, vite: true, delai: 90 });
+      Object.assign(doc, { texte: r.semaine || '', afaire: Array.isArray(r.afaire) ? r.afaire : [], dernier, t: Date.now(), nb: recents.length });
+      await BK.db.ecrire('veille', doc);
+      return doc;
+    } finally { BK.discord.resumeEnCours = false; window.dispatchEvent(new CustomEvent('bk:resume')); }
+  },
+
+  // ---------- GRAND RANGEMENT : relire TOUT l'historique des salons, puis tout faire analyser ----------
+  async toutRelire(progression = () => {}) {
+    const c = await BK.discord.config(); if (!c.jeton || !(c.salons || []).length) throw new Error('Règle d\'abord Miette (code + salons)');
+    const deja = new Set((await BK.discord.journal(999)).map(l => l.id)), tout = [];
+    for (const s of c.salons) {
+      let avant = null, n = 0;
+      for (let page = 0; page < 60; page++) {                         // jusqu'à 6000 messages par salon
+        const l = await BK.discord.api(`/channels/${s.id}/messages?limit=100${avant ? '&before=' + avant : ''}`, c.jeton);
+        if (!l.length) break; avant = l[l.length - 1].id; n += l.length;
+        tout.push(...l.filter(m => !deja.has(m.id) && ((m.content || '').trim() || (m.attachments || []).length)).map(m => BK.discord.ligne(m, s, c.membres)));
+        progression(`Lecture de #${s.nom} : ${n} messages`); await BK.audio.pause();
+        if (l.length < 100) break;
+      }
+    }
+    if (tout.length) await BK.discord.ajouterAuJournal(tout);
+    return tout.length;
+  },
+  async ranger(progression = () => {}) {
+    const j = await BK.discord.journal(999), ms = await BK.db.liste('morceaux');
+    let props = BK.discord.depuisBot(j, ms);
+    const humains = j.filter(l => !BK.discord.RE_BOT.test(l.txt)), PAQUET = 700;
+    if (await BK.ia.pret()) for (let i = 0; i < humains.length; i += PAQUET) {
+      progression(`Gemini range l'historique : ${Math.min(100, Math.round(i / humains.length * 100))} %`);
+      try { props.push(...await BK.discord.analyser(humains.slice(i, i + PAQUET))); } catch (e) { progression('Pause (Gemini occupé)…'); await new Promise(ok => setTimeout(ok, 20000)); }
+    }
+    for (const p of props) { const l = j.find(x => x.id === String(p.source || '').replace(/\D/g, '')); if (l) { p.lien = p.lien || l.lien; p.date = p.date || l.t.slice(0, 10); } }
+    // un résumé par morceau, rangé dans sa fiche (tiroir « Notes du groupe »)
+    if (await BK.ia.pret()) for (const m of ms) {
+      const cles = [m.nom, ...(m.alias || [])].map(x => BK.inv.normaliser(x).replace(/ /g, '')).filter(x => x.length >= 3);
+      const lignes = j.filter(l => cles.some(k => BK.inv.normaliser(l.txt + ' ' + l.pj + ' ' + l.salon).replace(/ /g, '').includes(k)));
+      if (lignes.length < 3) continue;
+      progression('Résumé de ' + m.nom + '…');
+      try { m.resumeDiscord = { texte: await BK.ia.demander(`Voici les messages Discord du groupe BEESKOT qui parlent du morceau « ${m.nom} » :\n${BK.discord.texte(lignes.slice(-500))}\n\nFais le point en français simple, en 5 à 10 lignes : où en est le morceau, les dernières versions / exports, ce qui a été décidé, ce qui reste à faire (avec qui).`, { temperature: 0.3, vite: true }), t: new Date().toISOString(), nb: lignes.length };
+        await BK.db.ecrire('morceaux', m); } catch (e) {}
+    }
+    await BK.discord.rangerPropositions(props);
+    return props.length;
   },
 
   // toutes les 30 min, si le Veilleur est réglé (un seul PC le fait à la fois)
   surveiller() {
-    const tour = async () => { try { const r = await BK.discord.ronde(); if (r.propositions) { BK.veilleurMaj && BK.veilleurMaj(); BK.surOuvrir && BK.surOuvrir.accueil && BK.surOuvrir.accueil(); } } catch (e) { console.warn(e); } };
+    const tour = async () => { try { const r = await BK.discord.ronde(); if (r.propositions) { BK.veilleurMaj && BK.veilleurMaj(); BK.surOuvrir && BK.surOuvrir.accueil && BK.surOuvrir.accueil(); }
+      if (!r.pasPret && !r.attente) await BK.discord.resume(); } catch (e) { console.warn(e); } };
     setTimeout(tour, 90e3); setInterval(tour, 30 * 60e3);
   },
 };

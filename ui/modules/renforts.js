@@ -34,23 +34,39 @@ BK.module('renforts', function (page) {
         <div class="seg ra-volets" id="raVolets"><button data-v="veilleur">🍞 Miette</button><button data-v="question">Poser une question</button><button data-v="aides">Aides</button></div>
         <div class="ra-volet" id="raVolet"></div>
       </section>
-      <section class="pane reg ra-reg" style="width:300px"><span class="ptitle">② Réglages</span>
-        <div class="box"><span class="lb">Clé Gemini (gratuite)</span>
+      <section class="pane reg ra-reg" style="width:320px"><span class="ptitle">② Historique</span>
+        <input class="fld" id="raHistQ" placeholder="chercher dans l'historique…" autocomplete="off">
+        <div class="ra-hist" id="raHist"></div>
+        <span class="nt" style="margin-top:6px">Clé Gemini, bot Discord, modèle : dans <a href="#" id="raVersReglages">Réglages</a>.</span>
+      </section>
+    </div>
+    <div class="pane abar"><span class="ptitle">③ Barre</span><span class="vfd" id="raMsg">PRÊT</span></div>`;
+  const msg = t => { const x = String(t).toUpperCase().slice(0, 90); $('#raMsg').textContent = x; const r = $('#rgMsg'); if (r) r.textContent = x; };
+  // les réglages (clé Gemini, bot Discord, modèle) vivent dans l'onglet Réglages
+  const reg = document.createElement('div'); reg.className = 'ra-reglages'; reg.id = 'raReglages';
+  reg.innerHTML = `<span class="lb" style="margin:6px 0 4px">Renfort AI</span><div class="box"><span class="lb">Clé Gemini (gratuite)</span>
           <span class="nt">Créée avec le Gmail BEESKOT sur Google AI Studio. Rangée dans votre Drive : tous les PC l'ont.</span>
           <input class="fld" id="raCle" type="password" placeholder="colle la clé ici" autocomplete="off" style="margin-top:8px">
-          <div class="chips" style="margin-top:8px"><button class="chip" id="raCleOk">Enregistrer et tester</button></div></div>
+          <div class="chips" style="margin-top:8px"><button class="chip" id="raCleOk">Enregistrer et tester</button></div>
+          <span class="eng" style="font-size:9px;margin-top:10px">Modèle</span>
+          <div class="chips" id="raNiveau" style="margin-top:6px">${Object.entries(BK.ia.NIVEAUX).map(([k, n]) => `<button class="chip" data-niv="${k}">${n}</button>`).join('')}</div>
+          <span class="nt" id="raNivTxt"></span></div>
         <div class="box"><span class="lb">Bot Discord (lecture seule)</span>
           <input class="fld" id="raJeton" type="password" placeholder="colle le code du bot ici" autocomplete="off" style="margin-top:8px">
           <div class="chips" style="margin-top:8px"><button class="chip" id="raSalonsB">Enregistrer et chercher les salons</button></div>
           <div class="ra-salons" id="raSalons"></div></div>
         <div class="box"><span class="lb">À savoir</span><span class="nt">Avec la clé gratuite, Google peut se servir des messages envoyés pour améliorer Gemini. N'y mettez rien de secret.</span></div>
-      </section>
-    </div>
-    <div class="pane abar"><span class="ptitle">③ Barre</span><span class="vfd" id="raMsg">PRÊT</span></div>`;
-  const msg = t => $('#raMsg').textContent = String(t).toUpperCase().slice(0, 90);
+`;
+  document.body.appendChild(reg); reg.classList.add('hidden');
+  function placerReglages() { const cible = $('#p-reglages .pane.reg'); if (cible && reg.parentElement !== cible) { cible.appendChild(reg); reg.classList.remove('hidden'); } }
+  setTimeout(placerReglages, 0); setTimeout(placerReglages, 1500);
+  $('#raVersReglages').onclick = e => { e.preventDefault(); placerReglages(); BK.ouvrir('reglages'); setTimeout(() => reg.scrollIntoView({ behavior: 'smooth' }), 100); };
 
+  const NIV_TXT = { rapide: 'Rapide : répond en quelques secondes, un peu moins fin.', normal: 'Normal : le bon équilibre (conseillé).', puissant: 'Puissant : plus intelligent mais plus lent, et la version gratuite en permet peu par jour.' };
   async function majEtat() {
     BK.ia.conf = null; const c = await BK.ia.config();
+    $$('#raNiveau .chip').forEach(b => b.classList.toggle('on', b.dataset.niv === (c.niveau || 'normal')));
+    $('#raNivTxt').textContent = NIV_TXT[c.niveau || 'normal'] + ((c.modeles || {})[c.niveau || 'normal'] ? ' (' + c.modeles[c.niveau || 'normal'].nom + ')' : '');
     $('#raGem').textContent = !BK.ia.active() ? 'COUPÉE' : c.gemini ? 'PRÊT' : 'SANS CLÉ';
     $('#raCle').placeholder = c.gemini ? '•••••••• (clé enregistrée)' : 'colle la clé ici';
     const d = await BK.discord.config();
@@ -78,14 +94,23 @@ BK.module('renforts', function (page) {
     const sansGemini = d.jeton && (d.salons || []).length && !pret ? ' Sans clé Gemini, Miette lit seulement les messages de Cracotte APP : ajoute la clé (à droite) pour qu\'elle comprenne aussi vos conversations.' : '';
     z.innerHTML = `
       <div class="box ra-etat"><div class="ligne-titre"><span class="lb">🍞 Miette, la bot Discord</span>
-          <button class="btn sm pri" id="raRonde" style="margin-left:auto"${!d.jeton || !(d.salons || []).length ? ' disabled' : ''}>↻ Lire Discord maintenant</button></div>
+          <button class="btn sm pri" id="raRonde" style="margin-left:auto"${!d.jeton || !(d.salons || []).length ? ' disabled' : ''}>↻ Lire Discord maintenant</button>
+          <button class="btn sm" id="raTout"${!d.jeton || !(d.salons || []).length ? ' disabled' : ''} title="Relit TOUT l'historique des salons, puis Gemini range tout : rendez-vous, exports, tâches, et un résumé dans chaque fiche">🧹 Grand rangement</button></div>
         <span class="nt">${manque || `Miette lit ${d.salons.length} salon(s) toutes les 30 min quand le logiciel est ouvert, et te propose ce qui a été décidé.${sansGemini}${verrou && verrou.passage ? ` Dernière lecture : ${new Date(verrou.passage).toLocaleString('fr-CA', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })} (${esc(verrou.par || '')}).` : ''}`}</span></div>
       <div class="box grow ra-props"><span class="lb">À valider (${att.length})</span>
         ${att.length ? att.map(p => carte(p, true)).join('') : '<span class="nt" style="padding:14px 0">Rien à valider pour l\'instant.</span>'}
         ${faites.length ? `<span class="lb" style="margin-top:14px">Déjà ajouté</span>${faites.map(p => carte(p, false)).join('')}` : ''}</div>`;
+    const rt = $('#raTout'); if (rt) rt.onclick = async () => {
+      if (!confirm('Grand rangement : Miette relit TOUT l\'historique des salons cochés, puis Gemini range tout (ça peut prendre plusieurs minutes, le logiciel reste utilisable). On y va ?')) return;
+      rt.disabled = true; rt.innerHTML = '<span class="spin"></span>Rangement…';
+      try { const n = await BK.discord.toutRelire(msg); msg(n + ' ancien(s) message(s) ajoutés au journal'); const p = await BK.discord.ranger(msg);
+        await BK.discord.resume(true); msg(`Rangement fini ✓ · ${p} proposition(s) · résumé ajouté dans les fiches`); }
+      catch (e) { msg(e.message); }
+      rendreVeilleur();
+    };
     const rb = $('#raRonde'); if (rb) rb.onclick = async () => {
       rb.disabled = true; rb.innerHTML = '<span class="spin"></span>Lecture…';
-      try { const r = await BK.discord.ronde(msg, true); msg(r.messages ? `${r.messages} message(s) lus · ${r.propositions || 0} proposition(s)` : 'Aucun nouveau message'); }
+      try { const r = await BK.discord.ronde(msg, true); msg(r.messages ? `${r.messages} message(s) lus · ${r.propositions || 0} proposition(s)` : 'Aucun nouveau message'); BK.discord.resume(!!r.messages).catch(() => {}); }
       catch (e) { msg(e.message); }
       rendreVeilleur();
     };
@@ -135,12 +160,17 @@ BK.module('renforts', function (page) {
       <div class="box grow"><span class="lb">Réponse</span><div class="ra-rep" id="raRep"><span class="nt">Le Renfort AI cherche dans le journal Discord et dans le logiciel (fiches, tâches, calendrier).</span></div></div>`;
     $$('.ra-ex').forEach(b => b.onclick = () => { $('#raQ').value = b.textContent; });
     $('#raQ').addEventListener('keydown', e => { e.stopPropagation(); if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); $('#raDemQ').click(); } });
-    $('#raDemQ').onclick = async () => {
+    $('#raDemQ').onclick = async (e, forcer) => {
       const q = $('#raQ').value.trim(); if (!q) return;
+      // déjà posée aujourd'hui ? on remontre la réponse (pas besoin de redemander à Gemini)
+      const deja = !forcer && (await historique()).find(h => h.type === 'question' && norm(h.q) === norm(q) && Date.now() - new Date(h.t) < 12 * 36e5);
+      if (deja) { $('#raRep').innerHTML = `<div class="ra-texte">${esc(deja.r)}</div><span class="nt">Déjà demandé ${new Date(deja.t).toLocaleString('fr-CA', { weekday: 'short', hour: '2-digit', minute: '2-digit' })} · <a href="#" id="raRedem">redemander</a></span>`;
+        $('#raRedem').onclick = ev => { ev.preventDefault(); $('#raDemQ').onclick(null, true); }; return; }
       if (!await BK.ia.pret()) return sansCle(`${await BK.ia.contexte()}\n\nJournal Discord :\n${BK.discord.texte((await BK.discord.journal(2)).slice(-600))}\n\nQuestion : ${q}`);
       const t0 = Date.now(), tic = setInterval(() => { const z = $('#raRep .ra-attente'); if (z) z.textContent = `Je cherche… ${Math.round((Date.now() - t0) / 1000)} s`; }, 1000);
       $('#raRep').innerHTML = '<span class="nt"><span class="spin"></span><span class="ra-attente">Je cherche…</span></span>';
-      try { const r = await BK.discord.question(q); $('#raRep').innerHTML = `<div class="ra-texte">${esc(r)}</div><span class="nt">Réponse en ${Math.round((Date.now() - t0) / 1000)} s</span>`; }
+      try { const r = await BK.discord.question(q); $('#raRep').innerHTML = `<div class="ra-texte">${esc(r)}</div><span class="nt">Réponse en ${Math.round((Date.now() - t0) / 1000)} s</span>`;
+        await garder({ type: 'question', q, r }); }
       catch (e) { $('#raRep').innerHTML = `<span class="nt">${esc(e.message)}</span>`; }
       clearInterval(tic);
     };
@@ -182,11 +212,32 @@ BK.module('renforts', function (page) {
             await BK.db.ecrire('tournages', t); BK.tournagesRecharger && BK.tournagesRecharger(); msg('Ajouté au découpage ✓'); };
         } else {
           $('#raRep').innerHTML = `<div class="ra-texte">${esc(r)}</div>`;
+          garder({ type: 'aide', q: a.nom + (m && a.besoin === 'morceau' ? ' · ' + m.nom : '') + ($('#raDetail').value.trim() ? ' · ' + $('#raDetail').value.trim() : ''), r });
           $('#raCopier').classList.remove('hidden'); $('#raCopier').onclick = async () => { await navigator.clipboard.writeText(r); msg('Copié'); };
         }
       } catch (e) { $('#raRep').innerHTML = `<span class="nt">${esc(e.message)}</span>`; }
     };
   }
+  // ---------- l'historique : toutes les questions et réponses, gardées dans le Drive (tout le groupe les voit) ----------
+  const norm = t => BK.inv.normaliser(t || '').replace(/\s+/g, ' ').trim();
+  async function historique() { return (await BK.db.liste('renforts')).filter(h => h.q).sort((a, b) => (b.t || '').localeCompare(a.t || '')); }
+  async function garder(h) { await BK.db.ecrire('renforts', { ...h, t: new Date().toISOString(), par: BK.reglage('nomPc', '') || 'CE PC' }); rendreHist(); }
+  BK.renfortGarder = garder;
+  async function rendreHist() {
+    const f = norm($('#raHistQ').value), l = (await historique()).filter(h => !f || norm(h.q + ' ' + h.r).includes(f));
+    $('#raHist').innerHTML = l.length ? l.slice(0, 200).map(h => `<button class="ra-h" data-h="${h.id}"><span class="ra-h-t">${h.type === 'aide' ? '✨' : h.type === 'legende' ? '✍' : '❓'} ${esc(h.q)}</span>
+        <span class="nt">${new Date(h.t).toLocaleString('fr-CA', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })} · ${esc(h.par || '')}</span></button>`).join('')
+      : '<span class="nt">Aucune question pour l\'instant. Elles seront toutes gardées ici.</span>';
+    $$('#raHist .ra-h').forEach(b => b.onclick = async () => {
+      const h = (await historique()).find(x => x.id === b.dataset.h); if (!h) return;
+      volet('question'); $('#raQ').value = h.type === 'question' ? h.q : '';
+      $('#raRep').innerHTML = `<span class="eng" style="font-size:9px">${esc(h.q)}</span><div class="ra-texte">${esc(typeof h.r === 'string' ? h.r : JSON.stringify(h.r, null, 1))}</div>
+        <span class="nt">${new Date(h.t).toLocaleString('fr-CA')} · ${esc(h.par || '')}</span><div class="chips"><button class="chip" id="raHistCopier">Copier</button></div>`;
+      $('#raHistCopier').onclick = async () => { await navigator.clipboard.writeText(typeof h.r === 'string' ? h.r : JSON.stringify(h.r)); msg('Copié'); };
+    });
+  }
+  $('#raHistQ').oninput = rendreHist; $('#raHistQ').addEventListener('keydown', e => e.stopPropagation());
+
   BK.renfortDemander = (aide, ctx) => { R.aideCtx = { aide, ...ctx }; R.volet = 'aides'; BK.ouvrir('renforts'); };
 
   // sans clé : on copie la demande et on ouvre ChatGPT ou Gemini
@@ -203,12 +254,13 @@ BK.module('renforts', function (page) {
   $('#raJeton').addEventListener('keydown', e => e.stopPropagation());
   $('#raCleOk').onclick = async () => {
     const k = $('#raCle').value.trim(); if (!k && !(await BK.ia.pret())) return msg('Colle d\'abord la clé');
-    if (k) await BK.ia.enregistrer({ gemini: k, modele: '', modeleVerifie: 0 }); $('#raCle').value = '';
+    if (k) await BK.ia.enregistrer({ gemini: k, modeles: {} }); $('#raCle').value = '';
     msg('Test de Gemini…');
-    try { const r = await BK.ia.demander('Réponds seulement : OK', { temperature: 0 }); msg(/ok/i.test(r) ? 'Gemini répond ✓ (' + (await BK.ia.modele()) + ')' : 'Réponse : ' + r); }
+    try { const r = await BK.ia.demander('Réponds seulement : OK', { temperature: 0 }); msg(/ok/i.test(r) ? 'Gemini répond ✓ (' + (await BK.ia.modele()) + ')' : 'Réponse : ' + r); BK.discord.resume().catch(() => {}); }
     catch (e) { msg(e.message); }
     await majEtat(); if (R.volet === 'veilleur') rendreVeilleur();
   };
+  $$('#raNiveau .chip').forEach(b => b.onclick = async () => { await BK.ia.enregistrer({ niveau: b.dataset.niv }); msg('Modèle : ' + BK.ia.NIVEAUX[b.dataset.niv]); await BK.ia.modele(b.dataset.niv).catch(() => {}); majEtat(); });
   $('#raSalonsB').onclick = async () => {
     const j = $('#raJeton').value.trim(), d = await BK.discord.config(), jeton = j || d.jeton;
     if (!jeton) return msg('Colle d\'abord le code du bot');
@@ -237,7 +289,7 @@ BK.module('renforts', function (page) {
 
   window.addEventListener('bk:ia', () => majEtat());
   BK.surOuvrir = BK.surOuvrir || {};
-  BK.surOuvrir.renforts = async () => { R.journal = await BK.discord.journal(3).catch(() => []); await majEtat(); volet(R.volet); };
+  BK.surOuvrir.renforts = async () => { rendreHist(); R.journal = await BK.discord.journal(3).catch(() => []); await majEtat(); volet(R.volet); };
   majEtat(); volet(R.volet);
 });
 })();

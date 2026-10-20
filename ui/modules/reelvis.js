@@ -82,7 +82,7 @@ BK.module('reelvis', function (page) {
       </section>
     </div>
     <div class="pane abar"><span class="ptitle">③ Barre</span><span class="vfd" id="rvMsg">GLISSE UNE VIDÉO</span>
-      <div class="right"><button class="btn" id="rvPick">Charger une vidéo…</button><input type="file" id="rvInput" accept="video/*" hidden>
+      <div class="right"><button class="btn" id="rvPick">Charger une vidéo…</button><button class="btn" id="rvDrive">Depuis le Drive…</button><input type="file" id="rvInput" accept="video/*" hidden>
         <button class="btn" id="rvPlay" disabled>▶ Lire</button><button class="btn pri" id="rvExport" disabled>Exporter en MP4 ▶</button></div></div>`;
 
   const msg = t => $('#rvMsg').textContent = String(t).toUpperCase();
@@ -117,6 +117,13 @@ BK.module('reelvis', function (page) {
   vid.onseeked = () => { if (!V.lecture) dessiner(); };
   vid.onerror = () => msg('Vidéo illisible (essaie un MP4)');
   $('#rvPick').onclick = () => $('#rvInput').click();
+  $('#rvDrive').onclick = async () => {
+    if (!BK.drive.relie()) return msg('Relie d\'abord le Drive (Réglages)');
+    const l = await BK.explorerDrive({ titre: 'Vidéo du Drive pour le reel', mode: 'video', depart: 'tournage' }); if (!l || !l[0]) return;
+    const f = l[0]; msg('Téléchargement de ' + f.name + '…');
+    try { const o = await BK.drive.telecharger(f.id); charger(new File([o], f.name, { type: f.mimeType || 'video/mp4' })); }
+    catch (e) { msg('Téléchargement impossible'); }
+  };
   $('#rvInput').onchange = e => charger(e.target.files[0]);
   page.addEventListener('dragover', e => { e.preventDefault(); ecran.classList.add('survol'); });
   page.addEventListener('dragleave', e => { if (e.target === page) ecran.classList.remove('survol'); });
