@@ -69,6 +69,14 @@ BK.ableton = {
         let deja = await BK.fichier.existe(BK.chemin(u, 'Remote Scripts', BK.ableton.NOM_PONT));
         for (const n of BK.ableton.ANCIENS_PONTS) deja = deja || await BK.fichier.existe(BK.chemin(u, 'Remote Scripts', n));
         if (deja && !(await BK.ableton.pontAJour(u))) { await BK.ableton.installerPont(); return; }
+      }
+      // ménage : les anciens ponts (« BEESKOT », « 0_BEESKOT ») sortent de la liste d'Ableton (renommés « _… », cachés, rien n'est effacé)
+      for (const u of [...new Set([ul, ...(await BK.ableton.userLibrariesAbleton())])]) {
+        const rs = BK.chemin(u, 'Remote Scripts');
+        if (!(await BK.fichier.existe(BK.chemin(rs, BK.ableton.NOM_PONT)))) continue;
+        for (const nom of BK.ableton.ANCIENS_PONTS) { const ancien = BK.chemin(rs, nom); if (!(await BK.fichier.existe(ancien))) continue;
+          let k = BK.chemin(rs, '_BEESKOT_ancien'), n = 2; while (await BK.fichier.existe(k)) k = BK.chemin(rs, '_BEESKOT_ancien' + n++);
+          try { await BK.fichier.deplacer(ancien, k); } catch (e) {} }
       } } catch (e) {}
   },
   // installe le pont dans TOUTES les User Library trouvées (Live 11, Live 12…) : rien à chercher soi-même

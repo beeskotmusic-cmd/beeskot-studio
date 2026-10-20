@@ -722,3 +722,5 @@ body.miette-scan .bk-reflexion:not(.bk-scan){display:none}
 .todo-miette .ta-plier{flex:1;font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--ink2)}
 .todo-miette #taLire{width:100%;justify-content:center;font-size:10px}
 .todo-miette .ligne-titre > span:has(#taLire){flex-basis:100%;margin-left:0!important}
+/* pas de texte « Lâche ton fichier ici » (il se plaçait mal) : seul le cadre s'allume */
+body.dropping main>section:not(.hidden) .box.pick::after{content:none!important;display:none!important}
