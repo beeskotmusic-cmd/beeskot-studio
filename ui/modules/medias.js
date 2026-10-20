@@ -5,7 +5,7 @@
 // dans le dossier ouvert. Rien n'est jamais effacé (corbeille de BEESKOT Studio).
 // =====================================================================
 (() => {
-const RACINES = [['photovideo', 'Photos / Vidéos'], ['moodboard', 'Moodboards'], ['tournage', 'Tournages'], ['outfits', 'Outfits'], ['scenographie', 'Scénographie'], ['lightshow', 'Light Show']];
+const RACINES = [['photovideo', 'Photos / Vidéos'], ['moodboard', 'Moodboards'], ['tournage', 'Tournages'], ['outfits', 'Outfits'], ['scenographie', 'Scénographie'], ['lightshow', 'Light Show'], ['discord', '🍞 Discord']];
 const M = { racine: BK.reglage('medias.racine', 'photovideo'), pile: [], fichiers: [], envoi: false, morceaux: [], tags: {}, filtre: '' };
 const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 const DOSSIER = 'application/vnd.google-apps.folder';
@@ -27,7 +27,6 @@ BK.module('medias', function (page) {
         <div class="box"><span class="lb">Ajouter</span>
           <span class="nt">Glisse des fichiers sur la page, ou « + » : ils vont dans le dossier ouvert.</span>
           <button class="btn sm" id="mdAjout" style="margin-top:10px">+ Choisir des fichiers…</button>
-          <button class="btn sm" id="mdDiscord" style="margin-top:8px">+ Depuis Discord…</button>
           <button class="btn sm" id="mdDossier" style="margin-top:8px">+ Nouveau dossier ici…</button>
           <input type="file" id="mdInput" multiple hidden></div>
         <div class="box"><span class="lb">Drive</span>
@@ -46,8 +45,9 @@ BK.module('medias', function (page) {
   const ici = () => M.pile[M.pile.length - 1];
 
   async function allerRacine(r) {
-    M.racine = r; BK.regler('medias.racine', r);
+    M.racine = r; BK.regler('medias.racine', r); M.filtre = ''; const sel = $('#mdFiltre'); if (sel) sel.value = '';
     $$('#mdRacines button').forEach(b => b.classList.toggle('on', b.dataset.r === r));
+    if (r === 'discord') { M.pile = []; return chargerDiscord(); }
     if (!BK.drive.relie()) return vide('Relie d\'abord le Drive (Réglages › Drive).');
     await BK.dossiers.assurer(); if (!M.morceaux.length) await etiquettes();
     const d = await BK.dossiers.get(r);
@@ -94,6 +94,19 @@ BK.module('medias', function (page) {
   }
   async function etiqueter(fileId, cle, forcer = true) {
     const c = nomCase(cle), f = M.fichiers.find(x => x.id === fileId);
+    if (f && f.dc) {                                                   // venu de Discord : on le range d'abord dans le Drive
+      if (M.envoi) return msg('Un envoi est déjà en cours');
+      M.envoi = true;
+      try { msg('Téléchargement de ' + f.name + '…');
+        const r = await BK.discord.fetch(f.dc.url); if (!r.ok) throw new Error('fichier expiré sur Discord');
+        const blob = await r.blob(), dos = await dossierPour(cle);
+        const n = await BK.drive.envoyerBlob(new File([blob], f.name, { type: blob.type || f.mimeType }), f.name, dos.id, p => msg(`Envoi dans ${dos.nom} · ${Math.round(p * 100)} %`));
+        await BK.etiquettes.basculer(n.id, cle, true);
+        BK.dossiers.oublier(); M.tags = await BK.etiquettes.tous(); M.choisi = null;
+        msg(`« ${f.name} » → ${dos.nom} · ${c ? c.nom : ''} 🏷`); paniers(); rendre();
+      } catch (e) { msg('Impossible : ' + (e.message || e)); }
+      M.envoi = false; return;
+    }
     const a = await BK.etiquettes.basculer(fileId, cle, forcer); M.tags = await BK.etiquettes.tous(); M.choisi = null;
     msg(`« ${f ? f.name : 'fichier'} » ${a ? '→' : 'retiré de'} ${c ? c.nom : ''} 🏷`); rendre(!!M.filtre); paniers();
   }
@@ -106,13 +119,31 @@ BK.module('medias', function (page) {
       M.fichiers = l.filter(f => /^(image|video)\//.test(f.mimeType) || /\.pdf$/i.test(f.name)); if (M.filtre === id) rendre(true); }
     catch (e) { vide('Drive injoignable pour l\'instant.'); }
   }
+  // ---------- le dossier « Discord » : toutes les photos et vidéos postées sur le serveur ----------
+  async function chargerDiscord() {
+    $('#mdFil').innerHTML = '<span class="ex-miette">🍞 Discord · tout ce qui a été posté</span>';
+    $('#mdChemin').textContent = 'Discord (pas dans le Drive)';
+    $('#mdAjout').disabled = $('#mdDossier').disabled = $('#mdOuvrirDos').disabled = true;
+    $('#mdGrille').innerHTML = '<span class="nt md-vide"><span class="spin"></span>Miette regarde les salons…</span>';
+    try {
+      if (!M.morceaux.length) await etiquettes();
+      const l = await BK.discord.medias(5);
+      M.fichiers = l.map(x => ({ id: 'dc:' + x.id, name: x.nom, mimeType: x.video ? 'video/mp4' : 'image/jpeg',
+        thumbnailLink: x.apercu, webViewLink: x.lien, modifiedTime: x.t, size: x.taille, dc: x,
+        dossiers: ['Discord', '#' + x.salon] }));
+      if (M.racine === 'discord') rendre();
+    } catch (e) { vide(e.message || 'Discord injoignable'); }
+  }
+
   window.addEventListener('bk:annule', () => charger());   // après « ↶ Annuler » : on relit
   async function charger() {
+    if (M.racine === 'discord') return chargerDiscord();
     if (M.filtre) return parMorceau(M.filtre);
     const cur = ici(); if (!cur) return;
     $('#mdFil').innerHTML = M.pile.map((p, i) => `<button class="ex-miette" data-i="${i}">${esc(p.nom)}</button>`).join('<span>›</span>');
     $$('#mdFil .ex-miette').forEach(b => b.onclick = () => { M.pile = M.pile.slice(0, +b.dataset.i + 1); charger(); });
     $('#mdChemin').textContent = M.pile.map(p => p.nom).join(' / ');
+    $('#mdAjout').disabled = $('#mdDossier').disabled = $('#mdOuvrirDos').disabled = false;
     $('#mdGrille').innerHTML = '<span class="nt md-vide"><span class="spin"></span>Lecture du Drive…</span>';
     try { M.fichiers = await BK.dossiers.enfants(cur.id); if (ici() === cur) rendre(); }
     catch (e) { vide('Drive injoignable pour l\'instant.'); console.error(e); }
@@ -121,12 +152,13 @@ BK.module('medias', function (page) {
 
   function rendre(filtre) {
     const ds = M.fichiers.filter(f => f.mimeType === DOSSIER), fs = M.fichiers.filter(f => f.mimeType !== DOSSIER);
-    const tag = f => { const ms = BK.etiquettes.morceauxDe({ ...f, dossiers: f.dossiers || M.pile.map(p => p.nom) }, M.morceaux, M.tags), l = BK.etiquettes.liste(M.tags, f.id);
+    const tag = f => { if (f.dc) return `<button class="md-tag vide" data-tag="${esc(f.id)}" title="Copier dans le Drive et étiqueter">⤓ Ranger dans le Drive</button>`;
+      const ms = BK.etiquettes.morceauxDe({ ...f, dossiers: f.dossiers || M.pile.map(p => p.nom) }, M.morceaux, M.tags), l = BK.etiquettes.liste(M.tags, f.id);
       const main = l.some(BK.etiquettes.estMorceau), noms = [...ms.map(m => m.nom), ...l.filter(k => /^[a-z]:/.test(k)).map(k => (nomCase(k) || {}).nom).filter(Boolean)];
       return `<button class="md-tag${l.length ? ' main' : noms.length ? '' : ' vide'}" data-tag="${f.id}" title="${main || l.length ? 'Étiquettes choisies à la main' : noms.length ? 'Devinée par le nom' : 'Étiqueter'}">🏷 ${esc(noms.length ? noms.join(' · ') : 'Étiqueter')}</button>`; };
     $('#mdNb').textContent = String(fs.length).padStart(2, '0');
     $('#mdGrille').innerHTML = ds.map(d => `<button class="md-tuile md-dos" data-dos="${d.id}" data-nom="${esc(d.name)}"><span class="md-dos-ic">📁</span><span class="md-nom">${esc(d.name)}</span></button>`).join('')
-      + (filtre ? '' : `<button class="md-tuile md-plus" id="mdPlus"><span>+</span><span class="nt">Ajouter ici</span></button>`)
+      + (filtre || M.racine === 'discord' ? '' : `<button class="md-tuile md-plus" id="mdPlus"><span>+</span><span class="nt">Ajouter ici</span></button>`)
       + fs.map(f => {
         const video = /^video\//.test(f.mimeType), d = f.videoMediaMetadata && f.videoMediaMetadata.durationMillis;
         return `<div class="md-tuile${M.choisi === f.id ? ' choisie' : ''}" data-id="${f.id}" title="${esc(f.name)}" draggable="true">
@@ -136,7 +168,7 @@ BK.module('medias', function (page) {
           <button class="md-x" data-x="${f.id}" title="Ranger dans la corbeille">✕</button></div>`;
       }).join('');
     $$('.md-dos').forEach(b => b.onclick = () => { M.pile.push({ id: b.dataset.dos, nom: b.dataset.nom }); charger(); });
-    if (!filtre) $('#mdPlus').onclick = e => menuAjout(e.currentTarget);
+    if (!filtre && M.racine !== 'discord') $('#mdPlus').onclick = e => menuAjout(e.currentTarget);
     $$('.md-tag').forEach(b => b.onclick = e => { e.stopPropagation(); menuTag(b); });
     $$('.md-tuile[data-id]').forEach(t => { t.ondragstart = e => { e.dataTransfer.setData('text/bk-media', t.dataset.id); e.dataTransfer.effectAllowed = 'link'; $('#mdPaniers').classList.add('actif'); };
       t.ondragend = () => $('#mdPaniers').classList.remove('actif'); });
@@ -144,11 +176,13 @@ BK.module('medias', function (page) {
     $$('.md-tuile[data-id]').forEach(t => t.onclick = e => { if (e.target.closest('.md-x,.md-tag')) return;
       if (!e.ctrlKey) { M.choisi = M.choisi === t.dataset.id ? null : t.dataset.id; $$('.md-tuile').forEach(x => x.classList.toggle('choisie', x.dataset.id === M.choisi)); if (M.choisi) msg('Clique un morceau en bas (ou double-clic pour ouvrir)'); return; } const f = M.fichiers.find(x => x.id === t.dataset.id); f && BK.ouvrirLien(f.webViewLink); });
     $$('.md-x').forEach(b => b.onclick = async () => {
-      const f = M.fichiers.find(x => x.id === b.dataset.x); if (!f || !confirm(`Ranger « ${f.name} » dans la corbeille de BEESKOT Studio ?`)) return;
+      const f = M.fichiers.find(x => x.id === b.dataset.x); if (!f) return;
+      if (f.dc) return msg('Les fichiers Discord ne s\'effacent pas d\'ici');
+      if (!confirm(`Ranger « ${f.name} » dans la corbeille de BEESKOT Studio ?`)) return;
       try { await BK.drive.corbeille(f.id); M.fichiers = M.fichiers.filter(x => x !== f); rendre(); msg('Rangé dans la corbeille'); } catch (e) { msg('Impossible pour l\'instant'); }
     });
     (async () => { for (const f of fs) {                               // vignettes une par une : léger
-      if (!f.thumbnailLink) continue; const u = await BK.drive.vignette(f), el = $(`.md-tuile[data-id="${f.id}"] .md-img`);
+      if (!f.thumbnailLink) continue; const u = f.dc ? f.thumbnailLink + '?width=320&height=320' : await BK.drive.vignette(f), el = $(`.md-tuile[data-id="${CSS.escape(f.id)}"] .md-img`);
       if (el) { const sp = $('.spin', el); sp && sp.remove(); if (u) el.style.backgroundImage = `url(${u})`; }
     } })();
   }
@@ -156,6 +190,7 @@ BK.module('medias', function (page) {
   // ---------- choisir l'étiquette d'un fichier ----------
   function menuTag(b) {
     $$('.md-menu').forEach(x => x.remove());
+    if (b.dataset.tag.startsWith('dc:')) { M.choisi = b.dataset.tag; return msg('Clique une case en bas (Morceaux, Tournage…) : le fichier ira dans le Drive'); }
     const id = b.dataset.tag, r = b.getBoundingClientRect(), menu = document.createElement('div'); menu.className = 'md-menu';
     menu.style.left = Math.min(r.left, innerWidth - 230) + 'px'; menu.style.top = Math.min(r.bottom + 4, innerHeight - 320) + 'px';
     const l = BK.etiquettes.liste(M.tags, id), rubs = cases();
@@ -209,7 +244,7 @@ BK.module('medias', function (page) {
     setTimeout(() => document.addEventListener('pointerdown', fermer, true));
     menu.onclick = async e => { const b = e.target.closest('[data-aj]'); if (!b) return; menu.remove();
       if (b.dataset.aj === 'pc') $('#mdInput').click();
-      if (b.dataset.aj === 'discord') $('#mdDiscord').click();
+      if (b.dataset.aj === 'discord') ajoutDepuisDiscord();
       if (b.dataset.aj === 'drive') depuisDrive(); };
   }
   // copier des fichiers du Drive dans le dossier ouvert (une copie : l'original ne bouge pas)
@@ -221,7 +256,7 @@ BK.module('medias', function (page) {
     BK.dossiers.oublier(); msg(l.length + ' fichier(s) copié(s) ici'); charger();
   }
   // ---------- ajouter depuis Discord : les photos et vidéos postées dans le salon « media » (et voisins) ----------
-  $('#mdDiscord').onclick = async () => {
+  async function ajoutDepuisDiscord() {
     const cur = M.filtre ? await dossierPour(M.filtre) : ici(); if (!cur) return msg('Ouvre d\'abord un dossier');
     const v = document.createElement('div'); v.className = 'voile ex-voile';
     v.innerHTML = `<div class="ex-box"><div class="ex-tete"><span class="lb">🍞 Photos et vidéos de Discord → ${esc(cur.nom)}</span><button class="btn xs" data-dc="x">✕</button></div>
@@ -253,7 +288,7 @@ BK.module('medias', function (page) {
         <span class="md-dc-img">${f.video ? '<span>▶</span>' : `<img src="${esc(f.apercu)}?width=240&height=240" loading="lazy" draggable="false" referrerpolicy="no-referrer">`}</span>
         <span class="md-nom">${esc(f.nom)}</span><span class="nt">${esc(f.qui)} · #${esc(f.salon)} · ${new Date(f.t).toLocaleDateString('fr-CA', { day: 'numeric', month: 'short' })}${deja.has(f.nom) ? ' · déjà ici' : ''}</span></button>`).join('')
       : '<span class="nt">Aucune photo ni vidéo trouvée dans les salons « media ». Vérifie que Miette a le droit de lire ce salon.</span>';
-  };
+  }
   $('#mdInput').onchange = e => { envoyer(e.target.files); e.target.value = ''; };
   $('#mdDossier').onclick = async () => {
     const cur = ici(); if (!cur) return; const n = prompt('Nom du nouveau dossier'); if (!n || !n.trim()) return;
