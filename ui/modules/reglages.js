@@ -28,8 +28,8 @@ BK.module('reglages', function (page) {
           <div class="knobs" style="justify-content:center"><div class="kb">
             <input id="rgZoom" type="range" min="80" max="130" step="5" value="${BK.reglage('zoom', 100)}" class="knobify" data-ticks="80,,,,,130" data-fmt="{} %"><span class="lb">Zoom</span></div></div></div>
         <div class="box"><span class="lb">Ableton Live</span>
-          <span class="nt">Installe le petit pont BEESKOT dans Ableton (une fois par PC).</span>
-          <div class="chips" style="margin-top:10px"><button class="chip" id="rgAbleton">Relier Ableton…</button></div></div>
+          <span class="nt">Un clic : le logiciel trouve Ableton et installe le pont tout seul. Il restera juste à le choisir dans Ableton.</span>
+          <div class="chips" style="margin-top:10px"><button class="chip" id="rgAbleton">Relier Ableton (automatique)</button></div></div>
         <div class="box"><span class="lb">Drive BEESKOT</span><div id="rgDriveZone"></div></div>
       </section>
     </div>
@@ -102,5 +102,5 @@ BK.module('reglages', function (page) {
     if (!BK.estExe) { $('#rgMsg', page).textContent = 'DISPONIBLE DANS LE LOGICIEL INSTALLÉ'; return; }
     try { const d = await BK.ableton.installerPont(); if (d) BK.ableton.fenetre(d); } catch (e) { $('#rgMsg', page).textContent = 'INSTALLATION IMPOSSIBLE'; }
   };
-  $('#rgZoom', page).onchange = e => { BK.regler('zoom', +e.target.value); document.documentElement.style.zoom = e.target.value / 100; };
+  $('#rgZoom', page).onchange = e => { BK.regler('zoom', +e.target.value); BK.appliquerZoom(+e.target.value); };
 });

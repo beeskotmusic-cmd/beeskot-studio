@@ -678,3 +678,6 @@ a.lien{color:var(--mus);text-decoration:none}a.lien:hover{text-decoration:underl
 .md-dc-img{aspect-ratio:1;display:flex;align-items:center;justify-content:center;background:#000;border-radius:4px;overflow:hidden;font-size:22px}
 .md-dc-img img{width:100%;height:100%;object-fit:cover;pointer-events:none}
 .md-dc-t .nt{font-size:9.5px;margin:0}
+/* zoom de secours (aperçu) : la fenêtre garde toujours toute la hauteur */
+.app{height:calc(100vh / var(--z, 1))!important}
+.side{overflow-y:auto;overflow-x:hidden;scrollbar-width:thin}

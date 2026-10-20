@@ -23,9 +23,27 @@ BK.ableton = {
   },
 
   // ---------- installer le pont dans Ableton (1 fois par PC) ----------
+  // le nom du dossier du pont : il commence par « 0 » pour être en HAUT de la liste des surfaces de contrôle d'Ableton
+  NOM_PONT: '0_BEESKOT',
+  // où est la « User Library » ? On la lit dans les réglages d'Ableton (Library.cfg), toutes versions confondues
+  async userLibrariesAbleton() {
+    const out = [];
+    try {
+      const base = BK.chemin(await BK.T.path.configDir(), 'Ableton');            // %APPDATA%\Ableton
+      for (const v of await BK.fichier.liste(base)) {
+        if (!/^Live /i.test(v.name)) continue;
+        try { const t = await BK.fichier.lireTexte(BK.chemin(base, v.name, 'Preferences', 'Library.cfg'));
+          const bloc = (t.match(/<UserLibrary>([\s\S]*?)<\/UserLibrary>/) || [])[1] || '';
+          const chemin = (bloc.match(/ProjectPath Value="([^"]+)"/) || [])[1], nom = (bloc.match(/ProjectName Value="([^"]+)"/) || [])[1] || 'User Library';
+          if (chemin) { const ul = BK.chemin(chemin.replace(/[\\/]+$/, ''), nom); if (await BK.fichier.existe(ul) && !out.includes(ul)) out.push(ul); } } catch (e) {}
+      }
+    } catch (e) {}
+    return out;
+  },
   async dossierUserLibrary(sansDemander) {
     const memo = BK.reglage('ableton.userLibrary', '');
     if (memo && await BK.fichier.existe(memo)) return memo;
+    const lus = await BK.ableton.userLibrariesAbleton(); if (lus.length) { BK.regler('ableton.userLibrary', lus[0]); return lus[0]; }
     const docs = await BK.T.path.documentDir();
     const defaut = BK.chemin(docs, 'Ableton', 'User Library');
     if (await BK.fichier.existe(defaut)) return defaut;
@@ -36,21 +54,31 @@ BK.ableton = {
   },
   // le pont installé est-il à jour ? (sinon, la mise à jour du logiciel le remplace toute seule)
   async pontAJour(ul) {
-    try { const t = await BK.fichier.lireTexte(BK.chemin(ul, 'Remote Scripts', 'BEESKOT', '__init__.py'));
+    try { const t = await BK.fichier.lireTexte(BK.chemin(ul, 'Remote Scripts', BK.ableton.NOM_PONT, '__init__.py'));
       return (t.match(/VERSION = "(\d+)"/) || [])[1] === BK.ableton.VERSION_PONT; } catch (e) { return false; }
   },
   async majPontSiBesoin() {
     if (!BK.estExe) return;
     try { const ul = await BK.ableton.dossierUserLibrary(true); if (!ul) return;
-      if (await BK.fichier.existe(BK.chemin(ul, 'Remote Scripts', 'BEESKOT')) && !(await BK.ableton.pontAJour(ul))) await BK.ableton.installerPont(); } catch (e) {}
+      const ancien = await BK.fichier.existe(BK.chemin(ul, 'Remote Scripts', 'BEESKOT'));
+      if ((ancien || await BK.fichier.existe(BK.chemin(ul, 'Remote Scripts', BK.ableton.NOM_PONT))) && !(await BK.ableton.pontAJour(ul))) await BK.ableton.installerPont(); } catch (e) {}
   },
+  // installe le pont dans TOUTES les User Library trouvées (Live 11, Live 12…) : rien à chercher soi-même
   async installerPont() {
     const ul = await BK.ableton.dossierUserLibrary(); if (!ul) return null;
-    const dos = BK.chemin(ul, 'Remote Scripts', 'BEESKOT');
-    await BK.fichier.creerDossier(dos);
+    const toutes = [...new Set([ul, ...(await BK.ableton.userLibrariesAbleton())])];
     const code = await (await fetch('ableton/BEESKOT/__init__.py')).text();
-    await BK.fichier.ecrireTexte(BK.chemin(dos, '__init__.py'), code);
-    return dos;
+    let premier = null;
+    for (const u of toutes) {
+      const rs = BK.chemin(u, 'Remote Scripts'), dos = BK.chemin(rs, BK.ableton.NOM_PONT);
+      await BK.fichier.creerDossier(dos);
+      await BK.fichier.ecrireTexte(BK.chemin(dos, '__init__.py'), code);
+      // l'ancien dossier « BEESKOT » est mis de côté (un nom qui commence par _ est caché par Ableton) : rien n'est effacé
+      const ancien = BK.chemin(rs, 'BEESKOT');
+      if (await BK.fichier.existe(ancien)) { let k = BK.chemin(rs, '_BEESKOT_ancien'), n = 2; while (await BK.fichier.existe(k)) k = BK.chemin(rs, '_BEESKOT_ancien' + n++); try { await BK.fichier.deplacer(ancien, k); } catch (e) {} }
+      premier = premier || dos;
+    }
+    return premier;
   },
 
   // fenêtre d'explication (une seule étape dans Ableton)
@@ -62,10 +90,10 @@ BK.ableton = {
       ${installeA ? `<span class="nt">✅ Le pont est installé ici :<br><span class="mono" style="white-space:normal">${installeA}</span></span>` : ''}
       <span class="lb">Dernière étape, dans Ableton (une seule fois) :</span>
       <ol class="etapes-abl">
-        <li>Ferme puis rouvre Ableton Live.</li>
-        <li>Ouvre <b>Options › Préférences</b> (Ctrl + ,).</li>
+        <li><b>Ferme complètement</b> Ableton Live, puis rouvre-le (sinon il ne voit pas le pont).</li>
+        <li>Menu <b>Options › Réglages</b> (Ctrl + ,).</li>
         <li>Onglet <b>Link, Tempo & MIDI</b>.</li>
-        <li>Dans une ligne <b>Surface de contrôle</b> libre, choisis <b>BEESKOT</b>. Laisse Entrée et Sortie sur « Aucun ».</li>
+        <li>Dans une ligne <b>Control Surface</b> libre (à « None »), choisis <b>0 BEESKOT</b> : c'est le <b>tout premier</b> de la liste, avant « Advance ». Laisse Input et Output sur « None ».</li>
         <li>Ferme les préférences : le voyant <b>Ableton Live</b> devient vert ici.</li>
       </ol>
       <span class="nt">Le pont de Dari Audio Live peut rester dans une autre ligne : les deux marchent ensemble. Si le pont vient d'être mis à jour, redémarre simplement Ableton.</span>

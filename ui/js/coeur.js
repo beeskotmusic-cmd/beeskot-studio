@@ -7,7 +7,7 @@ const $ = (s, r = document) => r.querySelector(s);
 const $$ = (s, r = document) => [...r.querySelectorAll(s)];
 
 const BK = {
-  version: '0.9.4 bêta',
+  version: '0.9.5 bêta',
   modules: {},
   onglets: [],
   cotes: [],
@@ -101,6 +101,14 @@ const BK = {
 
   // ---------- bouton STOP : relancer / fermer / version ----------
   // (dans le .exe, ces deux gestes passeront par le moteur du logiciel ; ici, version de secours)
+  // taille de l'interface : le zoom de la fenêtre (comme Ctrl + / Ctrl − d'un navigateur) — tout se réorganise, sans bande vide
+  appliquerZoom(z) {
+    const f = (+z || 100) / 100, wv = window.__TAURI__ && window.__TAURI__.webview;
+    if (wv && wv.getCurrentWebview) { wv.getCurrentWebview().setZoom(f).then(() => { document.documentElement.style.zoom = ''; document.documentElement.style.setProperty('--z', 1); })
+      .catch(() => BK.zoomCss(f)); return; }
+    BK.zoomCss(f);
+  },
+  zoomCss(f) { document.documentElement.style.zoom = f; document.documentElement.style.setProperty('--z', f); },
   relancer() { if (window.__TAURI__?.process) window.__TAURI__.process.relaunch(); else location.reload(); },
   fermer()   { if (window.__TAURI__?.process) window.__TAURI__.process.exit(0); else window.close(); },
   // ---------- mises à jour : vérifiées au démarrage, installées en 1 clic depuis le bouton STOP ----------
@@ -143,7 +151,7 @@ const BK = {
     $('#syPc').textContent = BK.reglage('nomPc', 'CE PC').toUpperCase();
     BK.etatDrive && BK.etatDrive();
     BK.horloge(); setInterval(BK.horloge, 20000);   // léger : une mise à jour toutes les 20 s
-    document.documentElement.style.zoom = BK.reglage('zoom', 100) / 100;
+    BK.appliquerZoom(BK.reglage('zoom', 100));
     BK.ouvrir(BK.reglage('dernierOnglet', 'accueil'));
     setTimeout(BK.verifierMaj, 3000);
     BK.ableton && BK.ableton.surveiller();
