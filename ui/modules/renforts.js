@@ -203,7 +203,7 @@ BK.module('renforts', function (page) {
     msg('Test de Gemini…');
     try { const r = await BK.ia.demander('Réponds seulement : OK', { temperature: 0 }); msg(/ok/i.test(r) ? 'Gemini répond ✓ (' + (await BK.ia.modele()) + ')' : 'Réponse : ' + r); }
     catch (e) { msg(e.message); }
-    majEtat();
+    await majEtat(); if (R.volet === 'veilleur') rendreVeilleur();
   };
   $('#raSalonsB').onclick = async () => {
     const j = $('#raJeton').value.trim(), d = await BK.discord.config(), jeton = j || d.jeton;
@@ -218,7 +218,7 @@ BK.module('renforts', function (page) {
       }
       msg(R.salons.length ? R.salons.length + ' salon(s) trouvés : coche ceux à lire' : 'Aucun salon : invite le bot sur votre serveur');
     } catch (e) { msg(e.message); }
-    majEtat();
+    await majEtat(); if (R.volet === 'veilleur') rendreVeilleur();
   };
   function rendreSalons() {
     const d = R.discord || {}, choisis = new Set((d.salons || []).map(s => s.id));
@@ -227,7 +227,7 @@ BK.module('renforts', function (page) {
     $$('#raSalons [data-s]').forEach(c => c.onchange = async () => {
       const tous = R.salons.length ? R.salons : (d.salons || []);
       const sel = $$('#raSalons [data-s]').filter(x => x.checked).map(x => tous.find(s => s.id === x.dataset.s)).filter(Boolean);
-      R.discord = await BK.discord.enregistrer({ salons: sel }); msg(sel.length + ' salon(s) suivis');
+      R.discord = await BK.discord.enregistrer({ salons: sel }); msg(sel.length + ' salon(s) suivis'); if (R.volet === 'veilleur') rendreVeilleur();
     });
   }
 
