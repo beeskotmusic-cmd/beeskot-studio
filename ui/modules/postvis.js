@@ -36,6 +36,7 @@ BK.module('postvis', function (page) {
             <div class="box"><div class="ligne-titre"><span class="lb">② Les photos (ordre du carrousel)</span>
                 <span class="nt" style="margin:0 0 0 auto">Clique une photo pour la régler · ‹ › pour changer l'ordre</span></div>
               <div class="pv-bande" id="pvBande"></div>
+              <div class="pv-tagstrip" id="pvTagStrip"></div>
               <div class="chips" style="margin-top:8px"><button class="btn sm pri" id="pvAjout">+ Ajouter des photos</button><input type="file" id="pvInput" accept="image/*" multiple hidden></div></div>
             <div class="box"><span class="lb">③ Recadrer et couleur</span>
               <span class="nt">Fais glisser l'image dans l'aperçu pour la déplacer.</span>
@@ -115,9 +116,25 @@ BK.module('postvis', function (page) {
     $('#pvSujet').innerHTML = '<option value="">Choisis : un morceau, un tournage, un live, la promo…</option>' + g.map(x => `<optgroup label="${esc(x.groupe)}">${x.l.map(c => `<option value="${esc(c.k)}">${esc(c.nom)}</option>`).join('')}</optgroup>`).join('');
     P.sujets = g.flatMap(x => x.l); })();
   const sujet = () => (P.sujets || []).find(c => c.k === $('#pvSujet').value);
-  $('#pvSujet').onchange = () => { const c = sujet(); galerie();
+  $('#pvSujet').onchange = () => { const c = sujet(); galerie(); bandeauTag();
     if (c && c.morceau && [...$('#pvMorceau').options].some(o => o.value === c.morceau.nom || o.textContent === c.morceau.nom)) $('#pvMorceau').value = [...$('#pvMorceau').options].find(o => o.textContent === c.morceau.nom).value;
     msg(c ? 'Les photos de « ' + c.nom + ' » d\'abord' : 'PRÊT'); };
+  // le bandeau toujours visible : les photos déjà étiquetées pour le sujet choisi
+  async function bandeauTag() {
+    const z = $('#pvTagStrip'), c = sujet();
+    if (!BK.drive.relie()) { z.innerHTML = ''; return; }
+    if (!c) { z.innerHTML = '<span class="nt">🏷 Choisis le sujet au-dessus : vos photos étiquetées s\'afficheront ici, prêtes à cliquer.</span>'; return; }
+    z.innerHTML = `<span class="nt"><span class="spin"></span>Vos photos de « ${esc(c.nom)} »…</span>`;
+    try {
+      const l = (await BK.etiquettes.fichiersDe(c.k)).filter(f => /^image\//.test(f.mimeType || '')).slice(0, 14);
+      if (!l.length) { z.innerHTML = `<span class="nt">🏷 Aucune photo étiquetée « ${esc(c.nom)} ». Dans <b>Médias</b>, glisse des photos sur sa case.</span>`; return; }
+      z.innerHTML = `<span class="nt">🏷 Vos photos de « ${esc(c.nom)} » — clique pour l'ajouter au post</span><div class="pv-ts-l">`
+        + l.map(f => `<button class="pv-ts" data-ts="${f.id}" title="${esc(f.name)}"><span class="spin"></span></button>`).join('') + '</div>';
+      for (const f of l) { const u = await BK.drive.vignette(f), b = $(`[data-ts="${f.id}"]`, z); if (b) b.innerHTML = u ? `<img src="${u}" draggable="false">` : '🖼'; }
+      $$('.pv-ts', z).forEach(b => b.onclick = async () => { const f = l.find(x => x.id === b.dataset.ts);
+        b.classList.add('prise'); msg('Ajout de ' + f.name + '…'); try { ajouter([await telecharger(f)]); } catch (e) { msg('Téléchargement impossible'); } });
+    } catch (e) { z.innerHTML = '<span class="nt">Drive injoignable pour l\'instant.</span>'; }
+  }
   const telecharger = async f => new File([await (await BK.drive.api(`/files/${f.id}?alt=media`)).blob()], f.name, { type: f.mimeType || 'image/jpeg' });
   async function ajouterDrive(l) { msg('Téléchargement des photos…'); const fs = []; for (const f of l) { try { fs.push(await telecharger(f)); } catch (e) {} } ajouter(fs); }
   // ---------- ② « + Ajouter des photos » : d'abord celles du sujet, puis PC, Drive, Discord ----------
@@ -148,7 +165,8 @@ BK.module('postvis', function (page) {
   const galerie = () => BK.galerieDrive($('#pvGal'), { type: 'image', titre: (sujet() || {}).nom || '', source: sujet() ? () => BK.etiquettes.fichiersDe(sujet().k) : null, choisir: async f => { msg('Téléchargement de ' + f.name + '…');
     try { ajouter([new File([await (await BK.drive.api(`/files/${f.id}?alt=media`)).blob()], f.name, { type: f.mimeType })]); } catch (e) { msg('Téléchargement impossible'); } } });
   galerie();
-  (BK.surOuvrir = BK.surOuvrir || {}).postvis = () => { if (!$('#pvGal .gd-l')) galerie(); };
+  (BK.surOuvrir = BK.surOuvrir || {}).postvis = () => { if (!$('#pvGal .gd-l')) galerie(); if (!$('#pvTagStrip').innerHTML) bandeauTag(); };
+  bandeauTag();
   page.addEventListener('dragover', e => { e.preventDefault(); ecran.classList.add('survol'); });
   page.addEventListener('dragleave', e => { if (e.target === page) ecran.classList.remove('survol'); });
   page.addEventListener('drop', e => { e.preventDefault(); ecran.classList.remove('survol'); const fs = [...e.dataTransfer.files]; if (!fs.length) return;
