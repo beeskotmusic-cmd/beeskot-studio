@@ -736,3 +736,22 @@ body.dropping main>section:not(.hidden) .box.pick::after{content:none!important;
 #nav .cote-groupe.replie .tab:not(.on):not(.mini){display:none}
 #nav .tab .nsub{display:none}
 #nav .tab{min-height:40px}
+/* ---------- le guide du premier lancement ---------- */
+.bv-voile{backdrop-filter:blur(3px)}
+.bv-box{position:relative;width:min(620px,92vw);max-height:88vh;overflow:auto;padding:30px 34px 26px;border-radius:10px;
+  background:url(../look/bois-fond.jpg) center/cover,#2a1c12;box-shadow:0 0 0 1px rgba(239,230,210,.14),0 24px 60px rgba(0,0,0,.65)}
+.bv-c{display:flex;flex-direction:column;align-items:center;gap:12px;text-align:center}
+.bv-pas{display:flex;gap:6px;margin-bottom:4px}
+.bv-pas .bv-p{display:block;width:26px;height:4px;padding:0;border-radius:2px;background:rgba(239,230,210,.18);box-shadow:none}
+.bv-pas .bv-p::before{content:none}
+.bv-p.fini{background:#7ee08a!important;box-shadow:none!important;padding:0!important}
+.bv-p.on{background:#ffb23e;box-shadow:0 0 8px rgba(255,170,40,.6)}
+.bv-ic{font-size:34px;line-height:1}
+.bv-box .dymo{font-size:17px}
+.bv-txt{margin:0;font-size:13.5px;line-height:1.6;color:var(--ink);max-width:470px}
+.bv-txt b{color:#ffcf7a}
+.bv-champ{width:280px;text-align:center;font-size:15px}
+.bv-act{min-width:240px;justify-content:center}
+.bv-msg{font:600 11.5px Jost,sans-serif;letter-spacing:.08em;text-transform:uppercase;color:#7ee08a}
+.bv-btns{display:flex;gap:10px;margin-top:6px}
+.bv-num{font-size:10px;opacity:.6;margin:0}

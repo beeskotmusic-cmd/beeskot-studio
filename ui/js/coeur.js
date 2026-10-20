@@ -7,7 +7,7 @@ const $ = (s, r = document) => r.querySelector(s);
 const $$ = (s, r = document) => [...r.querySelectorAll(s)];
 
 const BK = {
-  version: '0.9.15 bêta',
+  version: '0.9.16 bêta',
   modules: {},
   onglets: [],
   cotes: [],
@@ -162,6 +162,7 @@ const BK = {
     const bm = document.getElementById('btMiette');                 // le bouton jaune : Miette relit tout
     if (bm) bm.onclick = () => { bm.classList.add('pressed'); setTimeout(() => bm.classList.remove('pressed'), 150); BK.miette.toutLire(); };
     BK.ouvrir(BK.reglage('dernierOnglet', 'accueil'));
+    setTimeout(() => BK.bienvenue && BK.bienvenue.ouvrir(), 600);      // premier lancement : le petit guide
     setTimeout(BK.verifierMaj, 3000);
     BK.ableton && BK.ableton.surveiller();
     BK.discord && BK.discord.surveiller();                         // le Veilleur : toutes les 30 min, s'il est réglé

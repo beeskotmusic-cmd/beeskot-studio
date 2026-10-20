@@ -22,6 +22,8 @@ BK.module('reglages', function (page) {
           <div class="rg-dos-liste" id="rgDos"></div></div>
       </section>
       <section class="pane reg"><span class="ptitle">② Ce PC</span>
+        <div class="box"><span class="lb">Guide de démarrage</span>
+          <button class="btn sm" id="rgGuide" style="margin-top:8px">🍞 Revoir le guide</button></div>
         <div class="box"><span class="lb">Nom de cet ordinateur</span>
           <input class="fld" id="rgNom" style="margin-top:10px" maxlength="16" placeholder="ex. STUDIO, PIERRE…" value="${BK.reglage('nomPc', '')}"></div>
         <div class="box"><span class="lb">Taille de l'interface</span>
@@ -42,6 +44,7 @@ BK.module('reglages', function (page) {
     BK.construireMenu(); BK.ouvrir('reglages');
     $('#rgMsg', page).textContent = (o.titre + (v ? ' AFFICHÉ' : ' CACHÉ')).toUpperCase();
   });
+  $('#rgGuide', page).onclick = () => BK.bienvenue.ouvrir(true);
   $('#rgNom', page).onchange = e => { BK.regler('nomPc', e.target.value.trim()); $('#syPc').textContent = (e.target.value.trim() || 'CE PC').toUpperCase(); };
   // ---------- Drive : 3 états (rien / fichier client importé / relié) ----------
   const rmsg = t => $('#rgMsg', page).textContent = String(t).toUpperCase();
