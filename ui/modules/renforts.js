@@ -7,7 +7,7 @@
 // demande dans ChatGPT ou Gemini (rien à payer dans les deux cas).
 // =====================================================================
 (() => {
-const R = { volet: BK.reglage('renfort.volet', 'veilleur'), salons: [], aideCtx: null };
+const R = { volet: BK.reglage('renfort.volet', 'question'), salons: [], aideCtx: null };
 const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 const dateCourte = d => d ? new Date(d.length === 10 ? d + 'T12:00' : d).toLocaleDateString('fr-CA', { day: 'numeric', month: 'short' }) : '';
 const ICONES = { evenement: '📅', export: '🎵', tache: '✅', sortie: '🚀', note: '📝' };
@@ -31,7 +31,7 @@ BK.module('renforts', function (page) {
   $('.grid', page).innerHTML = `
     <div class="cols">
       <section class="pane vit ra-vit">
-        <div class="seg ra-volets" id="raVolets"><button data-v="veilleur">🍞 Miette</button><button data-v="question">Poser une question</button><button data-v="aides">Aides</button></div>
+        <div class="seg ra-volets" id="raVolets"><button data-v="question">Poser une question</button><button data-v="aides">Aides</button><button data-v="veilleur">🍞 Miette</button></div>
         <div class="ra-volet" id="raVolet"></div>
       </section>
       <section class="pane reg ra-reg" style="width:320px"><span class="ptitle">② Historique</span>
