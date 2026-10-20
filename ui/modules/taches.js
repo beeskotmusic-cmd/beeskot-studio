@@ -1,33 +1,46 @@
 // =====================================================================
-// TO-DO LIST — un tableau façon Trello : une colonne par personne + BEESKOT.
-// Chaque tâche est une petite carte qu'on glisse d'une colonne à l'autre.
+// TO-DO LIST — en haut, les tâches « en vrac » (personne encore) ;
+// en bas, une ligne de paniers : Yacine, Pierre, Baptiste, BEESKOT.
+// On attrape une tâche (clic maintenu) et on la lâche dans un panier.
+// Ou : un clic sur la tâche, puis un clic sur le panier.
 // Une tâche = un petit fichier dans le Drive (partagé avec tout le groupe).
 // =====================================================================
 (() => {
-const T = { taches: [], membres: [], masquerFaites: BK.reglage('todo.masquer', false), morceaux: [] };
+const T = { taches: [], membres: [], masquerFaites: BK.reglage('todo.masquer', false), morceaux: [], choisie: null };
 const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 const MEMBRES_DEFAUT = ['Yacine', 'Pierre', 'Baptiste'];
 const GROUPE = 'BEESKOT';
 const ANCIENS = { 'Dari': 'Yacine', 'Tout le groupe': GROUPE };       // anciens noms → nouveaux
 
 BK.module('taches', function (page) {
-  $('.sub', page).textContent = 'Glisse les cartes d\'une colonne à l\'autre';
+  $('.sub', page).textContent = 'Attrape une tâche et lâche-la dans un panier';
   $('.hdr .right', page).innerHTML = `<div><span class="eng" style="font-size:9px">À faire</span><span class="vfd" id="taNb">00</span></div>
     <div><span class="eng" style="font-size:9px">En retard</span><span class="vfd" id="taRet">00</span></div>`;
   $('.grid', page).innerHTML = `
     <div class="cols">
-      <section class="pane vit"><span class="ptitle">① Tableau</span>
-        <div class="tableau" id="taTab"></div>
+      <section class="pane vit todo-vit"><span class="ptitle">① Vitrine</span>
+        <div class="box todo-ajout">
+          <input class="fld" id="taTexte" placeholder="Écris une tâche, puis Entrée…" autocomplete="off">
+          <select class="fld" id="taMorceau"><option value="">morceau…</option></select>
+          <input class="fld" id="taDate" type="date" title="Pour quand ?">
+          <button class="btn pri" id="taAjout">+ Ajouter</button>
+        </div>
+        <div class="box grow todo-vrac zone" data-zone="">
+          <span class="lb">Tâches en vrac</span>
+          <div class="vrac-cartes" id="taVrac"></div>
+        </div>
+        <div class="paniers" id="taPaniers"></div>
       </section>
-      <section class="pane reg" style="width:260px"><span class="ptitle">② Réglages</span>
+      <section class="pane reg" style="width:250px"><span class="ptitle">② Réglages</span>
         <div class="box"><span class="lb">Affichage</span>
           <div class="chips" style="margin-top:10px"><button class="chip${T.masquerFaites ? ' on' : ''}" id="taMasq">Masquer les tâches faites</button></div></div>
-        <div class="box"><span class="lb">Colonnes</span>
-          <span class="nt">Les membres, séparés par des virgules. La colonne BEESKOT est toujours là.</span>
+        <div class="box"><span class="lb">Paniers</span>
+          <span class="nt">Les membres, séparés par des virgules. Le panier BEESKOT est toujours là.</span>
           <input class="fld" id="taMembres" style="margin-top:8px"></div>
       </section>
     </div>
-    <div class="pane abar"><span class="ptitle">③ Barre</span><span class="vfd" id="taMsg">PRÊT</span></div>`;
+    <div class="pane abar"><span class="ptitle">③ Barre</span><span class="vfd" id="taMsg">PRÊT</span>
+      <span class="nt" style="margin:0 12px">Double-clic sur une tâche pour la modifier · ✕ pour la retirer</span></div>`;
   const msg = t => $('#taMsg').textContent = String(t).toUpperCase();
 
   async function charger() {
@@ -35,18 +48,20 @@ BK.module('taches', function (page) {
     const cfg = (await BK.db.liste('config')).find(c => c.id === 'membres');
     T.membres = (cfg && cfg.liste && cfg.liste.length ? cfg.liste : MEMBRES_DEFAUT).map(m => ANCIENS[m] || m).filter(m => m !== GROUPE);
     if (cfg && cfg.liste && cfg.liste.some(m => ANCIENS[m])) await BK.db.ecrire('config', { id: 'membres', liste: T.membres });
-    for (const t of T.taches) if (!t.qui || ANCIENS[t.qui]) { t.qui = ANCIENS[t.qui] || GROUPE; await BK.db.ecrire('taches', t); }
+    for (const t of T.taches) if (ANCIENS[t.qui]) { t.qui = ANCIENS[t.qui]; await BK.db.ecrire('taches', t); }
     T.morceaux = (await BK.db.liste('morceaux')).map(m => m.nom).sort();
+    $('#taMorceau').innerHTML = '<option value="">morceau…</option>' + T.morceaux.map(m => `<option>${esc(m)}</option>`).join('');
     $('#taMembres').value = T.membres.join(', ');
     rendre();
   }
   BK.tachesRecharger = charger;
 
+  const tri = (a, b) => (a.fait - b.fait) || (a.ordre ?? 0) - (b.ordre ?? 0);
   function carte(t, auj) {
-    return `<div class="carte${t.fait ? ' faite' : ''}${!t.fait && t.date && t.date < auj ? ' retard' : ''}" draggable="true" data-id="${t.id}">
-      <button class="ta-case${t.fait ? ' on' : ''}" data-case="${t.id}">${t.fait ? '✓' : ''}</button>
-      <div class="carte-c"><span class="carte-t" data-edit="${t.id}" title="Double-clic pour modifier">${esc(t.texte)}</span>
-        ${t.morceau || t.date ? `<span class="carte-m">${[t.morceau, t.date && 'pour le ' + new Date(t.date + 'T12:00').toLocaleDateString('fr-CA', { day: 'numeric', month: 'short' })].filter(Boolean).map(esc).join(' · ')}</span>` : ''}</div>
+    const meta = [t.morceau, t.date && 'pour le ' + new Date(t.date + 'T12:00').toLocaleDateString('fr-CA', { day: 'numeric', month: 'short' })].filter(Boolean);
+    return `<div class="carte${t.fait ? ' faite' : ''}${!t.fait && t.date && t.date < auj ? ' retard' : ''}${T.choisie === t.id ? ' choisie' : ''}" data-id="${t.id}">
+      <button class="ta-case${t.fait ? ' on' : ''}" data-case="${t.id}" title="Fait">${t.fait ? '✓' : ''}</button>
+      <div class="carte-c"><span class="carte-t">${esc(t.texte)}</span>${meta.length ? `<span class="carte-m">${meta.map(esc).join(' · ')}</span>` : ''}</div>
       <button class="carte-x" data-x="${t.id}" title="Retirer">✕</button></div>`;
   }
 
@@ -54,64 +69,86 @@ BK.module('taches', function (page) {
     const auj = new Date().toISOString().slice(0, 10), afaire = T.taches.filter(t => !t.fait);
     $('#taNb').textContent = String(afaire.length).padStart(2, '0');
     $('#taRet').textContent = String(afaire.filter(t => t.date && t.date < auj).length).padStart(2, '0');
-    const cols = [...T.membres, GROUPE];
-    $('#taTab').innerHTML = cols.map(c => {
-      const l = T.taches.filter(t => t.qui === c && !(T.masquerFaites && t.fait))
-        .sort((a, b) => (a.fait - b.fait) || (a.ordre ?? 0) - (b.ordre ?? 0) || (a.date || '9').localeCompare(b.date || '9'));
-      return `<div class="colonne${c === GROUPE ? ' groupe' : ''}" data-col="${esc(c)}">
-        <div class="col-tete"><span class="ta-nom">${esc(c)}</span><span class="col-nb">${l.filter(t => !t.fait).length}</span></div>
-        <div class="col-cartes">${l.map(t => carte(t, auj)).join('')}</div>
-        <div class="col-ajout">
-          <button class="btn xs col-plus">+ Ajouter une carte</button>
-          <div class="col-form hidden">
-            <textarea class="fld" placeholder="la tâche…" rows="2"></textarea>
-            <div class="deux"><select class="fld"><option value="">morceau…</option>${T.morceaux.map(m => `<option>${esc(m)}</option>`).join('')}</select><input class="fld" type="date"></div>
-            <div class="chips"><button class="chip col-ok">Ajouter</button><button class="chip col-annul">Annuler</button></div></div></div>
-      </div>`; }).join('');
-    brancher();
+    const de = qui => T.taches.filter(t => (t.qui || '') === qui && !(T.masquerFaites && t.fait)).sort(tri);
+    const vrac = de('');
+    $('#taVrac').innerHTML = vrac.length ? vrac.map(t => carte(t, auj)).join('')
+      : '<span class="nt vrac-vide">Aucune tâche en vrac. Écris-en une au-dessus.</span>';
+    $('#taPaniers').style.gridTemplateColumns = `repeat(${T.membres.length + 1}, minmax(0, 1fr))`;
+    $('#taPaniers').innerHTML = [...T.membres, GROUPE].map(c => {
+      const l = de(c);
+      return `<div class="panier zone${c === GROUPE ? ' groupe' : ''}" data-zone="${esc(c)}">
+        <div class="panier-tete"><span class="ta-nom">${esc(c)}</span><span class="col-nb">${l.filter(t => !t.fait).length || ''}</span></div>
+        <div class="panier-cartes">${l.map(t => carte(t, auj)).join('')}</div></div>`;
+    }).join('');
+    $('.todo-vit').classList.toggle('en-choix', !!T.choisie);
   }
 
-  function brancher() {
-    // ajouter une carte dans une colonne
-    $$('.colonne').forEach(col => {
-      const f = $('.col-form', col), plus = $('.col-plus', col);
-      plus.onclick = () => { f.classList.remove('hidden'); plus.classList.add('hidden'); $('textarea', f).focus(); };
-      $('.col-annul', f).onclick = () => { f.classList.add('hidden'); plus.classList.remove('hidden'); };
-      const ok = async () => {
-        const texte = $('textarea', f).value.trim(); if (!texte) return;
-        const n = await BK.db.ecrire('taches', { texte, qui: col.dataset.col, morceau: $('select', f).value, date: $('input', f).value, fait: false, ordre: Date.now() });
-        T.taches.push(n); msg('Carte ajoutée'); rendre();
-      };
-      $('.col-ok', f).onclick = ok;
-      $('textarea', f).onkeydown = e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); ok(); } if (e.key === 'Escape') $('.col-annul', f).click(); };
-      // glisser-déposer
-      col.ondragover = e => { e.preventDefault(); col.classList.add('survol'); };
-      col.ondragleave = e => { if (!col.contains(e.relatedTarget)) col.classList.remove('survol'); };
-      col.ondrop = async e => {
-        e.preventDefault(); col.classList.remove('survol');
-        const t = T.taches.find(x => x.id === e.dataTransfer.getData('text/plain')); if (!t) return;
-        const apres = [...$$('.carte', col)].find(c => e.clientY < c.getBoundingClientRect().top + c.offsetHeight / 2);   // position dans la colonne
-        const ref = apres && T.taches.find(x => x.id === apres.dataset.id);
-        t.qui = col.dataset.col; t.ordre = ref ? (ref.ordre ?? 0) - 0.5 : Date.now();
-        await BK.db.ecrire('taches', t); msg('Déplacée vers ' + t.qui); rendre();
-      };
-    });
-    $$('.carte').forEach(c => {
-      c.ondragstart = e => { e.dataTransfer.setData('text/plain', c.dataset.id); c.classList.add('glisse'); };
-      c.ondragend = () => c.classList.remove('glisse');
-    });
-    $$('[data-case]').forEach(b => b.onclick = async () => { const t = T.taches.find(x => x.id === b.dataset.case); t.fait = !t.fait; await BK.db.ecrire('taches', t); msg(t.fait ? 'Bravo !' : 'Remise à faire'); rendre(); });
-    $$('[data-x]').forEach(b => b.onclick = async () => { await BK.db.supprimer('taches', b.dataset.x); T.taches = T.taches.filter(x => x.id !== b.dataset.x); msg('Carte retirée'); rendre(); });
-    $$('[data-edit]').forEach(s => s.ondblclick = () => {               // modifier le texte d'une carte
-      const t = T.taches.find(x => x.id === s.dataset.edit);
-      s.contentEditable = 'true'; s.focus(); document.getSelection().selectAllChildren(s);
-      const fin = async () => { s.contentEditable = 'false'; const v = s.textContent.trim(); if (v && v !== t.texte) { t.texte = v; await BK.db.ecrire('taches', t); msg('Modifiée'); } };
-      s.onblur = fin; s.onkeydown = e => { if (e.key === 'Enter') { e.preventDefault(); s.blur(); } };
-    });
+  // ---------- ajouter ----------
+  async function ajouter() {
+    const texte = $('#taTexte').value.trim(); if (!texte) return $('#taTexte').focus();
+    const n = await BK.db.ecrire('taches', { texte, qui: '', morceau: $('#taMorceau').value, date: $('#taDate').value, fait: false, ordre: Date.now() });
+    T.taches.push(n); $('#taTexte').value = ''; $('#taTexte').focus(); msg('Tâche ajoutée'); rendre();
   }
+  $('#taAjout').onclick = ajouter;
+  $('#taTexte').addEventListener('keydown', e => { e.stopPropagation(); if (e.key === 'Enter') { e.preventDefault(); ajouter(); } });
+
+  // ---------- déplacer une tâche vers un panier ----------
+  async function deplacer(id, qui) {
+    const t = T.taches.find(x => x.id === id); T.choisie = null;
+    if (!t || (t.qui || '') === qui) return rendre();
+    t.qui = qui; t.ordre = Date.now(); rendre();
+    await BK.db.ecrire('taches', t); msg(qui ? 'Pour ' + qui : 'Remise en vrac');
+  }
+
+  // attraper au clic maintenu (souris ou doigt) ; un simple clic = choisir puis cliquer un panier
+  const zoneSous = (x, y) => { const el = document.elementFromPoint(x, y); return el && el.closest('.todo-vit .zone'); };
+  let g = null;
+  const vit = $('.todo-vit');
+  vit.addEventListener('pointerdown', e => {
+    const c = e.target.closest('.carte'); if (!c || e.button !== 0 || e.target.closest('button') || c.querySelector('[contenteditable=true]')) return;
+    g = { id: c.dataset.id, carte: c, x: e.clientX, y: e.clientY, fantome: null };
+  });
+  window.addEventListener('pointermove', e => {
+    if (!g) return;
+    if (!g.fantome) {
+      if (Math.hypot(e.clientX - g.x, e.clientY - g.y) < 6) return;
+      const r = g.carte.getBoundingClientRect();
+      g.fantome = g.carte.cloneNode(true); g.fantome.classList.add('fantome'); g.fantome.style.width = r.width + 'px';
+      g.dx = g.x - r.left; g.dy = g.y - r.top; document.body.appendChild(g.fantome); g.carte.classList.add('glisse');
+    }
+    g.fantome.style.left = (e.clientX - g.dx) + 'px'; g.fantome.style.top = (e.clientY - g.dy) + 'px';
+    $$('.todo-vit .zone').forEach(z => z.classList.remove('survol'));
+    const z = zoneSous(e.clientX, e.clientY); z && z.classList.add('survol');
+  });
+  window.addEventListener('pointerup', e => {
+    if (!g) return; const d = g; g = null;
+    $$('.todo-vit .zone').forEach(z => z.classList.remove('survol'));
+    if (d.fantome) { d.fantome.remove(); d.carte.classList.remove('glisse'); const z = zoneSous(e.clientX, e.clientY); if (z) deplacer(d.id, z.dataset.zone); return; }
+    T.choisie = T.choisie === d.id ? null : d.id; rendre();             // simple clic : choisir
+    if (T.choisie) msg('Clique sur un panier');
+  });
+  vit.addEventListener('click', e => {
+    if (e.target.closest('.carte') || !T.choisie) return;
+    const z = e.target.closest('.zone'); if (z) deplacer(T.choisie, z.dataset.zone);
+  });
+
+  // ---------- cocher, retirer, modifier ----------
+  vit.addEventListener('click', async e => {
+    const b = e.target.closest('[data-case]'), x = e.target.closest('[data-x]');
+    if (b) { const t = T.taches.find(y => y.id === b.dataset.case); t.fait = !t.fait; rendre(); await BK.db.ecrire('taches', t); msg(t.fait ? 'Bravo !' : 'Remise à faire'); }
+    if (x) { T.taches = T.taches.filter(y => y.id !== x.dataset.x); rendre(); await BK.db.supprimer('taches', x.dataset.x); msg('Tâche retirée'); }
+  });
+  vit.addEventListener('dblclick', e => {
+    const c = e.target.closest('.carte'); if (!c) return;
+    const s = $('.carte-t', c), t = T.taches.find(x => x.id === c.dataset.id); T.choisie = null;
+    s.contentEditable = 'true'; s.focus(); document.getSelection().selectAllChildren(s);
+    const fin = async () => { s.contentEditable = 'false'; const v = s.textContent.trim(); if (v && v !== t.texte) { t.texte = v; await BK.db.ecrire('taches', t); msg('Modifiée'); } rendre(); };
+    s.onblur = fin; s.onkeydown = ev => { ev.stopPropagation(); if (ev.key === 'Enter') { ev.preventDefault(); s.blur(); } };
+  });
 
   $('#taMasq').onclick = e => { T.masquerFaites = !T.masquerFaites; BK.regler('todo.masquer', T.masquerFaites); e.target.classList.toggle('on', T.masquerFaites); rendre(); };
-  $('#taMembres').onchange = async e => { const l = e.target.value.split(',').map(s => s.trim()).filter(s => s && s !== GROUPE); await BK.db.ecrire('config', { id: 'membres', liste: l }); msg('Colonnes enregistrées'); charger(); };
+  $('#taMembres').addEventListener('keydown', e => e.stopPropagation());
+  $('#taMembres').onchange = async e => { const l = e.target.value.split(',').map(s => s.trim()).filter(s => s && s !== GROUPE); await BK.db.ecrire('config', { id: 'membres', liste: l }); msg('Paniers enregistrés'); charger(); };
   charger();
 });
 })();

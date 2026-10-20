@@ -65,7 +65,7 @@ BK.module('accueil', function (page) {
           <div class="box grow"><div class="ligne-titre"><span class="lb">À faire</span><button class="btn xs" data-va="taches" style="margin-left:auto">Ouvrir la To-do list</button></div>
             <div class="af-liste">${d.afaire.length ? d.afaire.map(x => `<div class="af-l${x.date && x.date < d.auj ? ' retard' : ''}">
                 <button class="ta-case" data-id="${x.id}"></button><span class="af-t">${esc(x.texte)}</span>
-                <span class="nt af-m">${esc(x.qui || 'BEESKOT')}${x.morceau ? ' · ' + esc(x.morceau) : ''}${x.date ? ' · pour le ' + new Date(x.date + 'T12:00').toLocaleDateString('fr-CA', { day: 'numeric', month: 'short' }) : ''}</span></div>`).join('')
+                <span class="nt af-m">${esc(x.qui || 'Pas encore attribuée')}${x.morceau ? ' · ' + esc(x.morceau) : ''}${x.date ? ' · pour le ' + new Date(x.date + 'T12:00').toLocaleDateString('fr-CA', { day: 'numeric', month: 'short' }) : ''}</span></div>`).join('')
               : '<span class="nt">Rien à faire pour l\'instant 🎉</span>'}</div></div>
         </section>
         <section class="pane reg" aria-label="Côté"><span class="ptitle">② En bref</span>
