@@ -34,6 +34,7 @@ BK.module('budget', function (page) {
     <div class="cols">
       <section class="pane vit">
         <div class="box bu-qui"><div class="ligne-titre"><span class="lb">Qui doit combien à qui</span></div><div id="buVir" class="bu-vir"></div><div id="buSoldes" class="bu-soldes"></div></div>
+        <div class="box" id="buMiette"></div>
         <div class="box grow"><div class="ligne-titre"><span class="lb">Dépenses</span>
             <select class="fld" id="buMois" style="margin-left:auto;width:auto"></select></div>
           <div id="buListe" class="bu-liste"></div></div>
@@ -64,6 +65,7 @@ BK.module('budget', function (page) {
     await reporterAbos();
     if (!paye) paye = B.membres.includes('Baptiste') ? 'Baptiste' : B.membres[0]; if (!pour.size) pour = new Set(B.membres);
     $('#buDate').value = $('#buDate').value || auj();
+    B.props = (await BK.db.liste('propositions')).filter(p => p.type === 'depense' && p.statut === 'attente');
     rendre();
   }
   window.addEventListener('bk:annule', () => charger());
@@ -92,6 +94,12 @@ BK.module('budget', function (page) {
 
   function rendre() {
     chips();
+    // 🍞 les paiements dont on a parlé sur Discord (le bouton jaune)
+    const pr = B.props || [];
+    $('#buMiette').style.display = pr.length ? '' : 'none';
+    $('#buMiette').innerHTML = pr.length ? `<span class="lb">🍞 Miette a vu ces paiements sur Discord</span>${pr.map(p => `<div class="bu-d ta-prop"><span class="bu-d-c"><b>${esc(p.titre)}</b>
+        <span class="nt">${esc(p.date || '')} · payé par ${esc(p.payePar || '?')}${p.pourquoi ? ' — « ' + esc(p.pourquoi) + ' »' : ''}</span></span><span class="vfd">${argent(p.montant)}</span>
+        <button class="btn xs pri" data-pok="${p.id}">✓</button><button class="btn xs" data-pnon="${p.id}">✕</button></div>`).join('')}` : '';
     const { solde, virements } = BK.budgetSoldes(B.dep, B.membres);
     $('#buVir').innerHTML = virements.length ? virements.map(v => `<div class="bu-v"><b>${esc(v.de)}</b><span>doit</span><span class="vfd">${argent(v.montant)}</span><span>à</span><b>${esc(v.a)}</b>
         <button class="btn xs pri" data-remb="${esc(v.de)}|${esc(v.a)}|${v.montant}" style="margin-left:auto">✓ C'est remboursé</button></div>`).join('')
@@ -129,7 +137,10 @@ BK.module('budget', function (page) {
   ['#buTitre', '#buMontant'].forEach(s => $(s).addEventListener('keydown', e => { e.stopPropagation(); if (e.key === 'Enter') $('#buAjout').click(); }));
   $('#buMois').onchange = e => { B.mois = e.target.value; rendre(); };
   page.addEventListener('click', async e => {
-    const x = e.target.closest('[data-x]'), r = e.target.closest('[data-remb]'), ab = e.target.closest('[data-ab]');
+    const x = e.target.closest('[data-x]'), r = e.target.closest('[data-remb]'), ab = e.target.closest('[data-ab]'), ok = e.target.closest('[data-pok]'), non = e.target.closest('[data-pnon]');
+    if (ok || non) { const p = (B.props || []).find(y => y.id === (ok || non).dataset[ok ? 'pok' : 'pnon']); if (!p) return;
+      if (ok) B.dep.push(await BK.db.ecrire('depenses', { titre: p.titre, montant: +p.montant, payePar: B.membres.includes(p.payePar) ? p.payePar : paye, pour: (p.pour || []).filter(m => B.membres.includes(m)), date: p.date || auj(), cat: 'Autre', discord: p.source || '' }));
+      p.statut = ok ? 'ok' : 'non'; await BK.db.ecrire('propositions', p); B.props = B.props.filter(y => y !== p); msg(ok ? 'Dépense ajoutée' : 'Ignorée'); rendre(); return; }
     if (x) { B.dep = B.dep.filter(d => d.id !== x.dataset.x); await BK.db.supprimer('depenses', x.dataset.x); msg('Retirée'); rendre(); }
     if (r) { const [de, a, m] = r.dataset.remb.split('|'); B.dep.push(await BK.db.ecrire('depenses', { type: 'remboursement', de, a, montant: +m, date: auj() })); msg(de + ' a remboursé ' + a); rendre(); }
     if (ab) { const a = B.abos.find(y => y.id === ab.dataset.ab); a.actif = a.actif === false; if (a.actif) a.depuis = auj().slice(0, 7); await BK.db.ecrire('abonnements', a); msg(a.actif ? 'Repris' : 'Arrêté (plus ajouté les prochains mois)'); rendre(); }

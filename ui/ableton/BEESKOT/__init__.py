@@ -1,7 +1,7 @@
 # =====================================================================
 # BEESKOT Studio — petit « pont » pour Ableton Live 12.
 # Ableton le charge comme une surface de contrôle (Préférences > Link, Tempo & MIDI).
-# Il écoute uniquement sur CE PC (127.0.0.1, port 9877) et répond à BEESKOT Studio :
+# Il écoute uniquement sur CE PC (127.0.0.1, port 9931 — à lui seul, pour ne pas gêner le pont de Dari Audio Live) et répond à BEESKOT Studio :
 #   lire les pistes, les renommer, les colorer, vérifier qu'elles sont gelées.
 # Il ne fait rien tout seul et ne touche jamais aux fichiers.
 # =====================================================================
@@ -14,8 +14,8 @@ try:
 except ImportError:                       # (hors d'Ableton, pour les essais)
     ControlSurface = object
 
-PORT = 9877
-VERSION = "2"
+PORT = 9931
+VERSION = "3"
 
 
 def create_instance(c_instance):
@@ -30,13 +30,13 @@ class PontBeeskot(ControlSurface):
         self._srv = None
         try:
             self._srv = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-            self._srv.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
             self._srv.bind(("127.0.0.1", PORT))
             self._srv.listen(4)
             self._srv.setblocking(False)
-            self.log_message("BEESKOT : pont prêt sur le port %d" % PORT)
+            self.log_message("BEESKOT : pont pret sur le port %d" % PORT)
+            self.schedule_message(1, self._boucle)      # en plus d'update_display : on vérifie ~10 fois par seconde
         except Exception as e:
-            self.log_message("BEESKOT : pont impossible à ouvrir : %s" % e)
+            self.log_message("BEESKOT : pont impossible a ouvrir : %s" % e)
             self._srv = None
 
     def disconnect(self):
@@ -53,6 +53,15 @@ class PontBeeskot(ControlSurface):
     def update_display(self):
         ControlSurface.update_display(self)
         self.tic()
+
+    def _boucle(self):
+        try:
+            self.tic()
+        finally:
+            try:
+                self.schedule_message(1, self._boucle)
+            except Exception:
+                pass
 
     def tic(self):
         if not self._srv:
@@ -91,7 +100,7 @@ class PontBeeskot(ControlSurface):
             req = json.loads(ligne.decode("utf-8"))
             cmd = req.get("cmd")
             if cmd == "ping":
-                return {"ok": True, "version": VERSION, "tempo": self.song().tempo}
+                return {"ok": True, "pont": "BEESKOT", "version": VERSION, "tempo": self.song().tempo}
             if cmd == "pistes":
                 return {"ok": True, "tempo": self.song().tempo, "pistes": self.pistes()}
             if cmd == "appliquer":

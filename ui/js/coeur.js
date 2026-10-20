@@ -7,7 +7,7 @@ const $ = (s, r = document) => r.querySelector(s);
 const $$ = (s, r = document) => [...r.querySelectorAll(s)];
 
 const BK = {
-  version: '0.9.7 bêta',
+  version: '0.9.8 bêta',
   modules: {},
   onglets: [],
   cotes: [],
@@ -152,6 +152,9 @@ const BK = {
     BK.etatDrive && BK.etatDrive();
     BK.horloge(); setInterval(BK.horloge, 20000);   // léger : une mise à jour toutes les 20 s
     BK.appliquerZoom(BK.reglage('zoom', 100));
+    BK.synchro && BK.synchro.demarrer();                              // ce qu'un autre PC change arrive ici tout seul
+    const bm = document.getElementById('btMiette');                 // le bouton jaune : Miette relit tout
+    if (bm) bm.onclick = () => { bm.classList.add('pressed'); setTimeout(() => bm.classList.remove('pressed'), 150); BK.miette.toutLire(); };
     BK.ouvrir(BK.reglage('dernierOnglet', 'accueil'));
     setTimeout(BK.verifierMaj, 3000);
     BK.ableton && BK.ableton.surveiller();

@@ -13,7 +13,7 @@ use std::time::Duration;
 
 #[tauri::command]
 fn ableton(requete: String) -> Result<String, String> {
-    let adr = "127.0.0.1:9877".parse().unwrap();
+    let adr = "127.0.0.1:9931".parse().unwrap();   // le port du pont BEESKOT (9877 est souvent pris par d'autres ponts)
     let mut s = TcpStream::connect_timeout(&adr, Duration::from_millis(400))
         .map_err(|_| "Ableton n'est pas relié (ouvert avec le pont BEESKOT ?)".to_string())?;
     s.set_read_timeout(Some(Duration::from_secs(8))).ok();

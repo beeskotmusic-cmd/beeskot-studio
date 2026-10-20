@@ -40,7 +40,8 @@ BK.module('biblio', function (page) {
   const msg = t => $('#biMsg').textContent = String(t).toUpperCase();
 
   // ---------- chargement ----------
-  window.addEventListener('bk:annule', () => charger());   // après « ↶ Annuler » : on relit
+  window.addEventListener('bk:annule', () => charger());
+  window.addEventListener('bk:distant', e => { if (e.detail.cols.includes('morceaux')) charger(); });   // un autre PC a changé une fiche   // après « ↶ Annuler » : on relit
   async function charger() {
     B.morceaux = await BK.db.liste('morceaux');
     B.fichiers = await BK.inv.tous();

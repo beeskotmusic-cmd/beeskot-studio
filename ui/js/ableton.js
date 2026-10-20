@@ -4,12 +4,13 @@
 // =====================================================================
 BK.ableton = {
   relie: false,
-  VERSION_PONT: '2',
+  VERSION_PONT: '3',
 
   async req(obj) {
     if (!BK.estExe) throw new Error('Disponible dans le logiciel installé');
     const r = JSON.parse(await BK.T.core.invoke('ableton', { requete: JSON.stringify(obj) }));
     if (!r.ok) throw new Error(r.erreur || 'Ableton a refusé');
+    if (obj.cmd === 'ping' && r.pont !== 'BEESKOT') throw new Error('Ce n\'est pas le pont BEESKOT qui répond');
     return r;
   },
 
@@ -81,6 +82,15 @@ BK.ableton = {
     return premier;
   },
 
+  // ce qu'Ableton a écrit sur le pont dans son journal (Log.txt) : pour comprendre si ça ne marche pas
+  async journalAbleton() {
+    try {
+      const base = BK.chemin(await BK.T.path.configDir(), 'Ableton'), vs = (await BK.fichier.liste(base)).filter(v => /^Live /i.test(v.name)).map(v => v.name).sort().reverse();
+      for (const v of vs) { try { const t = await BK.fichier.lireTexte(BK.chemin(base, v, 'Preferences', 'Log.txt'));
+        const l = t.split(/\r?\n/).filter(x => /BEESKOT/i.test(x)).slice(-6); if (l.length) return l; } catch (e) {} }
+    } catch (e) {}
+    return [];
+  },
   // fenêtre d'explication (une seule étape dans Ableton)
   fenetre(installeA) {
     const v = document.createElement('div'); v.className = 'voile';
@@ -97,8 +107,10 @@ BK.ableton = {
         <li>Ferme les préférences : le voyant <b>Ableton Live</b> devient vert ici.</li>
       </ol>
       <span class="nt">Le pont de Dari Audio Live peut rester dans une autre ligne : les deux marchent ensemble. Si le pont vient d'être mis à jour, redémarre simplement Ableton.</span>
+      <div class="box" id="ablJournal" style="display:none"><span class="lb">Ce qu'Ableton dit du pont</span><span class="nt mono" style="white-space:pre-wrap;font-size:10px"></span></div>
       <button class="btn pri" style="justify-content:center">J'ai compris</button></div>`;
     document.body.appendChild(v);
     $('.btn', v).onclick = () => v.remove();
+    if (BK.estExe) BK.ableton.journalAbleton().then(l => { if (!l.length) return; const b = $('#ablJournal', v); b.style.display = ''; $('.nt', b).textContent = l.join('\n'); });
   },
 };

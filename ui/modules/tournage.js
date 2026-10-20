@@ -29,6 +29,7 @@ BK.module('tournage', function (page) {
         <button class="btn pri" id="toNouveau" style="width:100%;justify-content:center">+ Nouveau tournage</button>
         <button class="btn" id="toPlanXl" style="width:100%;justify-content:center;margin-top:8px">📋 PLAN.xlsx du Drive</button>
         <div class="chips" style="margin-top:8px"><button class="chip" data-md="tournage">Dossier Tournages</button><button class="chip" data-md="outfits">Outfits</button><button class="chip" data-md="moodboard">Moodboards</button></div>
+        <div id="toMiette"></div>
         <div class="box grow" style="margin-top:10px"><div class="to-liste" id="toListe"></div></div>
       </section>
     </div>
@@ -43,9 +44,22 @@ BK.module('tournage', function (page) {
     T.morceaux = (await BK.db.liste('morceaux')).map(m => m.nom).sort();
     if (T.courant) T.courant = T.liste.find(x => x.id === T.courant.id) || null;
     if (!T.courant) T.courant = T.liste.find(x => (x.date || '') >= new Date().toISOString().slice(0, 10)) || T.liste[0] || null;
-    rendreListe(); rendreFiche();
+    rendreListe(); rendreFiche(); proposes();
   }
   BK.tournagesRecharger = charger;
+  // 🍞 les tournages dont on parle sur Discord (le bouton jaune) : un clic crée la fiche déjà remplie
+  async function proposes() {
+    const l = (await BK.db.liste('propositions')).filter(p => p.type === 'tournage' && p.statut === 'attente'), z = $('#toMiette');
+    z.innerHTML = l.length ? `<div class="box" style="margin-top:10px"><span class="lb">🍞 Miette propose</span>${l.map(p => `<div class="ta-prop" style="margin-top:6px"><div class="carte-c"><span class="carte-t">${esc(p.titre)}</span>
+        <span class="carte-m">${esc([p.morceau, p.date, p.lieu].filter(Boolean).join(' · '))}${p.pourquoi ? ' — « ' + esc(p.pourquoi) + ' »' : ''}</span></div>
+        <button class="btn xs pri" data-tok="${p.id}" title="Créer la fiche">✓</button><button class="btn xs" data-tnon="${p.id}">✕</button></div>`).join('')}</div>` : '';
+    $$('[data-tok]', z).forEach(b => b.onclick = async () => { const p = l.find(x => x.id === b.dataset.tok);
+      const t = await BK.db.ecrire('tournages', { titre: p.titre, type: p.type === 'tournage' ? (p.typeT || 'Clip') : 'Clip', morceau: T.morceaux.includes(p.morceau) ? p.morceau : '', date: p.date || '', heure: p.heure || '', lieu: p.lieu || '',
+        idee: p.idee || '', moodboard: [], plans: [], tenues: {}, materiel: p.materiel || '', notes: [p.tenues && 'Tenues : ' + p.tenues, p.pourquoi && 'Discord : « ' + p.pourquoi + ' »'].filter(Boolean).join('\n'), discord: p.source || '' });
+      p.statut = 'ok'; await BK.db.ecrire('propositions', p); T.courant = t; msg('Fiche créée'); await charger();
+      if (BK.drive.relie()) { msg('Miette cherche le moodboard dans le Drive…'); try { await BK.miette.moodboards(); } catch (e) {} await charger(); msg('Fiche prête'); } });
+    $$('[data-tnon]', z).forEach(b => b.onclick = async () => { const p = l.find(x => x.id === b.dataset.tnon); p.statut = 'non'; await BK.db.ecrire('propositions', p); proposes(); });
+  }
 
   function rendreListe() {
     const auj = new Date().toISOString().slice(0, 10), proch = T.liste.filter(x => (x.date || '') >= auj).sort((a, b) => a.date.localeCompare(b.date))[0];
@@ -76,6 +90,8 @@ BK.module('tournage', function (page) {
       <div class="box"><div class="ligne-titre"><span class="lb">Moodboard</span><span class="nt" style="margin:0 0 0 auto">Glisse des images ici (captures, photos, Pinterest…)</span></div>
         <div class="to-mood" id="toMood">${t.moodboard.map((u, i) => `<div class="to-img" style="background-image:url(${u})"><button class="md-x" data-mx="${i}">✕</button></div>`).join('')}
           <button class="to-img to-plus" id="toMoodPlus" title="Images de ce PC">+</button><button class="to-img to-plus to-plus-drive" id="toMoodDrive" title="Images du Drive">+ Drive</button></div>
+        ${(t.moodboardDocs || []).length ? `<div class="to-docs">${t.moodboardDocs.map((d, i) => `<span class="to-doc"><a href="#" data-url="${esc(d.url)}">📄 ${esc(d.nom)}</a><button class="md-x" data-dx="${i}">✕</button></span>`).join('')}</div>` : ''}
+        ${t.moodboardAuto ? '<span class="nt">🍞 Rempli par Miette depuis le dossier moodboard du Drive.</span>' : ''}
         <input type="file" id="toMoodIn" accept="image/*" multiple hidden></div>
       <div class="box"><div class="ligne-titre"><span class="lb">Découpage</span>
           <button class="btn xs" id="toRenfort" style="margin-left:auto">🍞 Idées avec Miette</button></div>
@@ -109,6 +125,8 @@ BK.module('tournage', function (page) {
     $('#toPlan').onclick = () => { t.plans.push({ cadrage: '', action: '', duree: '', notes: '' }); sauver(t); rendreFiche(); const l = $$('.to-plans [data-p="action"]'); l.length && l[l.length - 1].focus(); };
     $$('[data-px]', z).forEach(b => b.onclick = () => { t.plans.splice(+b.dataset.px, 1); sauver(t); rendreFiche(); });
     $$('[data-haut]', z).forEach(b => b.onclick = () => { const i = +b.dataset.haut; if (!i) return; [t.plans[i - 1], t.plans[i]] = [t.plans[i], t.plans[i - 1]]; sauver(t); rendreFiche(); });
+    $$('.to-doc a', z).forEach(a => a.onclick = e => { e.preventDefault(); BK.ouvrirLien(a.dataset.url); });
+    $$('[data-dx]', z).forEach(b => b.onclick = () => { t.moodboardDocs.splice(+b.dataset.dx, 1); sauver(t); rendreFiche(); });
     $$('[data-mx]', z).forEach(b => b.onclick = () => { t.moodboard.splice(+b.dataset.mx, 1); sauver(t); rendreFiche(); });
     $('#toMoodPlus').onclick = () => $('#toMoodIn').click();
     $('#toMoodDrive').onclick = async () => {
