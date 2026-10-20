@@ -95,6 +95,56 @@ BK.dossiers = {
     return lignes.join('\n');
   },
 
+  // ---------- la carte de TOUS les dossiers (1 seule lecture, gardée 10 min) ----------
+  _carte: null,
+  async carte() {
+    if (BK.dossiers._carte && Date.now() - BK.dossiers._carte.t < 10 * 60e3) return BK.dossiers._carte.m;
+    const m = {}; let page = '';
+    do {
+      const r = await (await BK.drive.api('/files?' + new URLSearchParams({ q: `mimeType='${BK.dossiers.FOLDER}' and trashed=false`, fields: 'nextPageToken,files(id,name,parents)', pageSize: '1000', pageToken: page }))).json();
+      for (const f of r.files || []) m[f.id] = { name: f.name, parent: (f.parents || [])[0] || null }; page = r.nextPageToken || '';
+    } while (page);
+    BK.dossiers._carte = { t: Date.now(), m };
+    return m;
+  },
+  ancetres(id, carte) { const l = []; for (let i = 0; i < 12 && id && carte[id]; i++) { l.push(id); id = carte[id].parent; } return l; },   // du plus proche au plus loin
+  async roleDe(parentId, carte) {                       // dans quel dossier du groupe ce fichier se trouve
+    const c = await BK.dossiers.config(), ids = Object.fromEntries(Object.entries(c.roles).map(([k, v]) => [v.id, k]));
+    for (const a of BK.dossiers.ancetres(parentId, carte)) if (ids[a]) return ids[a];
+    return '';
+  },
+
+  // ---------- tout ce qui concerne un morceau dans le Drive : par son NOM, son DOSSIER, ou son ÉTIQUETTE ----------
+  CHAMPS: 'id,name,mimeType,thumbnailLink,webViewLink,size,modifiedTime,parents,videoMediaMetadata(durationMillis)',
+  async duMorceau(m, morceaux) {
+    const carte = await BK.dossiers.carte(), estM = n => (BK.inv.trouverMorceau(n, morceaux) || {}).id === m.id;
+    const exclus = new Set(Object.keys(carte).filter(id => /^BEESKOT Studio$/i.test(carte[id].name)));
+    const dansExclu = pid => BK.dossiers.ancetres(pid, carte).some(a => exclus.has(a));
+    const out = new Map(), ajouter = f => { if (f.mimeType === BK.dossiers.FOLDER || /\.json$/i.test(f.name) || out.has(f.id)) return; const p = (f.parents || [])[0]; if (p && dansExclu(p)) return; out.set(f.id, f); };
+    const liste = async q => {
+      const l = []; let page = '', n = 0;
+      do {
+        const r = await (await BK.drive.api('/files?' + new URLSearchParams({ q: q + ' and trashed=false', fields: 'nextPageToken,files(' + BK.dossiers.CHAMPS + ')', pageSize: '500', pageToken: page }))).json();
+        l.push(...(r.files || [])); page = r.nextPageToken || ''; n++;
+      } while (page && n < 4);
+      return l;
+    };
+    // 1) par le nom du fichier
+    const mots = [...new Set([m.nom, ...(m.alias || [])].map(x => BK.inv.normaliser(x).split(' ').sort((a, b) => b.length - a.length)[0]).filter(x => x && x.length >= 3))];
+    if (mots.length) for (const f of await liste('(' + mots.map(w => `name contains ${BK.drive.q(w)}`).join(' or ') + ')')) if (estM(f.name)) ajouter(f);
+    // 2) tout ce qui est rangé dans un dossier qui porte le nom du morceau (ex. ABLETON PROJECTS › MOTHER)
+    const dossiersM = Object.keys(carte).filter(id => estM(carte[id].name) && !dansExclu(id));
+    const tousD = Object.keys(carte).filter(id => BK.dossiers.ancetres(id, carte).some(a => dossiersM.includes(a)));
+    for (let i = 0; i < tousD.length; i += 25) for (const f of await liste('(' + tousD.slice(i, i + 25).map(id => `${BK.drive.q(id)} in parents`).join(' or ') + ')')) ajouter(f);
+    // 3) ce qui porte son étiquette (choisie à la main)
+    const tags = await BK.etiquettes.tous();
+    for (const [fid, mid] of Object.entries(tags)) if (mid === m.id && !out.has(fid)) { try { ajouter(await (await BK.drive.api(`/files/${fid}?fields=${BK.dossiers.CHAMPS}`)).json()); } catch (e) {} }
+    // on retire ce qui a été étiqueté pour un AUTRE morceau
+    const l = [...out.values()].filter(f => !tags[f.id] || tags[f.id] === m.id);
+    for (const f of l) { const p = (f.parents || [])[0]; f.dossiers = BK.dossiers.ancetres(p, carte).reverse().map(id => carte[id].name); f.role = await BK.dossiers.roleDe(p, carte); }
+    return l.sort((a, b) => (b.modifiedTime || '').localeCompare(a.modifiedTime || ''));
+  },
+
   // ---------- tous les fichiers sous un dossier (quelques niveaux), pour la Bibliothèque ----------
   index: {},
   async fichiersSous(role, profondeur = 3) {
@@ -124,7 +174,7 @@ BK.explorerDrive = function ({ titre = 'Choisir dans le Drive', mode = 'dossier'
     v.innerHTML = `<div class="ex-box"><span class="screw tl" style="--r:60deg"></span><span class="screw tr" style="--r:5deg"></span>
       <div class="ex-tete"><span class="lb">${esc(titre)}</span><button class="btn xs" data-ex="x">✕</button></div>
       <div class="ex-fil" id="exFil"></div><div class="ex-liste" id="exListe"></div>
-      <div class="ex-pied"><span class="nt" id="exInfo"></span><button class="btn" data-ex="annuler">Annuler</button><button class="btn pri" data-ex="ok">${mode === 'dossier' ? 'Choisir ce dossier' : 'Ajouter les images'}</button></div></div>`;
+      <div class="ex-pied"><span class="nt" id="exInfo"></span><button class="btn" data-ex="annuler">Annuler</button><button class="btn pri" data-ex="ok">${mode === 'dossier' ? 'Choisir ce dossier' : mode === 'audio' ? 'Choisir ce fichier' : mode === 'image' ? 'Choisir cette image' : 'Ajouter les images'}</button></div></div>`;
     document.body.appendChild(v);
     let pile = [{ id: 'root', nom: 'Mon Drive' }], choisis = new Set(), fichiers = [];
     const fermer = r => { v.remove(); fin(r); };
@@ -140,17 +190,43 @@ BK.explorerDrive = function ({ titre = 'Choisir dans le Drive', mode = 'dossier'
       $('#exListe', v).innerHTML = '<span class="nt"><span class="spin"></span>Lecture…</span>';
       try {
         const l = await BK.dossiers.enfants(cur.id, mode === 'dossier');
-        const ds = l.filter(f => f.mimeType === BK.dossiers.FOLDER); fichiers = l.filter(f => /^image\//.test(f.mimeType));
+        const ds = l.filter(f => f.mimeType === BK.dossiers.FOLDER); fichiers = l.filter(f => mode === 'audio' ? /^audio\//.test(f.mimeType) || /\.(wav|mp3|aiff?|flac|m4a)$/i.test(f.name) : /^image\//.test(f.mimeType));
         $('#exListe', v).innerHTML = ds.map(d => `<button class="ex-dos" data-id="${d.id}" data-nom="${esc(d.name)}">📁 ${esc(d.name)}</button>`).join('')
-          + (mode === 'images' ? fichiers.map(f => `<button class="ex-img${choisis.has(f.id) ? ' on' : ''}" data-f="${f.id}" title="${esc(f.name)}"><span class="spin"></span></button>`).join('') : '')
+          + (/^images?$/.test(mode) ? fichiers.map(f => `<button class="ex-img${choisis.has(f.id) ? ' on' : ''}" data-f="${f.id}" title="${esc(f.name)}"><span class="spin"></span></button>`).join('') : '')
+          + (mode === 'audio' ? fichiers.map(f => `<button class="ex-dos ex-son${choisis.has(f.id) ? ' on' : ''}" data-f="${f.id}" title="${esc(f.name)}">♪ ${esc(f.name)}</button>`).join('') : '')
           + (!ds.length && (mode === 'dossier' || !fichiers.length) ? '<span class="nt">Rien ici.</span>' : '');
         $$('.ex-dos', v).forEach(b => b.onclick = () => { pile.push({ id: b.dataset.id, nom: b.dataset.nom }); aller(); });
-        $$('.ex-img', v).forEach(b => b.onclick = () => { choisis.has(b.dataset.f) ? choisis.delete(b.dataset.f) : choisis.add(b.dataset.f); b.classList.toggle('on'); $('#exInfo', v).textContent = choisis.size + ' image(s) choisie(s)'; });
-        $('#exInfo', v).textContent = mode === 'dossier' ? (cur.id === 'root' ? 'Ouvre un dossier, puis « Choisir ce dossier ».' : cur.nom) : choisis.size + ' image(s) choisie(s)';
-        for (const f of fichiers) { if (mode !== 'images') break; const u = await BK.drive.vignette(f), b = $(`.ex-img[data-f="${f.id}"]`, v); if (b) { b.innerHTML = ''; if (u) b.style.backgroundImage = `url(${u})`; } }
+        $$('.ex-img,.ex-son', v).forEach(b => b.onclick = () => {
+          if (mode !== 'images') { choisis.clear(); $$('.ex-img,.ex-son', v).forEach(x => x.classList.remove('on')); }
+          choisis.has(b.dataset.f) ? choisis.delete(b.dataset.f) : choisis.add(b.dataset.f); b.classList.toggle('on', choisis.has(b.dataset.f));
+          $('#exInfo', v).textContent = mode === 'images' ? choisis.size + ' image(s) choisie(s)' : (fichiers.find(f => choisis.has(f.id)) || {}).name || ''; });
+        $('#exInfo', v).textContent = mode === 'dossier' ? (cur.id === 'root' ? 'Ouvre un dossier, puis « Choisir ce dossier ».' : cur.nom) : mode === 'images' ? choisis.size + ' image(s) choisie(s)' : '';
+        for (const f of fichiers) { if (!/^images?$/.test(mode)) break; const u = await BK.drive.vignette(f), b = $(`.ex-img[data-f="${f.id}"]`, v); if (b) { b.innerHTML = ''; if (u) b.style.backgroundImage = `url(${u})`; } }
       } catch (e) { $('#exListe', v).innerHTML = '<span class="nt">Drive injoignable pour l\'instant.</span>'; }
     }
     (async () => { if (depart) { const d = typeof depart === 'string' ? await BK.dossiers.get(depart) : depart;
       if (d) { const ch = (d.chemin || d.nom).split(' / '); pile.push({ id: d.id, nom: ch[ch.length - 1] }); } } aller(); })();
   });
+};
+
+// =====================================================================
+// ÉTIQUETTES — « ce fichier du Drive concerne Glamorous Sky ».
+// Automatique quand le nom parle du morceau (Glam, Opp…), sinon choisie à la
+// main. Rangé dans le Drive (config « etiquettes ») : tout le groupe les voit.
+// Les fichiers eux-mêmes ne sont jamais touchés.
+// =====================================================================
+BK.etiquettes = {
+  doc: null,
+  async charger() { if (!BK.etiquettes.doc) BK.etiquettes.doc = (await BK.db.liste('config')).find(x => x.id === 'etiquettes') || { id: 'etiquettes', map: {} }; return BK.etiquettes.doc; },
+  async tous() { return (await BK.etiquettes.charger()).map; },
+  async mettre(fileId, morceauId) {                      // '' = enlever l'étiquette manuelle ; '-' = « aucun morceau »
+    const d = await BK.etiquettes.charger();
+    if (morceauId) d.map[fileId] = morceauId; else delete d.map[fileId];
+    await BK.db.ecrire('config', d);
+  },
+  // l'étiquette d'un fichier : manuelle d'abord, sinon devinée (nom du fichier, puis dossiers)
+  de(f, morceaux, tags) {
+    const t = tags[f.id]; if (t) return t === '-' ? null : morceaux.find(m => m.id === t) || null;
+    return BK.inv.trouverMorceau(f.name, morceaux) || (f.dossiers || []).map(d => BK.inv.trouverMorceau(d, morceaux)).find(Boolean) || null;
+  },
 };

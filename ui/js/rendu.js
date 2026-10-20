@@ -50,7 +50,7 @@ BK.rendu = {
         if (l) gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, l.n * l.n, l.n, 0, gl.RGBA, gl.UNSIGNED_BYTE, l.px); this.n = l ? l.n : 0; },
       // video : élément <video> ; cadre : { zoom (1 = remplit), x, y (en % du cadre) } ; sous : texte à afficher ; style des sous-titres
       dessiner(video, cadre, force, sous) {
-        const vw = video.videoWidth, vh = video.videoHeight; if (!vw) return;
+        const vw = video.videoWidth || video.naturalWidth || video.width, vh = video.videoHeight || video.naturalHeight || video.height; if (!vw) return;   // une vidéo ou une image
         // « remplir » le cadre 9:16, puis zoom et déplacement → zone de la vidéo à lire (en 0..1)
         const ech = Math.max(largeur / vw, hauteur / vh) * cadre.zoom, w = largeur / (vw * ech), h = hauteur / (vh * ech);
         const cx = 0.5 - cadre.x / 100 * (largeur / (vw * ech)), cy = 0.5 - cadre.y / 100 * (hauteur / (vh * ech));

@@ -11,7 +11,8 @@ BK.ia = {
     return BK.ia.conf = c || { id: 'ia', gemini: '', modele: '' };
   },
   async enregistrer(champs) { const c = { ...(await BK.ia.config()), ...champs }; BK.ia.conf = c; await BK.db.ecrire('config', c); return c; },
-  async pret() { return !!(await BK.ia.config()).gemini; },
+  active: () => BK.reglage('ia.active', true),              // l'interrupteur « AI » en bas du menu
+  async pret() { return BK.ia.active() && !!(await BK.ia.config()).gemini; },
   fetch(url, o) { return (BK.T && BK.T.http ? BK.T.http.fetch : window.fetch)(url, o); },
   BASE: 'https://generativelanguage.googleapis.com/v1beta',
 
@@ -31,6 +32,7 @@ BK.ia = {
 
   // demander quelque chose à Gemini. json = true : réponse rangée (tableau / objet)
   async demander(texte, { systeme = '', json = false, temperature = 0.4 } = {}) {
+    if (!BK.ia.active()) throw new Error('L\'AI est coupée (interrupteur en bas du menu)');
     const c = await BK.ia.config(); if (!c.gemini) throw new Error('Pas de clé Gemini (Renfort AI › Réglages)');
     const corps = { contents: [{ role: 'user', parts: [{ text: texte }] }], generationConfig: { temperature } };
     if (systeme) corps.systemInstruction = { parts: [{ text: systeme }] };

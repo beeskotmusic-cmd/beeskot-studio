@@ -7,7 +7,7 @@ const $ = (s, r = document) => r.querySelector(s);
 const $$ = (s, r = document) => [...r.querySelectorAll(s)];
 
 const BK = {
-  version: '0.7.0 bêta',
+  version: '0.8.0 bêta',
   modules: {},
   onglets: [],
   cotes: [],
@@ -55,12 +55,17 @@ const BK = {
           <span class="led"></span></button>`;
       }
     }
+    const ia = BK.reglage('ia.active', true);
     html += `<div class="navfoot">
+        <button class="st bascule${ia ? ' on' : ''}" id="iaBascule" title="Active ou coupe l'AI (Gemini) sur ce PC"><span class="interrupteur"><i></i></span><span class="eng">AI ${ia ? 'activée' : 'coupée'}</span><span class="led ${ia ? 'amb' : ''}"></span></button>
         <div class="st"><span id="ledDrive" class="led"></span><span class="eng">Drive BEESKOT</span></div>
         <div class="st"><span id="ledLive" class="led"></span><span class="eng">Ableton Live</span></div>
       </div>`;
     nav.innerHTML = html;
     $$('.tab', nav).forEach(b => b.onclick = () => BK.ouvrir(b.dataset.p));
+    $('#iaBascule').onclick = () => { BK.regler('ia.active', !BK.reglage('ia.active', true)); const id = ($('#nav .tab.on') || {}).dataset; BK.construireMenu(); BK.etatDrive && BK.etatDrive(); BK.ableton && BK.ableton.majLed && BK.ableton.majLed();
+      if (id && id.p) $$('#nav .tab').forEach(t => { const on = t.dataset.p === id.p; t.classList.toggle('on', on); $('.led', t).classList.toggle('amb', on); });
+      window.dispatchEvent(new CustomEvent('bk:ia')); };
   },
 
   // ---------- pages ----------

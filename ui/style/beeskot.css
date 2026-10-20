@@ -471,3 +471,76 @@ a.lien{color:var(--mus);text-decoration:none}a.lien:hover{text-decoration:underl
 .lu-app{display:flex;align-items:center;gap:14px;padding:10px 12px;border-radius:6px;background:rgba(239,230,210,.05);box-shadow:inset 0 0 0 1px rgba(239,230,210,.1)}
 .lu-app>div{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}.lu-app b{font:600 14px Jost,sans-serif;color:var(--ink)}
 .lu-app-ic{font-size:22px;width:28px;text-align:center;color:#ffb23e}
+.ex-son{grid-column:1/-1;font-weight:500}.ex-son.on{box-shadow:inset 0 0 0 2px #ffb23e}
+
+/* Bibliothèque : photo du morceau + lecteur */
+.fiche-haut{display:flex;align-items:stretch;gap:0}
+.fiche-photo{flex:none;width:76px;margin:8px 0 8px 10px;border:0;border-radius:5px;cursor:pointer;background:#0a0604 center/cover no-repeat;
+  box-shadow:inset 0 0 0 1px rgba(239,230,210,.16),0 3px 6px rgba(0,0,0,.4);color:rgba(239,230,210,.35);font-size:22px;aspect-ratio:1}
+.fiche-photo.vide{border:1px dashed rgba(239,230,210,.25);box-shadow:none}
+.fiche-photo:hover{box-shadow:0 0 0 2px #ffb23e}
+.fiche-droite{flex:1;min-width:0;display:flex;flex-direction:column}
+.fiche-droite .fiche-tete{padding-bottom:4px}
+.lecteur{display:flex;align-items:center;gap:10px;padding:0 16px 10px}
+.lect-play{flex:none;width:30px;height:30px;border-radius:50%;border:0;cursor:pointer;font-size:11px;color:#2a1c06;background:linear-gradient(180deg,#ffcf7a,#d48a1c);box-shadow:0 2px 5px rgba(0,0,0,.5)}
+.lect-barre{flex:1;height:6px;border-radius:3px;background:#0a0604;box-shadow:inset 0 1px 2px #000;cursor:pointer;overflow:hidden}
+.lect-barre i{display:block;height:100%;width:0;background:linear-gradient(90deg,#c97a12,#ffb23e);box-shadow:0 0 6px rgba(255,170,50,.6)}
+.lect-t{font-size:11px;color:#ffb23e;min-width:86px;text-align:right}
+.lect-src{max-width:240px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin:0;font-size:11px}
+
+/* Drive BEESKOT : sections repliables */
+.drive-bloc{margin-top:6px}
+.drive-sec{display:flex;align-items:center;gap:6px;border:0;background:none;cursor:pointer;padding:6px 0;font:600 12px Jost,sans-serif;letter-spacing:.06em;color:#ffb23e;text-transform:uppercase}
+.drive-sec em{font-style:normal;color:var(--ink2)}
+.drive-bloc.ferme .drive-l{display:none}
+.f-chemin{margin:0;max-width:280px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:11px;color:#b9a27a!important}
+.md-filtre{display:flex;align-items:center;gap:8px;margin-left:auto}.md-filtre .eng{font-size:10px}.md-filtre select{min-width:200px}
+.md-tag{align-self:flex-start;border:0;border-radius:3px;padding:2px 7px;cursor:pointer;font:600 10.5px Jost,sans-serif;letter-spacing:.04em;color:#ffcf7a;background:rgba(255,178,62,.12);box-shadow:inset 0 0 0 1px rgba(255,178,62,.35);max-width:100%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.md-tag.main{color:#2a1c06;background:linear-gradient(180deg,#ffcf7a,#d48a1c);box-shadow:none}
+.md-tag.vide{color:var(--ink2);background:none;box-shadow:inset 0 0 0 1px rgba(239,230,210,.2)}
+.md-menu{position:fixed;z-index:9999;width:220px;max-height:310px;overflow:auto;display:flex;flex-direction:column;padding:6px;border-radius:6px;background:#1d150f;box-shadow:0 0 0 1px rgba(239,230,210,.2),0 12px 30px rgba(0,0,0,.7)}
+.md-menu button{border:0;background:none;text-align:left;padding:7px 10px;border-radius:4px;cursor:pointer;color:var(--ink);font:500 13px Jost,sans-serif}
+.md-menu button:hover{background:rgba(255,178,62,.15)}.md-menu button.on{color:#ffb23e;font-weight:700}
+
+/* menu : côté Show + interrupteur « AI » façon ampli à lampes */
+#nav .cote-show::after{background:linear-gradient(90deg,var(--olv),var(--mus))}
+.navfoot .bascule{border:0;background:none;cursor:pointer;padding:2px 0;font:inherit;color:inherit;text-align:left}
+.interrupteur{position:relative;flex:none;width:22px;height:30px;border-radius:4px;
+  background:radial-gradient(circle at 50% 50%,#d8d2c4 0 5px,#8b8478 6px,#3a342c 7px,transparent 8px),linear-gradient(180deg,#5a5248,#2a241e);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.25),0 2px 4px rgba(0,0,0,.6)}
+.interrupteur i{position:absolute;left:50%;top:50%;width:6px;height:15px;margin-left:-3px;border-radius:3px 3px 4px 4px;transform-origin:50% 100%;
+  background:linear-gradient(90deg,#9a9488,#f4efe4 45%,#a8a296);box-shadow:0 1px 2px rgba(0,0,0,.7);transform:translateY(-100%) rotate(0deg);transition:transform .15s}
+.bascule:not(.on) .interrupteur i{transform-origin:50% 0;transform:translateY(0) rotate(0deg)}
+.bascule.on .eng{color:#ffb23e}
+
+/* ===== Assistant visuel Post ===== */
+.pv-tel{flex:none;width:400px;align-self:center;padding:10px;border-radius:26px;background:linear-gradient(160deg,#2a2a2a,#0c0c0c);box-shadow:0 0 0 2px #3a3a3a,0 20px 40px rgba(0,0,0,.6)}
+.pv-app{border-radius:16px;overflow:hidden;background:#000;color:#f2f2f2;font:13px/1.35 -apple-system,"Segoe UI",sans-serif}
+.pv-tete{display:flex;align-items:center;gap:8px;padding:10px 12px}.pv-tete b{font-weight:600}.pv-pts{margin-left:auto;font-size:18px}
+.pv-ecran{position:relative;width:100%;background:#111;cursor:grab;touch-action:none;max-height:520px}
+.pv-ecran.survol{box-shadow:inset 0 0 0 3px #ffb23e}
+.pv-ecran canvas{position:absolute;inset:0;width:100%;height:100%;display:block;pointer-events:none}
+.pv-fl{position:absolute;top:50%;transform:translateY(-50%);width:28px;height:28px;border-radius:50%;border:0;cursor:pointer;background:rgba(255,255,255,.85);color:#111;font-size:18px;line-height:1}
+.pv-fl.g{left:8px}.pv-fl.d{right:8px}
+.pv-num{position:absolute;top:10px;right:10px;padding:2px 8px;border-radius:10px;background:rgba(0,0,0,.6);font-size:11px}
+.pv-num:empty{display:none}
+.pv-icones{display:flex;align-items:center;gap:14px;padding:10px 12px;font-size:20px;position:relative}
+.pv-points{position:absolute;left:50%;transform:translateX(-50%);display:flex;gap:4px}
+.pv-points i{width:6px;height:6px;border-radius:50%;background:#555}.pv-points i.on{background:#3897f0}
+.pv-legende{padding:0 12px 14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.pv-legende b{font-weight:600}
+.pv-bande{display:flex;gap:10px;overflow-x:auto;padding:10px 2px 4px;min-height:110px}
+.pv-mini{position:relative;flex:none;width:86px;height:100px;border-radius:5px;background:#0a0604 center/cover no-repeat;cursor:pointer;box-shadow:inset 0 0 0 1px rgba(239,230,210,.2)}
+.pv-mini.on{box-shadow:0 0 0 3px #ffb23e}
+.pv-n{position:absolute;top:4px;left:4px;font:700 11px 'Share Tech Mono',monospace;color:#ffb23e;background:rgba(0,0,0,.7);padding:1px 5px;border-radius:3px}
+.pv-mb{position:absolute;bottom:3px;left:3px;right:3px;display:flex;justify-content:space-between;opacity:0;transition:opacity .15s}
+.pv-mini:hover .pv-mb{opacity:1}
+.pv-mb button{border:0;border-radius:3px;background:rgba(0,0,0,.75);color:#eee;cursor:pointer;font-size:11px;width:24px;height:20px}
+/* menu encore plus compact (14 onglets) : tout tient en 1080p sans faire défiler */
+#nav{gap:5px!important;padding-top:12px!important;padding-bottom:10px!important}
+#nav .tab{min-height:40px;padding-top:5px;padding-bottom:5px}
+#nav .tab .lab{font-size:11.5px}
+#nav .tab .nsub{font-size:10.5px}
+#nav .tab .t{gap:2px}
+#nav .tab.mini{height:32px;min-height:32px}
+#nav .cote{padding-top:2px;font-size:9.5px}
+.navfoot{gap:6px!important;padding-top:8px!important}

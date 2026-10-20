@@ -1,0 +1,184 @@
+// =====================================================================
+// ASSISTANT VISUEL POST — comme l'Assistant visuel Reel, mais pour des PHOTOS :
+//   plusieurs photos = un carrousel Instagram · format (carré, portrait 4:5, story)
+//   recadrer (zoom + glisser) · couleur (LUT .cube) · aperçu « dans Instagram »
+//   export : une image JPG par photo, prête à publier (1080 px de large)
+// =====================================================================
+(() => {
+const FORMATS = {
+  portrait: { nom: 'Portrait 4:5', L: 1080, H: 1350 },
+  carre:    { nom: 'Carré 1:1',    L: 1080, H: 1080 },
+  story:    { nom: 'Story 9:16',   L: 1080, H: 1920 },
+  paysage:  { nom: 'Paysage',      L: 1080, H: 566 },
+};
+const P = { format: BK.reglage('pv.format', 'portrait'), slides: [], i: 0, lut: null, lutNom: '', legende: '', nom: 'post' };
+const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+
+BK.module('postvis', function (page) {
+  $('.sub', page).textContent = 'Photos et carrousels Instagram : recadrer, couleur, aperçu, export';
+  $('.hdr .right', page).innerHTML = `<div><span class="eng" style="font-size:9px">Photos</span><span class="vfd" id="pvNb">00</span></div>
+    <div><span class="eng" style="font-size:9px">Format</span><span class="vfd" id="pvFmtH">4:5</span></div>`;
+  $('.grid', page).innerHTML = `
+    <div class="cols">
+      <section class="pane vit rv-vit"><span class="ptitle">① Vitrine</span>
+        <div class="rv-scene">
+          <div class="pv-tel"><div class="pv-app">
+            <div class="pv-tete"><span class="rv-avatar petit"></span><b>beeskot</b><span class="pv-pts">⋯</span></div>
+            <div class="pv-ecran" id="pvEcran"><canvas id="pvCanvas"></canvas>
+              <div class="rv-vide" id="pvVide"><span class="dymo">Glisse des photos ici</span><span class="nt">JPG, PNG… · ou « Ajouter »</span></div>
+              <button class="pv-fl g" id="pvPrec">‹</button><button class="pv-fl d" id="pvSuiv">›</button><span class="pv-num" id="pvNum"></span></div>
+            <div class="pv-icones"><span>♡</span><span>💬</span><span>➤</span><span class="pv-points" id="pvPoints"></span><span style="margin-left:auto">⌑</span></div>
+            <div class="pv-legende"><b>beeskot</b> <span id="pvLegAff">La légende du post…</span></div>
+          </div></div>
+          <div class="rv-cote">
+            <div class="box"><div class="ligne-titre"><span class="lb">Les photos (ordre du carrousel)</span>
+                <span class="nt" style="margin:0 0 0 auto">Clique une photo pour la régler · ‹ › pour changer l'ordre</span></div>
+              <div class="pv-bande" id="pvBande"></div>
+              <div class="chips" style="margin-top:8px"><button class="chip" id="pvAjout">+ Ajouter des photos…</button><button class="chip" id="pvDrive">+ Depuis le Drive…</button><input type="file" id="pvInput" accept="image/*" multiple hidden></div></div>
+            <div class="box"><span class="lb">Recadrer et couleur (photo choisie)</span>
+              <span class="nt">Fais glisser l'image dans l'aperçu pour la déplacer.</span>
+              <div class="rv-reglages"><span class="eng">Zoom</span><input class="fld rv-glisse" id="pvZoom" value="0 %" title="Clic maintenu et glisse la souris (ou double-clic pour taper)">
+                <button class="chip" id="pvCentre">Recentrer</button><button class="chip" id="pvTous">Même cadrage pour toutes</button></div>
+              <div class="chips"><button class="chip" id="pvLutB">Charger une LUT (.cube)…</button><button class="chip hidden" id="pvLutX">Sans LUT</button></div>
+              <input type="file" id="pvLutIn" accept=".cube" hidden><span class="nt" id="pvLutNom"></span></div>
+            <div class="box grow"><span class="lb">Légende</span>
+              <textarea class="fld" id="pvLeg" rows="4" placeholder="Le texte du post, les hashtags…"></textarea>
+              <div class="chips" style="margin-top:8px"><button class="chip" id="pvRenfort">Idées de légende (Renfort AI)</button><button class="chip" id="pvCopier">Copier la légende</button></div></div>
+          </div>
+        </div>
+      </section>
+      <section class="pane reg"><span class="ptitle">② Réglages</span>
+        <div class="box"><span class="lb">Format</span>
+          <div class="chips" style="margin-top:10px" id="pvFmt">${Object.entries(FORMATS).map(([k, f]) => `<button class="chip" data-f="${k}">${f.nom}</button>`).join('')}</div>
+          <span class="nt">Instagram : <b>Portrait 4:5</b> prend le plus de place dans le fil. Toutes les photos d'un carrousel ont le même format.</span></div>
+        <div class="box"><span class="lb">Nom du post</span><input class="fld" id="pvNom" value="post" style="margin-top:8px"></div>
+        <div class="box"><span class="lb">Export</span><span class="nt">Une image JPG par photo (1080 px de large), numérotées dans l'ordre du carrousel.</span></div>
+      </section>
+    </div>
+    <div class="pane abar"><span class="ptitle">③ Barre</span><span class="vfd" id="pvMsg">AJOUTE DES PHOTOS</span>
+      <div class="right"><button class="btn pri" id="pvExport" disabled>Exporter les images ▶</button></div></div>`;
+
+  const msg = t => $('#pvMsg').textContent = String(t).toUpperCase().slice(0, 90);
+  const cv = $('#pvCanvas'), ecran = $('#pvEcran'), c2 = cv.getContext('2d');
+  let r = null;
+  const F = () => FORMATS[P.format], S = () => P.slides[P.i];
+
+  function moteur() {
+    const f = F(), k = 0.5; cv.width = Math.round(f.L * k); cv.height = Math.round(f.H * k);
+    r = BK.rendu.creer(cv.width, cv.height); r.lut(P.lut);
+    ecran.style.aspectRatio = `${f.L} / ${f.H}`;
+    $('#pvFmtH').textContent = f.nom.split(' ').pop(); $$('#pvFmt .chip').forEach(c => c.classList.toggle('on', c.dataset.f === P.format));
+  }
+  function dessiner() {
+    const s = S(); $('#pvVide').classList.toggle('hidden', !!s);
+    if (!s) { c2.clearRect(0, 0, cv.width, cv.height); return; }
+    r.dessiner(s.img, { zoom: s.zoom / 100, x: s.x, y: s.y }, 1, ''); c2.drawImage(r.sortie, 0, 0);
+    $('#pvZoom').value = (s.zoom - 100) + ' %';
+  }
+  function majTout() {
+    $('#pvNb').textContent = String(P.slides.length).padStart(2, '0');
+    $('#pvExport').disabled = !P.slides.length;
+    $('#pvNum').textContent = P.slides.length > 1 ? `${P.i + 1}/${P.slides.length}` : '';
+    $('#pvPoints').innerHTML = P.slides.length > 1 ? P.slides.map((_, k) => `<i class="${k === P.i ? 'on' : ''}"></i>`).join('') : '';
+    $('#pvPrec').classList.toggle('hidden', P.i <= 0); $('#pvSuiv').classList.toggle('hidden', P.i >= P.slides.length - 1);
+    $('#pvBande').innerHTML = P.slides.map((s, k) => `<div class="pv-mini${k === P.i ? ' on' : ''}" data-k="${k}" style="background-image:url(${s.url})">
+        <span class="pv-n">${k + 1}</span><span class="pv-mb"><button data-g="${k}">‹</button><button data-d="${k}">›</button><button data-x="${k}">✕</button></span></div>`).join('')
+      || '<span class="nt">Aucune photo pour l\'instant.</span>';
+    $$('.pv-mini').forEach(el => el.onclick = e => { if (e.target.closest('button')) return; P.i = +el.dataset.k; majTout(); });
+    $$('[data-g]').forEach(b => b.onclick = () => bouger(+b.dataset.g, -1));
+    $$('[data-d]').forEach(b => b.onclick = () => bouger(+b.dataset.d, 1));
+    $$('[data-x]').forEach(b => b.onclick = () => { const k = +b.dataset.x; URL.revokeObjectURL(P.slides[k].url); P.slides.splice(k, 1); P.i = Math.min(P.i, P.slides.length - 1); P.i = Math.max(0, P.i); majTout(); });
+    dessiner();
+  }
+  function bouger(k, d) { const j = k + d; if (j < 0 || j >= P.slides.length) return; [P.slides[k], P.slides[j]] = [P.slides[j], P.slides[k]]; P.i = j; majTout(); }
+
+  // ---------- ajouter des photos ----------
+  function ajouter(fichiers) {
+    const fs = [...fichiers].filter(f => /^image\//.test(f.type) || /\.(jpe?g|png|webp|heic)$/i.test(f.name)); if (!fs.length) return msg('Seulement des images');
+    let reste = fs.length;
+    for (const f of fs) {
+      const url = URL.createObjectURL(f), img = new Image();
+      img.onload = () => { P.slides.push({ img, url, nom: f.name, zoom: 100, x: 0, y: 0 }); if (P.slides.length === 1 && P.nom === 'post') { P.nom = f.name.replace(/\.[^.]+$/, '').replace(/[^\w\- ]+/g, '').slice(0, 40) || 'post'; $('#pvNom').value = P.nom; }
+        if (--reste === 0) { majTout(); msg(P.slides.length + ' photo(s)'); } };
+      img.onerror = () => { if (--reste === 0) majTout(); msg('Image illisible : ' + f.name); };
+      img.src = url;
+    }
+  }
+  $('#pvAjout').onclick = () => $('#pvInput').click();
+  $('#pvInput').onchange = e => { ajouter(e.target.files); e.target.value = ''; };
+  $('#pvDrive').onclick = async () => {
+    if (!BK.drive.relie()) return msg('Relie d\'abord le Drive (Réglages)');
+    const l = await BK.explorerDrive({ titre: 'Photos du Drive pour le post', mode: 'images', depart: 'photovideo' }); if (!l || !l.length) return;
+    msg('Téléchargement des photos…'); const fs = [];
+    for (const f of l) { try { fs.push(new File([await (await BK.drive.api(`/files/${f.id}?alt=media`)).blob()], f.name, { type: f.mimeType })); } catch (e) {} }
+    ajouter(fs);
+  };
+  page.addEventListener('dragover', e => { e.preventDefault(); ecran.classList.add('survol'); });
+  page.addEventListener('dragleave', e => { if (e.target === page) ecran.classList.remove('survol'); });
+  page.addEventListener('drop', e => { e.preventDefault(); ecran.classList.remove('survol'); const fs = [...e.dataTransfer.files]; if (!fs.length) return;
+    const cube = fs.find(f => /\.cube$/i.test(f.name)); if (cube) return chargerLut(cube); ajouter(fs); });
+
+  // ---------- navigation dans le carrousel ----------
+  $('#pvPrec').onclick = () => { P.i = Math.max(0, P.i - 1); majTout(); };
+  $('#pvSuiv').onclick = () => { P.i = Math.min(P.slides.length - 1, P.i + 1); majTout(); };
+  document.addEventListener('keydown', e => {
+    if (page.classList.contains('hidden') || /INPUT|TEXTAREA|SELECT/.test(document.activeElement.tagName)) return;
+    if (e.key === 'ArrowLeft') $('#pvPrec').click(); if (e.key === 'ArrowRight') $('#pvSuiv').click();
+  });
+
+  // ---------- recadrer : glisser l'image, zoom à la souris ----------
+  let d0 = null;
+  ecran.addEventListener('pointerdown', e => { const s = S(); if (!s || e.target.closest('button')) return; d0 = { x: e.clientX, y: e.clientY, sx: s.x, sy: s.y }; ecran.setPointerCapture(e.pointerId); });
+  ecran.addEventListener('pointermove', e => { if (!d0) return; const s = S(), b = ecran.getBoundingClientRect(); s.x = d0.sx + (e.clientX - d0.x) / b.width * 100; s.y = d0.sy + (e.clientY - d0.y) / b.height * 100; dessiner(); });
+  ecran.addEventListener('pointerup', () => d0 = null);
+  const champ = $('#pvZoom'); champ.readOnly = true; let zg = null;
+  const zoom = z => { const s = S(); if (!s) return; s.zoom = Math.round(Math.max(100, Math.min(400, z))); dessiner(); };
+  champ.addEventListener('pointerdown', e => { if (!champ.readOnly || !S()) return; e.preventDefault(); champ.setPointerCapture(e.pointerId); zg = { x: e.clientX, y: e.clientY, z: S().zoom }; });
+  champ.addEventListener('pointermove', e => { if (zg) zoom(zg.z + (e.clientX - zg.x) - (e.clientY - zg.y)); });
+  champ.addEventListener('pointerup', () => { zg = null; });
+  champ.addEventListener('dblclick', () => { if (!S()) return; champ.readOnly = false; champ.value = S().zoom - 100; champ.select(); });
+  champ.addEventListener('blur', () => { if (champ.readOnly) return; champ.readOnly = true; const v = parseFloat(champ.value.replace(',', '.')); zoom(isNaN(v) ? S().zoom : 100 + v); });
+  champ.addEventListener('keydown', e => { e.stopPropagation(); if (e.key === 'Enter') champ.blur(); });
+  ecran.addEventListener('wheel', e => { if (!S()) return; e.preventDefault(); zoom(S().zoom - Math.sign(e.deltaY) * 5); }, { passive: false });
+  champ.addEventListener('wheel', e => { if (!S()) return; e.preventDefault(); zoom(S().zoom - Math.sign(e.deltaY) * 5); }, { passive: false });
+  $('#pvCentre').onclick = () => { const s = S(); if (!s) return; s.x = s.y = 0; s.zoom = 100; dessiner(); };
+  $('#pvTous').onclick = () => { const s = S(); if (!s) return; P.slides.forEach(x => { x.zoom = s.zoom; x.x = s.x; x.y = s.y; }); msg('Même cadrage partout'); };
+
+  // ---------- couleur : LUT ----------
+  async function chargerLut(f) {
+    try { P.lut = BK.rendu.lireCube(await f.text()); P.lutNom = f.name; r.lut(P.lut); $('#pvLutNom').textContent = 'LUT : ' + f.name; $('#pvLutX').classList.remove('hidden'); dessiner(); msg('LUT appliquée à toutes les photos'); }
+    catch (e) { msg(e.message); }
+  }
+  $('#pvLutB').onclick = () => $('#pvLutIn').click();
+  $('#pvLutIn').onchange = e => e.target.files[0] && chargerLut(e.target.files[0]);
+  $('#pvLutX').onclick = () => { P.lut = null; r.lut(null); $('#pvLutNom').textContent = ''; $('#pvLutX').classList.add('hidden'); dessiner(); };
+
+  // ---------- format, légende, nom ----------
+  $$('#pvFmt .chip').forEach(c => c.onclick = () => { P.format = c.dataset.f; BK.regler('pv.format', P.format); moteur(); dessiner(); });
+  $('#pvLeg').oninput = e => { P.legende = e.target.value; $('#pvLegAff').textContent = P.legende.split('\n')[0] || 'La légende du post…'; };
+  $('#pvLeg').addEventListener('keydown', e => e.stopPropagation());
+  $('#pvCopier').onclick = async () => { await navigator.clipboard.writeText(P.legende); msg('Légende copiée'); };
+  $('#pvRenfort').onclick = () => BK.renfortDemander ? BK.renfortDemander('legende', {}) : msg('Renfort AI indisponible');
+  $('#pvNom').onchange = e => { P.nom = e.target.value.trim() || 'post'; };
+  $('#pvNom').addEventListener('keydown', e => e.stopPropagation());
+
+  // ---------- export : une image par photo, en pleine taille ----------
+  $('#pvExport').onclick = async () => {
+    const b = $('#pvExport'); b.disabled = true; b.innerHTML = '<span class="spin"></span>Export…';
+    try {
+      const f = F(), rr = BK.rendu.creer(f.L, f.H); rr.lut(P.lut); let dernier = null;
+      for (let k = 0; k < P.slides.length; k++) {
+        const s = P.slides[k]; rr.dessiner(s.img, { zoom: s.zoom / 100, x: s.x, y: s.y }, 1, '');
+        const blob = await new Promise(ok => rr.sortie.toBlob(ok, 'image/jpeg', 0.92));
+        dernier = await BK.enregistrerFichier(BK.chemin('Posts', P.nom), `${P.nom}_${String(k + 1).padStart(2, '0')}_${f.L}x${f.H}.jpg`, new Uint8Array(await blob.arrayBuffer()), 'image/jpeg');
+        msg(`Export ${k + 1}/${P.slides.length}`); await BK.audio.pause();
+      }
+      if (P.legende) await BK.enregistrerFichier(BK.chemin('Posts', P.nom), `${P.nom}_legende.txt`, new TextEncoder().encode(P.legende), 'text/plain');
+      msg(dernier ? P.slides.length + ' image(s) prêtes ✓' : 'Export annulé');
+    } catch (e) { console.error(e); msg('Export impossible'); }
+    b.disabled = false; b.textContent = 'Exporter les images ▶';
+  };
+
+  moteur(); majTout();
+});
+})();

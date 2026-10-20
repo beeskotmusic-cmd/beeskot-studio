@@ -89,5 +89,53 @@ BK.audio = {
     return new Uint8Array(buf);
   },
 
+  // ---------- analyser un morceau : durée, tempo (BPM), tonalité (estimation) ----------
+  async analyser(buffer, progression = () => {}) {
+    const sr0 = buffer.sampleRate, k = Math.max(1, Math.round(sr0 / 11025)), sr = sr0 / k;
+    const d0 = buffer.getChannelData(0), d1 = buffer.numberOfChannels > 1 ? buffer.getChannelData(1) : d0;
+    const debut = Math.max(0, Math.floor(buffer.length / 2 - 45 * sr0)), fin = Math.min(buffer.length, debut + 90 * sr0);   // 90 s au milieu
+    const x = new Float32Array(Math.floor((fin - debut) / k));
+    for (let i = 0; i < x.length; i++) { let s = 0; const a = debut + i * k; for (let j = 0; j < k; j++) s += d0[a + j] + d1[a + j]; x[i] = s / (2 * k); }
+    await BK.audio.pause(); progression(0.2);
+    // tempo : enveloppe des attaques, puis on cherche la période qui se répète le mieux
+    const hop = 128, n = Math.floor(x.length / hop) - 1, env = new Float32Array(n); let prec = 0;
+    for (let i = 0; i < n; i++) { let e = 0; for (let j = 0; j < hop; j++) { const v = x[i * hop + j]; e += v * v; } e = Math.log(1e-9 + e); env[i] = Math.max(0, e - prec); prec = e; }
+    const fps = sr / hop, lmin = Math.floor(fps * 60 / 200), lmax = Math.ceil(fps * 60 / 60);
+    let best = 0, lag = lmin;
+    for (let L = lmin; L <= lmax; L++) { let c = 0; for (let i = 0; i + L < n; i++) c += env[i] * env[i + L]; c /= (n - L); const bpm = 60 * fps / L, poids = Math.exp(-0.5 * Math.pow(Math.log2(bpm / 115), 2) / 0.36); if (c * poids > best) { best = c * poids; lag = L; } }
+    // affiner autour du meilleur décalage
+    // affiner sur 8 temps (plus précis) : on cherche la meilleure période autour de 8 × le décalage trouvé
+    let bpm = 60 * fps / lag;
+    { const M = 8; let b2 = -1, l2 = lag * M;
+      for (let L = lag * M - M; L <= lag * M + M; L += 0.1) { let c = 0; for (let i = 0; i + Math.ceil(L) + 1 < n; i++) { const f = i + L, a = Math.floor(f), t = f - a; c += env[i] * (env[a] * (1 - t) + env[a + 1] * t); } if (c > b2) { b2 = c; l2 = L; } }
+      bpm = 60 * fps * M / l2; }
+    await BK.audio.pause(); progression(0.5);
+    // tonalité : énergie de chaque note (do, do#…), comparée aux profils majeur / mineur
+    const N = 4096, chroma = new Float64Array(12), fen = new Float32Array(N).map((_, i) => 0.5 - 0.5 * Math.cos(2 * Math.PI * i / N));
+    const re = new Float64Array(N), im = new Float64Array(N);
+    for (let a = 0, t = 0; a + N < x.length; a += N * 2, t++) {
+      for (let i = 0; i < N; i++) { re[i] = x[a + i] * fen[i]; im[i] = 0; }
+      BK.audio.fft(re, im);
+      for (let b = 1; b < N / 2; b++) { const f = b * sr / N; if (f < 55 || f > 2000) continue; const note = Math.round(12 * Math.log2(f / 440)) + 69; chroma[((note % 12) + 12) % 12] += Math.hypot(re[b], im[b]); }
+      if (t % 8 === 0) await BK.audio.pause();
+    }
+    const MAJ = [6.35, 2.23, 3.48, 2.33, 4.38, 4.09, 2.52, 5.19, 2.39, 3.66, 2.29, 2.88], MIN = [6.33, 2.68, 3.52, 5.38, 2.6, 3.53, 2.54, 4.75, 3.98, 2.69, 3.34, 3.17];
+    const corr = (p, r) => { const mx = chroma.reduce((s, v) => s + v, 0) / 12, mp = p.reduce((s, v) => s + v, 0) / 12; let a = 0, b = 0, c = 0; for (let i = 0; i < 12; i++) { const u = chroma[(i + r) % 12] - mx, v = p[i] - mp; a += u * v; b += u * u; c += v * v; } return a / Math.sqrt(b * c || 1); };
+    let tb = -2, ton = '';
+    const NOMS = ['Do', 'Do#', 'Ré', 'Mib', 'Mi', 'Fa', 'Fa#', 'Sol', 'Lab', 'La', 'Sib', 'Si'];
+    for (let r = 0; r < 12; r++) { const a = corr(MAJ, r), b = corr(MIN, r); if (a > tb) { tb = a; ton = NOMS[r] + ' majeur'; } if (b > tb) { tb = b; ton = NOMS[r] + ' mineur'; } }
+    progression(1);
+    const dur = buffer.duration;
+    const b = Math.abs(bpm - Math.round(bpm)) < 0.35 ? Math.round(bpm) : Math.round(bpm * 10) / 10;
+    return { duree: `${Math.floor(dur / 60)}:${String(Math.round(dur % 60)).padStart(2, '0')}`, bpm: b, ton };
+  },
+  fft(re, im) {                                          // transformée de Fourier (sur place)
+    const n = re.length;
+    for (let i = 1, j = 0; i < n; i++) { let b = n >> 1; for (; j & b; b >>= 1) j ^= b; j ^= b; if (i < j) { [re[i], re[j]] = [re[j], re[i]]; [im[i], im[j]] = [im[j], im[i]]; } }
+    for (let l = 2; l <= n; l <<= 1) { const a = -2 * Math.PI / l, wr = Math.cos(a), wi = Math.sin(a);
+      for (let i = 0; i < n; i += l) { let cr = 1, ci = 0; for (let j = 0; j < l / 2; j++) { const k = i + j + l / 2, tr = re[k] * cr - im[k] * ci, ti = re[k] * ci + im[k] * cr;
+        re[k] = re[i + j] - tr; im[k] = im[i + j] - ti; re[i + j] += tr; im[i + j] += ti; const t = cr * wr - ci * wi; ci = cr * wi + ci * wr; cr = t; } } }
+  },
+
   temps(s) { if (!isFinite(s)) s = 0; const m = Math.floor(s / 60), r = s - m * 60; return `${m}:${r.toFixed(1).padStart(4, '0')}`; },
 };

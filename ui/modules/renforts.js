@@ -51,7 +51,7 @@ BK.module('renforts', function (page) {
 
   async function majEtat() {
     BK.ia.conf = null; const c = await BK.ia.config();
-    $('#raGem').textContent = c.gemini ? 'PRÊT' : 'SANS CLÉ';
+    $('#raGem').textContent = !BK.ia.active() ? 'COUPÉE' : c.gemini ? 'PRÊT' : 'SANS CLÉ';
     $('#raCle').placeholder = c.gemini ? '•••••••• (clé enregistrée)' : 'colle la clé ici';
     const d = await BK.discord.config();
     $('#raJeton').placeholder = d.jeton ? '•••••••• (code enregistré)' : 'colle le code du bot ici';
@@ -231,6 +231,7 @@ BK.module('renforts', function (page) {
     });
   }
 
+  window.addEventListener('bk:ia', () => majEtat());
   BK.surOuvrir = BK.surOuvrir || {};
   BK.surOuvrir.renforts = async () => { R.journal = await BK.discord.journal(3).catch(() => []); await majEtat(); volet(R.volet); };
   majEtat(); volet(R.volet);

@@ -64,45 +64,92 @@ BK.module('biblio', function (page) {
     const f = BK.inv.normaliser(B.filtre);
     const l = (B.vue === 'sorti' ? S : C).filter(m => !f || BK.inv.normaliser(m.nom).includes(f)).sort((a, b) => (b.maj || '').localeCompare(a.maj || ''));
     liste.innerHTML = l.length ? l.map(fiche).join('') : `<span class="nt" style="padding:20px">${B.vue === 'sorti' ? 'Aucun morceau sorti pour l\'instant.' : 'Aucun morceau en chantier. Crée une fiche à droite, ou lance « Scanner ce PC ».'}</span>`;
-    brancherFiches();
+    brancherFiches(); lecteur.maj();
     remplirDrive();
   }
 
-  // ---------- fichiers du Drive de ce morceau, rangés par dossier du groupe ----------
-  // (Recording › Ableton Projects, CL, WAV de tournage… et le reste du Drive, ex. les fichiers du bot Discord)
+  // ---------- fichiers du Drive de ce morceau (par son nom, son dossier ou son étiquette), rangés par dossier du groupe ----------
   const trouves = {};
-  const SECTIONS = [['ableton', 'Projets Ableton'], ['cl', 'Exports clean (CL)'], ['wavtournage', 'WAV de tournage']];
-  const icone = n => /\.(zip|rar|7z)$/i.test(n) ? '🗜' : /\.(wav|mp3|aiff?|flac)$/i.test(n) ? '♪' : /\.als$/i.test(n) ? '▤' : '📄';
+  const SECTIONS = [['ableton', 'Projets Ableton'], ['cl', 'Exports clean (CL)'], ['wavtournage', 'WAV de tournage'], ['medias', 'Photos et vidéos'], ['ailleurs', 'Ailleurs dans le Drive']];
+  const ROLE_SECTION = { ableton: 'ableton', cl: 'cl', wavtournage: 'wavtournage', photovideo: 'medias', moodboard: 'medias', tournage: 'medias', outfits: 'medias', scenographie: 'medias' };
+  const sectionsFermees = BK.reglage('biblio.sections', {});
+  const icone = n => /\.(zip|rar|7z)$/i.test(n) ? '🗜' : /\.(wav|mp3|aiff?|flac)$/i.test(n) ? '♪' : /\.als$/i.test(n) ? '▤' : /\.(jpe?g|png|webp|heic|gif)$/i.test(n) ? '🖼' : /\.(mp4|mov|m4v)$/i.test(n) ? '🎬' : /\.pdf$/i.test(n) ? '📕' : '📄';
   async function fichiersDrive(m) {
-    const estA = f => BK.inv.trouverMorceau(f.name, B.morceaux) === m || (f.dossiers || []).some(d => BK.inv.trouverMorceau(d, B.morceaux) === m);
     await BK.dossiers.assurer();
-    const parts = [], vus = new Set();
-    for (const [role, titre] of SECTIONS) {
-      const l = (await BK.dossiers.fichiersSous(role).catch(() => [])).filter(estA).sort((a, b) => (b.modifiedTime || '').localeCompare(a.modifiedTime || ''));
-      l.forEach(f => vus.add(f.id)); if (l.length) parts.push({ titre, l });
-    }
-    const mots = [m.nom, ...(m.alias || [])].map(x => BK.inv.normaliser(x).split(' ').sort((a, b) => b.length - a.length)[0]).filter(x => x && x.length >= 3);
-    const autres = [];
-    for (const mot of [...new Set(mots)]) for (const f of await BK.drive.chercher([mot]).catch(() => []))
-      if (!vus.has(f.id) && !/\.json$/.test(f.name) && BK.inv.trouverMorceau(f.name, B.morceaux) === m) { vus.add(f.id); autres.push(f); }
-    if (autres.length) parts.push({ titre: 'Ailleurs dans le Drive', l: autres.sort((a, b) => (b.modifiedTime || '').localeCompare(a.modifiedTime || '')) });
-    return parts;
+    const l = await BK.dossiers.duMorceau(m, B.morceaux), parts = {};
+    for (const f of l) { const k = ROLE_SECTION[f.role] || 'ailleurs'; (parts[k] = parts[k] || []).push(f); }
+    return SECTIONS.filter(([k]) => parts[k]).map(([k, titre]) => ({ k, titre, l: parts[k] }));
   }
+  window.addEventListener('bk:change', e => { if (e.detail.col === 'config' && /etiquettes|dossiers/.test(e.detail.id)) for (const k in trouves) delete trouves[k]; });
+  BK.biblioDrive = async m => trouves[m.id] || (trouves[m.id] = await fichiersDrive(m));   // pour le lecteur et l'analyse
   async function remplirDrive() {
     for (const el of $$('.drive-res', page)) {
       const m = B.morceaux.find(x => x.id === el.dataset.m); if (!m) continue;
       try {
-        if (!trouves[m.id]) trouves[m.id] = await fichiersDrive(m);
-        const parts = trouves[m.id];
-        el.innerHTML = parts.length ? parts.map(p => `<span class="nt drive-sec">${p.titre} (${p.l.length})</span>` + p.l.slice(0, 12).map((f, i) => `<div class="ligne-f${i === 0 ? ' recent' : ''}"><span class="etoile">${i === 0 ? '★' : icone(f.name)}</span>
-            <a href="#" class="f-nom lien" data-url="${esc(f.webViewLink)}" title="${esc([...(f.dossiers || []), f.name].join(' / '))}">${esc(f.name)}</a><span class="nt f-meta">${date(f.modifiedTime)}${f.size ? ' · ' + Math.max(1, Math.round(f.size / 1e6)) + ' Mo' : ''}</span>
-            ${/\.(wav|mp3)$/i.test(f.name) ? `<button class="btn xs" data-dreel="${f.id}" data-nom="${esc(f.name)}">→ Reel</button>` : ''}</div>`).join('')).join('')
-          : '<span class="nt">Rien trouvé dans le Drive pour ce morceau.</span>';
+        const parts = await BK.biblioDrive(m);
+        if (!el.isConnected) continue;
+        el.innerHTML = parts.length ? parts.map(p => `<div class="drive-bloc${sectionsFermees[p.k] ? ' ferme' : ''}" data-sec="${p.k}">
+            <button class="drive-sec"><span class="fleche">${sectionsFermees[p.k] ? '▸' : '▾'}</span>${p.titre} <em>(${p.l.length})</em></button>
+            <div class="drive-l">${p.l.slice(0, 30).map((f, i) => `<div class="ligne-f${i === 0 ? ' recent' : ''}"><span class="etoile">${i === 0 ? '★' : icone(f.name)}</span>
+              <a href="#" class="f-nom lien" data-url="${esc(f.webViewLink)}" title="${esc([...(f.dossiers || []), f.name].join(' / '))}">${esc(f.name)}</a>
+              ${p.k === 'ailleurs' || p.k === 'medias' ? `<span class="nt f-chemin" title="${esc((f.dossiers || []).join(' / '))}">📁 ${esc((f.dossiers || []).map(BK.dossiers.joli).join(' / ') || 'Mon Drive')}</span>` : ''}
+              <span class="nt f-meta">${date(f.modifiedTime)}${f.size ? ' · ' + Math.max(1, Math.round(f.size / 1e6)) + ' Mo' : ''}</span>
+              ${/\.(wav|mp3)$/i.test(f.name) ? `<button class="btn xs" data-ecoute="${f.id}" data-nom="${esc(f.name)}" title="Écouter">▶</button><button class="btn xs" data-dreel="${f.id}" data-nom="${esc(f.name)}">→ Reel</button>` : ''}</div>`).join('')}
+              ${p.l.length > 30 ? `<span class="nt">… et ${p.l.length - 30} autre(s)</span>` : ''}</div></div>`).join('')
+          : '<span class="nt">Rien trouvé dans le Drive pour ce morceau. Dans Médias, tu peux étiqueter des fichiers pour ce morceau.</span>';
+        $$('.drive-sec', el).forEach(b => b.onclick = () => { const bl = b.parentElement, k = bl.dataset.sec; sectionsFermees[k] = !sectionsFermees[k]; BK.regler('biblio.sections', sectionsFermees);
+          bl.classList.toggle('ferme', !!sectionsFermees[k]); $('.fleche', b).textContent = sectionsFermees[k] ? '▸' : '▾'; });
         $$('.lien', el).forEach(a => a.onclick = e => { e.preventDefault(); BK.ouvrirLien(a.dataset.url); });
         $$('[data-dreel]', el).forEach(b => b.onclick = async () => { try { msg('Téléchargement depuis le Drive…'); const o = await BK.drive.telecharger(b.dataset.dreel); BK.ouvrir('reels'); await BK.reelsCharger(new File([o], b.dataset.nom)); } catch (e) { msg('Téléchargement impossible'); } });
-      } catch (e) { el.innerHTML = '<span class="nt">Drive injoignable pour l\'instant.</span>'; }
+        $$('[data-ecoute]', el).forEach(b => b.onclick = () => lecteur.jouer(m, { drive: b.dataset.ecoute, nom: b.dataset.nom }));
+      } catch (e) { console.error(e); el.innerHTML = '<span class="nt">Drive injoignable pour l\'instant.</span>'; }
     }
   }
+
+  // ---------- le lecteur : un seul son à la fois, sous chaque morceau ----------
+  const lecteur = {
+    audio: new Audio(), id: null, urls: {}, nom: {},
+    // ce qu'on écoute : l'export principal (ce PC ou Drive), sinon le plus récent du Drive
+    async source(m) {
+      const exps = BK.inv.exportsDe(m, B.fichiers, B.morceaux);
+      const ici = exps.find(x => x.ici && !x.drive), drv = exps.find(x => x.drive);
+      if (exps[0] && exps[0].drive) return { drive: exps[0].driveId, nom: exps[0].nom };
+      if (exps[0] && exps[0].ici) return { chemin: exps[0].chemin, nom: exps[0].nom };
+      if (ici) return { chemin: ici.chemin, nom: ici.nom };
+      if (drv) return { drive: drv.driveId, nom: drv.nom };
+      if (BK.drive.relie()) {
+        const parts = await BK.biblioDrive(m), son = k => ((parts.find(p => p.k === k) || {}).l || []).find(f => /\.(wav|mp3)$/i.test(f.name) && !/tournage/i.test(f.name));
+        const f = son('cl') || son('ableton') || son('ailleurs'); if (f) return { drive: f.id, nom: f.name };
+      }
+      return null;
+    },
+    async octets(src) { return src.drive ? BK.drive.telecharger(src.drive) : BK.fichier.lireOctets(src.chemin); },
+    async jouer(m, src) {
+      const a = lecteur.audio;
+      if (!src && lecteur.id === m.id && lecteur.urls[m.id]) { a.paused ? a.play() : a.pause(); return lecteur.maj(); }
+      a.pause(); lecteur.id = m.id; lecteur.maj('…');
+      try {
+        src = src || await lecteur.source(m);
+        if (!src) { lecteur.id = null; lecteur.maj(); return msg('Aucun export à écouter : ajoute-le dans la fiche'); }
+        if (!BK.estExe && src.chemin) { lecteur.id = null; lecteur.maj(); return msg('Disponible dans le logiciel installé'); }
+        const cle = m.id + '|' + (src.drive || src.chemin);
+        if (!lecteur.urls[cle]) { msg('Chargement de ' + src.nom + '…'); lecteur.urls[cle] = URL.createObjectURL(new Blob([await lecteur.octets(src)])); }
+        lecteur.urls[m.id] = lecteur.urls[cle]; lecteur.nom[m.id] = src.nom;
+        a.src = lecteur.urls[cle]; await a.play(); msg('▶ ' + src.nom);
+      } catch (e) { console.error(e); lecteur.id = null; msg('Lecture impossible'); }
+      lecteur.maj();
+    },
+    maj(etat) {
+      for (const el of $$('.lecteur', page)) {
+        const moi = el.dataset.lect === lecteur.id, a = lecteur.audio, d = moi && a.duration ? a.duration : 0;
+        $('.lect-play', el).textContent = moi && etat ? '…' : moi && !a.paused ? '❚❚' : '▶';
+        $('.lect-barre i', el).style.width = d ? (a.currentTime / d * 100) + '%' : '0';
+        $('.lect-t', el).textContent = d ? `${BK.audio.temps(a.currentTime).replace(/\.\d$/, '')} / ${BK.audio.temps(d).replace(/\.\d$/, '')}` : '';
+        $('.lect-src', el).textContent = lecteur.nom[el.dataset.lect] || '';
+      }
+    },
+  };
+  ['timeupdate', 'pause', 'play', 'ended', 'loadedmetadata'].forEach(ev => lecteur.audio.addEventListener(ev, () => lecteur.maj()));
 
   // morceaux qui ont un dossier dans « Ableton Projects » mais pas encore de fiche
   async function morceauxDuDrive() {
@@ -124,42 +171,52 @@ BK.module('biblio', function (page) {
     const t = (id, titre, resume, corps) => { const o = (B.tiroirs[m.id] || []).includes(id);
       return `<div class="tiroir${o ? ' ouvert' : ''}" data-t="${id}"><button class="tiroir-tete"><span class="fleche">${o ? '▾' : '▸'}</span><span class="lb">${titre}</span><span class="nt tiroir-resume">${resume}</span></button>${o ? `<div class="tiroir-corps">${corps()}</div>` : ''}</div>`; };
     return `<article class="fiche${ouvert ? ' ouverte' : ''}" data-id="${m.id}">
-      <button class="fiche-tete">
-        <span class="fiche-nom">${esc(m.nom)}</span>
-        <span class="dymo sm">${m.statut === 'sorti' ? 'Sorti' : BK.etapes[Math.min(m.fait || 0, 5)].nom}</span>
-        <span class="mini-etapes">${BK.etapes.map((e, i) => `<i class="${i < (m.fait || 0) ? 'fait' : i === (m.fait || 0) ? 'encours' : ''}" style="flex:${e.poids}"></i>`).join('')}</span>
-        <span class="vfd fiche-pc">${pc} %</span><span class="fleche">${ouvert ? '▾' : '▸'}</span></button>
+      <div class="fiche-haut">
+        <button class="fiche-photo${m.photo ? '' : ' vide'}" data-act="photo" title="Choisir la photo du morceau" ${m.photo ? `style="background-image:url(${m.photo})"` : ''}>${m.photo ? '' : '🖼'}</button>
+        <div class="fiche-droite">
+          <button class="fiche-tete">
+            <span class="fiche-nom">${esc(m.nom)}</span>
+            <span class="dymo sm">${m.statut === 'sorti' ? 'Sorti' : BK.etapes[Math.min(m.fait || 0, 5)].nom}</span>
+            <span class="mini-etapes">${BK.etapes.map((e, i) => `<i class="${i < (m.fait || 0) ? 'fait' : i === (m.fait || 0) ? 'encours' : ''}" style="flex:${e.poids}"></i>`).join('')}</span>
+            <span class="vfd fiche-pc">${pc} %</span><span class="fleche">${ouvert ? '▾' : '▸'}</span></button>
+          <div class="lecteur" data-lect="${m.id}"><button class="lect-play" title="Écouter l'export principal">▶</button><div class="lect-barre"><i></i></div><span class="lect-t mono"></span><span class="nt lect-src"></span></div>
+        </div>
+      </div>
       ${ouvert ? `<div class="fiche-corps">
         ${t('exports', 'Exports', exps.length ? `${exps.length} fichier(s) · principal : ${esc(exps[0].nom)}` : 'aucun', () => (exps.length ? exps.map((x, i) => `
           <div class="ligne-f${i === 0 ? ' recent' : ''}"><button class="etoile etoile-b${i === 0 ? ' on' : ''}" data-princ="${esc(x.chemin)}" title="${i === 0 ? 'Version principale' : 'En faire la version principale'}">${i === 0 ? '★' : '☆'}</button>
             <span class="mono f-nom" title="${esc(x.chemin)}">${esc(x.nom)}</span>
             <span class="nt f-meta">${date(x.modif)} · ${esc(x.pc)}${x.manuel ? ' · ajouté à la main' : ''}</span>
             <input class="fld f-note" data-f="${esc(x.nom)}" placeholder="note…" value="${esc((m.notesExports || {})[x.nom] || '')}">
-            ${x.ici ? `<button class="btn xs" data-reel="${esc(x.chemin)}" data-nom="${esc(x.nom)}">→ Reel</button>` : ''}
+            ${x.drive ? `<button class="btn xs" data-ecoute="${esc(x.driveId)}" data-nom="${esc(x.nom)}" title="Écouter">▶</button><button class="btn xs" data-dreel="${esc(x.driveId)}" data-nom="${esc(x.nom)}">→ Reel</button>`
+              : x.ici ? `<button class="btn xs" data-reel="${esc(x.chemin)}" data-nom="${esc(x.nom)}">→ Reel</button>` : ''}
             <button class="btn xs" data-remplacer="${esc(x.chemin)}" title="Choisir une autre version à la place">Remplacer…</button>
             <button class="btn xs" data-expx="${esc(x.chemin)}" title="Retirer de la fiche (le fichier n'est pas effacé)">✕</button></div>`).join('') : '<span class="nt">Aucun export trouvé. Lance « Scanner ce PC », ou ajoute-le à la main.</span>')
           + ((m.exportsDiscord || []).length ? `<span class="nt" style="margin-top:8px">Vu sur Discord (Le Veilleur) :</span>` + m.exportsDiscord.slice(0, 5).map(x => `<div class="ligne-f"><span class="etoile">💬</span><span class="mono f-nom">${esc(x.fichier || '—')}</span>
             <span class="nt f-meta">${x.date ? date(x.date) : ''}${x.detail ? ' · ' + esc(x.detail) : ''}</span>${x.lien ? `<a href="#" class="lien btn xs" data-url="${esc(x.lien)}">voir</a>` : ''}</div>`).join('') : '')
-          + `<div class="chips" style="margin-top:8px"><button class="chip" data-act="ajexport">+ Ajouter un export…</button></div>`)}
+          + `<div class="chips" style="margin-top:8px"><button class="chip" data-act="ajexport">+ Ajouter un export de ce PC…</button>${BK.drive.relie() ? '<button class="chip" data-act="ajexportdrive">+ Ajouter un export du Drive…</button>' : ''}</div>`)}
         ${t('projets', 'Projets Ableton', als.length ? `${als.filter(x => !x.sauvegarde).length} version(s) · ${als.some(x => !x.ici && als[0] === x) ? '⚠ la plus récente n\'est pas sur ce PC' : 'à jour'}` : 'aucun', () => als.length ? als.map((x, i) => `
           <div class="ligne-f${i === 0 ? ' recent' : ''}"><span class="etoile">${i === 0 ? '★' : ''}</span><span class="mono f-nom" title="${esc(x.chemin)}">${esc(x.nom)}${x.sauvegarde ? ' <em>(sauvegarde auto)</em>' : ''}</span>
             <span class="nt f-meta">${date(x.modif)} · ${esc(x.pc)}${/[\\/]my drive[\\/]|[\\/]mon drive[\\/]|^g:/i.test(x.chemin) ? ' · Drive ✓' : ''}</span>
             ${x.ici ? `<button class="btn xs" data-ouvrir="${esc(x.chemin)}">Ouvrir</button>` : '<span class="nt f-meta">sur un autre PC</span>'}</div>`).join('') : '<span class="nt">Aucun projet trouvé. Ajoute ton dossier de projets Ableton à droite, puis « Scanner ce PC ».</span>')}
         ${t('paroles', 'Paroles', m.paroles ? m.paroles.split('\n').filter(Boolean).length + ' lignes' : 'vides', () => `
           <textarea class="fld paroles" data-champ="paroles" placeholder="[COUPLET 1]&#10;…&#10;[REFRAIN]&#10;…">${esc(m.paroles || '')}</textarea>
-          <div class="chips" style="margin-top:8px"><button class="chip" data-act="plein">Plein écran</button><button class="chip" data-act="copier">Copier pour le distributeur</button></div>`)}
+          <div class="chips" style="margin-top:8px"><button class="chip" data-act="plein">Plein écran</button><button class="chip" data-act="copier">Copier pour le distributeur</button><button class="chip" data-act="paroles" title="Ouvre la recherche dans ton navigateur : copie-colle les paroles ici">🔎 Chercher les paroles</button></div>`)}
         ${t('infos', 'Infos', [m.bpm && m.bpm + ' BPM', m.ton, m.duree, m.sortie && 'sortie ' + m.sortie].filter(Boolean).join(' · ') || '—', () => `
           <div class="infos">
             <label><span class="eng">BPM</span><input class="fld" data-champ="bpm" value="${esc(m.bpm || '')}"></label>
             <label><span class="eng">Tonalité</span><input class="fld" data-champ="ton" value="${esc(m.ton || '')}" placeholder="ex. Mi mineur"></label>
             <label><span class="eng">Durée</span><input class="fld" data-champ="duree" value="${esc(m.duree || '')}" placeholder="3:45"></label>
             <label><span class="eng">Date de sortie</span><input class="fld" type="date" data-champ="sortie" value="${esc(m.sortie || '')}"></label>
+            <label><span class="eng">Artiste original (reprise)</span><input class="fld" data-champ="artiste" value="${esc(m.artiste || '')}" placeholder="ex. Mika Nakashima"></label>
             <label><span class="eng">Autres noms du fichier</span><input class="fld" data-champ="alias" value="${esc((m.alias || []).join(', '))}" placeholder="ex. morceauA, MorcA"></label>
-          </div>`)}
+          </div>
+          <div class="chips" style="margin-top:8px"><button class="chip" data-act="analyser" title="Lit l'export principal et remplit la durée, le BPM et la tonalité">🎚 Analyser l'export (durée, BPM, tonalité)</button></div>
+          <span class="nt">La tonalité est une estimation : vérifie à l'oreille.</span>`)}
         ${t('avance', 'Avancement', `${BK.etapes[Math.min(m.fait || 0, 5)].nom} · ${pc} %`, () => `
           <div class="etapes-clic">${BK.etapes.map((e, i) => `<button class="etape-b ${i < (m.fait || 0) ? 'fait' : i === (m.fait || 0) ? 'encours' : ''}" data-etape="${i}">${e.nom}</button>`).join('')}</div>
           <span class="nt">Clique sur une étape quand elle est terminée.</span>`)}
-        ${t('liens', 'Drive BEESKOT', ((m.liens || []).length ? m.liens.length + ' lien(s) · ' : '') + (BK.drive.relie() ? 'projets, exports CL, WAV de tournage…' : 'Drive non relié'), () => `
+        ${t('liens', 'Drive BEESKOT', ((m.liens || []).length ? m.liens.length + ' lien(s) · ' : '') + (BK.drive.relie() ? 'projets, exports, tournages, photos…' : 'Drive non relié'), () => `
           ${BK.drive.relie() ? `<div class="drive-res" data-m="${m.id}"><span class="nt"><span class="spin"></span>Recherche dans le Drive…</span></div>` : ''}
           ${(m.liens || []).map((l, i) => `<div class="ligne-f"><span class="etoile">🔗</span><a href="#" class="f-nom lien" data-url="${esc(l.url)}" title="${esc(l.url)}">${esc(l.titre || l.url)}</a><button class="btn xs" data-lienx="${i}">✕</button></div>`).join('')}
           <div class="lien-aj"><input class="fld" data-lien="titre" placeholder="ex. Projet Ableton v8 (zipper)"><input class="fld" data-lien="url" placeholder="colle le lien Google Drive…"><button class="btn xs" data-act="lien">+ Ajouter</button></div>
@@ -190,6 +247,30 @@ BK.module('biblio', function (page) {
         <select class="fld f-sel"><option value="">relier à…</option>${opts}</select><button class="btn xs" data-act="creer">+ Fiche</button></div>`).join('');
   }
 
+  // ---------- la photo du morceau (petite, rangée dans la fiche) ----------
+  function reduire(blob, max = 320) {
+    return new Promise((ok, ko) => { const im = new Image(), u = URL.createObjectURL(blob);
+      im.onload = () => { const k = Math.min(1, max / Math.max(im.width, im.height)), c = document.createElement('canvas'); c.width = Math.round(im.width * k); c.height = Math.round(im.height * k);
+        c.getContext('2d').drawImage(im, 0, 0, c.width, c.height); URL.revokeObjectURL(u); ok(c.toDataURL('image/jpeg', 0.82)); };
+      im.onerror = () => { URL.revokeObjectURL(u); ko(new Error('Image illisible')); }; im.src = u; });
+  }
+  function photo(m) {
+    const v = document.createElement('div'); v.className = 'voile';
+    v.innerHTML = `<div class="stopbox" style="width:380px"><span class="dymo">Photo de ${esc(m.nom)}</span>
+      <div class="stopbox-btns" style="flex-direction:column">${BK.drive.relie() ? '<button class="btn pri" data-p="drive">Choisir dans le Drive…</button>' : ''}<button class="btn" data-p="pc">Choisir sur ce PC…</button>${m.photo ? '<button class="btn" data-p="x">Enlever la photo</button>' : ''}</div>
+      <button class="btn sm" data-p="annuler">Annuler</button><input type="file" accept="image/*" hidden></div>`;
+    document.body.appendChild(v);
+    const fin = async url => { v.remove(); if (url === undefined) return; m.photo = url; await sauver(m); msg(url ? 'Photo enregistrée' : 'Photo enlevée'); rendre(); };
+    v.onclick = async e => { const b = e.target.closest('[data-p]'); if (!b) return;
+      if (b.dataset.p === 'annuler') return fin(undefined);
+      if (b.dataset.p === 'x') return fin('');
+      if (b.dataset.p === 'pc') return $('input', v).click();
+      if (b.dataset.p === 'drive') { v.style.display = 'none'; const l = await BK.explorerDrive({ titre: 'Photo de ' + m.nom, mode: 'image', depart: 'photovideo' });
+        if (!l || !l[0]) return fin(undefined);
+        try { const r = await BK.drive.api(`/files/${l[0].id}?alt=media`); fin(await reduire(await r.blob())); } catch (e) { msg('Image illisible'); fin(undefined); } } };
+    $('input', v).onchange = async e => { const f = e.target.files[0]; if (!f) return; try { fin(await reduire(f)); } catch (er) { msg(er.message); fin(undefined); } };
+  }
+
   // ---------- actions ----------
   async function sauver(m) { await BK.db.ecrire('morceaux', m); }
   async function choisirExport() {                 // choisir un WAV / MP3 sur ce PC
@@ -201,6 +282,10 @@ BK.module('biblio', function (page) {
   function brancherFiches() {
     $$('.fiche', page).forEach(el => {
       const m = B.morceaux.find(x => x.id === el.dataset.id);
+      $('.lect-play', el).onclick = () => lecteur.jouer(m);
+      $('.lect-barre', el).onclick = e => { if (lecteur.id !== m.id || !lecteur.audio.duration) return; const r = e.currentTarget.getBoundingClientRect(); lecteur.audio.currentTime = (e.clientX - r.left) / r.width * lecteur.audio.duration; };
+      $$('[data-ecoute]', el).forEach(b => b.onclick = () => lecteur.jouer(m, { drive: b.dataset.ecoute, nom: b.dataset.nom }));
+      $$('[data-dreel]', el).forEach(b => b.onclick = async () => { try { msg('Téléchargement depuis le Drive…'); const o = await BK.drive.telecharger(b.dataset.dreel); BK.ouvrir('reels'); await BK.reelsCharger(new File([o], b.dataset.nom)); } catch (e) { msg('Téléchargement impossible'); } });
       $('.fiche-tete', el).onclick = () => { B.ouverts.has(m.id) ? B.ouverts.delete(m.id) : B.ouverts.add(m.id); BK.regler('biblio.ouverts', [...B.ouverts]); rendre(); };
       $$('.tiroir-tete', el).forEach(b => b.onclick = () => {
         const id = b.parentElement.dataset.t, l = B.tiroirs[m.id] = B.tiroirs[m.id] || [];
@@ -233,6 +318,20 @@ BK.module('biblio', function (page) {
         if (a === 'suppr') { if (confirm(`Retirer « ${m.nom} » de la Bibliothèque ?\n(La fiche est rangée dans la corbeille du Drive, et aucun fichier audio ou Ableton n'est touché.)`)) { await BK.db.supprimer('morceaux', m.id); await charger(); } }
         if (a === 'ajexport') { const f = await choisirExport(); if (!f) return; m.exportsManuels = (m.exportsManuels || []).filter(x => x.chemin !== f.chemin); m.exportsManuels.push(f);
           m.exportsCaches = (m.exportsCaches || []).filter(c => c !== f.chemin); await sauver(m); msg('Export ajouté'); rendre(); }
+        if (a === 'ajexportdrive') {
+          const l = await BK.explorerDrive({ titre: 'Export de « ' + m.nom + ' » dans le Drive', mode: 'audio', depart: 'cl' }); if (!l || !l[0]) return;
+          const f = l[0], x = { chemin: 'drive:' + f.id, driveId: f.id, drive: true, nom: f.name, pc: 'Drive', modif: f.modifiedTime || new Date().toISOString() };
+          m.exportsManuels = (m.exportsManuels || []).filter(y => y.chemin !== x.chemin); m.exportsManuels.push(x); m.exportPrincipal = x.chemin;
+          await sauver(m); msg('Export du Drive ajouté'); rendre(); }
+        if (a === 'photo') photo(m);
+        if (a === 'paroles') BK.ouvrirLien('https://www.google.com/search?q=' + encodeURIComponent(['paroles', m.artiste, m.nom, 'lyrics'].filter(Boolean).join(' ')));
+        if (a === 'analyser') {
+          const src = await lecteur.source(m); if (!src) return msg('Aucun export à analyser : ajoute-le dans la fiche');
+          if (!BK.estExe && src.chemin) return msg('Disponible dans le logiciel installé');
+          try { msg('Analyse de ' + src.nom + '…'); const buf = await BK.audio.decoder(await lecteur.octets(src));
+            const r = await BK.audio.analyser(buf, p => msg('Analyse… ' + Math.round(p * 100) + ' %'));
+            Object.assign(m, { duree: r.duree, bpm: String(r.bpm), ton: r.ton }); await sauver(m); msg(`${r.duree} · ${r.bpm} BPM · ${r.ton}`); rendre(); }
+          catch (e) { console.error(e); msg('Analyse impossible'); } }
         if (a === 'copier') { await navigator.clipboard.writeText(BK.parolesPropres(m.paroles)); msg('Paroles copiées'); }
         if (a === 'plein') BK.pleinEcran(m.nom, m.paroles);
         if (a === 'lien') { const u = $('[data-lien="url"]', el).value.trim(); if (!/^https?:\/\//i.test(u)) return msg('Colle un lien qui commence par https://');
