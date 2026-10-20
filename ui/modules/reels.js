@@ -28,7 +28,7 @@ BK.module('reels', function (page) {
 
   $('.grid', page).innerHTML = `
     <div class="cols">
-      <section class="pane vit" aria-label="Vitrine"><span class="ptitle">① Vitrine</span>
+      <section class="pane vit" aria-label="Vitrine">
         <div class="seg reel-src" id="reSrc"><button data-s="fichier">Charger un fichier</button><button data-s="biblio">Depuis la Bibliothèque</button></div>
         <div class="box pick" id="reZoneF">
           <div><span class="lb">Fichier</span><span class="nt mono" id="reFich">Glisse un WAV ou un MP3 ici, ou clique sur Charger</span></div>
@@ -43,9 +43,11 @@ BK.module('reels', function (page) {
         </div>
         <div class="box">
           <div class="ligne-titre"><span class="lb">Passage</span>
-            <span class="nt" style="margin:0 0 0 auto">Glisse le bloc · tire ses bords · <b>I</b> / <b>O</b> = début / fin à la tête de lecture</span></div>
+            <span class="nt" style="margin:0 0 0 auto">Glisse le bloc · tire ses bords · <b>I</b> / <b>O</b> · molette = zoom</span>
+            <span class="onde-zoom"><span class="eng">Zoom</span><button class="btn xs" id="reZm" title="Dézoomer">−</button><button class="btn xs" id="reZp" title="Zoomer (ou molette sur la forme d'onde)">+</button><button class="btn xs" id="reZpass" title="Zoomer sur le passage">⤢ Passage</button><button class="btn xs" id="reZtout">Tout</button></span></div>
           <div class="onde reel-onde" id="reOnde">
             <canvas id="reCanvas"></canvas>
+            <div class="onde-tourn hidden" id="reTourn"><span class="onde-pre" id="rePre"></span><span class="tourn-txt" id="reTournTxt"></span></div>
             <div class="onde-bloc hidden" id="reBloc"><span class="poignee g"></span><span class="bloc-txt" id="reBlocTxt"></span><span class="poignee d"></span></div>
             <div class="onde-tete hidden" id="reTete"></div>
             <span class="nt onde-vide" id="reVide">Aucun morceau chargé</span>
@@ -55,7 +57,7 @@ BK.module('reels', function (page) {
             <div><span class="eng">Début</span><span class="vfd" id="reDeb">—</span></div>
             <div><span class="eng">Fin</span><span class="vfd" id="reFin">—</span></div>
             <div><span class="eng">Reel (montage)</span><span class="vfd" id="reDurM">—</span></div>
-            <div><span class="eng">Musique de tournage</span><span class="vfd" id="reDurT">—</span></div>
+            <div><span class="eng">Musique de tournage</span><span class="vfd-play"><span class="vfd" id="reDurT">—</span><button class="btn xs ecoute-mini bleu" id="reEcouteT2" title="Écouter la version pour le tournage" disabled>▶</button></span></div>
             <div class="compteurs-btn">
               <button class="btn sm" id="reI" title="Début ici (touche I)">I</button>
               <button class="btn sm" id="reO" title="Fin ici (touche O)">O</button>
@@ -64,8 +66,8 @@ BK.module('reels', function (page) {
         </div>
         <div class="box reel-ecoute"><span class="lb">Écouter</span>
           <div class="reel-ecoute-btns">
-            <button class="btn ecoute warm" id="reEcouteT" disabled>▶ Version pour le tournage</button>
-            <button class="btn ecoute" id="rePlay" disabled>▶ Version pour le Reel</button>
+            <button class="btn ecoute bleu" id="reEcouteT" disabled>▶ Version pour le tournage</button>
+            <button class="btn ecoute orange" id="rePlay" disabled>▶ Version pour le Reel</button>
           </div>
           <span class="nt" id="reEcouteTxt">Tu entends exactement les fichiers qui seront exportés. Barre d'espace : écoute libre du morceau.</span>
         </div>
@@ -83,7 +85,7 @@ BK.module('reels', function (page) {
           <span class="nt">La note reste toujours la même (ni plus aiguë, ni plus grave).</span></div>
         <div class="box"><span class="lb">Avant le passage (tournage)</span>
           <div class="chips" style="margin-top:8px"><button class="chip" id="reClic">Clic d'élan 1-2-3-4 ×2</button></div>
-          <div class="reel-bpm"><span class="eng">Tempo</span><input class="fld" id="reBpm" inputmode="decimal" placeholder="BPM"><button class="btn xs" id="reTap" title="Tape en rythme 4 fois ou plus">Taper</button></div>
+          <div class="reel-bpm"><span class="eng">Tempo</span><input class="fld" id="reBpm" inputmode="decimal" placeholder="BPM"><button class="btn xs" id="reTap" title="Tape en rythme 4 fois ou plus">Taper</button><span class="nt" id="reBpmLien" style="margin:0"></span></div>
           <span class="nt" id="reClicTxt">Le clic démarre pile 2 mesures avant le passage : place le début du bloc sur un premier temps.</span>
           <div class="chips" style="margin-top:10px" id="reElan"><button class="chip on" data-e="0">Sans élan musical</button><button class="chip" data-e="2">Élan 2 s</button><button class="chip" data-e="4">Élan 4 s</button></div>
           <div class="chips" style="margin-top:8px"><button class="chip" id="reFondu">Fondu de fin (1 s)</button></div></div>
@@ -117,20 +119,48 @@ BK.module('reels', function (page) {
   async function remplirVersions() {
     const m = (R.morceaux || []).find(x => x.id === $('#reMorceau').value), v = $('#reVersion'), avant = v.value;
     if (!m) { v.innerHTML = '<option value="">—</option>'; return; }
-    const fs = BK.inv.exportsDe(m, await BK.inv.tous(), R.morceaux).filter(f => f.ici);
-    v.innerHTML = fs.length ? fs.map((f, i) => `<option value="${esc(f.chemin)}">${i === 0 ? '★ ' : ''}${esc(f.nom)}</option>`).join('')
-      : '<option value="">aucun export sur ce PC : ajoute-le dans la fiche (Bibliothèque › Exports)</option>';
-    if (avant && fs.some(f => f.chemin === avant)) v.value = avant;
+    // l'export principal de la fiche d'abord, puis ceux de ce PC, puis ceux du Drive (CL, mix, masters…)
+    const ex = BK.inv.exportsDe(m, await BK.inv.tous(), R.morceaux).filter(f => f.ici || f.drive);
+    const opts = ex.map(f => ({ v: f.drive ? 'drive:' + f.driveId : f.chemin, nom: f.nom, ou: f.drive ? '☁' : '💻' }));
+    if (BK.drive.relie()) {
+      v.innerHTML = '<option value="">recherche dans le Drive…</option>';
+      try {
+        await BK.dossiers.assurer(); const l = await BK.dossiers.duMorceau(m, R.morceaux), vus = new Set(opts.map(o => o.v));
+        const rang = f => ({ cl: 0, recording: 1, ableton: 2 }[f.role] ?? 3);
+        l.filter(f => /\.(wav|mp3|aiff?|flac)$/i.test(f.name) && !/tournage/i.test(f.name) && f.role !== 'wavtournage')
+          .sort((a, b) => rang(a) - rang(b) || (b.modifiedTime || '').localeCompare(a.modifiedTime || ''))
+          .forEach(f => { if (!vus.has('drive:' + f.id)) opts.push({ v: 'drive:' + f.id, nom: f.name, ou: '☁' }); });
+      } catch (e) {}
+      if (($('#reMorceau').value) !== m.id) return;
+    }
+    v.innerHTML = opts.length ? opts.map((o, i) => `<option value="${esc(o.v)}">${i === 0 ? '★ ' : ''}${o.ou} ${esc(o.nom)}</option>`).join('')
+      : '<option value="">aucun export trouvé : ajoute-le dans la fiche (Bibliothèque › Exports)</option>';
+    if (avant && opts.some(o => o.v === avant)) v.value = avant;
     if (m.bpm && !R.clicBpmManuel) { R.bpm = parseFloat(String(m.bpm).replace(',', '.')) || 0; $('#reBpm').value = m.bpm; }
+    return opts;
   }
-  $('#reMorceau').onchange = remplirVersions;
-  $('#reCharger').onclick = async () => {
-    const p = $('#reVersion').value; if (!p) return msg('Choisis une version');
-    if (!BK.estExe) return msg('Disponible dans le logiciel installé');
-    try { msg('Lecture…'); const o = await BK.fichier.lireOctets(p); await charger(new File([o], p.split(/[\\/]/).pop())); } catch (e) { msg('Fichier illisible'); }
-  };
+  async function chargerVersion() {
+    const p = $('#reVersion').value; if (!p) return msg('Aucun export pour ce morceau');
+    const nom = ($('#reVersion').selectedOptions[0] || {}).textContent.replace(/^★ /, '').replace(/^\S+ /, '');
+    try {
+      if (p.startsWith('drive:')) { msg('Téléchargement de ' + nom + '…'); await charger(new File([await BK.drive.telecharger(p.slice(6))], nom)); }
+      else { if (!BK.estExe) return msg('Disponible dans le logiciel installé'); msg('Lecture…'); await charger(new File([await BK.fichier.lireOctets(p)], p.split(/[\\/]/).pop())); }
+    } catch (e) { msg('Fichier illisible'); }
+  }
+  $('#reMorceau').onchange = async () => { const o = await remplirVersions(); if (o && o.length) chargerVersion(); };     // on choisit le morceau : il se charge tout seul
+  $('#reVersion').onchange = chargerVersion;
+  $('#reCharger').onclick = chargerVersion;
 
   // ---------- chargement ----------
+  // le tempo vient du morceau : celui de sa fiche, sinon on le mesure (et on le range dans la fiche)
+  async function lierTempo() {
+    if (R.clicBpmManuel || !R.buffer) return;
+    const ms = R.morceaux || await BK.db.liste('morceaux'), m = R.source === 'biblio' ? ms.find(x => x.id === $('#reMorceau').value) : BK.inv.trouverMorceau(R.nom, ms);
+    if (m && m.bpm) { R.bpm = parseFloat(String(m.bpm).replace(',', '.')) || 0; $('#reBpm').value = m.bpm; $('#reBpmLien').textContent = '🔗 ' + m.nom; majClic(); return; }
+    try { const a = await BK.audio.analyser(R.buffer); R.bpm = a.bpm; $('#reBpm').value = a.bpm; $('#reBpmLien').textContent = m ? '🔗 ' + m.nom + ' (mesuré)' : '(mesuré)';
+      if (m && !m.bpm) { m.bpm = String(a.bpm); if (!m.ton) m.ton = a.ton; if (!m.duree) m.duree = a.duree; await BK.db.ecrire('morceaux', m); }
+      majClic(); } catch (e) {}
+  }
   async function charger(file) {
     try {
       msg('Lecture du fichier…'); stop();
@@ -143,8 +173,10 @@ BK.module('reels', function (page) {
       if (R.buffer.duration < R.duree) R.duree = Math.floor(R.buffer.duration);
       $('#reFich').textContent = file.name; $('#reNomH').textContent = R.nom.toUpperCase();
       $('#reVide').classList.add('hidden'); bloc.classList.remove('hidden');
-      ['#rePlay', '#reEcouteT', '#reExport'].forEach(s => $(s).disabled = false);
+      ['#rePlay', '#reEcouteT', '#reEcouteT2', '#reExport'].forEach(s => $(s).disabled = false);
+      R.vue = { a: 0, b: R.buffer.duration };
       dessiner(); maj(); msg('Prêt · ' + BK.audio.temps(R.buffer.duration));
+      lierTempo();
     } catch (e) { msg('Fichier illisible'); console.error(e); }
   }
   BK.reelsCharger = charger;                       // la Bibliothèque peut envoyer un morceau ici
@@ -154,18 +186,10 @@ BK.module('reels', function (page) {
   // On prend l'export principal de ce PC, sinon le plus récent du Drive (CL, Ableton Projects…).
   BK.reelsPasser = async ({ morceau, debut, fin }) => {
     BK.ouvrir('reels'); source('biblio'); await remplirMorceaux();
-    $('#reMorceau').value = morceau.id; await remplirVersions();
+    $('#reMorceau').value = morceau.id;
     try {
-      const v = $('#reVersion').value;
-      if (v && BK.estExe) { msg('Lecture…'); const o = await BK.fichier.lireOctets(v); await charger(new File([o], v.split(/[\\/]/).pop())); }
-      else if (BK.drive.relie()) {
-        msg('Recherche dans le Drive…'); await BK.dossiers.assurer();
-        const l = [];
-        for (const r of ['cl', 'ableton', 'wavtournage']) l.push(...(await BK.dossiers.fichiersSous(r).catch(() => [])).filter(f => /\.(wav|mp3)$/i.test(f.name) && !/tournage/i.test(f.name) && (BK.inv.trouverMorceau(f.name, R.morceaux) || {}).id === morceau.id));
-        l.sort((a, b) => (b.modifiedTime || '').localeCompare(a.modifiedTime || ''));
-        if (!l[0]) return msg('Aucun export de ' + morceau.nom + ' : ajoute-le dans sa fiche');
-        msg('Téléchargement de ' + l[0].name + '…'); await charger(new File([await BK.drive.telecharger(l[0].id)], l[0].name));
-      } else return msg('Aucun export de ' + morceau.nom + ' sur ce PC');
+      const o = await remplirVersions(); if (!o || !o.length) return msg('Aucun export de ' + morceau.nom + ' : ajoute-le dans sa fiche');
+      await chargerVersion();
       if (debut != null && fin > debut && R.buffer) { R.debut = debut; R.duree = Math.min(fin - debut, R.buffer.duration - debut); suivreDuree(); maj(); msg(`Passage ${BK.audio.temps(debut)} → ${BK.audio.temps(fin)} placé`); }
     } catch (e) { msg('Impossible : ' + e.message); }
   };
@@ -177,17 +201,36 @@ BK.module('reels', function (page) {
   page.addEventListener('drop', e => { e.preventDefault(); document.body.classList.remove('dropping'); const f = e.dataTransfer.files[0]; if (f) { source('fichier'); charger(f); } });
 
   // ---------- forme d'onde ----------
+  // la partie visible (zoom) : de R.vue.a à R.vue.b secondes
+  const vue = () => R.vue || { a: 0, b: R.buffer.duration };
+  const pc = t => { const v = vue(); return (t - v.a) / (v.b - v.a) * 100; };
+  function picsVue(w) {
+    const v = vue(), sr = R.buffer.sampleRate, d = R.buffer.getChannelData(0), d2 = R.buffer.numberOfChannels > 1 ? R.buffer.getChannelData(1) : d;
+    const a0 = Math.floor(v.a * sr), n = Math.max(1, Math.floor((v.b - v.a) * sr)), pas = n / w, out = new Float32Array(w * 2), saut = Math.max(1, Math.floor(pas / 64));
+    for (let i = 0; i < w; i++) { let mn = 1, mx = -1; const a = a0 + Math.floor(i * pas), b = Math.min(d.length, a0 + Math.floor((i + 1) * pas) + 1);
+      for (let j = a; j < b; j += saut) { const x = (d[j] + d2[j]) / 2; if (x < mn) mn = x; if (x > mx) mx = x; } if (mn > mx) mn = mx = 0; out[i * 2] = mn; out[i * 2 + 1] = mx; }
+    return out;
+  }
+  function zoomer(f, centre) {                       // f < 1 : zoom avant ; centre en secondes
+    if (!R.buffer) return; const D = R.buffer.duration, v = vue(), c = centre ?? (v.a + v.b) / 2;
+    let L = Math.max(2, Math.min(D, (v.b - v.a) * f)), a = c - (c - v.a) * (L / (v.b - v.a)); a = Math.max(0, Math.min(D - L, a));
+    R.vue = { a, b: a + L }; R.pics = null; dessiner(); maj(); montrerTete();
+  }
+  function decaler(dt) { if (!R.buffer) return; const D = R.buffer.duration, v = vue(), L = v.b - v.a, a = Math.max(0, Math.min(D - L, v.a + dt)); R.vue = { a, b: a + L }; R.pics = null; dessiner(); maj(); montrerTete(); }
   function dessiner() {
     if (!R.buffer) return;
     const w = onde.clientWidth, h = onde.clientHeight, dpr = window.devicePixelRatio || 1;
     cv.width = w * dpr; cv.height = h * dpr; cv.style.width = w + 'px'; cv.style.height = h + 'px';
-    if (!R.pics || R.pics.length !== w * 2) R.pics = BK.audio.pics(R.buffer, w);
+    const cleV = vue().a.toFixed(3) + '|' + vue().b.toFixed(3) + '|' + w;
+    if (!R.pics || R.picsCle !== cleV) { R.pics = picsVue(w); R.picsCle = cleV; }
     const g = cv.getContext('2d'); g.setTransform(dpr, 0, 0, dpr, 0, 0); g.clearRect(0, 0, w, h);
     const grad = g.createLinearGradient(0, 0, 0, h); grad.addColorStop(0, '#ffcf7a'); grad.addColorStop(.5, '#ffb23e'); grad.addColorStop(1, '#c97a12');
     g.fillStyle = grad; g.shadowColor = 'rgba(255,160,40,.5)'; g.shadowBlur = 4;
     for (let x = 0; x < w; x++) { const mn = R.pics[x * 2], mx = R.pics[x * 2 + 1]; g.fillRect(x, h / 2 - mx * h * .46, 1, Math.max(1, (mx - mn) * h * .46)); }
-    const D = R.buffer.duration, pas = D > 240 ? 30 : D > 120 ? 15 : 10;
-    $('#reRegle').innerHTML = Array.from({ length: Math.floor(D / pas) + 1 }, (_, i) => `<span style="left:${i * pas / D * 100}%">${BK.audio.temps(i * pas).replace(/\.\d$/, '')}</span>`).join('');
+    const v = vue(), L = v.b - v.a, pas = [0.5, 1, 2, 5, 10, 15, 30, 60].find(p => L / p <= 12) || 60, t0 = Math.ceil(v.a / pas) * pas, ticks = [];
+    for (let t = t0; t <= v.b + 1e-6; t += pas) ticks.push(t);
+    $('#reRegle').innerHTML = ticks.map(t => `<span style="left:${pc(t)}%">${pas < 1 ? BK.audio.temps(t) : BK.audio.temps(t).replace(/\.\d$/, '')}</span>`).join('');
+    $('#reZtout').disabled = L >= R.buffer.duration - 0.01;
   }
   new ResizeObserver(() => dessiner()).observe(onde);
 
@@ -199,8 +242,16 @@ BK.module('reels', function (page) {
     if (!R.buffer) return;
     const D = R.buffer.duration;
     R.duree = Math.min(R.duree, D); R.debut = Math.max(0, Math.min(R.debut, D - R.duree));
-    bloc.style.left = (R.debut / D * 100) + '%'; bloc.style.width = (R.duree / D * 100) + '%';
-    $('#reBlocTxt').textContent = Math.round(R.duree) + ' s';
+    bloc.style.left = pc(R.debut) + '%'; bloc.style.width = (pc(R.debut + R.duree) - pc(R.debut)) + '%';
+    $('#reBlocTxt').textContent = 'Reel ' + Math.round(R.duree) + ' s';
+    // la bande bleue : ce que dure vraiment le fichier de tournage (élan / clic compris, à la vitesse choisie)
+    const deux = deuxFichiers(), elan = R.clic ? 0 : R.elan, clicSrc = R.clic && R.bpm ? 8 * 60 / R.bpm : 0;
+    const t0 = R.debut - elan - clicSrc, dureeT = dureeClic() + (R.duree + elan) / R.v;
+    const tourn = $('#reTourn'); tourn.classList.toggle('hidden', !deux);
+    if (deux) { tourn.style.left = pc(t0) + '%'; tourn.style.width = (pc(R.debut + R.duree) - pc(t0)) + '%';
+      $('#rePre').style.width = (elan + clicSrc) / (R.duree + elan + clicSrc) * 100 + '%'; $('#rePre').textContent = R.clic ? '1-2-3-4 ×2' : elan ? 'élan' : '';
+      $('#rePre').classList.toggle('hidden', !(elan + clicSrc));
+      $('#reTournTxt').textContent = `Tournage ${Math.round(dureeT)} s${R.v !== 1 ? ' (×' + x2(R.v) + ')' : ''}`; }
     $('#reDeb').textContent = BK.audio.temps(R.debut); $('#reFin').textContent = BK.audio.temps(R.debut + R.duree);
     $('#reDurM').textContent = BK.audio.temps(R.duree);
     $('#reDurT').textContent = BK.audio.temps(dureeClic() + (R.duree + (R.clic ? 0 : R.elan)) / R.v);
@@ -226,16 +277,24 @@ BK.module('reels', function (page) {
 
   // ---------- glisser le bloc / ses bords ----------
   let drag = null;
-  const tempsA = clientX => { const r = onde.getBoundingClientRect(); return Math.max(0, Math.min(1, (clientX - r.left) / r.width)) * R.buffer.duration; };
+  const tempsA = clientX => { const r = onde.getBoundingClientRect(), v = vue(); return v.a + Math.max(0, Math.min(1, (clientX - r.left) / r.width)) * (v.b - v.a); };
+  const tempsBrut = clientX => { const r = onde.getBoundingClientRect(), v = vue(); return v.a + (clientX - r.left) / r.width * (v.b - v.a); };   // pour glisser au-delà du bord
   bloc.addEventListener('pointerdown', e => { if (!R.buffer) return; e.stopPropagation(); bloc.setPointerCapture(e.pointerId);
     drag = { mode: e.target.classList.contains('g') ? 'g' : e.target.classList.contains('d') ? 'd' : 'm', t0: tempsA(e.clientX), deb: R.debut, dur: R.duree }; });
-  bloc.addEventListener('pointermove', e => { if (!drag) return; const dt = tempsA(e.clientX) - drag.t0;
+  bloc.addEventListener('pointermove', e => { if (!drag) return; const dt = tempsBrut(e.clientX) - drag.t0;
     if (drag.mode === 'm') R.debut = drag.deb + dt;
     if (drag.mode === 'd') { R.duree = Math.max(3, drag.dur + dt); suivreDuree(); }
     if (drag.mode === 'g') { const fin = drag.deb + drag.dur; R.debut = Math.min(fin - 3, Math.max(0, drag.deb + dt)); R.duree = fin - R.debut; suivreDuree(); }
     maj(); });
   bloc.addEventListener('pointerup', () => { drag = null; });
   onde.addEventListener('pointerdown', e => { if (!R.buffer || e.target !== cv) return; audio.currentTime = tempsA(e.clientX); montrerTete(); });
+  onde.addEventListener('wheel', e => { if (!R.buffer) return; e.preventDefault();       // molette = zoom autour de la souris ; Maj + molette = se déplacer
+    if (e.shiftKey || Math.abs(e.deltaX) > Math.abs(e.deltaY)) { const v = vue(); decaler((e.deltaX || e.deltaY) / 400 * (v.b - v.a)); }
+    else zoomer(e.deltaY > 0 ? 1.25 : 0.8, tempsA(e.clientX)); }, { passive: false });
+  $('#reZp').onclick = () => zoomer(0.6, R.debut + R.duree / 2);
+  $('#reZm').onclick = () => zoomer(1 / 0.6, R.debut + R.duree / 2);
+  $('#reZpass').onclick = () => { if (!R.buffer) return; const D = R.buffer.duration, marge = Math.max(1, R.duree * 0.15), a = Math.max(0, R.debut - marge), b = Math.min(D, R.debut + R.duree + marge); R.vue = { a, b }; R.pics = null; dessiner(); maj(); montrerTete(); };
+  $('#reZtout').onclick = () => { if (!R.buffer) return; R.vue = { a: 0, b: R.buffer.duration }; R.pics = null; dessiner(); maj(); montrerTete(); };
   function suivreDuree() { const el = $('#reDuree'); el.value = Math.min(90, Math.round(R.duree)); el.knobMaj && el.knobMaj(); }
 
   // ---------- les 2 fichiers (fabriqués une fois, écoutés puis exportés tels quels) ----------
@@ -257,11 +316,11 @@ BK.module('reels', function (page) {
   }
 
   // ---------- écoute : on entend EXACTEMENT le fichier qui sera exporté ----------
-  function montrerTete(t = audio.currentTime) { if (!R.buffer) return; tete.classList.remove('hidden'); tete.style.left = (t / R.buffer.duration * 100) + '%'; }
+  function montrerTete(t = audio.currentTime) { if (!R.buffer) return; const p = pc(t); tete.classList.toggle('hidden', p < 0 || p > 100); tete.style.left = p + '%'; }
   function stop() {
     audio.pause(); cancelAnimationFrame(R.lecture); R.lecture = null;
     if (R.src) { try { R.src.onended = null; R.src.stop(); } catch (e) {} R.src = null; }
-    $('#reEcouteT').textContent = '▶ Version pour le tournage ×' + x2(R.v); majBouton();
+    $('#reEcouteT').textContent = '▶ Version pour le tournage ×' + x2(R.v); majBouton(); $('#reEcouteT2').textContent = '▶';
   }
   async function ecouter(tournage) {
     if (!R.buffer) return;
@@ -272,13 +331,14 @@ BK.module('reels', function (page) {
     const ctx = BK.audio.contexte(); if (ctx.state === 'suspended') await ctx.resume();
     const ab = ctx.createBuffer(f.canaux.length, f.canaux[0].length, f.sr); f.canaux.forEach((c, i) => ab.copyToChannel(c, i));
     const src = ctx.createBufferSource(); src.buffer = ab; src.connect(ctx.destination);
-    const v = tournage ? R.v : 1, t0 = ctx.currentTime + 0.05; src.start(t0); R.src = src; b.textContent = '■ Stop';
+    const v = tournage ? R.v : 1, t0 = ctx.currentTime + 0.05; src.start(t0); R.src = src; b.textContent = '■ Stop'; if (tournage) $('#reEcouteT2').textContent = '■';
     src.onended = () => { R.src = null; stop(); };
     const tic = () => { const e = ctx.currentTime - t0 - f.decal; if (e >= 0) montrerTete(R.debut + e * v); R.lecture = requestAnimationFrame(tic); };
     R.lecture = requestAnimationFrame(tic);
   }
   $('#rePlay').onclick = () => ecouter(false);
   $('#reEcouteT').onclick = () => ecouter(true);
+  $('#reEcouteT2').onclick = () => ecouter(true);
   document.addEventListener('keydown', e => {
     if (page.classList.contains('hidden') || !R.buffer || /INPUT|SELECT|TEXTAREA/.test(document.activeElement.tagName)) return;
     if (e.code === 'Space') { e.preventDefault(); if (R.src) stop(); if (audio.paused) { audio.play(); const tic = () => { montrerTete(); if (!audio.paused) R.lecture = requestAnimationFrame(tic); }; R.lecture = requestAnimationFrame(tic); } else stop(); }
@@ -294,7 +354,7 @@ BK.module('reels', function (page) {
   $$('#reElan .chip').forEach(c => c.onclick = () => { R.elan = +c.dataset.e; $$('#reElan .chip').forEach(x => x.classList.toggle('on', x === c)); maj(); });
   $('#reFondu').onclick = e => { R.fondu = !R.fondu; e.target.classList.toggle('on', R.fondu); };
   $('#reClic').onclick = () => { R.clic = !R.clic; majClic(); };
-  $('#reBpm').onchange = e => { R.bpm = parseFloat(e.target.value.replace(',', '.')) || 0; R.clicBpmManuel = true; majClic(); };
+  $('#reBpm').onchange = e => { R.bpm = parseFloat(e.target.value.replace(',', '.')) || 0; R.clicBpmManuel = true; $('#reBpmLien').textContent = '(à la main)'; majClic(); };
   let taps = [];
   $('#reTap').onclick = () => {                                // taper le tempo en rythme
     const t = performance.now(); taps = taps.filter(x => t - x < 3000); taps.push(t);

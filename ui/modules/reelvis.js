@@ -32,7 +32,7 @@ BK.module('reelvis', function (page) {
     <div><span class="eng" style="font-size:9px">Durée</span><span class="vfd" id="rvDurH">—</span></div>`;
   $('.grid', page).innerHTML = `
     <div class="cols">
-      <section class="pane vit rv-vit"><span class="ptitle">① Vitrine</span>
+      <section class="pane vit rv-vit">
         <div class="rv-scene">
           <div class="rv-tel"><div class="rv-ecran" id="rvEcran">
             <canvas id="rvCanvas" width="540" height="960"></canvas>

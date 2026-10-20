@@ -30,7 +30,7 @@ BK.module('renforts', function (page) {
     <div><span class="eng" style="font-size:9px">Gemini</span><span class="vfd" id="raGem">—</span></div>`;
   $('.grid', page).innerHTML = `
     <div class="cols">
-      <section class="pane vit ra-vit"><span class="ptitle">① Vitrine</span>
+      <section class="pane vit ra-vit">
         <div class="seg ra-volets" id="raVolets"><button data-v="veilleur">🍞 Miette</button><button data-v="question">Poser une question</button><button data-v="aides">Aides</button></div>
         <div class="ra-volet" id="raVolet"></div>
       </section>
@@ -138,8 +138,11 @@ BK.module('renforts', function (page) {
     $('#raDemQ').onclick = async () => {
       const q = $('#raQ').value.trim(); if (!q) return;
       if (!await BK.ia.pret()) return sansCle(`${await BK.ia.contexte()}\n\nJournal Discord :\n${BK.discord.texte((await BK.discord.journal(2)).slice(-600))}\n\nQuestion : ${q}`);
-      $('#raRep').innerHTML = '<span class="nt"><span class="spin"></span>Je cherche…</span>';
-      try { $('#raRep').innerHTML = `<div class="ra-texte">${esc(await BK.discord.question(q))}</div>`; } catch (e) { $('#raRep').innerHTML = `<span class="nt">${esc(e.message)}</span>`; }
+      const t0 = Date.now(), tic = setInterval(() => { const z = $('#raRep .ra-attente'); if (z) z.textContent = `Je cherche… ${Math.round((Date.now() - t0) / 1000)} s`; }, 1000);
+      $('#raRep').innerHTML = '<span class="nt"><span class="spin"></span><span class="ra-attente">Je cherche…</span></span>';
+      try { const r = await BK.discord.question(q); $('#raRep').innerHTML = `<div class="ra-texte">${esc(r)}</div><span class="nt">Réponse en ${Math.round((Date.now() - t0) / 1000)} s</span>`; }
+      catch (e) { $('#raRep').innerHTML = `<span class="nt">${esc(e.message)}</span>`; }
+      clearInterval(tic);
     };
   }
 

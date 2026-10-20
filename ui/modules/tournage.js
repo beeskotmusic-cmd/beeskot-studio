@@ -24,7 +24,7 @@ BK.module('tournage', function (page) {
   $('.hdr .right', page).innerHTML = `<div><span class="eng" style="font-size:9px">Prochain</span><span class="vfd" id="toProchain" style="width:220px">—</span></div>`;
   $('.grid', page).innerHTML = `
     <div class="cols">
-      <section class="pane vit to-vit"><span class="ptitle">① Vitrine</span><div class="to-fiche" id="toFiche"></div></section>
+      <section class="pane vit to-vit"><div class="to-fiche" id="toFiche"></div></section>
       <section class="pane reg" style="width:270px"><span class="ptitle">② Tournages</span>
         <button class="btn pri" id="toNouveau" style="width:100%;justify-content:center">+ Nouveau tournage</button>
         <button class="btn" id="toPlanXl" style="width:100%;justify-content:center;margin-top:8px">📋 PLAN.xlsx du Drive</button>

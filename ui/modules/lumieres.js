@@ -46,7 +46,7 @@ BK.module('lumieres', function (page) {
   $('.hdr .right', page).innerHTML = `<div><span class="eng" style="font-size:9px">Lampes</span><span class="vfd" id="luNb">—</span></div>`;
   $('.grid', page).innerHTML = `
     <div class="cols">
-      <section class="pane vit lu-vit"><span class="ptitle">① Vitrine</span>
+      <section class="pane vit lu-vit">
         <div class="box"><div class="ligne-titre"><span class="lb">Light Show (dossier 8 du Drive)</span><span class="nt" id="luIp" style="margin:0 0 0 auto"></span></div>
           <div class="lu-show" id="luShow"><span class="nt">Relie le Drive pour voir le Light Show.</span></div>
           <div class="lu-pierre"><button class="btn sm hidden" id="luPierre">▶ Autre programme LED (ce PC)</button><span class="nt" id="luPierreTxt"></span></div></div>

@@ -116,33 +116,43 @@ BK.dossiers = {
 
   // ---------- tout ce qui concerne un morceau dans le Drive : par son NOM, son DOSSIER, ou son ÉTIQUETTE ----------
   CHAMPS: 'id,name,mimeType,thumbnailLink,webViewLink,size,modifiedTime,parents,videoMediaMetadata(durationMillis)',
-  async duMorceau(m, morceaux) {
-    const carte = await BK.dossiers.carte(), estM = n => (BK.inv.trouverMorceau(n, morceaux) || {}).id === m.id;
-    const exclus = new Set(Object.keys(carte).filter(id => /^BEESKOT Studio$/i.test(carte[id].name)));
-    const dansExclu = pid => BK.dossiers.ancetres(pid, carte).some(a => exclus.has(a));
-    const out = new Map(), ajouter = f => { if (f.mimeType === BK.dossiers.FOLDER || /\.json$/i.test(f.name) || out.has(f.id)) return; const p = (f.parents || [])[0]; if (p && dansExclu(p)) return; out.set(f.id, f); };
-    const liste = async q => {
+  // TOUS les fichiers du Drive (sauf dossiers), lus une fois par pages de 1000 et gardés 10 min :
+  // ensuite on trie ici, sans dépendre de la recherche de Google (qui rate des noms comme « GLAMOROUSSKY_… »)
+  _tous: null, _tousEnCours: null,
+  async tousFichiers() {
+    if (BK.dossiers._tous && Date.now() - BK.dossiers._tous.t < 10 * 60e3) return BK.dossiers._tous.l;
+    if (BK.dossiers._tousEnCours) return BK.dossiers._tousEnCours;
+    BK.dossiers._tousEnCours = (async () => {
       const l = []; let page = '', n = 0;
       do {
-        const r = await (await BK.drive.api('/files?' + new URLSearchParams({ q: q + ' and trashed=false', fields: 'nextPageToken,files(' + BK.dossiers.CHAMPS + ')', pageSize: '500', pageToken: page }))).json();
+        const r = await (await BK.drive.api('/files?' + new URLSearchParams({ q: `mimeType!='${BK.dossiers.FOLDER}' and trashed=false`, fields: 'nextPageToken,files(' + BK.dossiers.CHAMPS + ')', pageSize: '1000', pageToken: page }))).json();
         l.push(...(r.files || [])); page = r.nextPageToken || ''; n++;
-      } while (page && n < 4);
+        if (n % 3 === 0) await BK.audio.pause();
+      } while (page && n < 40);
+      BK.dossiers._tous = { t: Date.now(), l }; BK.dossiers._tousEnCours = null;
       return l;
-    };
-    // 1) par le nom du fichier
-    const mots = [...new Set([m.nom, ...(m.alias || [])].map(x => BK.inv.normaliser(x).split(' ').sort((a, b) => b.length - a.length)[0]).filter(x => x && x.length >= 3))];
-    if (mots.length) for (const f of await liste('(' + mots.map(w => `name contains ${BK.drive.q(w)}`).join(' or ') + ')')) if (estM(f.name)) ajouter(f);
-    // 2) tout ce qui est rangé dans un dossier qui porte le nom du morceau (ex. ABLETON PROJECTS › MOTHER)
-    const dossiersM = Object.keys(carte).filter(id => estM(carte[id].name) && !dansExclu(id));
-    const tousD = Object.keys(carte).filter(id => BK.dossiers.ancetres(id, carte).some(a => dossiersM.includes(a)));
-    for (let i = 0; i < tousD.length; i += 25) for (const f of await liste('(' + tousD.slice(i, i + 25).map(id => `${BK.drive.q(id)} in parents`).join(' or ') + ')')) ajouter(f);
-    // 3) ce qui porte son étiquette (choisie à la main)
-    const tags = await BK.etiquettes.tous();
-    for (const [fid, mid] of Object.entries(tags)) if (mid === m.id && !out.has(fid)) { try { ajouter(await (await BK.drive.api(`/files/${fid}?fields=${BK.dossiers.CHAMPS}`)).json()); } catch (e) {} }
-    // on retire ce qui a été étiqueté pour un AUTRE morceau
-    const l = [...out.values()].filter(f => !tags[f.id] || tags[f.id] === m.id);
-    for (const f of l) { const p = (f.parents || [])[0]; f.dossiers = BK.dossiers.ancetres(p, carte).reverse().map(id => carte[id].name); f.role = await BK.dossiers.roleDe(p, carte); }
-    return l.sort((a, b) => (b.modifiedTime || '').localeCompare(a.modifiedTime || ''));
+    })();
+    try { return await BK.dossiers._tousEnCours; } catch (e) { BK.dossiers._tousEnCours = null; throw e; }
+  },
+  oublier() { BK.dossiers._tous = null; BK.dossiers._carte = null; BK.dossiers.index = {}; },
+  async duMorceau(m, morceaux) {
+    const [carte, tous, tags] = await Promise.all([BK.dossiers.carte(), BK.dossiers.tousFichiers(), BK.etiquettes.tous()]);
+    const estM = n => (BK.inv.trouverMorceau(n, morceaux) || {}).id === m.id;
+    const exclus = new Set(Object.keys(carte).filter(id => /^BEESKOT Studio$|^corbeille$/i.test(carte[id].name)));
+    const c = await BK.dossiers.config(), roleIds = Object.fromEntries(Object.entries(c.roles).map(([k, v]) => [v.id, k]));
+    const memoD = {};
+    const dossierDuMorceau = pid => memoD[pid] ?? (memoD[pid] = BK.dossiers.ancetres(pid, carte).some(a => estM(carte[a].name)));
+    const out = [];
+    for (const f of tous) {
+      if (/\.json$/i.test(f.name)) continue;
+      const p = (f.parents || [])[0], anc = p ? BK.dossiers.ancetres(p, carte) : [];
+      if (anc.some(a => exclus.has(a))) continue;
+      const t = tags[f.id];
+      const ok = t ? t === m.id : (estM(f.name) || (p && dossierDuMorceau(p)));
+      if (!ok) continue;
+      out.push({ ...f, dossiers: anc.slice().reverse().map(id => carte[id].name), role: (anc.map(a => roleIds[a]).find(Boolean)) || '' });
+    }
+    return out.sort((a, b) => (b.modifiedTime || '').localeCompare(a.modifiedTime || ''));
   },
 
   // ---------- tous les fichiers sous un dossier (quelques niveaux), pour la Bibliothèque ----------

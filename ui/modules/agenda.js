@@ -48,7 +48,7 @@ BK.module('agenda', function (page) {
   $('.hdr .right', page).innerHTML = `<div><span class="eng" style="font-size:9px">Mois</span><span class="vfd" id="agMoisH" style="width:170px">—</span></div>`;
   $('.grid', page).innerHTML = `
     <div class="cols">
-      <section class="pane vit" aria-label="Vitrine"><span class="ptitle">① Vitrine</span>
+      <section class="pane vit" aria-label="Vitrine">
         <div class="ligne-titre">
           <button class="btn sm" id="agPrec">◀</button><span class="vfd" id="agMois" style="font-size:15px;min-width:200px;text-align:center">—</span><button class="btn sm" id="agSuiv">▶</button>
           <button class="btn sm" id="agAuj">Aujourd'hui</button>

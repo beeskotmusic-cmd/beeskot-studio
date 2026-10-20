@@ -18,7 +18,7 @@ BK.module('taches', function (page) {
     <div><span class="eng" style="font-size:9px">En retard</span><span class="vfd" id="taRet">00</span></div>`;
   $('.grid', page).innerHTML = `
     <div class="cols">
-      <section class="pane vit todo-vit"><span class="ptitle">① Vitrine</span>
+      <section class="pane vit todo-vit">
         <div class="box todo-ajout">
           <input class="fld" id="taTexte" placeholder="Écris une tâche, puis Entrée…" autocomplete="off">
           <select class="fld" id="taMorceau"><option value="">morceau…</option></select>

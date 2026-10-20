@@ -59,7 +59,7 @@ BK.module('accueil', function (page) {
     const toutFait = d.demarrer.slice(0, 3).every(x => x.ok);
     $('.grid', page).innerHTML = `
       <div class="cols">
-        <section class="pane vit" aria-label="Vitrine"><span class="ptitle">① Vitrine</span>
+        <section class="pane vit" aria-label="Vitrine">
           <div class="box next"><span class="lb">Next</span>
             ${n ? `<div class="next-l"><span class="nchip" style="--c:${t.c}"></span><span class="vfd next-q">${quand}</span>
               <div><span class="evt-type">${esc(t.nom)}</span><span class="nt" style="margin:2px 0 0;font-size:14px;color:var(--ink)">${esc(n.titre || '')}${n.morceau ? ' · ' + esc(n.morceau) : ''}</span></div></div>`

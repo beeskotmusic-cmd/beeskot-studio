@@ -20,7 +20,7 @@ BK.module('postvis', function (page) {
     <div><span class="eng" style="font-size:9px">Format</span><span class="vfd" id="pvFmtH">4:5</span></div>`;
   $('.grid', page).innerHTML = `
     <div class="cols">
-      <section class="pane vit rv-vit"><span class="ptitle">① Vitrine</span>
+      <section class="pane vit rv-vit">
         <div class="rv-scene">
           <div class="pv-tel"><div class="pv-app">
             <div class="pv-tete"><span class="rv-avatar petit"></span><b>beeskot</b><span class="pv-pts">⋯</span></div>

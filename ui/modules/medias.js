@@ -15,7 +15,7 @@ BK.module('medias', function (page) {
   $('.hdr .right', page).innerHTML = `<div><span class="eng" style="font-size:9px">Fichiers</span><span class="vfd" id="mdNb">—</span></div>`;
   $('.grid', page).innerHTML = `
     <div class="cols">
-      <section class="pane vit md-vit"><span class="ptitle">① Vitrine</span>
+      <section class="pane vit md-vit">
         <div class="box md-barre">
           <div class="seg" id="mdRacines">${RACINES.map(([k, n]) => `<button data-r="${k}">${n}</button>`).join('')}</div>
           <div class="md-fil" id="mdFil"></div>
@@ -35,6 +35,9 @@ BK.module('medias', function (page) {
         <div class="box"><span class="lb">Rien n'est effacé</span><span class="nt">✕ range le fichier dans la corbeille de BEESKOT Studio (dans le Drive). On peut toujours le récupérer.</span></div>
       </section>
     </div>
+    <div class="pane md-ajouter"><span class="ptitle">Ajouter à</span>
+      <span class="nt">Glisse une photo ou une vidéo sur un morceau (ou clique la photo, puis le morceau) : elle prend son étiquette 🏷</span>
+      <div class="md-paniers" id="mdPaniers"></div></div>
     <div class="pane abar"><span class="ptitle">③ Barre</span><span class="vfd" id="mdMsg">PRÊT</span>
       <div class="right"><button class="btn" id="mdRelire">↻ Relire</button></div></div>`;
   const msg = t => $('#mdMsg').textContent = String(t).toUpperCase().slice(0, 90);
@@ -55,6 +58,25 @@ BK.module('medias', function (page) {
     M.morceaux = (await BK.db.liste('morceaux')).sort((a, b) => a.nom.localeCompare(b.nom)); M.tags = await BK.etiquettes.tous();
     const sel = $('#mdFiltre'), v = sel.value;
     sel.innerHTML = '<option value="">Tous (dossier ouvert)</option>' + M.morceaux.map(m => `<option value="${m.id}">${esc(m.nom)}</option>`).join(''); sel.value = v;
+    paniers();
+  }
+  // ---------- « Ajouter à » : un panier par morceau, on y lâche les médias ----------
+  function paniers() {
+    const z = $('#mdPaniers');
+    z.innerHTML = M.morceaux.map(m => { const n = Object.values(M.tags).filter(x => x === m.id).length;
+      return `<div class="md-panier" data-pan="${m.id}">${m.photo ? `<span class="md-pan-ph" style="background-image:url(${m.photo})"></span>` : '<span class="md-pan-ph">♪</span>'}<b>${esc(m.nom)}</b>${n ? `<em>${n}</em>` : ''}</div>`; }).join('')
+      || '<span class="nt">Aucun morceau : crée d\'abord des fiches dans la Bibliothèque.</span>';
+    $$('.md-panier', z).forEach(p => {
+      p.ondragover = e => { if (e.dataTransfer.types.includes('text/bk-media')) { e.preventDefault(); e.stopPropagation(); p.classList.add('survol'); } };
+      p.ondragleave = () => p.classList.remove('survol');
+      p.ondrop = e => { const id = e.dataTransfer.getData('text/bk-media'); if (!id) return; e.preventDefault(); e.stopPropagation(); p.classList.remove('survol'); etiqueter(id, p.dataset.pan); };
+      p.onclick = () => { if (M.choisi) etiqueter(M.choisi, p.dataset.pan); else msg('Clique d\'abord une photo, ou glisse-la ici'); };
+    });
+  }
+  async function etiqueter(fileId, morceauId) {
+    const m = M.morceaux.find(x => x.id === morceauId), f = M.fichiers.find(x => x.id === fileId);
+    await BK.etiquettes.mettre(fileId, morceauId); M.tags = await BK.etiquettes.tous(); M.choisi = null;
+    msg(`« ${f ? f.name : 'fichier'} » → ${m ? m.nom : ''} 🏷`); rendre(!!M.filtre); paniers();
   }
   // tout ce qui porte l'étiquette d'un morceau, dans tous les dossiers médias
   async function parMorceau(id) {
@@ -86,7 +108,7 @@ BK.module('medias', function (page) {
       + (filtre ? '' : `<button class="md-tuile md-plus" id="mdPlus"><span>+</span><span class="nt">Ajouter ici</span></button>`)
       + fs.map(f => {
         const video = /^video\//.test(f.mimeType), d = f.videoMediaMetadata && f.videoMediaMetadata.durationMillis;
-        return `<div class="md-tuile" data-id="${f.id}" title="${esc(f.name)}">
+        return `<div class="md-tuile${M.choisi === f.id ? ' choisie' : ''}" data-id="${f.id}" title="${esc(f.name)}" draggable="true">
           <div class="md-img${video ? ' video' : ''}">${f.thumbnailLink ? '<span class="spin"></span>' : `<span class="md-ext">${esc((f.name.split('.').pop() || '').toUpperCase())}</span>`}
             ${video ? `<span class="md-duree">${d ? BK.audio.temps(d / 1000).replace(/\.\d$/, '') : '▶'}</span>` : ''}</div>
           <span class="md-nom">${esc(f.name)}</span>${tag(f)}
@@ -95,7 +117,11 @@ BK.module('medias', function (page) {
     $$('.md-dos').forEach(b => b.onclick = () => { M.pile.push({ id: b.dataset.dos, nom: b.dataset.nom }); charger(); });
     if (!filtre) $('#mdPlus').onclick = () => $('#mdInput').click();
     $$('.md-tag').forEach(b => b.onclick = e => { e.stopPropagation(); menuTag(b); });
-    $$('.md-tuile[data-id]').forEach(t => t.onclick = e => { if (e.target.closest('.md-x,.md-tag')) return; const f = M.fichiers.find(x => x.id === t.dataset.id); f && BK.ouvrirLien(f.webViewLink); });
+    $$('.md-tuile[data-id]').forEach(t => { t.ondragstart = e => { e.dataTransfer.setData('text/bk-media', t.dataset.id); e.dataTransfer.effectAllowed = 'link'; $('#mdPaniers').classList.add('actif'); };
+      t.ondragend = () => $('#mdPaniers').classList.remove('actif'); });
+    $$('.md-tuile[data-id]').forEach(t => t.ondblclick = e => { const f = M.fichiers.find(x => x.id === t.dataset.id); f && BK.ouvrirLien(f.webViewLink); });
+    $$('.md-tuile[data-id]').forEach(t => t.onclick = e => { if (e.target.closest('.md-x,.md-tag')) return;
+      if (!e.ctrlKey) { M.choisi = M.choisi === t.dataset.id ? null : t.dataset.id; $$('.md-tuile').forEach(x => x.classList.toggle('choisie', x.dataset.id === M.choisi)); if (M.choisi) msg('Clique un morceau en bas (ou double-clic pour ouvrir)'); return; } const f = M.fichiers.find(x => x.id === t.dataset.id); f && BK.ouvrirLien(f.webViewLink); });
     $$('.md-x').forEach(b => b.onclick = async () => {
       const f = M.fichiers.find(x => x.id === b.dataset.x); if (!f || !confirm(`Ranger « ${f.name} » dans la corbeille de BEESKOT Studio ?`)) return;
       try { await BK.drive.corbeille(f.id); M.fichiers = M.fichiers.filter(x => x !== f); rendre(); msg('Rangé dans la corbeille'); } catch (e) { msg('Impossible pour l\'instant'); }
@@ -138,9 +164,9 @@ BK.module('medias', function (page) {
     const cur = ici(); if (!cur) return; const n = prompt('Nom du nouveau dossier'); if (!n || !n.trim()) return;
     try { await BK.drive.dossier(n.trim(), cur.id); msg('Dossier créé'); charger(); } catch (e) { msg('Impossible pour l\'instant'); }
   };
-  page.addEventListener('dragover', e => { e.preventDefault(); $('#mdZone').classList.add('survol'); });
+  page.addEventListener('dragover', e => { e.preventDefault(); if (!e.dataTransfer.types.includes('text/bk-media')) $('#mdZone').classList.add('survol'); });
   page.addEventListener('dragleave', e => { if (!page.contains(e.relatedTarget)) $('#mdZone').classList.remove('survol'); });
-  page.addEventListener('drop', e => { e.preventDefault(); $('#mdZone').classList.remove('survol'); if (e.dataTransfer.files.length) envoyer(e.dataTransfer.files); });
+  page.addEventListener('drop', e => { e.preventDefault(); $('#mdZone').classList.remove('survol'); if (e.dataTransfer.types.includes('text/bk-media')) return; if (e.dataTransfer.files.length) envoyer(e.dataTransfer.files); });
 
   $$('#mdRacines button').forEach(b => b.onclick = () => { M.filtre = ''; $('#mdFiltre').value = ''; allerRacine(b.dataset.r); });
   $('#mdFiltre').onchange = e => { M.filtre = e.target.value; M.filtre ? parMorceau(M.filtre) : (M.pile.length ? charger() : allerRacine(M.racine)); };

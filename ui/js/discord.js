@@ -118,7 +118,8 @@ BK.discord = {
       await BK.discord.enregistrer({ dernier });
       const morceaux = await BK.db.liste('morceaux');
       let props = BK.discord.depuisBot(nouvelles, morceaux);
-      const humains = nouvelles.filter(l => !BK.discord.RE_BOT.test(l.txt));
+      const mois = new Date(Date.now() - 30 * 864e5).toISOString();
+      const humains = nouvelles.filter(l => !BK.discord.RE_BOT.test(l.txt) && l.t >= mois);       // Gemini lit seulement le dernier mois (le journal garde tout)
       if (humains.length && await BK.ia.pret()) {
         progression(`Gemini lit ${humains.length} message(s)…`);
         for (let i = 0; i < humains.length; i += 400) props.push(...await BK.discord.analyser(humains.slice(i, i + 400)));
@@ -154,9 +155,15 @@ Si rien n'est décidé, réponds [].`;
 
   // ---------- poser une question au journal ----------
   async question(q) {
-    const j = await BK.discord.journal(6);
-    const systeme = 'Tu es l\'assistant du groupe BEESKOT. Réponds en français, très simplement, en 1 à 5 phrases, en t\'appuyant sur le journal Discord et les infos du logiciel. Donne les dates et qui l\'a dit. Si tu ne trouves pas, dis-le franchement.';
-    return BK.ia.demander(`${await BK.ia.contexte()}\n\nJournal Discord (du plus ancien au plus récent) :\n${BK.discord.texte(j.slice(-4000))}\n\nQuestion : ${q}`, { systeme, temperature: 0.2 });
+    // on n'envoie pas tout le journal (trop long = trop lent) : les messages qui parlent de la question + les plus récents
+    const j = await BK.discord.journal(6), ms = await BK.db.liste('morceaux');
+    const n = t => BK.inv.normaliser(t || '');
+    const mots = n(q).split(' ').filter(w => w.length >= 4 && !/^(quel|quelle|quand|comment|est-ce|cest|dernier|derniere|notre|nous|avec|pour|dans|vous|elle|sont)$/.test(w));
+    const m = BK.inv.trouverMorceau(q, ms); if (m) mots.push(...[m.nom, ...(m.alias || [])].map(x => n(x).replace(/ /g, '')));
+    const pertinents = mots.length ? j.filter(l => { const t = n(l.txt + ' ' + l.pj).replace(/ /g, ''); return mots.some(w => t.includes(w.replace(/ /g, ''))); }) : [];
+    const choisis = [...new Map([...pertinents.slice(-250), ...j.slice(-150)].map(l => [l.id, l])).values()].sort((a, b) => a.t.localeCompare(b.t));
+    const systeme = 'Tu es l\'assistant du groupe BEESKOT. Réponds en français, très simplement, en 1 à 5 phrases, en t\'appuyant sur les messages Discord et les infos du logiciel. Donne les dates et qui l\'a dit. Si tu ne trouves pas, dis-le franchement.';
+    return BK.ia.demander(`${await BK.ia.contexte()}\n\nMessages Discord utiles (du plus ancien au plus récent) :\n${BK.discord.texte(choisis) || '(aucun message lu pour l\'instant)'}\n\nQuestion : ${q}`, { systeme, temperature: 0.2 });
   },
 
   // toutes les 30 min, si le Veilleur est réglé (un seul PC le fait à la fois)

@@ -38,8 +38,10 @@ BK.ia = {
     if (systeme) corps.systemInstruction = { parts: [{ text: systeme }] };
     if (json) corps.generationConfig.responseMimeType = 'application/json';
     for (let essai = 0; essai < 3; essai++) {
+      const arret = new AbortController(), minuteur = setTimeout(() => arret.abort(), 90e3);      // jamais bloqué plus d'1 min 30
       const r = await BK.ia.fetch(`${BK.ia.BASE}/models/${await BK.ia.modele()}:generateContent`,          // la clé passe dans l'en-tête (marche avec les clés AIza… et AQ.…)
-        { method: 'POST', headers: { 'Content-Type': 'application/json', 'x-goog-api-key': c.gemini }, body: JSON.stringify(corps) });
+        { method: 'POST', headers: { 'Content-Type': 'application/json', 'x-goog-api-key': c.gemini }, body: JSON.stringify(corps), signal: arret.signal })
+        .catch(e => { throw new Error(arret.signal.aborted ? 'Gemini met trop de temps à répondre, réessaie' : 'Gemini injoignable (Internet ?)'); }).finally(() => clearTimeout(minuteur));
       if (r.status === 429 || r.status === 503) { await new Promise(ok => setTimeout(ok, 8000 * (essai + 1))); continue; }   // trop de demandes : on patiente
       if (r.status === 404) { await BK.ia.enregistrer({ modele: '', modeleVerifie: 0 }); continue; }                         // modèle retiré : on en choisit un autre
       const j = await r.json();
