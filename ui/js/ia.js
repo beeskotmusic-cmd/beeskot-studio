@@ -20,7 +20,7 @@ BK.ia = {
   async modele() {
     const c = await BK.ia.config(); if (c.modele && c.modeleVerifie && Date.now() - c.modeleVerifie < 7 * 864e5) return c.modele;
     try {
-      const r = await (await BK.ia.fetch(`${BK.ia.BASE}/models?pageSize=200&key=${encodeURIComponent(c.gemini)}`)).json();
+      const r = await (await BK.ia.fetch(`${BK.ia.BASE}/models?pageSize=200`, { headers: { 'x-goog-api-key': c.gemini } })).json();
       const ok = (r.models || []).filter(m => (m.supportedGenerationMethods || []).includes('generateContent') && /flash/.test(m.name) && !/lite|image|tts|audio|live|thinking|exp|preview/.test(m.name));
       const ver = n => parseFloat((n.match(/gemini-(\d+(?:\.\d+)?)/) || [0, 0])[1]);
       ok.sort((a, b) => ver(b.name) - ver(a.name));
@@ -38,8 +38,8 @@ BK.ia = {
     if (systeme) corps.systemInstruction = { parts: [{ text: systeme }] };
     if (json) corps.generationConfig.responseMimeType = 'application/json';
     for (let essai = 0; essai < 3; essai++) {
-      const r = await BK.ia.fetch(`${BK.ia.BASE}/models/${await BK.ia.modele()}:generateContent?key=${encodeURIComponent(c.gemini)}`,
-        { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(corps) });
+      const r = await BK.ia.fetch(`${BK.ia.BASE}/models/${await BK.ia.modele()}:generateContent`,          // la clé passe dans l'en-tête (marche avec les clés AIza… et AQ.…)
+        { method: 'POST', headers: { 'Content-Type': 'application/json', 'x-goog-api-key': c.gemini }, body: JSON.stringify(corps) });
       if (r.status === 429 || r.status === 503) { await new Promise(ok => setTimeout(ok, 8000 * (essai + 1))); continue; }   // trop de demandes : on patiente
       if (r.status === 404) { await BK.ia.enregistrer({ modele: '', modeleVerifie: 0 }); continue; }                         // modèle retiré : on en choisit un autre
       const j = await r.json();
