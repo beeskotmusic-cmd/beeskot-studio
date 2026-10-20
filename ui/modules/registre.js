@@ -7,7 +7,7 @@
 //   defaut  : visible par défaut sur un nouveau PC (chaque PC peut changer dans Réglages)
 // =====================================================================
 BK.onglets = [
-  { id: 'accueil',  cote: 'general', titre: 'Accueil',        sous: 'La semaine du groupe',          couleur: 'var(--mus)',  pret: true,  defaut: true },
+  { id: 'accueil',  cote: 'general', titre: 'Accueil',        sous: 'Next et à faire',              couleur: 'var(--mus)',  pret: true,  defaut: true },
 
   { id: 'biblio',   cote: 'audio',   titre: 'Bibliothèque',   sous: 'Morceaux, exports, projets',    couleur: 'var(--org)',  pret: true , defaut: true },
   { id: 'mixprep',  cote: 'audio',   titre: 'Prépa mixage',   sous: 'Noms, couleurs, zip, Drive',    couleur: 'var(--rust)', pret: true , defaut: true },

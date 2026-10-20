@@ -108,3 +108,20 @@ BK.etatDrive = function () {
   $('#syDrive').textContent = ok ? 'RELIÉ' : BK.estExe ? 'NON RELIÉ' : 'APERÇU';
   const led = $('#ledDrive'); if (led) { led.classList.toggle('grn', ok); }
 };
+
+// ---------- les fiches de départ (créées une seule fois par PC, mêmes identifiants partout) ----------
+BK.FICHES_DEPART = [
+  { id: 'glamorous-sky',          nom: 'Glamorous Sky' },
+  { id: 'mother',                 nom: 'Mother' },
+  { id: 'one-point-perspective',  nom: 'One Point Perspective' },
+  { id: 'moon-blue',              nom: 'Moon Blue' },
+];
+BK.semer = async function () {
+  if (BK.reglage('seme.v1', false)) return;
+  const deja = new Set((await BK.db.liste('morceaux')).map(m => m.id));
+  for (const f of BK.FICHES_DEPART) if (!deja.has(f.id)) await BK.db.ecrire('morceaux', { ...f, statut: 'chantier', fait: 0 });
+  BK.regler('seme.v1', true);
+};
+
+// ---------- ouvrir un lien (Drive…) dans le navigateur ----------
+BK.ouvrirLien = url => { if (!/^https?:\/\//i.test(url)) return; BK.estExe ? BK.T.opener.openUrl(url) : window.open(url, '_blank'); };

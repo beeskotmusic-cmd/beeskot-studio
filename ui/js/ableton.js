@@ -4,6 +4,7 @@
 // =====================================================================
 BK.ableton = {
   relie: false,
+  VERSION_PONT: '2',
 
   async req(obj) {
     if (!BK.estExe) throw new Error('Disponible dans le logiciel installé');
@@ -16,16 +17,32 @@ BK.ableton = {
   async surveiller() {
     const maj = ok => { BK.ableton.relie = ok; const l = $('#ledLive'); if (l) l.classList.toggle('grn', ok); document.dispatchEvent(new CustomEvent('ableton', { detail: ok })); };
     if (!BK.estExe) return;
+    BK.ableton.majPontSiBesoin();
     const tour = async () => { try { await BK.ableton.req({ cmd: 'ping' }); maj(true); } catch (e) { maj(false); } };
     tour(); setInterval(tour, 6000);
   },
 
   // ---------- installer le pont dans Ableton (1 fois par PC) ----------
-  async dossierUserLibrary() {
+  async dossierUserLibrary(sansDemander) {
+    const memo = BK.reglage('ableton.userLibrary', '');
+    if (memo && await BK.fichier.existe(memo)) return memo;
     const docs = await BK.T.path.documentDir();
     const defaut = BK.chemin(docs, 'Ableton', 'User Library');
     if (await BK.fichier.existe(defaut)) return defaut;
-    return BK.fichier.choisirDossier('Où est ta « User Library » Ableton ? (Préférences Ableton › Bibliothèque)');
+    if (sansDemander) return null;
+    const d = await BK.fichier.choisirDossier('Où est ta « User Library » Ableton ? (Préférences Ableton › Bibliothèque)');
+    if (d) BK.regler('ableton.userLibrary', d);
+    return d;
+  },
+  // le pont installé est-il à jour ? (sinon, la mise à jour du logiciel le remplace toute seule)
+  async pontAJour(ul) {
+    try { const t = await BK.fichier.lireTexte(BK.chemin(ul, 'Remote Scripts', 'BEESKOT', '__init__.py'));
+      return (t.match(/VERSION = "(\d+)"/) || [])[1] === BK.ableton.VERSION_PONT; } catch (e) { return false; }
+  },
+  async majPontSiBesoin() {
+    if (!BK.estExe) return;
+    try { const ul = await BK.ableton.dossierUserLibrary(true); if (!ul) return;
+      if (await BK.fichier.existe(BK.chemin(ul, 'Remote Scripts', 'BEESKOT')) && !(await BK.ableton.pontAJour(ul))) await BK.ableton.installerPont(); } catch (e) {}
   },
   async installerPont() {
     const ul = await BK.ableton.dossierUserLibrary(); if (!ul) return null;
@@ -51,7 +68,7 @@ BK.ableton = {
         <li>Dans une ligne <b>Surface de contrôle</b> libre, choisis <b>BEESKOT</b>. Laisse Entrée et Sortie sur « Aucun ».</li>
         <li>Ferme les préférences : le voyant <b>Ableton Live</b> devient vert ici.</li>
       </ol>
-      <span class="nt">Le pont de Dari Audio Live peut rester dans une autre ligne : les deux marchent ensemble.</span>
+      <span class="nt">Le pont de Dari Audio Live peut rester dans une autre ligne : les deux marchent ensemble. Si le pont vient d'être mis à jour, redémarre simplement Ableton.</span>
       <button class="btn pri" style="justify-content:center">J'ai compris</button></div>`;
     document.body.appendChild(v);
     $('.btn', v).onclick = () => v.remove();

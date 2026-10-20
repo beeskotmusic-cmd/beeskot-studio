@@ -7,7 +7,7 @@
 // =====================================================================
 BK.inv = {
   EXT_ALS: /\.als$/i,
-  EXT_AUDIO: /\.(wav|mp3|aif|aiff|flac|m4a)$/i,
+  EXT_AUDIO: /\.(wav|mp3)$/i,                   // exports : seulement WAV et MP3
   IGNORER: /^(\.|node_modules$|Samples$|Ableton Project Info$|\$RECYCLE|System Volume|BEESKOT Studio$)/i,
   PROF_MAX: 6,
 
@@ -33,22 +33,21 @@ BK.inv = {
   },
 
   // ---------- fouiller les dossiers de CE PC ----------
+  // dossiers de CE PC : [{ chemin, type: 'audio' | 'als' }] (les anciens réglages en simple texte = exports audio)
   dossiers() {
-    const l = BK.reglage('dossiersScan', []);
-    const d = BK.reglage('drive', '');
-    return d && !l.includes(d) ? [...l, d] : l;
+    return BK.reglage('dossiersScan', []).map(d => typeof d === 'string' ? { chemin: d, type: 'audio' } : d);
   },
   async scanner(progression) {
     if (!BK.estExe) return null;
     const trouves = [], vus = { n: 0 };
-    async function fouiller(dos, prof) {
+    async function fouiller(dos, prof, type) {
       if (prof > BK.inv.PROF_MAX) return;
       const entrees = await BK.fichier.liste(dos);
       for (const e of entrees) {
         if (!e.name || BK.inv.IGNORER.test(e.name)) continue;
         const p = BK.chemin(dos, e.name);
-        if (e.isDirectory) { await fouiller(p, prof + 1); continue; }
-        const als = BK.inv.EXT_ALS.test(e.name), aud = BK.inv.EXT_AUDIO.test(e.name);
+        if (e.isDirectory) { await fouiller(p, prof + 1, type); continue; }
+        const als = type === 'als' && BK.inv.EXT_ALS.test(e.name), aud = type === 'audio' && BK.inv.EXT_AUDIO.test(e.name);
         if (!als && !aud) continue;
         const st = await BK.fichier.infos(p);
         trouves.push({ type: als ? 'als' : 'audio', nom: e.name, chemin: p, taille: st ? st.size : 0,
@@ -56,7 +55,7 @@ BK.inv = {
       }
       if (++vus.n % 25 === 0) { progression && progression(vus.n, trouves.length); await new Promise(r => setTimeout(r, 15)); }   // pause : PC jamais bloqué
     }
-    for (const d of BK.inv.dossiers()) await fouiller(d, 0);
+    for (const d of BK.inv.dossiers()) await fouiller(d.chemin, 0, d.type);
     const inv = { id: 'pc-' + (BK.reglage('nomPc', '') || 'ce-pc').toLowerCase().replace(/[^a-z0-9]+/g, '-'), pc: BK.reglage('nomPc', '') || 'CE PC', date: new Date().toISOString(), fichiers: trouves };
     await BK.db.ecrire('inventaires', inv);
     BK.regler('dernierScan', inv.date);

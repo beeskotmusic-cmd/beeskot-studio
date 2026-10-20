@@ -15,7 +15,7 @@ except ImportError:                       # (hors d'Ableton, pour les essais)
     ControlSurface = object
 
 PORT = 9877
-VERSION = "1"
+VERSION = "2"
 
 
 def create_instance(c_instance):
@@ -96,6 +96,12 @@ class PontBeeskot(ControlSurface):
                 return {"ok": True, "tempo": self.song().tempo, "pistes": self.pistes()}
             if cmd == "appliquer":
                 return self.appliquer(req.get("pistes", []))
+            if cmd == "capacites":
+                return self.capacites()
+            if cmd == "deplacer":
+                return self.deplacer(int(req.get("de", -1)), int(req.get("vers", -1)))
+            if cmd == "geler":
+                return self.geler(int(req.get("i", -1)))
             return {"ok": False, "erreur": "commande inconnue"}
         except Exception as e:
             return {"ok": False, "erreur": str(e)}
@@ -137,3 +143,35 @@ class PontBeeskot(ControlSurface):
                 t.color = int(p["couleur"])
             faits += 1
         return {"ok": True, "faits": faits}
+
+    # ---------------------------------------------------------------
+    # Le « détecteur » : ce que CETTE version d'Ableton permet vraiment
+    def capacites(self):
+        song = self.song()
+        t0 = song.tracks[0] if len(song.tracks) else None
+        noms_song = [n for n in dir(song) if not n.startswith("_")]
+        noms_piste = [n for n in dir(t0) if not n.startswith("_")] if t0 else []
+        deplacer = [n for n in noms_song if "move" in n.lower() and "track" in n.lower()]
+        geler = [n for n in noms_piste if n.lower() in ("freeze", "freeze_track", "set_frozen")]
+        return {"ok": True, "deplacer": deplacer, "geler": geler,
+                "live": "%s.%s.%s" % (self.application().get_major_version(), self.application().get_minor_version(), self.application().get_bugfix_version()) if hasattr(self, "application") else "?"}
+
+    def deplacer(self, de, vers):
+        song = self.song()
+        for n in ("move_track",):
+            f = getattr(song, n, None)
+            if f:
+                f(de, vers)
+                return {"ok": True}
+        return {"ok": False, "erreur": "Ableton ne permet pas de déplacer les pistes depuis le pont"}
+
+    def geler(self, i):
+        pistes = list(self.song().tracks)
+        if i < 0 or i >= len(pistes):
+            return {"ok": False, "erreur": "piste inconnue"}
+        for n in ("freeze", "freeze_track"):
+            f = getattr(pistes[i], n, None)
+            if f:
+                f()
+                return {"ok": True}
+        return {"ok": False, "erreur": "Ableton ne permet pas de geler depuis le pont"}

@@ -27,7 +27,7 @@ BK.module('biblio', function (page) {
           <input class="fld" id="biNom" style="margin-top:10px" placeholder="nom du morceau">
           <div class="chips" style="margin-top:10px"><button class="chip" id="biAjout">+ Créer la fiche</button></div></div>
         <div class="box"><span class="lb">Dossiers de ce PC à fouiller</span>
-          <span class="nt">Projets Ableton, exports… Le Drive BEESKOT est fouillé automatiquement.</span>
+          <span class="nt">Pour chaque dossier, clique sur l'étiquette pour choisir : exports audio (WAV / MP3) ou projets Ableton.</span>
           <div id="biDossiers" class="bi-dossiers"></div>
           <div class="chips" style="margin-top:10px"><button class="chip" id="biAjDos">+ Ajouter un dossier</button></div></div>
         <div class="box"><span class="lb">Dernier inventaire</span><span class="nt" id="biScanInfo">—</span></div>
@@ -42,7 +42,6 @@ BK.module('biblio', function (page) {
   // ---------- chargement ----------
   async function charger() {
     B.morceaux = await BK.db.liste('morceaux');
-    if (!BK.estExe && !B.morceaux.length) B.morceaux = await exemples();
     B.fichiers = await BK.inv.tous();
     rendre();
   }
@@ -105,6 +104,10 @@ BK.module('biblio', function (page) {
         ${t('avance', 'Avancement', `${BK.etapes[Math.min(m.fait || 0, 5)].nom} · ${pc} %`, () => `
           <div class="etapes-clic">${BK.etapes.map((e, i) => `<button class="etape-b ${i < (m.fait || 0) ? 'fait' : i === (m.fait || 0) ? 'encours' : ''}" data-etape="${i}">${e.nom}</button>`).join('')}</div>
           <span class="nt">Clique sur une étape quand elle est terminée.</span>`)}
+        ${t('liens', 'Liens Drive', (m.liens || []).length ? (m.liens.length + ' lien(s)') : 'aucun', () => `
+          ${(m.liens || []).map((l, i) => `<div class="ligne-f"><span class="etoile">🔗</span><a href="#" class="f-nom lien" data-url="${esc(l.url)}" title="${esc(l.url)}">${esc(l.titre || l.url)}</a><button class="btn xs" data-lienx="${i}">✕</button></div>`).join('')}
+          <div class="lien-aj"><input class="fld" data-lien="titre" placeholder="ex. Projet Ableton v8 (zipper)"><input class="fld" data-lien="url" placeholder="colle le lien Google Drive…"><button class="btn xs" data-act="lien">+ Ajouter</button></div>
+          <span class="nt">Bientôt : les fichiers déposés dans le Drive (par le zipper Discord) apparaîtront ici tout seuls.</span>`)}
         ${t('notes', 'Notes du groupe', m.notes ? m.notes.split('\n')[0].slice(0, 50) : '—', () => `<textarea class="fld" data-champ="notes" placeholder="ex. attention au break à 2:10">${esc(m.notes || '')}</textarea>`)}
         <div class="fiche-actions">
           <button class="btn sm" data-act="statut">${m.statut === 'sorti' ? '↩ Remettre en chantier' : '✓ Marquer comme sorti'}</button>
@@ -117,7 +120,8 @@ BK.module('biblio', function (page) {
   function rendreOrphelins(O) {
     if (!O.length) return '<span class="nt" style="padding:20px">Rien à ranger : tous les fichiers trouvés sont reliés à un morceau.</span>';
     const opts = B.morceaux.map(m => `<option value="${m.id}">${esc(m.nom)}</option>`).join('');
-    return `<span class="nt">Fichiers trouvés mais pas encore reliés à une fiche. Relie-les à un morceau existant, ou crée une fiche.</span>` +
+    return `<div class="ligne-titre"><span class="nt" style="margin:0">Fichiers trouvés mais pas encore reliés à une fiche. Relie-les à un morceau existant, ou crée une fiche.</span>
+      <button class="btn sm pri" id="biTout" style="margin-left:auto;flex:none">Créer toutes les fiches d'un coup…</button></div>` +
       O.slice(0, 300).map(f => `<div class="ligne-f orph" data-nom="${esc(f.nom)}"><span class="mono f-nom">${esc(f.nom)}</span><span class="nt f-meta">${f.type === 'als' ? 'Ableton' : 'audio'} · ${date(f.modif)} · ${esc(f.pc)}</span>
         <select class="fld f-sel"><option value="">relier à…</option>${opts}</select><button class="btn xs" data-act="creer">+ Fiche</button></div>`).join('');
   }
@@ -140,6 +144,8 @@ BK.module('biblio', function (page) {
       $$('[data-reel]', el).forEach(b => b.onclick = async () => {
         try { msg('Envoi vers Reels…'); const o = await BK.fichier.lireOctets(b.dataset.reel); BK.ouvrir('reels'); await BK.reelsCharger(new File([o], b.dataset.nom)); }
         catch (e) { msg('Fichier illisible'); } });
+      $$('.lien', el).forEach(a => a.onclick = e => { e.preventDefault(); BK.ouvrirLien(a.dataset.url); });
+      $$('[data-lienx]', el).forEach(b => b.onclick = async () => { m.liens.splice(+b.dataset.lienx, 1); await sauver(m); rendre(); });
       $$('[data-act]', el).forEach(b => b.onclick = async () => {
         const a = b.dataset.act;
         if (a === 'statut') { m.statut = m.statut === 'sorti' ? 'chantier' : 'sorti'; await sauver(m); rendre(); }
@@ -147,10 +153,13 @@ BK.module('biblio', function (page) {
         if (a === 'suppr') { if (confirm(`Retirer « ${m.nom} » de la Bibliothèque ?\n(La fiche est rangée dans la corbeille du Drive, et aucun fichier audio ou Ableton n'est touché.)`)) { await BK.db.supprimer('morceaux', m.id); await charger(); } }
         if (a === 'copier') { await navigator.clipboard.writeText(BK.parolesPropres(m.paroles)); msg('Paroles copiées'); }
         if (a === 'plein') BK.pleinEcran(m.nom, m.paroles);
+        if (a === 'lien') { const u = $('[data-lien="url"]', el).value.trim(); if (!/^https?:\/\//i.test(u)) return msg('Colle un lien qui commence par https://');
+          (m.liens = m.liens || []).push({ titre: $('[data-lien="titre"]', el).value.trim(), url: u }); await sauver(m); msg('Lien ajouté'); rendre(); }
       });
     });
   }
   function brancherOrphelins() {
+    const bt = $('#biTout', page); if (bt) bt.onclick = creerTout;
     $$('.orph', page).forEach(el => {
       const nom = el.dataset.nom;
       $('.f-sel', el).onchange = async e => { const m = B.morceaux.find(x => x.id === e.target.value); if (!m) return;
@@ -160,6 +169,32 @@ BK.module('biblio', function (page) {
     });
   }
 
+  // ---------- regrouper les fichiers « à ranger » par nom de morceau, puis créer les fiches cochées ----------
+  function creerTout() {
+    const groupes = {};
+    for (const f of orphelins()) { const k = BK.inv.normaliser(f.nom); if (k.length < 3) continue; (groupes[k] = groupes[k] || []).push(f); }
+    const l = Object.entries(groupes).sort((a, b) => b[1].length - a[1].length);
+    if (!l.length) return msg('Aucun nom de morceau reconnu');
+    const v = document.createElement('div'); v.className = 'voile';
+    v.innerHTML = `<div class="stopbox" style="width:640px;max-height:80vh;align-items:stretch">
+      <span class="dymo" style="align-self:center">Créer les fiches</span>
+      <span class="nt">Décoche ce qui n'est pas un morceau, corrige les noms si besoin.</span>
+      <div class="tout-liste">${l.map(([k, fs], i) => `<label class="tout-l"><input type="checkbox" checked data-i="${i}">
+        <input class="fld" value="${esc(k.replace(/\b\w/g, c => c.toUpperCase()))}" data-n="${i}"><span class="nt" style="margin:0;white-space:nowrap">${fs.length} fichier(s)</span></label>`).join('')}</div>
+      <div class="stopbox-btns"><button class="btn pri" id="toutOk">Créer les fiches cochées</button><button class="btn" id="toutNon">Annuler</button></div></div>`;
+    document.body.appendChild(v);
+    $('#toutNon', v).onclick = () => v.remove();
+    $('#toutOk', v).onclick = async () => {
+      let n = 0;
+      for (const [i, [k]] of l.entries()) { if (!$(`[data-i="${i}"]`, v).checked) continue;
+        const nom = $(`[data-n="${i}"]`, v).value.trim(); if (!nom) continue;
+        const ex = B.morceaux.find(m => BK.inv.normaliser(m.nom) === BK.inv.normaliser(nom));
+        if (ex) { (ex.alias = ex.alias || []).push(k); await sauver(ex); }
+        else { B.morceaux.push(await BK.db.ecrire('morceaux', { nom, alias: [k], statut: 'chantier', fait: 0 })); n++; } }
+      v.remove(); msg(n + ' fiche(s) créée(s)'); B.vue = 'chantier'; rendre();
+    };
+  }
+
   $$('#biVues .chip').forEach(c => c.onclick = () => { B.vue = c.dataset.v; rendre(); });
   $('#biCherche').oninput = e => { B.filtre = e.target.value; rendre(); };
   $('#biAjout').onclick = async () => { const n = $('#biNom').value.trim(); if (!n) return;
@@ -167,13 +202,19 @@ BK.module('biblio', function (page) {
   $('#biNom').onkeydown = e => e.key === 'Enter' && $('#biAjout').click();
 
   function rendreDossiers() {
-    const l = BK.reglage('dossiersScan', []);
-    $('#biDossiers').innerHTML = (l.length ? l : []).map((d, i) => `<div class="dos"><span class="mono">${esc(d)}</span><button class="btn xs" data-i="${i}">✕</button></div>`).join('') || '<span class="nt">Aucun dossier ajouté.</span>';
-    $$('#biDossiers [data-i]').forEach(b => b.onclick = () => { l.splice(+b.dataset.i, 1); BK.regler('dossiersScan', l); rendreDossiers(); });
+    const l = BK.inv.dossiers();
+    $('#biDossiers').innerHTML = l.map((d, i) => `<div class="dos"><span class="mono" title="${esc(d.chemin)}">${esc(d.chemin)}</span>
+        <button class="chip dos-type" data-t="${i}" title="Cliquer pour changer">${d.type === 'als' ? 'Projets Ableton (.als)' : 'Exports audio (WAV / MP3)'}</button>
+        <button class="btn xs" data-i="${i}">✕</button></div>`).join('') || '<span class="nt">Aucun dossier ajouté.</span>';
+    const sauverL = () => { BK.regler('dossiersScan', l); rendreDossiers(); };
+    $$('#biDossiers [data-i]').forEach(b => b.onclick = () => { l.splice(+b.dataset.i, 1); sauverL(); });
+    $$('#biDossiers [data-t]').forEach(b => b.onclick = () => { const d = l[+b.dataset.t]; d.type = d.type === 'als' ? 'audio' : 'als'; sauverL(); });
     const ds = BK.reglage('dernierScan', ''); $('#biScanInfo').textContent = ds ? 'Ce PC : ' + new Date(ds).toLocaleString('fr-CA') : 'Ce PC n\'a pas encore été scanné.';
   }
   $('#biAjDos').onclick = async () => { if (!BK.estExe) return msg('Disponible dans le logiciel installé');
-    const d = await BK.fichier.choisirDossier('Dossier à fouiller'); if (!d) return; const l = BK.reglage('dossiersScan', []); if (!l.includes(d)) l.push(d); BK.regler('dossiersScan', l); rendreDossiers(); };
+    const d = await BK.fichier.choisirDossier('Dossier à fouiller'); if (!d) return;
+    const l = BK.inv.dossiers(); if (!l.some(x => x.chemin === d)) l.push({ chemin: d, type: /ableton|projet|project/i.test(d) ? 'als' : 'audio' });
+    BK.regler('dossiersScan', l); rendreDossiers(); msg('Clique sur l\'étiquette pour choisir : exports audio ou projets Ableton'); };
   $('#biScan').onclick = async () => {
     if (!BK.estExe) return msg('Disponible dans le logiciel installé');
     if (!BK.inv.dossiers().length) return msg('Ajoute d\'abord un dossier');
@@ -195,21 +236,4 @@ BK.pleinEcran = function (titre, texte) {
   $('.plein-x', v).onclick = fermer; document.addEventListener('keydown', function k(e) { if (e.key === 'Escape') { fermer(); document.removeEventListener('keydown', k); } });
 };
 
-// ---------- exemples (seulement dans l'aperçu navigateur, jamais dans le .exe) ----------
-async function exemples() {
-  const l = [
-    { nom: 'Morceau A', statut: 'chantier', fait: 2, bpm: '92', ton: 'Mi mineur', paroles: '[COUPLET 1]\nPremière ligne d\'exemple\nDeuxième ligne\n\n[REFRAIN]\nLe refrain d\'exemple' },
-    { nom: 'Morceau B', statut: 'chantier', fait: 5, bpm: '104' },
-    { nom: 'Morceau C', statut: 'sorti', fait: 6, sortie: '2026-09-12' },
-  ];
-  const out = []; for (const m of l) out.push(await BK.db.ecrire('morceaux', m));
-  await BK.db.ecrire('inventaires', { id: 'pc-exemple', pc: 'STUDIO', fichiers: [
-    { type: 'audio', nom: 'MorceauA_Mix_v3.wav', chemin: 'E:\\exemple\\MorceauA_Mix_v3.wav', modif: '2026-10-18T10:00:00Z' },
-    { type: 'audio', nom: 'MorceauA_Demo.wav', chemin: 'E:\\exemple\\MorceauA_Demo.wav', modif: '2026-09-15T10:00:00Z' },
-    { type: 'als', nom: 'Morceau A v8.als', chemin: 'E:\\exemple\\Morceau A v8.als', modif: '2026-10-19T10:00:00Z' },
-    { type: 'als', nom: 'Morceau A v7.als', chemin: 'G:\\Mon Drive\\BEESKOT\\Morceau A v7.als', modif: '2026-10-12T10:00:00Z' },
-    { type: 'audio', nom: 'Jam_du_jeudi.wav', chemin: 'E:\\exemple\\Jam_du_jeudi.wav', modif: '2026-10-02T10:00:00Z' },
-  ] });
-  return out;
-}
 })();

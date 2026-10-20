@@ -1,6 +1,6 @@
 // =====================================================================
-// ACCUEIL — « la semaine du groupe »
-// Pour l'instant : données d'EXEMPLE (le Drive n'est pas encore relié).
+// ACCUEIL — NEXT (le prochain rendez-vous) + À faire (toutes les tâches).
+// Sur le côté : avancement des morceaux, alertes, et « Pour démarrer ».
 // =====================================================================
 BK.etapes = [            // les étapes d'un morceau et leur poids dans le pourcentage
   { id: 'maquette', nom: 'Maquette',   poids: 15 },
@@ -10,100 +10,77 @@ BK.etapes = [            // les étapes d'un morceau et leur poids dans le pourc
   { id: 'release',  nom: 'Release',    poids: 10 },
   { id: 'promo',    nom: 'Promo',      poids: 20 },
 ];
-BK.pourcent = m => BK.etapes.reduce((t, e, i) => t + (i < m.fait ? e.poids : i === m.fait ? e.poids * (m.enCours || 0) : 0), 0);
+BK.pourcent = m => BK.etapes.reduce((t, e, i) => t + (i < (m.fait || 0) ? e.poids : i === (m.fait || 0) ? e.poids * (m.enCours || 0) : 0), 0);
 
-const EXEMPLE = {
-  semaine: [
-    { jour: 'MAR', heure: '19:00', type: 'Enregistrement', titre: 'Voix lead', morceau: 'Morceau A', c: 'var(--org)' },
-    { jour: 'JEU', heure: '18:30', type: 'Répétition',     titre: 'Studio',    morceau: '',          c: 'var(--mus)' },
-    { jour: 'SAM', heure: '14:00', type: 'Tournage',       titre: 'Reel #2',   morceau: 'Morceau B', c: 'var(--teal)' },
-  ],
-  morceaux: [
-    { nom: 'Morceau A', fait: 2, enCours: .5 },
-    { nom: 'Morceau B', fait: 5, enCours: .3 },
-    { nom: 'Morceau C', fait: 2, enCours: .1 },
-    { nom: 'Maquette D', fait: 0, enCours: .6 },
-  ],
-  surveiller: [
-    { led: 'red', txt: 'Morceau A : projet Ableton v8 seulement chez Pierre, pas sur le Drive' },
-    { led: 'amb', txt: 'Morceau C bloqué au mixage depuis 3 semaines' },
-    { led: 'amb', txt: '2 tâches en retard' },
-  ],
-  ajouts: [
-    { quand: 'HIER',   txt: 'Master Morceau B v4', qui: 'Yacine' },
-    { quand: '18 OCT', txt: 'Photos shooting (24)', qui: 'Baptiste' },
-    { quand: '16 OCT', txt: 'Reel « refrain » Morceau B', qui: 'Pierre' },
-  ],
-};
+(() => {
+const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+const SUR_DRIVE = /[\\/](my drive|mon drive)[\\/]|^g:/i;
 
-// ---------- vraies données (dès qu'il y en a), sinon l'exemple ----------
-async function donneesReelles() {
+async function donnees() {
   const morceaux = await BK.db.liste('morceaux'), fichiers = await BK.inv.tous(), taches = await BK.db.liste('taches');
   const evs = BK.agendaTous ? BK.agendaTous() : [];
-  if (!morceaux.length && !evs.length && !taches.length) return null;
-  const T = BK.typesRdv || {}, maintenant = Date.now(), dans7 = maintenant + 7 * 864e5, auj = new Date().toISOString().slice(0, 10);
-  const semaine = evs.filter(e => e.debut >= maintenant - 36e5 && e.debut <= dans7).slice(0, 4).map(e => ({
-    jour: e.debut.toLocaleDateString('fr-CA', { weekday: 'short' }).replace('.', '').toUpperCase(), heure: e.journee ? '—' : e.debut.toTimeString().slice(0, 5),
-    type: (T[e.type] || { nom: 'Rendez-vous' }).nom, titre: e.titre || '', morceau: e.morceau || '', c: (T[e.type] || { c: 'var(--mus)' }).c }));
-  const surveiller = [];
+  const maintenant = Date.now(), auj = new Date().toISOString().slice(0, 10);
+  const next = evs.find(e => e.debut >= maintenant - 36e5) || null;
+  const afaire = taches.filter(t => !t.fait).sort((a, b) => (a.date || '9').localeCompare(b.date || '9'));
+  const alertes = [];
   for (const m of morceaux.filter(m => m.statut !== 'sorti')) {
     const als = fichiers.filter(f => f.type === 'als' && !f.sauvegarde && BK.inv.trouverMorceau(f.nom, morceaux) === m).sort((a, b) => (b.modif || '').localeCompare(a.modif || ''));
-    if (als[0] && !/[\\/](my drive|mon drive)[\\/]|^g:/i.test(als[0].chemin) && !als.some(f => f.nom === als[0].nom && /[\\/](my drive|mon drive)[\\/]|^g:/i.test(f.chemin)))
-      surveiller.push({ led: 'red', txt: `${m.nom} : dernier projet Ableton (${als[0].nom}) seulement chez ${als[0].pc}, pas sur le Drive` });
-    if (m.maj && maintenant - new Date(m.maj) > 21 * 864e5) surveiller.push({ led: 'amb', txt: `${m.nom} : rien n'a bougé depuis 3 semaines (${BK.etapes[Math.min(m.fait || 0, 5)].nom})` });
+    if (als[0] && !SUR_DRIVE.test(als[0].chemin) && !als.some(f => f.nom === als[0].nom && SUR_DRIVE.test(f.chemin)))
+      alertes.push({ led: 'red', txt: `${m.nom} : dernier projet Ableton seulement chez ${als[0].pc}, pas sur le Drive` });
+    if (m.maj && maintenant - new Date(m.maj) > 21 * 864e5) alertes.push({ led: 'amb', txt: `${m.nom} : rien n'a bougé depuis 3 semaines` });
   }
-  const ret = taches.filter(t => !t.fait && t.date && t.date < auj).length;
-  if (ret) surveiller.push({ led: 'amb', txt: `${ret} tâche(s) en retard` });
-  const ajouts = fichiers.filter(f => !f.sauvegarde && f.modif).sort((a, b) => b.modif.localeCompare(a.modif)).slice(0, 4)
-    .map(f => ({ quand: new Date(f.modif).toLocaleDateString('fr-CA', { day: '2-digit', month: 'short' }).replace('.', '').toUpperCase(), txt: f.nom, qui: f.pc }));
-  return { semaine, morceaux: morceaux.filter(m => m.statut !== 'sorti').slice(0, 6), surveiller, ajouts };
+  const ret = afaire.filter(t => t.date && t.date < auj).length;
+  if (ret) alertes.push({ led: 'amb', txt: `${ret} tâche(s) en retard` });
+  const demarrer = [
+    { ok: !!BK.reglage('dernierScan', ''), txt: 'Scanner ce PC', va: 'biblio' },
+    { ok: morceaux.length > BK.FICHES_DEPART.length, txt: 'Créer les fiches de vos morceaux', va: 'biblio' },
+    { ok: !!BK.ableton.relie, txt: 'Relier Ableton', va: 'mixprep' },
+    { ok: false, txt: 'Relier le Drive BEESKOT (bientôt)', va: 'reglages' },
+  ];
+  return { next, afaire, morceaux: morceaux.filter(m => m.statut !== 'sorti'), alertes, demarrer, auj };
 }
 
 BK.module('accueil', function (page) {
   BK.surOuvrir = BK.surOuvrir || {};
-  BK.surOuvrir.accueil = async () => { try { const d = await donneesReelles(); if (d) dessiner(d, false); } catch (e) { console.error(e); } };
-  dessiner(EXEMPLE, true);
-  function dessiner(d, exemple) {
-  const p0 = d.semaine[0];
-  $('.hdr .right', page).innerHTML = `
-    <div><span class="eng" style="font-size:9px">Prochain rendez-vous</span><span class="vfd" style="width:190px">${p0 ? `${p0.jour} ${p0.heure} · ${p0.type.toUpperCase()}` : 'RIEN DE PRÉVU'}</span></div>
-    <div><span class="eng" style="font-size:9px">Morceaux</span><span class="vfd">${String(d.morceaux.length).padStart(2, '0')}</span></div>`;
-  const barre = m => {
-    const p = Math.round(BK.pourcent(m));
-    const cases = BK.etapes.map((e, i) =>
-      `<span class="seg-etape ${i < m.fait ? 'fait' : i === m.fait ? 'encours' : ''}" style="flex:${e.poids}" title="${e.nom}">
-         <i style="width:${i < m.fait ? 100 : i === m.fait ? Math.round((m.enCours || 0) * 100) : 0}%"></i></span>`).join('');
-    const etape = BK.etapes[Math.min(m.fait || 0, BK.etapes.length - 1)].nom; m.fait = m.fait || 0;
-    return `<div class="avance">
-      <span class="avance-nom">${String(m.nom).replace(/</g, '&lt;')}</span>
-      <div class="avance-piste"><div class="etapes">${cases}</div><span class="nt avance-etape">En cours : ${etape}</span></div>
-      <span class="vfd avance-pc">${String(p).padStart(3, ' ')} %</span></div>`;
-  };
+  BK.surOuvrir.accueil = async () => { try { dessiner(await donnees()); } catch (e) { console.error(e); } };
+  setTimeout(BK.surOuvrir.accueil, 300);
 
-  $('.grid', page).innerHTML = `
-    <div class="cols">
-      <section class="pane vit" aria-label="Vitrine"><span class="ptitle">① Vitrine</span>
-        <div class="box"><div class="ligne-titre"><span class="lb">Cette semaine</span>${exemple ? '<span class="dymo sm">Exemple</span>' : ''}</div>
-          <div class="evts">${d.semaine.length ? '' : '<span class="nt">Rien de prévu cette semaine.</span>'}${d.semaine.map(e => `
-            <div class="evt"><span class="vfd evt-jour">${e.jour}<br><small>${e.heure}</small></span>
-              <span class="nchip" style="--c:${e.c}"></span>
-              <div><span class="evt-type">${e.type}</span><span class="nt" style="margin:2px 0 0">${e.titre}${e.morceau ? ' · ' + e.morceau : ''}</span></div></div>`).join('')}
-          </div></div>
-        <div class="box grow"><span class="lb">Avancement des morceaux</span>
-          <div class="avances"><div class="avance legende-l"><span class="avance-nom"></span>
-              <div class="avance-piste legende">${BK.etapes.map(e => `<span style="flex:${e.poids}">${e.nom}</span>`).join('')}</div>
-              <span class="avance-pc"></span></div>${d.morceaux.map(barre).join('')}</div></div>
-      </section>
-      <section class="pane reg" aria-label="Réglages"><span class="ptitle">② À surveiller</span>
-        <div class="box"><span class="lb">Attention</span>
-          <div class="surv">${d.surveiller.length ? '' : '<span class="nt">Tout va bien.</span>'}${d.surveiller.map(s => `<div class="surv-l"><span class="led ${s.led}"></span><span class="nt" style="margin:0">${s.txt}</span></div>`).join('')}</div></div>
-        <div class="box grow"><span class="lb">Derniers ajouts</span>
-          <div class="surv">${d.ajouts.length ? '' : '<span class="nt">Rien de nouveau.</span>'}${d.ajouts.map(a => `<div class="surv-l"><span class="vfd ajout-q">${a.quand}</span><div><span class="nt" style="margin:0;color:var(--ink)">${a.txt}</span><span class="nt" style="margin:0;font-size:11px">par ${a.qui}</span></div></div>`).join('')}</div></div>
-      </section>
-    </div>
-    <div class="pane abar" aria-label="Barre"><span class="ptitle">③ Barre</span>
-      <span class="vfd${exemple ? ' dim' : ''}">${exemple ? 'DONNÉES D\'EXEMPLE · DRIVE PAS ENCORE RELIÉ' : 'À JOUR'}</span>
-      <div class="right"><button class="btn" data-va="agenda">Calendrier</button><button class="btn pri" data-va="biblio">Bibliothèque ▶</button></div></div>`;
-  $$('[data-va]', page).forEach(b => b.onclick = () => BK.ouvrir(b.dataset.va));
+  function dessiner(d) {
+    const T = BK.typesRdv || {}, n = d.next, t = n && (T[n.type] || { nom: 'Rendez-vous', c: 'var(--mus)' });
+    const quand = n ? n.debut.toLocaleDateString('fr-CA', { weekday: 'short', day: 'numeric', month: 'short' }).toUpperCase() + (n.journee ? '' : ' · ' + n.debut.toTimeString().slice(0, 5)) : '';
+    $('.hdr .right', page).innerHTML = `<div><span class="eng" style="font-size:9px">À faire</span><span class="vfd">${String(d.afaire.length).padStart(2, '0')}</span></div>
+      <div><span class="eng" style="font-size:9px">Morceaux en chantier</span><span class="vfd">${String(d.morceaux.length).padStart(2, '0')}</span></div>`;
+    const barre = m => { const p = Math.round(BK.pourcent(m));
+      return `<div class="avance mini"><span class="avance-nom">${esc(m.nom)}</span>
+        <div class="avance-piste"><div class="etapes">${BK.etapes.map((e, i) => `<span class="seg-etape ${i < (m.fait || 0) ? 'fait' : i === (m.fait || 0) ? 'encours' : ''}" style="flex:${e.poids}"><i style="width:${i < (m.fait || 0) ? 100 : 0}%"></i></span>`).join('')}</div></div>
+        <span class="vfd avance-pc">${p} %</span></div>`; };
+    const toutFait = d.demarrer.slice(0, 3).every(x => x.ok);
+    $('.grid', page).innerHTML = `
+      <div class="cols">
+        <section class="pane vit" aria-label="Vitrine"><span class="ptitle">① Vitrine</span>
+          <div class="box next"><span class="lb">Next</span>
+            ${n ? `<div class="next-l"><span class="nchip" style="--c:${t.c}"></span><span class="vfd next-q">${quand}</span>
+              <div><span class="evt-type">${esc(t.nom)}</span><span class="nt" style="margin:2px 0 0;font-size:14px;color:var(--ink)">${esc(n.titre || '')}${n.morceau ? ' · ' + esc(n.morceau) : ''}</span></div></div>`
+              : `<span class="nt">Aucun rendez-vous prévu. <a href="#" data-va="agenda">Ajouter dans le Calendrier</a></span>`}</div>
+          <div class="box grow"><div class="ligne-titre"><span class="lb">À faire</span><button class="btn xs" data-va="taches" style="margin-left:auto">Ouvrir la To-do list</button></div>
+            <div class="af-liste">${d.afaire.length ? d.afaire.map(x => `<div class="af-l${x.date && x.date < d.auj ? ' retard' : ''}">
+                <button class="ta-case" data-id="${x.id}"></button><span class="af-t">${esc(x.texte)}</span>
+                <span class="nt af-m">${esc(x.qui || 'BEESKOT')}${x.morceau ? ' · ' + esc(x.morceau) : ''}${x.date ? ' · pour le ' + new Date(x.date + 'T12:00').toLocaleDateString('fr-CA', { day: 'numeric', month: 'short' }) : ''}</span></div>`).join('')
+              : '<span class="nt">Rien à faire pour l\'instant 🎉</span>'}</div></div>
+        </section>
+        <section class="pane reg" aria-label="Côté"><span class="ptitle">② En bref</span>
+          ${toutFait ? '' : `<div class="box"><span class="lb">Pour démarrer</span><div class="surv">${d.demarrer.map(x => `<div class="surv-l"><span class="led ${x.ok ? 'grn' : ''}"></span><span class="nt" style="margin:0;flex:1">${x.txt}</span>${x.ok ? '' : `<button class="btn xs" data-va="${x.va}">Y aller</button>`}</div>`).join('')}</div></div>`}
+          <div class="box"><span class="lb">Alertes</span><div class="surv">${d.alertes.length ? d.alertes.map(a => `<div class="surv-l"><span class="led ${a.led}"></span><span class="nt" style="margin:0">${esc(a.txt)}</span></div>`).join('') : '<span class="nt">Tout va bien.</span>'}</div></div>
+          <div class="box grow"><span class="lb">Avancement</span><div class="avances">${d.morceaux.length ? d.morceaux.map(barre).join('') : '<span class="nt">Aucun morceau en chantier.</span>'}</div></div>
+        </section>
+      </div>
+      <div class="pane abar" aria-label="Barre"><span class="ptitle">③ Barre</span>
+        <span class="vfd">${new Date().toLocaleDateString('fr-CA', { weekday: 'long', day: 'numeric', month: 'long' }).toUpperCase()}</span>
+        <div class="right"><button class="btn" data-va="agenda">Calendrier</button><button class="btn pri" data-va="biblio">Bibliothèque ▶</button></div></div>`;
+    $$('[data-va]', page).forEach(b => b.onclick = e => { e.preventDefault(); BK.ouvrir(b.dataset.va); });
+    $$('.af-l .ta-case', page).forEach(b => b.onclick = async () => {
+      const x = d.afaire.find(t => t.id === b.dataset.id); x.fait = true; await BK.db.ecrire('taches', x);
+      BK.tachesRecharger && BK.tachesRecharger(); BK.surOuvrir.accueil(); });
   }
 });
+})();

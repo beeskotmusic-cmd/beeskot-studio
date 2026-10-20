@@ -127,8 +127,9 @@ const BK = {
     $('#stMaj').onclick = BK.installerMaj;
   },
 
-  demarrer() {
+  async demarrer() {
     BK.boutonStop();
+    try { await BK.semer(); } catch (e) { console.error(e); }
     BK.construireMenu();
     BK.construirePages();
     $$('.knobify').forEach(BK.knobify);
@@ -168,6 +169,24 @@ const BK = {
     w.addEventListener('pointerup', () => y0 = null);
     w.addEventListener('keydown', e => { if (e.key === 'ArrowUp' || e.key === 'ArrowRight') set(get() + step); if (e.key === 'ArrowDown' || e.key === 'ArrowLeft') set(get() - step); });
     $$('.tk', w).forEach(x => x.onclick = () => set(min + (max - min) * (+x.dataset.i) / Math.max(1, ticks.length - 1)));
+    // cliquer sur l'afficheur = taper soi-même une valeur (ex. 35)
+    out.title = 'Clique pour taper une valeur'; out.style.cursor = 'text';
+    out.onclick = () => {
+      if (out.querySelector('input')) return;
+      const champ = document.createElement('input'); champ.className = 'kval-champ'; champ.inputMode = 'decimal';
+      champ.value = sel ? el.value : get(); out.textContent = ''; out.appendChild(champ); champ.focus(); champ.select();
+      const valider = () => {
+        const n = parseFloat(String(champ.value).replace(',', '.').replace(/[^0-9.\-]/g, ''));
+        if (!isNaN(n)) {
+          if (sel) { let best = 0, d = Infinity; [...el.options].forEach((o, i) => { const dd = Math.abs(parseFloat(o.value) - n); if (dd < d) { d = dd; best = i; } }); set(best); }
+          else set(Math.max(min, Math.min(max, n)));
+        }
+        draw();
+      };
+      champ.onkeydown = e => { if (e.key === 'Enter') champ.blur(); if (e.key === 'Escape') { champ.value = ''; champ.blur(); } e.stopPropagation(); };
+      champ.onblur = valider;
+    };
+    el.knobMaj = draw;              // pour redessiner le bouton quand la valeur change ailleurs
     draw();
   },
 };
