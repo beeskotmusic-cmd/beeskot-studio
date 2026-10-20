@@ -6,7 +6,7 @@
 // Une tâche = un petit fichier dans le Drive (partagé avec tout le groupe).
 // =====================================================================
 (() => {
-const T = { taches: [], membres: [], masquerFaites: true, morceaux: [], choisie: null };
+const T = { taches: [], membres: [], masquerFaites: true, morceaux: [], choisie: null, serres: BK.reglage('todo.serres', {}), faitesPli: BK.reglage('todo.faitesPli', false) };
 const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 const MEMBRES_DEFAUT = ['Yacine', 'Pierre', 'Baptiste'];
 const GROUPE = 'BEESKOT';
@@ -33,7 +33,7 @@ BK.module('taches', function (page) {
       </section>
       <section class="pane reg" style="width:300px"><span class="ptitle">② Miette et réglages</span>
         <div class="box todo-miette" id="taMiette"></div>
-        <div class="box grow ta-faites-box zone" data-zone="__fait"><span class="lb">✓ Déjà fait <span id="taNbF"></span></span><div class="ta-faites" id="taFaites"></div></div>
+        <div class="box grow ta-faites-box zone" data-zone="__fait"><button class="lb ta-plier" id="taFaitesPli">▾ ✓ Déjà fait <span id="taNbF"></span></button><div class="ta-faites" id="taFaites"></div></div>
         <div class="box"><span class="lb">Paniers</span>
           <span class="nt">Les membres, séparés par des virgules. Le panier BEESKOT est toujours là.</span>
           <input class="fld" id="taMembres" style="margin-top:8px"></div>
@@ -113,14 +113,20 @@ BK.module('taches', function (page) {
     $('#taPaniers').style.gridTemplateColumns = `repeat(${T.membres.length + 1}, minmax(0, 1fr))`;
     $('#taPaniers').innerHTML = [...T.membres, GROUPE].map(c => {
       const l = de(c);
-      return `<div class="panier zone${c === GROUPE ? ' groupe' : ''}" data-zone="${esc(c)}">
-        <div class="panier-tete"><span class="ta-nom">${esc(c)}</span><span class="col-nb">${l.filter(t => !t.fait).length || ''}</span></div>
+      const serre = T.serres[c] ?? (l.length > 3);                    // beaucoup de tâches : une ligne chacune
+      return `<div class="panier zone${c === GROUPE ? ' groupe' : ''}${serre ? ' serre' : ''}" data-zone="${esc(c)}">
+        <button class="panier-tete" data-serre="${esc(c)}" title="${serre ? 'Tout afficher' : 'Mettre en liste'}"><span class="ta-nom">${esc(c)}</span>
+          <span class="col-nb">${l.filter(t => !t.fait).length || ''}</span><span class="panier-pli">${serre ? '▸' : '▾'}</span></button>
         <div class="panier-cartes">${l.map(t => carte(t, auj)).join('')}</div></div>`;
     }).join('');
     $('.todo-vit').classList.toggle('en-choix', !!T.choisie);
+    $$('[data-serre]').forEach(b => b.onclick = e => { e.stopPropagation(); const c = b.dataset.serre;
+      const l = T.taches.filter(t => (t.qui || '') === c && !(T.masquerFaites && t.fait));
+      T.serres[c] = !(T.serres[c] ?? (l.length > 3)); BK.regler('todo.serres', T.serres); rendre(); });
     // l'historique : tout ce qui a été fait, et par qui
     const faites = T.taches.filter(t => t.fait).sort((a, b) => (b.faitLe || b.maj || '').localeCompare(a.faitLe || a.maj || ''));
-    $('#taNbF').textContent = faites.length ? '(' + faites.length + ')' : '';
+    $('.ta-faites-box').classList.toggle('replie', T.faitesPli);
+    $('#taFaitesPli').innerHTML = `${T.faitesPli ? '▸' : '▾'} ✓ Déjà fait <span id="taNbF">${faites.length ? '(' + faites.length + ')' : ''}</span>`;
     $('#taFaites').innerHTML = faites.length ? faites.slice(0, 60).map(t => `<div class="ta-f"><span class="ta-f-t">${esc(t.texte)}</span>
         <span class="ta-f-m">${esc(t.qui || 'en vrac')}${t.faitLe ? ' · ' + new Date(t.faitLe).toLocaleDateString('fr-CA', { day: 'numeric', month: 'short' }) : ''}${t.faitPar ? ' · coché sur ' + esc(t.faitPar) : ''}</span>
         <button class="btn xs" data-case="${t.id}" title="Remettre à faire">↩</button></div>`).join('') : '<span class="nt">Rien de fait pour l\'instant.</span>';
@@ -183,6 +189,7 @@ BK.module('taches', function (page) {
       rendre(); await BK.db.ecrire('taches', t); msg(t.fait ? 'Bravo ! (rangée dans « Déjà fait »)' : 'Remise à faire'); }
     if (x) { T.taches = T.taches.filter(y => y.id !== x.dataset.x); rendre(); await BK.db.supprimer('taches', x.dataset.x); msg('Tâche retirée'); }
   });
+  $('#taFaitesPli').onclick = () => { T.faitesPli = !T.faitesPli; BK.regler('todo.faitesPli', T.faitesPli); rendre(); };
   $('#taFaites').addEventListener('click', async e => { const b = e.target.closest('[data-case]'); if (!b) return;
     const t = T.taches.find(y => y.id === b.dataset.case); if (!t) return; t.fait = false; delete t.faitLe; delete t.faitPar; rendre(); await BK.db.ecrire('taches', t); msg('Remise à faire'); });
   $('.ta-faites-box').addEventListener('click', e => { if (T.choisie && !e.target.closest('[data-case]')) deplacer(T.choisie, '__fait'); });
