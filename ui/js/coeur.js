@@ -7,7 +7,7 @@ const $ = (s, r = document) => r.querySelector(s);
 const $$ = (s, r = document) => [...r.querySelectorAll(s)];
 
 const BK = {
-  version: '0.1 bêta',
+  version: '0.1.1 bêta',
   modules: {},
   onglets: [],
   cotes: [],
@@ -98,6 +98,23 @@ const BK = {
   // (dans le .exe, ces deux gestes passeront par le moteur du logiciel ; ici, version de secours)
   relancer() { if (window.__TAURI__?.process) window.__TAURI__.process.relaunch(); else location.reload(); },
   fermer()   { if (window.__TAURI__?.process) window.__TAURI__.process.exit(0); else window.close(); },
+  // ---------- mises à jour : vérifiées au démarrage, installées en 1 clic depuis le bouton STOP ----------
+  async verifierMaj() {
+    const up = BK.T && BK.T.updater; if (!up) return;
+    try {
+      const m = await up.check(); if (!m) return;
+      BK.majDispo = m;
+      $('#stopLed').classList.add('on'); $('#syMaj').textContent = 'MAJ ' + m.version;
+      const b = $('#stMaj'); b.classList.remove('hidden'); b.textContent = '⬇ Installer la version ' + m.version;
+    } catch (e) { /* pas d'Internet : on réessaiera au prochain démarrage */ }
+  },
+  async installerMaj() {
+    if (!BK.majDispo) return;
+    const b = $('#stMaj'); b.disabled = true; b.innerHTML = '<span class="spin"></span>Téléchargement…';
+    try { await BK.majDispo.downloadAndInstall(); await BK.T.process.relaunch(); }
+    catch (e) { b.disabled = false; b.textContent = 'Échec : réessayer'; }
+  },
+
   boutonStop() {
     const voile = $('#stopVoile'), montrer = v => voile.classList.toggle('hidden', !v);
     $('#stVer').textContent = BK.version.toUpperCase();
@@ -107,6 +124,7 @@ const BK = {
     document.addEventListener('keydown', e => { if (e.key === 'Escape') montrer(false); });
     $('#stRelancer').onclick = BK.relancer;
     $('#stFermer').onclick = BK.fermer;
+    $('#stMaj').onclick = BK.installerMaj;
   },
 
   demarrer() {
@@ -115,11 +133,13 @@ const BK = {
     BK.construirePages();
     $$('.knobify').forEach(BK.knobify);
     $('#syVer').textContent = BK.version.toUpperCase();
+    if (BK.T && BK.T.app) BK.T.app.getVersion().then(v => { BK.version = v + ' bêta'; $('#syVer').textContent = $('#stVer').textContent = BK.version.toUpperCase(); });   // le vrai numéro du .exe
     $('#syPc').textContent = BK.reglage('nomPc', 'CE PC').toUpperCase();
     BK.etatDrive && BK.etatDrive();
     BK.horloge(); setInterval(BK.horloge, 20000);   // léger : une mise à jour toutes les 20 s
     document.documentElement.style.zoom = BK.reglage('zoom', 100) / 100;
     BK.ouvrir(BK.reglage('dernierOnglet', 'accueil'));
+    setTimeout(BK.verifierMaj, 3000);              // quelques secondes après l'ouverture, sans gêner
   },
 
   // ---------- boutons rotatifs (repris tel quel de Dari Audio Live) ----------
