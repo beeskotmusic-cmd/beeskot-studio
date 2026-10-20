@@ -811,3 +811,17 @@ body.dropping main>section:not(.hidden) .box.pick::after{content:none!important;
 .pv-ts:hover{box-shadow:0 0 0 2px #ffb23e}
 .pv-ts.prise{opacity:.45}
 .pv-ts img{width:100%;height:100%;object-fit:cover;pointer-events:none}
+/* Tournages : l'affiche du projet, cliquable pour tout déplier */
+.to-affiche{position:relative;width:100%;min-height:150px;border:0;padding:0;border-radius:8px;overflow:hidden;cursor:pointer;display:block;text-align:left;
+  background-size:cover;background-position:center;box-shadow:inset 0 0 0 1px rgba(239,230,210,.14),0 6px 18px rgba(0,0,0,.45)}
+.to-affiche.sans{background:linear-gradient(135deg,#3a2616,#241710)}
+.to-affiche:hover{box-shadow:inset 0 0 0 1px #ffb23e,0 8px 22px rgba(0,0,0,.5)}
+.to-af-voile{position:absolute;inset:0;background:linear-gradient(90deg,rgba(18,10,5,.92) 0%,rgba(18,10,5,.75) 45%,rgba(18,10,5,.25) 100%)}
+.to-af-txt{position:relative;display:flex;flex-direction:column;gap:4px;padding:18px 20px;max-width:70%}
+.to-af-txt .eng{font-size:9.5px;color:#ffb23e}
+.to-af-txt .dymo{font-size:17px;align-self:flex-start}
+.to-af-txt .nt{margin:0;font-size:12px}
+.to-af-chiffres{font-size:11px!important;opacity:.8}
+.to-af-pli{position:absolute;right:14px;bottom:12px;font:600 10px Jost,sans-serif;letter-spacing:.12em;text-transform:uppercase;color:#ffcf7a;background:rgba(0,0,0,.45);padding:5px 10px;border-radius:5px}
+.to-corps{display:flex;flex-direction:column;gap:12px;margin-top:12px}
+.to-corps.replie{display:none}

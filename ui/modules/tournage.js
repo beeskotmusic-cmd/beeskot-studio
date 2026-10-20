@@ -41,7 +41,8 @@ BK.module('tournage', function (page) {
   async function charger() {
     T.liste = (await BK.db.liste('tournages')).sort((a, b) => (b.date || '').localeCompare(a.date || ''));
     const cfg = (await BK.db.liste('config')).find(c => c.id === 'membres'); if (cfg && cfg.liste && cfg.liste.length) T.membres = cfg.liste.map(m => m === 'Dari' ? 'Yacine' : m);
-    T.morceaux = (await BK.db.liste('morceaux')).map(m => m.nom).sort();
+    T.fiches = (await BK.db.liste('morceaux')).sort((a, b) => a.nom.localeCompare(b.nom));
+    T.morceaux = T.fiches.map(m => m.nom);
     if (T.courant) T.courant = T.liste.find(x => x.id === T.courant.id) || null;
     if (!T.courant) T.courant = T.liste.find(x => (x.date || '') >= new Date().toISOString().slice(0, 10)) || T.liste[0] || null;
     rendreListe(); rendreFiche(); proposes();
@@ -77,7 +78,22 @@ BK.module('tournage', function (page) {
     $('#toPdf').disabled = $('#toCal').disabled = !t;
     if (!t) { z.innerHTML = '<div class="to-vide"><span class="dymo">Aucun tournage</span><span class="nt">Crée une fiche avec « + Nouveau tournage » à droite.</span></div>'; return; }
     t.plans = t.plans || []; t.tenues = t.tenues || {}; t.moodboard = t.moodboard || [];
+    // ---------- l'affiche du projet : l'image du morceau, le titre, la date ----------
+    const m = (T.fiches || []).find(x => x.nom === t.morceau);
+    const img = (m && m.photo) || (t.moodboard || [])[0] || '';
+    const ouvert = (BK.reglage('tournage.ouvert', {}))[t.id] ?? true;
+    const quand = t.date ? new Date(t.date + 'T12:00').toLocaleDateString('fr-CA', { weekday: 'long', day: 'numeric', month: 'long' }) : 'date à fixer';
     z.innerHTML = `
+      <button class="to-affiche${img ? '' : ' sans'}${ouvert ? ' ouverte' : ''}" id="toAffiche" style="${img ? `background-image:url(${img})` : ''}">
+        <span class="to-af-voile"></span>
+        <span class="to-af-txt">
+          <span class="eng">${esc(t.type || 'Tournage')}${t.morceau ? ' · projet ' + esc(t.morceau) : ''}</span>
+          <b class="dymo">${esc(t.titre || 'Sans titre')}</b>
+          <span class="nt">${esc(quand)}${t.heure ? ' · ' + esc(t.heure) : ''}${t.lieu ? ' · ' + esc(t.lieu) : ''}</span>
+          <span class="nt to-af-chiffres">🖼 ${(t.moodboard || []).length} · 🎬 ${(t.plans || []).length} plan(s)${Object.values(t.tenues || {}).filter(Boolean).length ? ' · 👕 tenues notées' : ''}</span>
+        </span>
+        <span class="to-af-pli">${ouvert ? '▾ Replier' : '▸ Tout voir'}</span></button>
+      <div class="to-corps${ouvert ? '' : ' replie'}" id="toCorps">
       <div class="box"><span class="lb">Infos</span>
         <div class="to-infos">
           <label class="large"><span class="eng">Titre</span><input class="fld" data-c="titre" value="${esc(t.titre)}" placeholder="ex. Clip Mother – scène du salon"></label>
@@ -111,7 +127,8 @@ BK.module('tournage', function (page) {
           <textarea class="fld" data-c="materiel" rows="3" placeholder="ex. 2 caméras, trépied, lampes Globe en rouge, machine à fumée">${esc(t.materiel)}</textarea>
           <textarea class="fld" data-c="notes" rows="3" placeholder="Notes pour l'équipe…" style="margin-top:8px">${esc(t.notes)}</textarea>
           <button class="btn xs" id="toSuppr" style="margin-top:8px;align-self:flex-start">Retirer ce tournage</button></div>
-      </div>`;
+      </div></div>`;
+    $('#toAffiche').onclick = () => { const o = BK.reglage('tournage.ouvert', {}); o[t.id] = !ouvert; BK.regler('tournage.ouvert', o); rendreFiche(); };
     brancher(t);
   }
 
