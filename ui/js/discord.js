@@ -76,11 +76,16 @@ BK.discord = {
   },
 
   // un message → une ligne lisible du journal
+  // le texte d'un message, y compris les « cartes » (embeds) des bots, ex. le bot qui résume les mails (ingés son Fiverr…)
+  texteDe(m) {
+    const e = (m.embeds || []).map(x => [x.author && x.author.name, x.title, x.description, ...(x.fields || []).map(f => f.name + ' : ' + f.value), x.footer && x.footer.text].filter(Boolean).join(' · ')).join(' | ');
+    return [(m.content || ''), e].filter(Boolean).join(' ').replace(/\s+/g, ' ').trim();
+  },
   ligne(m, s, membres) {
     const qui = BK.discord.prenom(m.author, m.member && m.member.nick, membres);
     const pj = (m.attachments || []).map(a => a.filename).join(', ');
-    const txt = (m.content || '').replace(/\s+/g, ' ').trim();
-    return { id: m.id, salon: s.nom, t: m.timestamp, qui, txt: txt.slice(0, 1500), pj, lien: `https://discord.com/channels/${s.gid || '@me'}/${m.channel_id}/${m.id}` };
+    const txt = BK.discord.texteDe(m);
+    return { id: m.id, salon: s.nom, t: m.timestamp, qui: m.author && m.author.bot ? '🤖 ' + qui : qui, txt: txt.slice(0, 1500), pj, lien: `https://discord.com/channels/${s.gid || '@me'}/${m.channel_id}/${m.id}` };
   },
 
   // le journal, rangé par mois dans le Drive (collection « veille »)
@@ -98,7 +103,7 @@ BK.discord = {
       await BK.db.ecrire('veille', d);
     }
   },
-  texte: ls => ls.map(l => `[${l.t.slice(0, 16).replace('T', ' ')}] #${l.salon} ${l.qui} : ${l.txt}${l.pj ? ' [fichiers : ' + l.pj + ']' : ''} (msg ${l.id})`).join('\n'),
+  texte: ls => (ls.some(l => /^🤖/.test(l.qui || '')) ? '(Les messages « 🤖 » viennent de bots : l\'un d\'eux résume les mails reçus par le groupe — ingés son sur Fiverr, distributeur, salles… Ce sont des infos fiables : tiens-en compte comme des messages du groupe.)\n' : '') + ls.map(l => `[${l.t.slice(0, 16).replace('T', ' ')}] #${l.salon} ${l.qui} : ${l.txt}${l.pj ? ' [fichiers : ' + l.pj + ']' : ''} (msg ${l.id})`).join('\n'),
 
   // ---------- une ronde du Veilleur ----------
   enCours: false,
@@ -115,7 +120,7 @@ BK.discord = {
         progression('Lecture de #' + s.nom + '…');
         try {
           const ms = await BK.discord.nouveaux(s.id, c.jeton, dernier[s.id]);
-          if (ms.length) { dernier[s.id] = ms[ms.length - 1].id; nouvelles.push(...ms.filter(m => (m.content || '').trim() || (m.attachments || []).length).map(m => BK.discord.ligne(m, s, c.membres))); }
+          if (ms.length) { dernier[s.id] = ms[ms.length - 1].id; nouvelles.push(...ms.filter(m => BK.discord.texteDe(m) || (m.attachments || []).length).map(m => BK.discord.ligne(m, s, c.membres))); }
         } catch (e) { progression('#' + s.nom + ' : ' + e.message); }
       }
       if (nouvelles.length) await BK.discord.ajouterAuJournal(nouvelles);
@@ -279,7 +284,7 @@ Réponds en JSON : un tableau de {"texte":"…","qui":"Yacine|Pierre|Baptiste|BE
       for (let page = 0; page < 60; page++) {                         // jusqu'à 6000 messages par salon
         const l = await BK.discord.api(`/channels/${s.id}/messages?limit=100${avant ? '&before=' + avant : ''}`, c.jeton);
         if (!l.length) break; avant = l[l.length - 1].id; n += l.length;
-        tout.push(...l.filter(m => !deja.has(m.id) && ((m.content || '').trim() || (m.attachments || []).length)).map(m => BK.discord.ligne(m, s, c.membres)));
+        tout.push(...l.filter(m => !deja.has(m.id) && (BK.discord.texteDe(m) || (m.attachments || []).length)).map(m => BK.discord.ligne(m, s, c.membres)));
         progression(`Lecture de #${s.nom} : ${n} messages`); await BK.audio.pause();
         if (l.length < 100) break;
       }

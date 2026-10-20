@@ -23,6 +23,7 @@ BK.onglets = [
   { id: 'tournage', cote: 'outils',  titre: 'Tournages',      sous: 'Plan, moodboard, PDF',          couleur: 'var(--navy)', pret: true, defaut: true },
   { id: 'agenda',   cote: 'outils',  titre: 'Calendrier',     sous: 'Agenda BEESKOT, promo',         couleur: 'var(--mus)',  pret: true , defaut: true },
   { id: 'taches',   cote: 'outils',  titre: 'To-do list',     sous: 'À faire',                       couleur: 'var(--crm)',  pret: true , defaut: true },
+  { id: 'budget',   cote: 'outils',  titre: 'Budget',         sous: 'Dépenses, qui doit à qui',      couleur: 'var(--olv)',  pret: true , defaut: true },
   { id: 'reglages', cote: 'outils',  titre: 'Réglages',       sous: '',                              couleur: '#555',        pret: true,  defaut: true, mini: true, fixe: true },
 ];
 

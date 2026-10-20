@@ -175,7 +175,7 @@ BK.annuler = {
   pile: [], geste: 0,
   PAS: new Set(['veille', 'renforts']),                                      // le journal automatique : pas besoin
   CONFIG_OK: new Set(['etiquettes', 'membres']),
-  NOMS: { morceaux: 'la fiche du morceau', taches: 'la tâche', evenements: 'le rendez-vous', tournages: 'la fiche tournage', inventaires: 'l\'inventaire', propositions: 'la proposition', config: 'le réglage' },
+  NOMS: { depenses: 'la dépense', abonnements: 'la dépense mensuelle', morceaux: 'la fiche du morceau', taches: 'la tâche', evenements: 'le rendez-vous', tournages: 'la fiche tournage', inventaires: 'l\'inventaire', propositions: 'la proposition', config: 'le réglage' },
   noter(col, id, quoi, fiche) {
     if (BK.annuler.PAS.has(col) || (col === 'config' && !BK.annuler.CONFIG_OK.has(id))) return;
     if (Date.now() - BK.annuler.geste > 15000) return;                       // pas un geste de quelqu'un (travail en fond)

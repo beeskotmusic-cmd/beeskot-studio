@@ -82,9 +82,13 @@ BK.module('accueil', function (page) {
         <div class="right"><button class="btn" data-va="agenda">Calendrier</button><button class="btn pri" data-va="biblio">Bibliothèque ▶</button></div></div>`;
     $$('[data-va]', page).forEach(b => b.onclick = e => { e.preventDefault(); BK.ouvrir(b.dataset.va); });
     resume();
-    $$('.af-l .ta-case', page).forEach(b => b.onclick = async () => {
-      const x = d.afaire.find(t => t.id === b.dataset.id); x.fait = true; await BK.db.ecrire('taches', x);
-      BK.tachesRecharger && BK.tachesRecharger(); BK.surOuvrir.accueil(); });
+    $$('.af-l .ta-case', page).forEach(b => b.onclick = async e => {
+      e.stopPropagation(); const x = d.afaire.find(t => t.id === b.dataset.id); if (!x || x.fait) return;
+      b.classList.add('on'); b.textContent = '✓'; b.closest('.af-l').classList.add('faite');          // on voit tout de suite que c'est coché
+      x.fait = true; x.faitLe = new Date().toISOString(); x.faitPar = BK.reglage('nomPc', '') || 'ce PC';
+      try { await BK.db.ecrire('taches', x); } catch (er) {}
+      BK.tachesRecharger && BK.tachesRecharger();
+      setTimeout(() => BK.surOuvrir.accueil(), 700); });
   }
 
   // ---------- « Cette semaine » : le résumé de Miette (Discord + Gemini) ----------

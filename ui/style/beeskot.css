@@ -681,3 +681,17 @@ a.lien{color:var(--mus);text-decoration:none}a.lien:hover{text-decoration:underl
 /* zoom de secours (aperçu) : la fenêtre garde toujours toute la hauteur */
 .app{height:calc(100vh / var(--z, 1))!important}
 .side{overflow-y:auto;overflow-x:hidden;scrollbar-width:thin}
+/* Budget */
+.bu-vir{display:flex;flex-direction:column;gap:6px;margin-top:8px}
+.bu-v{display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:6px;background:rgba(0,0,0,.25);font-size:13px}
+.bu-v .vfd{font-size:14px}
+.bu-soldes{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+.bu-s{font:600 11px 'Share Tech Mono',monospace;padding:3px 8px;border-radius:4px;background:rgba(0,0,0,.25)}
+.bu-s.plus{color:#7ee08a}.bu-s.moins{color:#ff8a6a}
+.bu-liste,.bu-abos{display:flex;flex-direction:column;gap:5px;overflow:auto;margin-top:8px;min-height:0}
+.bu-d{display:flex;align-items:center;gap:8px;padding:6px 8px;border-radius:6px;background:rgba(0,0,0,.22)}
+.bu-d.remb{opacity:.8}
+.bu-d-c{flex:1;min-width:0;display:flex;flex-direction:column}.bu-d-c b{font-size:12.5px}.bu-d-c .nt{font-size:10.5px;margin:0}
+.bu-d .vfd{font-size:12px;white-space:nowrap}
+.af-l.faite{opacity:.45;transition:opacity .5s}.af-l.faite .af-t{text-decoration:line-through}
+.af-l .ta-case{cursor:pointer}
