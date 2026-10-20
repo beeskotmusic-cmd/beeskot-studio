@@ -133,7 +133,7 @@ BK.drive = {
 
   // ---------- ce qui a été créé sur ce PC avant la connexion part dans le Drive ----------
   async envoyerLocal() {
-    for (const col of ['morceaux', 'taches', 'evenements', 'config', 'inventaires']) {
+    for (const col of ['morceaux', 'taches', 'evenements', 'config', 'inventaires', 'tournages', 'renforts']) {
       const loc = BK.reglage('db.' + col, {}); if (!Object.keys(loc).length) continue;
       const dist = await BK.drive.liste(col);
       for (const f of Object.values(loc)) if (!dist[f.id] || (f.maj || '') > (dist[f.id].maj || '')) await BK.drive.ecrire(col, f);
@@ -150,6 +150,42 @@ BK.drive = {
     return r.files || [];
   },
   async telecharger(id) { return new Uint8Array(await (await BK.drive.api(`/files/${id}?alt=media`)).arrayBuffer()); },
+
+  // ---------- médias : dossiers imbriqués, liste, envoi depuis le navigateur, vignettes ----------
+  async chemin(noms) { let id = await BK.drive.racine(); for (const n of noms) id = await BK.drive.dossier(n, id); return id; },
+  async contenu(dossierId) {
+    const r = await (await BK.drive.api('/files?' + new URLSearchParams({ q: `${BK.drive.q(dossierId)} in parents and trashed=false`, orderBy: 'createdTime desc', pageSize: '200',
+      fields: 'files(id,name,mimeType,thumbnailLink,webViewLink,size,createdTime,videoMediaMetadata(durationMillis))' }))).json();
+    return r.files || [];
+  },
+  async envoyerBlob(blob, nom, dossierId, progression) {           // par morceaux de 8 Mo : léger pour le PC, marche pour les vidéos
+    const debut = await BK.drive.api('https://www.googleapis.com/upload/drive/v3/files?uploadType=resumable&fields=id,webViewLink', { method: 'POST',
+      headers: { 'Content-Type': 'application/json; charset=UTF-8', 'X-Upload-Content-Type': blob.type || 'application/octet-stream', 'X-Upload-Content-Length': String(blob.size) },
+      body: JSON.stringify({ name: nom, parents: [dossierId] }) });
+    const url = debut.headers.get('Location'); if (!url) throw new Error('Drive : envoi refusé');
+    const BLOC = 8 * 1024 * 1024;
+    for (let a = 0; a < blob.size || a === 0; a += BLOC) {
+      const b = Math.min(blob.size, a + BLOC), morceau = new Uint8Array(await blob.slice(a, b).arrayBuffer());
+      const r = await BK.drive.fetch(url, { method: 'PUT', headers: { 'Content-Range': blob.size ? `bytes ${a}-${b - 1}/${blob.size}` : 'bytes */0' }, body: morceau });
+      progression && progression(b / (blob.size || 1));
+      if (r.status === 200 || r.status === 201) return r.json();
+      if (r.status !== 308) throw new Error('Drive ' + r.status);
+      if (!blob.size) break;
+    }
+    throw new Error('Envoi interrompu');
+  },
+  vignettes: {},
+  async vignette(f) {                                               // petite image d'aperçu (gardée en mémoire)
+    if (BK.drive.vignettes[f.id]) return BK.drive.vignettes[f.id];
+    if (!f.thumbnailLink) return '';
+    try { const r = await BK.drive.api(f.thumbnailLink.replace(/=s\d+$/, '=s400')); return BK.drive.vignettes[f.id] = URL.createObjectURL(await r.blob()); }
+    catch (e) { return ''; }
+  },
+  async corbeille(fileId) {                                         // jamais effacé : rangé dans « corbeille » de BEESKOT Studio
+    const corb = await BK.drive.dossier('corbeille', await BK.drive.racine());
+    const f = await (await BK.drive.api(`/files/${fileId}?fields=parents`)).json();
+    await BK.drive.api(`/files/${fileId}?addParents=${corb}&removeParents=${(f.parents || []).join(',')}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: '{}' });
+  },
 
   // ---------- gros fichier (zip) → Drive, par morceaux, depuis le moteur ----------
   async envoyerFichier(chemin, nom, sousDossier) {

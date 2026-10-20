@@ -14,8 +14,8 @@ BK.onglets = [
   { id: 'reels',    cote: 'audio',   titre: 'Assistant audio Reel', sous: 'Passage, durée, vitesse', couleur: 'var(--teal)', pret: true , defaut: true },
 
   { id: 'reelvis',  cote: 'visuel',  titre: 'Assistant visuel Reel', sous: 'Montage, sous-titres, MP4',    couleur: 'var(--teal)', pret: true , defaut: true },
-  { id: 'tournage', cote: 'visuel',  titre: 'Tournages',      sous: 'Moodboard, découpage, PDF',     couleur: 'var(--navy)', pret: false, defaut: true },
-  { id: 'medias',   cote: 'visuel',  titre: 'Médias',         sous: 'Photos, pochettes, vidéos',     couleur: 'var(--ox)',   pret: false, defaut: true },
+  { id: 'tournage', cote: 'visuel',  titre: 'Tournages',      sous: 'Moodboard, découpage, PDF',     couleur: 'var(--navy)', pret: true, defaut: true },
+  { id: 'medias',   cote: 'visuel',  titre: 'Médias',         sous: 'Photos, pochettes, vidéos',     couleur: 'var(--ox)',   pret: true, defaut: true },
   { id: 'lumieres', cote: 'visuel',  titre: 'Lumières',       sous: 'Lampes Globe, LED du studio',   couleur: 'var(--olv)',  pret: false, defaut: false },
 
   { id: 'agenda',   cote: 'outils',  titre: 'Calendrier',     sous: 'Agenda BEESKOT, promo',         couleur: 'var(--mus)',  pret: true , defaut: true },

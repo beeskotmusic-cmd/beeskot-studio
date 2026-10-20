@@ -1,0 +1,162 @@
+// =====================================================================
+// TOURNAGES — une fiche par tournage : infos, moodboard, découpage,
+// tenues, matériel. Une fiche = un petit fichier dans le Drive (partagé).
+// « Imprimer / PDF » sort une feuille propre à donner à l'équipe.
+// =====================================================================
+(() => {
+const T = { liste: [], courant: null, membres: ['Yacine', 'Pierre', 'Baptiste'], morceaux: [] };
+const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+const TYPES = ['Clip', 'Reel', 'Shooting photo', 'Live', 'Autre'];
+const CADRAGES = ['Plan large', 'Plan moyen', 'Plan américain', 'Gros plan', 'Très gros plan', 'Plan d\'ensemble', 'Insert', 'Plongée', 'Contre-plongée', 'Travelling'];
+const dateFr = d => d ? new Date(d + 'T12:00').toLocaleDateString('fr-CA', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }) : '';
+
+// réduire une image (moodboard) : légère, rangée directement dans la fiche
+function reduire(f, max = 520) {
+  return new Promise((ok, ko) => { const im = new Image(), u = URL.createObjectURL(f);
+    im.onload = () => { const k = Math.min(1, max / Math.max(im.width, im.height)), c = document.createElement('canvas');
+      c.width = Math.round(im.width * k); c.height = Math.round(im.height * k); c.getContext('2d').drawImage(im, 0, 0, c.width, c.height);
+      URL.revokeObjectURL(u); ok(c.toDataURL('image/jpeg', 0.78)); };
+    im.onerror = () => { URL.revokeObjectURL(u); ko(new Error('Image illisible')); }; im.src = u; });
+}
+
+BK.module('tournage', function (page) {
+  $('.sub', page).textContent = 'Moodboard, découpage, tenues : une fiche à imprimer pour chaque tournage';
+  $('.hdr .right', page).innerHTML = `<div><span class="eng" style="font-size:9px">Prochain</span><span class="vfd" id="toProchain" style="width:220px">—</span></div>`;
+  $('.grid', page).innerHTML = `
+    <div class="cols">
+      <section class="pane vit to-vit"><span class="ptitle">① Vitrine</span><div class="to-fiche" id="toFiche"></div></section>
+      <section class="pane reg" style="width:270px"><span class="ptitle">② Tournages</span>
+        <button class="btn pri" id="toNouveau" style="width:100%;justify-content:center">+ Nouveau tournage</button>
+        <div class="box grow" style="margin-top:10px"><div class="to-liste" id="toListe"></div></div>
+      </section>
+    </div>
+    <div class="pane abar"><span class="ptitle">③ Barre</span><span class="vfd" id="toMsg">PRÊT</span>
+      <div class="right"><button class="btn" id="toCal" disabled>📅 Mettre au Calendrier</button><button class="btn pri" id="toPdf" disabled>🖨 Imprimer / PDF</button></div></div>`;
+  const msg = t => $('#toMsg').textContent = String(t).toUpperCase();
+
+  async function charger() {
+    T.liste = (await BK.db.liste('tournages')).sort((a, b) => (b.date || '').localeCompare(a.date || ''));
+    const cfg = (await BK.db.liste('config')).find(c => c.id === 'membres'); if (cfg && cfg.liste && cfg.liste.length) T.membres = cfg.liste.map(m => m === 'Dari' ? 'Yacine' : m);
+    T.morceaux = (await BK.db.liste('morceaux')).map(m => m.nom).sort();
+    if (T.courant) T.courant = T.liste.find(x => x.id === T.courant.id) || null;
+    if (!T.courant) T.courant = T.liste.find(x => (x.date || '') >= new Date().toISOString().slice(0, 10)) || T.liste[0] || null;
+    rendreListe(); rendreFiche();
+  }
+  BK.tournagesRecharger = charger;
+
+  function rendreListe() {
+    const auj = new Date().toISOString().slice(0, 10), proch = T.liste.filter(x => (x.date || '') >= auj).sort((a, b) => a.date.localeCompare(b.date))[0];
+    $('#toProchain').textContent = proch ? `${new Date(proch.date + 'T12:00').toLocaleDateString('fr-CA', { day: 'numeric', month: 'short' }).toUpperCase()} · ${(proch.titre || '').toUpperCase()}` : '—';
+    $('#toListe').innerHTML = T.liste.length ? T.liste.map(x => `<button class="to-item${T.courant && T.courant.id === x.id ? ' on' : ''}${(x.date || '') < auj ? ' passe' : ''}" data-id="${x.id}">
+        <b>${esc(x.titre || 'Sans titre')}</b><span class="nt">${x.date ? new Date(x.date + 'T12:00').toLocaleDateString('fr-CA', { day: 'numeric', month: 'short', year: 'numeric' }) : 'date à fixer'}${x.morceau ? ' · ' + esc(x.morceau) : ''}</span></button>`).join('')
+      : '<span class="nt">Aucun tournage. Clique sur « + Nouveau tournage ».</span>';
+    $$('.to-item').forEach(b => b.onclick = () => { T.courant = T.liste.find(x => x.id === b.dataset.id); rendreListe(); rendreFiche(); });
+  }
+
+  // ---------- la fiche ----------
+  function rendreFiche() {
+    const t = T.courant, z = $('#toFiche');
+    $('#toPdf').disabled = $('#toCal').disabled = !t;
+    if (!t) { z.innerHTML = '<div class="to-vide"><span class="dymo">Aucun tournage</span><span class="nt">Crée une fiche avec « + Nouveau tournage » à droite.</span></div>'; return; }
+    t.plans = t.plans || []; t.tenues = t.tenues || {}; t.moodboard = t.moodboard || [];
+    z.innerHTML = `
+      <div class="box"><span class="lb">Infos</span>
+        <div class="to-infos">
+          <label class="large"><span class="eng">Titre</span><input class="fld" data-c="titre" value="${esc(t.titre)}" placeholder="ex. Clip Mother – scène du salon"></label>
+          <label><span class="eng">Type</span><select class="fld" data-c="type">${TYPES.map(x => `<option${t.type === x ? ' selected' : ''}>${x}</option>`).join('')}</select></label>
+          <label><span class="eng">Morceau</span><select class="fld" data-c="morceau"><option value="">—</option>${T.morceaux.map(m => `<option${t.morceau === m ? ' selected' : ''}>${esc(m)}</option>`).join('')}</select></label>
+          <label><span class="eng">Date</span><input class="fld" type="date" data-c="date" value="${esc(t.date)}"></label>
+          <label><span class="eng">Heure</span><input class="fld" type="time" data-c="heure" value="${esc(t.heure)}"></label>
+          <label class="large"><span class="eng">Lieu</span><input class="fld" data-c="lieu" value="${esc(t.lieu)}" placeholder="ex. Studio BEESKOT"></label>
+          <label class="large"><span class="eng">L'idée en une phrase</span><input class="fld" data-c="idee" value="${esc(t.idee)}" placeholder="ex. ambiance VHS, lumière rouge, plans serrés sur les mains"></label>
+        </div></div>
+      <div class="box"><div class="ligne-titre"><span class="lb">Moodboard</span><span class="nt" style="margin:0 0 0 auto">Glisse des images ici (captures, photos, Pinterest…)</span></div>
+        <div class="to-mood" id="toMood">${t.moodboard.map((u, i) => `<div class="to-img" style="background-image:url(${u})"><button class="md-x" data-mx="${i}">✕</button></div>`).join('')}
+          <button class="to-img to-plus" id="toMoodPlus">+</button></div>
+        <input type="file" id="toMoodIn" accept="image/*" multiple hidden></div>
+      <div class="box"><div class="ligne-titre"><span class="lb">Découpage</span>
+          <button class="btn xs" id="toRenfort" style="margin-left:auto">Idées avec le Renfort AI</button></div>
+        <table class="to-plans"><thead><tr><th>#</th><th>Cadrage</th><th>Ce qu'on voit / ce qui se passe</th><th>Durée</th><th>Notes</th><th></th></tr></thead>
+          <tbody>${t.plans.map((p, i) => `<tr data-i="${i}"><td class="mono">${i + 1}</td>
+            <td><select class="fld" data-p="cadrage"><option value="">—</option>${CADRAGES.map(c => `<option${p.cadrage === c ? ' selected' : ''}>${c}</option>`).join('')}</select></td>
+            <td><input class="fld" data-p="action" value="${esc(p.action)}"></td>
+            <td><input class="fld court" data-p="duree" value="${esc(p.duree)}" placeholder="5 s"></td>
+            <td><input class="fld" data-p="notes" value="${esc(p.notes)}"></td>
+            <td class="to-btns"><button class="btn xs" data-haut="${i}" title="Monter">↑</button><button class="btn xs" data-px="${i}" title="Retirer">✕</button></td></tr>`).join('')}</tbody></table>
+        <button class="btn xs" id="toPlan" style="margin-top:8px">+ Ajouter un plan</button></div>
+      <div class="deux-box">
+        <div class="box"><span class="lb">Tenues</span>
+          ${T.membres.map(m => `<label class="to-tenue"><span class="eng">${esc(m)}</span><input class="fld" data-tenue="${esc(m)}" value="${esc(t.tenues[m])}" placeholder="ex. chemise noire, jean brut"></label>`).join('')}</div>
+        <div class="box"><span class="lb">Matériel et notes</span>
+          <textarea class="fld" data-c="materiel" rows="3" placeholder="ex. 2 caméras, trépied, lampes Globe en rouge, machine à fumée">${esc(t.materiel)}</textarea>
+          <textarea class="fld" data-c="notes" rows="3" placeholder="Notes pour l'équipe…" style="margin-top:8px">${esc(t.notes)}</textarea>
+          <button class="btn xs" id="toSuppr" style="margin-top:8px;align-self:flex-start">Retirer ce tournage</button></div>
+      </div>`;
+    brancher(t);
+  }
+
+  let minuteur = null;
+  const sauver = (t, tout = false) => { if (tout) rendreListe(); clearTimeout(minuteur); minuteur = setTimeout(async () => { await BK.db.ecrire('tournages', t); msg('Enregistré'); }, 500); };
+
+  function brancher(t) {
+    const z = $('#toFiche');
+    $$('[data-c]', z).forEach(c => c.oninput = c.onchange = () => { t[c.dataset.c] = c.value; sauver(t, /titre|date|morceau/.test(c.dataset.c)); });
+    $$('[data-tenue]', z).forEach(c => c.oninput = () => { t.tenues[c.dataset.tenue] = c.value; sauver(t); });
+    $$('.to-plans tr[data-i]', z).forEach(tr => $$('[data-p]', tr).forEach(c => c.oninput = c.onchange = () => { t.plans[+tr.dataset.i][c.dataset.p] = c.value; sauver(t); }));
+    $('#toPlan').onclick = () => { t.plans.push({ cadrage: '', action: '', duree: '', notes: '' }); sauver(t); rendreFiche(); const l = $$('.to-plans [data-p="action"]'); l.length && l[l.length - 1].focus(); };
+    $$('[data-px]', z).forEach(b => b.onclick = () => { t.plans.splice(+b.dataset.px, 1); sauver(t); rendreFiche(); });
+    $$('[data-haut]', z).forEach(b => b.onclick = () => { const i = +b.dataset.haut; if (!i) return; [t.plans[i - 1], t.plans[i]] = [t.plans[i], t.plans[i - 1]]; sauver(t); rendreFiche(); });
+    $$('[data-mx]', z).forEach(b => b.onclick = () => { t.moodboard.splice(+b.dataset.mx, 1); sauver(t); rendreFiche(); });
+    $('#toMoodPlus').onclick = () => $('#toMoodIn').click();
+    $('#toMoodIn').onchange = e => { ajouterImages(t, e.target.files); e.target.value = ''; };
+    $('#toSuppr').onclick = async () => { if (!confirm(`Retirer « ${t.titre || 'ce tournage'} » ? (rangé dans la corbeille du Drive)`)) return; await BK.db.supprimer('tournages', t.id); T.courant = null; msg('Retiré'); charger(); };
+    $('#toRenfort').onclick = () => BK.renfortDemander ? BK.renfortDemander('decoupage', { tournage: t }) : msg('Renfort AI pas encore disponible');
+    $$('input,textarea', z).forEach(c => c.addEventListener('keydown', e => e.stopPropagation()));
+  }
+
+  async function ajouterImages(t, fichiers) {
+    const fs = [...fichiers].filter(f => /^image\//.test(f.type)); if (!fs.length) return msg('Seulement des images');
+    if (t.moodboard.length + fs.length > 24) return msg('24 images maximum par moodboard');
+    msg('Ajout des images…');
+    for (const f of fs) { try { t.moodboard.push(await reduire(f)); } catch (e) {} await BK.audio.pause(); }
+    await BK.db.ecrire('tournages', t); msg('Moodboard enregistré'); rendreFiche();
+  }
+  page.addEventListener('dragover', e => { if (T.courant) e.preventDefault(); });
+  page.addEventListener('drop', e => { e.preventDefault(); if (T.courant && e.dataTransfer.files.length) ajouterImages(T.courant, e.dataTransfer.files); });
+
+  $('#toNouveau').onclick = async () => {
+    const t = await BK.db.ecrire('tournages', { titre: 'Nouveau tournage', type: 'Clip', morceau: '', date: '', heure: '', lieu: '', idee: '', moodboard: [], plans: [], tenues: {}, materiel: '', notes: '' });
+    T.liste.unshift(t); T.courant = t; rendreListe(); rendreFiche(); const c = $('[data-c="titre"]'); c && (c.focus(), c.select());
+  };
+
+  // ---------- Calendrier ----------
+  $('#toCal').onclick = async () => {
+    const t = T.courant; if (!t) return; if (!t.date) return msg('Choisis d\'abord une date');
+    const ev = { id: t.evenement || undefined, type: t.type === 'Shooting photo' ? 'shooting' : 'tournage', titre: t.titre, morceau: t.morceau, date: t.date, heure: t.heure, lieu: t.lieu, tournage: t.id };
+    const e = await BK.db.ecrire('evenements', ev); if (!t.evenement) { t.evenement = e.id; await BK.db.ecrire('tournages', t); }
+    BK.agendaRecharger && BK.agendaRecharger(); msg('Dans le Calendrier ✓');
+  };
+
+  // ---------- Imprimer / PDF ----------
+  $('#toPdf').onclick = () => {
+    const t = T.courant; if (!t) return;
+    const vieux = $('#impression'); vieux && vieux.remove();
+    const d = document.createElement('div'); d.id = 'impression';
+    d.innerHTML = `<div class="imp-tete"><div><h1>${esc(t.titre || 'Tournage')}</h1><p>${esc(t.type || '')}${t.morceau ? ' · ' + esc(t.morceau) : ''}</p></div><div class="imp-logo">BEESKOT</div></div>
+      <div class="imp-infos"><p><b>Quand</b> ${esc(dateFr(t.date)) || 'à fixer'}${t.heure ? ' à ' + esc(t.heure) : ''}</p><p><b>Où</b> ${esc(t.lieu || '—')}</p>${t.idee ? `<p><b>L'idée</b> ${esc(t.idee)}</p>` : ''}</div>
+      ${t.moodboard.length ? `<h2>Moodboard</h2><div class="imp-mood">${t.moodboard.map(u => `<img src="${u}">`).join('')}</div>` : ''}
+      ${t.plans.length ? `<h2>Découpage</h2><table><tr><th>#</th><th>Cadrage</th><th>Ce qu'on voit</th><th>Durée</th><th>Notes</th></tr>${t.plans.map((p, i) => `<tr><td>${i + 1}</td><td>${esc(p.cadrage)}</td><td>${esc(p.action)}</td><td>${esc(p.duree)}</td><td>${esc(p.notes)}</td></tr>`).join('')}</table>` : ''}
+      ${Object.values(t.tenues).some(Boolean) ? `<h2>Tenues</h2><table>${T.membres.filter(m => t.tenues[m]).map(m => `<tr><td class="imp-nom">${esc(m)}</td><td>${esc(t.tenues[m])}</td></tr>`).join('')}</table>` : ''}
+      ${t.materiel ? `<h2>Matériel</h2><p class="imp-txt">${esc(t.materiel)}</p>` : ''}
+      ${t.notes ? `<h2>Notes</h2><p class="imp-txt">${esc(t.notes)}</p>` : ''}`;
+    document.body.appendChild(d); document.body.classList.add('imprime');
+    const fin = () => { document.body.classList.remove('imprime'); d.remove(); window.removeEventListener('afterprint', fin); };
+    window.addEventListener('afterprint', fin);
+    setTimeout(() => window.print(), 300);
+    msg('Choisis « Enregistrer au format PDF » ou ton imprimante');
+  };
+
+  BK.surOuvrir = BK.surOuvrir || {}; BK.surOuvrir.tournage = charger;
+  charger();
+});
+})();
