@@ -46,7 +46,21 @@ BK.ia = {
   },
 
   // demander quelque chose à Gemini. json = true : réponse rangée (tableau / objet)
-  async demander(texte, { systeme = '', json = false, temperature = 0.4, niveau = '', vite = false, delai = 90 } = {}) {
+  // pendant qu'on attend Gemini : un petit voyant « 🍞 Réflexion en cours… » en bas de l'écran, partout
+  enCours: 0,
+  voyant() {
+    let v = document.getElementById('bkReflexion');
+    if (!v) { v = document.createElement('div'); v.id = 'bkReflexion'; v.className = 'bk-reflexion'; document.body.appendChild(v); }
+    clearInterval(BK.ia.tic);
+    if (!BK.ia.enCours) { v.classList.remove('on'); return; }
+    const t0 = BK.ia.debut, maj = () => { v.innerHTML = `<span class="spin"></span>🍞 Miette réfléchit… <b>${Math.round((Date.now() - t0) / 1000)} s</b>`; };
+    maj(); v.classList.add('on'); BK.ia.tic = setInterval(maj, 1000);
+  },
+  async demander(texte, opts = {}) {
+    if (!BK.ia.enCours++) BK.ia.debut = Date.now(); BK.ia.voyant();
+    try { return await BK.ia._demander(texte, opts); } finally { BK.ia.enCours--; BK.ia.voyant(); }
+  },
+  async _demander(texte, { systeme = '', json = false, temperature = 0.4, niveau = '', vite = false, delai = 90 } = {}) {
     if (!BK.ia.active()) throw new Error('L\'AI est coupée (interrupteur en bas du menu)');
     const c = await BK.ia.config(); if (!c.gemini) throw new Error('Pas de clé Gemini (Réglages › Miette)');
     niveau = niveau || c.niveau || 'normal';

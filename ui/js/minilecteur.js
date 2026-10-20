@@ -1,6 +1,6 @@
 // =====================================================================
 // MINI-LECTEUR — tout en bas de la fenêtre : ce qui joue en ce moment (Bibliothèque,
-// Assistant audio…), visible partout. Pause, reculer / avancer, aller à la page.
+// Assistant audio…), visible partout. Pause, cliquer dans la barre pour se déplacer, aller à la page.
 // Un seul son à la fois dans tout le logiciel.
 // =====================================================================
 BK.mini = {
@@ -21,9 +21,8 @@ BK.mini = {
     const nomPage = ((BK.onglets || []).find(m => m.id === s.page) || {}).titre || s.page;
     if (!z.dataset.pret) {
       z.dataset.pret = '1';
-      z.innerHTML = `<button class="btn xs" data-mi="moins" title="Reculer de 10 s">« 10</button><button class="btn xs pri mini-jouer" data-mi="jouer">▶</button><button class="btn xs" data-mi="plus" title="Avancer de 10 s">10 »</button>
-        <span class="mini-titre"></span><div class="mini-barre" title="Clique pour aller à cet endroit"><div class="mini-plein"></div></div><span class="mini-t mono"></span>
-        <button class="btn xs" data-mi="page"></button><button class="btn xs" data-mi="fermer" title="Arrêter">✕</button>`;
+      z.innerHTML = `<span class="mini-titre"></span><div class="mini-barre" title="Clique pour aller à cet endroit"><div class="mini-plein"></div></div><span class="mini-t mono"></span>
+        <button class="btn xs pri mini-jouer" data-mi="jouer">▶</button><button class="btn xs" data-mi="page"></button><button class="btn xs" data-mi="fermer" title="Arrêter">✕</button>`;
       z.addEventListener('click', e => { const b = e.target.closest('[data-mi]'), s = BK.mini.actuel; if (!s) return; const a = s.el;
         if (!b) { const barre = e.target.closest('.mini-barre'); if (barre && a.duration) { const r = barre.getBoundingClientRect(); a.currentTime = (e.clientX - r.left) / r.width * a.duration; } return; }
         const k = b.dataset.mi;

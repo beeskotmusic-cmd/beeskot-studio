@@ -695,3 +695,7 @@ a.lien{color:var(--mus);text-decoration:none}a.lien:hover{text-decoration:underl
 .bu-d .vfd{font-size:12px;white-space:nowrap}
 .af-l.faite{opacity:.45;transition:opacity .5s}.af-l.faite .af-t{text-decoration:line-through}
 .af-l .ta-case{cursor:pointer}
+/* « Réflexion en cours » : visible partout pendant que Miette (Gemini) travaille */
+.bk-reflexion{position:fixed;right:18px;bottom:52px;z-index:9998;display:flex;align-items:center;gap:8px;padding:8px 14px;border-radius:10px;background:#1b1712;border:1px solid rgba(255,178,62,.6);color:#ffcf7a;font-size:12px;box-shadow:0 6px 24px rgba(0,0,0,.5);opacity:0;transform:translateY(20px);pointer-events:none;transition:.2s}
+.bk-reflexion.on{opacity:1;transform:none}
+.bk-reflexion b{font-family:'Share Tech Mono',monospace;color:#ffb23e}
