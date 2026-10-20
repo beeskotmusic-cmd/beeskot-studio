@@ -29,7 +29,7 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
-          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ''
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: 'bk-8e30d04f35727e26'   # la clé elle-même reste dans le coffre GitHub
         with:
           tagName: v__VERSION__
           releaseName: 'BEESKOT Studio v__VERSION__'
