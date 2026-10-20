@@ -14,6 +14,8 @@ const ICONES = { evenement: '📅', export: '🎵', tache: '✅', sortie: '🚀'
 const QUOI = { tournage: 'tournage', enregistrement: 'enreg', repetition: 'repet', shooting: 'shooting', mixage: 'mixage', sortie: 'sortie', publication: 'promo', autre: 'autre' };
 
 const AIDES = {
+  amelioration: { nom: '🔧 Améliorer BEESKOT Studio', besoin: 'texte', fiche: true,
+    demande: c => `Voici ce qu'un membre du groupe raconte sur le logiciel BEESKOT Studio (problèmes rencontrés, choses pas claires, idées) :\n\n«\u00a0${c.detail}\u00a0»\n\nRange ça en une note courte et nette, en français simple, sous cette forme exacte :\n\nPROBLÈME 1 — <titre court>\nOù : <l'onglet ou l'endroit du logiciel>\nCe qui se passe : <en une phrase>\nCe qu'il faudrait : <la correction ou l'amélioration demandée, en une phrase>\n\n(puis PROBLÈME 2, etc. — une entrée par souci distinct, 5 au maximum)\n\nN'invente rien : si quelque chose n'est pas dit, écris « pas précisé ». Si c'est une idée et pas un problème, écris IDÉE à la place de PROBLÈME.` },
   reels:     { nom: 'Idées de reels', besoin: 'morceau', demande: c => `Propose 8 idées de reels Instagram/TikTok (15 à 30 s) pour le morceau « ${c.morceau} » de BEESKOT. Pour chaque idée : le concept en une phrase, le passage du morceau à utiliser, ce qu'on filme, et un texte à l'écran court. Idées faisables avec peu de moyens, au studio.` },
   legende:   { nom: 'Légende Insta / TikTok', besoin: 'morceau', demande: c => `Écris 5 légendes courtes pour un post Instagram/TikTok sur le morceau « ${c.morceau} » de BEESKOT${c.detail ? ' (contexte : ' + c.detail + ')' : ''}. Ton naturel, pas trop marketing, 1 ou 2 emojis maximum, et 8 hashtags pertinents à la fin de chaque proposition.` },
   decoupage: { nom: 'Découpage d\'un tournage', besoin: 'tournage', json: true, demande: c => `Propose un découpage technique pour ce tournage de BEESKOT : « ${c.tournage.titre} » (${c.tournage.type || 'clip'})${c.tournage.morceau ? ', morceau « ' + c.tournage.morceau + ' »' : ''}${c.tournage.idee ? ', idée : ' + c.tournage.idee : ''}${c.tournage.lieu ? ', lieu : ' + c.tournage.lieu : ''}. 8 à 14 plans. Réponds en JSON : un tableau d'objets {"cadrage":"Plan large|Plan moyen|Plan américain|Gros plan|Très gros plan|Plan d'ensemble|Insert|Plongée|Contre-plongée|Travelling","action":"ce qu'on voit","duree":"ex. 4 s","notes":"lumière, mouvement…"}.` },
@@ -186,19 +188,56 @@ BK.module('renforts', function (page) {
         <div class="ra-champs">
           <label id="raMorceauL"><span class="eng">Morceau</span><select class="fld" id="raMorceau">${ms.map(m => `<option value="${m.id}">${esc(m.nom)}</option>`).join('')}</select></label>
           <label id="raTournageL"><span class="eng">Tournage</span><select class="fld" id="raTournage">${tos.map(t => `<option value="${t.id}"${R.aideCtx && R.aideCtx.tournage && R.aideCtx.tournage.id === t.id ? ' selected' : ''}>${esc(t.titre)}</option>`).join('')}</select></label>
-          <label class="large"><span class="eng">Précisions (facultatif)</span><input class="fld" id="raDetail" placeholder="ex. ambiance, public visé, ce que vous voulez éviter…"></label></div>
+          <label class="large" id="raDetailL"><span class="eng">Précisions (facultatif)</span><input class="fld" id="raDetail" placeholder="ex. ambiance, public visé, ce que vous voulez éviter…"></label>
+          <label class="large hidden" id="raTexteL"><span class="eng">Raconte ce qui ne va pas (ou ce qui manque)</span>
+            <textarea class="fld" id="raTexte" rows="4" placeholder="ex. Dans Médias, quand je clique sur une photo, je ne comprends pas où elle part…"></textarea>
+            <div class="chips" style="margin-top:8px"><button class="btn sm" id="raMicro">🎤 Dicter</button><span class="nt" id="raMicroT" style="margin:0"></span></div></label></div>
         <div class="chips" style="margin-top:10px"><button class="btn pri" id="raGo">Demander</button></div></div>
       <div class="box grow"><div class="ligne-titre"><span class="lb">Réponse</span>
           <button class="btn xs hidden" id="raCopier" style="margin-left:auto">Copier</button><button class="btn xs hidden" id="raMettre">Mettre dans le découpage</button></div>
         <div class="ra-rep" id="raRep"><span class="nt">Choisis une aide, puis « Demander ».</span></div></div>`;
-    const maj = () => { const a = AIDES[$('#raAides .on').dataset.a]; $('#raMorceauL').classList.toggle('hidden', a.besoin !== 'morceau'); $('#raTournageL').classList.toggle('hidden', a.besoin !== 'tournage'); };
+    const maj = () => { const a = AIDES[$('#raAides .on').dataset.a];
+      $('#raMorceauL').classList.toggle('hidden', a.besoin !== 'morceau'); $('#raTournageL').classList.toggle('hidden', a.besoin !== 'tournage');
+      $('#raTexteL').classList.toggle('hidden', a.besoin !== 'texte'); $('#raDetailL').classList.toggle('hidden', a.besoin === 'texte');
+      $('#raGo').textContent = a.besoin === 'texte' ? 'Ranger en note' : 'Demander';
+      if (a.besoin === 'texte') listeAmeliorations(); };
     $$('#raAides .chip').forEach(c => c.onclick = () => { $$('#raAides .chip').forEach(x => x.classList.toggle('on', x === c)); BK.regler('renfort.aide', c.dataset.a); maj(); });
     maj(); R.aideCtx = null;
     $('#raDetail').addEventListener('keydown', e => e.stopPropagation());
+    $('#raTexte').addEventListener('keydown', e => e.stopPropagation());
+    // 🎤 dicter : on parle, Miette écrit dans la case
+    $('#raMicro').onclick = async () => {
+      const b = $('#raMicro'), t = $('#raMicroT');
+      if (BK.dicter.enCours()) {
+        b.textContent = '🎤 Dicter'; b.classList.remove('pri'); t.textContent = 'Miette écoute ce que tu as dit…';
+        try { const txt = await BK.dicter.arreter(); const z = $('#raTexte'); z.value = (z.value ? z.value.trim() + '\n' : '') + txt; t.textContent = 'Écrit ✓'; }
+        catch (e) { t.textContent = e.message; }
+        return;
+      }
+      if (!await BK.ia.pret()) return msg('La dictée a besoin de la clé Gemini et de l\'AI allumée');
+      try { await BK.dicter.demarrer(); b.textContent = '⏹ Arrêter'; b.classList.add('pri'); t.textContent = 'Parle, puis clique « Arrêter »'; }
+      catch (e) { t.textContent = e.message; }
+    };
+    // les notes déjà enregistrées (partagées avec tout le groupe)
+    async function listeAmeliorations() {
+      const l = (await BK.db.liste('ameliorations')).sort((a, b) => (b.quand || '').localeCompare(a.quand || ''));
+      const att = l.filter(x => !x.fait);
+      if (!att.length) return $('#raRep').innerHTML = '<span class="nt">Raconte ce qui ne va pas, puis « Ranger en note ». Les notes du groupe s\'affichent ici.</span>';
+      $('#raRep').innerHTML = `<div class="ligne-titre"><span class="lb">${att.length} note(s) à transmettre</span>
+          <button class="btn xs pri" id="raAmCop" style="margin-left:auto">Tout copier pour Dari</button></div>`
+        + att.map(x => `<div class="ra-am"><div class="ra-texte">${esc(x.texte)}</div>
+            <span class="nt">${esc(x.par)} · ${new Date(x.quand).toLocaleDateString('fr-CA', { day: 'numeric', month: 'short' })}</span>
+            <button class="btn xs" data-amx="${x.id}" title="Réglé : retirer de la liste">✓ Réglé</button></div>`).join('');
+      $('#raAmCop').onclick = async () => { const txt = att.map(x => `— ${x.par} (${new Date(x.quand).toLocaleDateString('fr-CA')}) —\n${x.texte}`).join('\n\n');
+        try { await navigator.clipboard.writeText(txt); msg('Copié : colle-le à Claude'); } catch (e) { msg('Copie impossible'); } };
+      $$('[data-amx]', $('#raRep')).forEach(b => b.onclick = async () => { const x = l.find(y => y.id === b.dataset.amx); x.fait = true; await BK.db.ecrire('ameliorations', x); listeAmeliorations(); });
+    }
     $('#raGo').onclick = async () => {
       const k = $('#raAides .on').dataset.a, a = AIDES[k], m = ms.find(x => x.id === $('#raMorceau').value), t = tos.find(x => x.id === $('#raTournage').value);
       if (a.besoin === 'tournage' && !t) return msg('Crée d\'abord un tournage');
-      const demande = a.demande({ morceau: m && m.nom, paroles: m && m.paroles, sortie: m && m.sortie, tournage: t, detail: $('#raDetail').value.trim() });
+      const detail = a.besoin === 'texte' ? $('#raTexte').value.trim() : $('#raDetail').value.trim();
+      if (a.besoin === 'texte' && !detail) { $('#raTexte').focus(); return msg('Raconte d\'abord ce qui ne va pas'); }
+      const demande = a.demande({ morceau: m && m.nom, paroles: m && m.paroles, sortie: m && m.sortie, tournage: t, detail });
       if (!demande) return msg('Écris ta demande dans « Précisions »');
       if (!await BK.ia.pret()) return sansCle(`${await BK.ia.contexte()}\n\n${demande}`);
       $('#raRep').innerHTML = '<span class="nt"><span class="spin"></span>Miette réfléchit…</span>';
@@ -212,6 +251,8 @@ BK.module('renforts', function (page) {
             await BK.db.ecrire('tournages', t); BK.tournagesRecharger && BK.tournagesRecharger(); msg('Ajouté au découpage ✓'); };
         } else {
           $('#raRep').innerHTML = `<div class="ra-texte">${esc(r)}</div>`;
+          if (a.fiche) { await BK.db.ecrire('ameliorations', { texte: r, brut: detail, par: BK.reglage('nomPc', '') || 'ce PC', quand: new Date().toISOString(), fait: false });
+            msg('Note enregistrée : Dari la verra'); listeAmeliorations(); }
           garder({ type: 'aide', q: a.nom + (m && a.besoin === 'morceau' ? ' · ' + m.nom : '') + ($('#raDetail').value.trim() ? ' · ' + $('#raDetail').value.trim() : ''), r });
           $('#raCopier').classList.remove('hidden'); $('#raCopier').onclick = async () => { await navigator.clipboard.writeText(r); msg('Copié'); };
         }

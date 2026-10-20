@@ -60,13 +60,15 @@ BK.ia = {
     if (!BK.ia.enCours++) BK.ia.debut = Date.now(); BK.ia.voyant();
     try { return await BK.ia._demander(texte, opts); } finally { BK.ia.enCours--; BK.ia.voyant(); }
   },
-  async _demander(texte, { systeme = '', json = false, temperature = 0.4, niveau = '', vite = false, delai = 90 } = {}) {
+  async _demander(texte, { systeme = '', json = false, temperature = 0.4, niveau = '', vite = false, delai = 90, audio = null } = {}) {
     if (!BK.ia.active()) throw new Error('L\'AI est coupée (interrupteur en bas du menu)');
     const c = await BK.ia.config(); if (!c.gemini) throw new Error('Pas de clé Gemini (Réglages › Miette)');
     niveau = niveau || c.niveau || 'normal';
     let sansReflexion = false;
     for (let essai = 0; essai < 4; essai++) {
-      const modele = await BK.ia.modele(niveau), corps = { contents: [{ role: 'user', parts: [{ text: texte }] }], generationConfig: { temperature } };
+      const modele = await BK.ia.modele(niveau);
+      const parts = [{ text: texte }]; if (audio) parts.push({ inlineData: { mimeType: audio.mime, data: audio.base64 } });
+      const corps = { contents: [{ role: 'user', parts }], generationConfig: { temperature } };
       if (systeme) corps.systemInstruction = { parts: [{ text: systeme }] };
       if (json) corps.generationConfig.responseMimeType = 'application/json';
       const th = !sansReflexion && BK.ia.reflexion(modele, vite); if (th) corps.generationConfig.thinkingConfig = th;
@@ -98,5 +100,33 @@ BK.ia = {
       'Tâches à faire : ' + (ts.filter(t => !t.fait).map(t => t.texte + (t.qui ? ' [' + t.qui + ']' : '')).join(' ; ') || 'aucune'),
       'Rendez-vous à venir : ' + (evs.filter(e => (e.date || '') >= auj).map(e => `${e.date} ${e.heure || ''} ${e.titre}`).join(' ; ') || 'aucun'),
     ].join('\n');
+  },
+};
+
+// ---------- DICTER : on parle, Miette écrit (l'audio part chez Gemini, rien n'est gardé) ----------
+BK.dicter = {
+  rec: null, morceaux: [], flux: null,
+  dispo() { return !!(navigator.mediaDevices && window.MediaRecorder); },
+  async demarrer() {
+    if (!BK.dicter.dispo()) throw new Error('Ce PC ne permet pas la dictée : écris ton message');
+    BK.dicter.flux = await navigator.mediaDevices.getUserMedia({ audio: true }).catch(() => { throw new Error('Micro refusé ou absent : écris ton message'); });
+    const types = ['audio/webm;codecs=opus', 'audio/webm', 'audio/ogg', ''];
+    const t = types.find(x => !x || (window.MediaRecorder.isTypeSupported && MediaRecorder.isTypeSupported(x)));
+    BK.dicter.morceaux = [];
+    BK.dicter.rec = new MediaRecorder(BK.dicter.flux, t ? { mimeType: t } : undefined);
+    BK.dicter.rec.ondataavailable = e => e.data.size && BK.dicter.morceaux.push(e.data);
+    BK.dicter.rec.start();
+  },
+  enCours() { return !!(BK.dicter.rec && BK.dicter.rec.state === 'recording'); },
+  async arreter() {
+    const r = BK.dicter.rec; if (!r) return '';
+    const fin = new Promise(ok => r.onstop = ok); r.stop(); await fin;
+    (BK.dicter.flux.getTracks() || []).forEach(t => t.stop());
+    BK.dicter.rec = null; BK.dicter.flux = null;
+    const blob = new Blob(BK.dicter.morceaux, { type: (r.mimeType || 'audio/webm').split(';')[0] });
+    if (blob.size < 1200) throw new Error('Rien n\'a été entendu, réessaie');
+    const b64 = await new Promise(ok => { const f = new FileReader(); f.onload = () => ok(String(f.result).split(',')[1]); f.readAsDataURL(blob); });
+    return BK.ia.demander('Écris exactement ce qui est dit dans cet enregistrement, en français, sans rien ajouter ni commenter.',
+      { audio: { mime: blob.type || 'audio/webm', base64: b64 }, temperature: 0, vite: true, delai: 120 });
   },
 };

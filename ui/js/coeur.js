@@ -7,7 +7,7 @@ const $ = (s, r = document) => r.querySelector(s);
 const $$ = (s, r = document) => [...r.querySelectorAll(s)];
 
 const BK = {
-  version: '0.9.22 bêta',
+  version: '0.9.23 bêta',
   modules: {},
   onglets: [],
   cotes: [],
@@ -133,6 +133,7 @@ const BK = {
       const m = await up.check(); if (!m) return;
       BK.majDispo = m;
       $('#stopLed').classList.add('on'); $('#syMaj').textContent = 'MAJ ' + m.version;
+      $('#btStop').classList.add('maj'); $('#btStop').title = 'Mise à jour ' + m.version + ' disponible';
       const b = $('#stMaj'); b.classList.remove('hidden'); b.textContent = '⬇ Installer la version ' + m.version;
     } catch (e) { /* pas d'Internet : on réessaiera au prochain démarrage */ }
   },
@@ -169,6 +170,9 @@ const BK = {
     BK.charge(); setInterval(BK.charge, 5000);
     BK.appliquerZoom(BK.reglage('zoom', 100));
     BK.synchro && BK.synchro.demarrer();                              // ce qu'un autre PC change arrive ici tout seul
+    const ba = document.getElementById('stAmeliorer');                 // raconter un souci → Miette AI › Aides
+    if (ba) ba.onclick = () => { document.getElementById('stopVoile').classList.add('hidden');
+      BK.regler('renfort.aide', 'amelioration'); BK.renfortDemander ? BK.renfortDemander('amelioration', {}) : BK.ouvrir('renforts'); };
     const bm = document.getElementById('btMiette');                 // le bouton jaune : Miette relit tout
     if (bm) bm.onclick = () => { bm.classList.add('pressed'); setTimeout(() => bm.classList.remove('pressed'), 150); BK.miette.toutLire(); };
     BK.ouvrir(BK.reglage('dernierOnglet', 'accueil'));

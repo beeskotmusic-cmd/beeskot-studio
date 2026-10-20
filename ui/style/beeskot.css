@@ -315,6 +315,8 @@ a.lien{color:var(--mus);text-decoration:none}a.lien:hover{text-decoration:underl
 /* la suite DARI dans la fenêtre du bouton rouge */
 .stopbox-suite{display:flex;flex-direction:column;align-items:center;gap:10px;width:100%;padding:14px 0 4px;border-top:1px solid rgba(255,220,170,.12)}
 .stopbox-suite .patch-suite{width:210px;height:auto;filter:drop-shadow(0 3px 4px rgba(0,0,0,.6))}
+.suite-ligne{display:flex;align-items:center;justify-content:center;gap:10px;width:100%;opacity:.8}
+.suite-ligne img{height:22px;width:auto;max-width:31%;object-fit:contain;filter:drop-shadow(0 2px 3px rgba(0,0,0,.6))}
 .stopbox-suite .plaque-suite{width:210px;height:34px;object-fit:contain;background:#181818;padding:0 6px;border-radius:6px;box-shadow:0 3px 6px rgba(0,0,0,.55)}
 .carte.choisie{box-shadow:0 0 0 2px #ffb23e,0 0 12px rgba(255,160,40,.45)}
 .carte.fantome{position:fixed;z-index:9999;pointer-events:none;transform:rotate(2deg) scale(1.03);box-shadow:0 0 0 1px #ffb23e,0 14px 24px rgba(0,0,0,.6)}
@@ -776,3 +778,12 @@ body.dropping main>section:not(.hidden) .box.pick::after{content:none!important;
 .to-plus{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;font-size:17px;line-height:1}
 .to-plus small{font:600 8.5px Jost,sans-serif;letter-spacing:.1em;text-transform:uppercase;opacity:.75}
 .to-plus-tag{box-shadow:inset 0 0 0 1px rgba(255,178,62,.5)}
+.ra-am{display:flex;flex-direction:column;gap:4px;padding:8px 10px;margin-top:8px;border-radius:6px;background:rgba(0,0,0,.24);border-left:3px solid #ffb23e}
+.ra-am .nt{margin:0;font-size:10px}
+.ra-am .btn{align-self:flex-start}
+#raTexteL textarea{resize:vertical}
+
+/* le bouton rouge clignote quand une mise à jour attend */
+.estop.maj img{animation:majBat 1.5s ease-in-out infinite}
+.estop.maj .led{background:#ffb23e;box-shadow:0 0 8px #ffb23e,0 0 16px rgba(255,160,40,.7);animation:blink 1s infinite}
+@keyframes majBat{0%,100%{filter:drop-shadow(0 3px 3px rgba(0,0,0,.55)) brightness(1)}50%{filter:drop-shadow(0 0 10px rgba(255,190,80,.95)) brightness(1.35)}}
