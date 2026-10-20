@@ -33,7 +33,7 @@ BK.module('reglages', function (page) {
         <div class="box"><span class="lb">Drive BEESKOT</span><div id="rgDriveZone"></div></div>
       </section>
     </div>
-    <div class="pane abar"><span class="ptitle">③ Barre</span><span class="vfd" id="rgMsg">PRÊT</span></div>`;
+    <div class="pane abar"><span class="vfd" id="rgMsg">PRÊT</span></div>`;
 
   $$('.inter', page).forEach(b => b.onclick = () => {
     const o = BK.onglets.find(x => x.id === b.dataset.id), v = !BK.ongletVisible(o);

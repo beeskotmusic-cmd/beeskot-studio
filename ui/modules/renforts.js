@@ -25,7 +25,7 @@ const AIDES = {
 };
 
 BK.module('renforts', function (page) {
-  $('.sub', page).textContent = 'Miette (Discord), les questions, les aides';
+  $('.sub', page).textContent = 'Discord, questions, aides';
   $('.hdr .right', page).innerHTML = `<div><span class="eng" style="font-size:9px">À valider</span><span class="vfd" id="raNb">00</span></div>
     <div><span class="eng" style="font-size:9px">Gemini</span><span class="vfd" id="raGem">—</span></div>`;
   $('.grid', page).innerHTML = `
@@ -37,14 +37,14 @@ BK.module('renforts', function (page) {
       <section class="pane reg ra-reg" style="width:320px"><span class="ptitle">② Historique</span>
         <input class="fld" id="raHistQ" placeholder="chercher dans l'historique…" autocomplete="off">
         <div class="ra-hist" id="raHist"></div>
-        <span class="nt" style="margin-top:6px">Clé Gemini, bot Discord, modèle : dans <a href="#" id="raVersReglages">Réglages</a>.</span>
+        <button class="btn sm" id="raVersReglages" style="margin-top:6px;align-self:flex-start">⚙ Clé Gemini, bot Discord, modèle</button>
       </section>
     </div>
-    <div class="pane abar"><span class="ptitle">③ Barre</span><span class="vfd" id="raMsg">PRÊT</span></div>`;
+    <div class="pane abar"><span class="vfd" id="raMsg">PRÊT</span></div>`;
   const msg = t => { const x = String(t).toUpperCase().slice(0, 90); $('#raMsg').textContent = x; const r = $('#rgMsg'); if (r) r.textContent = x; };
   // les réglages (clé Gemini, bot Discord, modèle) vivent dans l'onglet Réglages
   const reg = document.createElement('div'); reg.className = 'ra-reglages'; reg.id = 'raReglages';
-  reg.innerHTML = `<span class="lb" style="margin:6px 0 4px">Renfort AI</span><div class="box"><span class="lb">Clé Gemini (gratuite)</span>
+  reg.innerHTML = `<span class="lb" style="margin:6px 0 4px">🍞 Miette</span><div class="box"><span class="lb">Clé Gemini (gratuite)</span>
           <span class="nt">Créée avec le Gmail BEESKOT sur Google AI Studio. Rangée dans votre Drive : tous les PC l'ont.</span>
           <input class="fld" id="raCle" type="password" placeholder="colle la clé ici" autocomplete="off" style="margin-top:8px">
           <div class="chips" style="margin-top:8px"><button class="chip" id="raCleOk">Enregistrer et tester</button></div>
@@ -90,8 +90,8 @@ BK.module('renforts', function (page) {
     const props = (await BK.db.liste('propositions')).sort((a, b) => (b.vu || '').localeCompare(a.vu || ''));
     const att = props.filter(p => p.statut === 'attente'), faites = props.filter(p => p.statut === 'ok').slice(0, 12);
     $('#raNb').textContent = String(att.length).padStart(2, '0');
-    const manque = !d.jeton ? 'Colle le code du bot Discord dans les Réglages (à droite).' : !(d.salons || []).length ? 'Choisis les salons à lire (à droite).' : '';
-    const sansGemini = d.jeton && (d.salons || []).length && !pret ? ' Sans clé Gemini, Miette lit seulement les messages de Cracotte APP : ajoute la clé (à droite) pour qu\'elle comprenne aussi vos conversations.' : '';
+    const manque = !d.jeton ? 'Colle le code du bot Discord dans Réglages.' : !(d.salons || []).length ? 'Choisis les salons à lire dans Réglages.' : '';
+    const sansGemini = d.jeton && (d.salons || []).length && !pret ? ' Sans clé Gemini, Miette lit seulement les messages de Cracotte APP : ajoute la clé dans Réglages pour qu\'elle comprenne aussi vos conversations.' : '';
     z.innerHTML = `
       <div class="box ra-etat"><div class="ligne-titre"><span class="lb">🍞 Miette, la bot Discord</span>
           <button class="btn sm pri" id="raRonde" style="margin-left:auto"${!d.jeton || !(d.salons || []).length ? ' disabled' : ''}>↻ Lire Discord maintenant</button>
@@ -157,7 +157,7 @@ BK.module('renforts', function (page) {
         <div class="chips" style="margin-top:8px">${['Quel est le dernier export de chaque morceau ?', 'On a validé quel jour pour le prochain tournage ?', 'Qu\'est-ce qui reste à faire avant la sortie ?', 'Qu\'est-ce qu\'on s\'est dit cette semaine ?']
           .map(q => `<button class="chip ra-ex">${q}</button>`).join('')}</div>
         <div class="chips" style="margin-top:10px"><button class="btn pri" id="raDemQ">Demander</button></div></div>
-      <div class="box grow"><span class="lb">Réponse</span><div class="ra-rep" id="raRep"><span class="nt">Le Renfort AI cherche dans le journal Discord et dans le logiciel (fiches, tâches, calendrier).</span></div></div>`;
+      <div class="box grow"><span class="lb">Réponse</span><div class="ra-rep" id="raRep"><span class="nt">Miette cherche dans le journal Discord et dans le logiciel (fiches, tâches, calendrier).</span></div></div>`;
     $$('.ra-ex').forEach(b => b.onclick = () => { $('#raQ').value = b.textContent; });
     $('#raQ').addEventListener('keydown', e => { e.stopPropagation(); if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); $('#raDemQ').click(); } });
     $('#raDemQ').onclick = async (e, forcer) => {
@@ -201,7 +201,7 @@ BK.module('renforts', function (page) {
       const demande = a.demande({ morceau: m && m.nom, paroles: m && m.paroles, sortie: m && m.sortie, tournage: t, detail: $('#raDetail').value.trim() });
       if (!demande) return msg('Écris ta demande dans « Précisions »');
       if (!await BK.ia.pret()) return sansCle(`${await BK.ia.contexte()}\n\n${demande}`);
-      $('#raRep').innerHTML = '<span class="nt"><span class="spin"></span>Le Renfort AI réfléchit…</span>';
+      $('#raRep').innerHTML = '<span class="nt"><span class="spin"></span>Miette réfléchit…</span>';
       try {
         const r = await BK.ia.demander(`${await BK.ia.contexte()}\n\n${demande}`, { json: !!a.json, systeme: 'Tu aides le groupe de musique BEESKOT. Réponds en français, simplement.' });
         if (a.json) {

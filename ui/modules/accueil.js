@@ -32,7 +32,7 @@ async function donnees() {
   const ret = afaire.filter(t => t.date && t.date < auj).length;
   if (ret) alertes.push({ led: 'amb', txt: `${ret} tâche(s) en retard` });
   const props = (await BK.db.liste('propositions')).filter(p => p.statut === 'attente').length;
-  if (props) alertes.unshift({ led: 'amb', txt: `Miette a ${props} proposition(s) à valider (Renfort AI)` });
+  if (props) alertes.unshift({ led: 'amb', txt: `Miette a ${props} proposition(s) à valider` });
   const demarrer = [
     { ok: !!BK.reglage('dernierScan', ''), txt: 'Scanner ce PC', va: 'biblio' },
     { ok: morceaux.length > BK.FICHES_DEPART.length, txt: 'Créer les fiches de vos morceaux', va: 'biblio' },
@@ -77,7 +77,7 @@ BK.module('accueil', function (page) {
           <div class="box grow"><span class="lb">Avancement</span><div class="avances">${d.morceaux.length ? d.morceaux.map(barre).join('') : '<span class="nt">Aucun morceau en chantier.</span>'}</div></div>
         </section>
       </div>
-      <div class="pane abar" aria-label="Barre"><span class="ptitle">③ Barre</span>
+      <div class="pane abar" aria-label="Barre">
         <span class="vfd">${new Date().toLocaleDateString('fr-CA', { weekday: 'long', day: 'numeric', month: 'long' }).toUpperCase()}</span>
         <div class="right"><button class="btn" data-va="agenda">Calendrier</button><button class="btn pri" data-va="biblio">Bibliothèque ▶</button></div></div>`;
     $$('[data-va]', page).forEach(b => b.onclick = e => { e.preventDefault(); BK.ouvrir(b.dataset.va); });
@@ -92,12 +92,12 @@ BK.module('accueil', function (page) {
   // On ne le refait que s'il y a de nouveaux messages (ou si on clique ↻).
   function afficherResume(doc, { pret = true, enCours = false, regle = true } = {}) {
     const z = $('#acResume', page); if (!z) return;
-    if (!regle && !(doc && doc.texte)) { z.innerHTML = `<span class="lb">🍞 Cette semaine</span><span class="nt">Règle Miette (Renfort AI) pour voir ici le résumé de ce que vous vous êtes dit sur Discord.</span>`; return; }
+    if (!regle && !(doc && doc.texte)) { z.innerHTML = `<span class="lb">🍞 Cette semaine</span><span class="nt">Règle Miette (Réglages) pour voir ici le résumé de ce que vous vous êtes dit sur Discord.</span>`; return; }
     z.innerHTML = `<div class="ligne-titre"><span class="lb">🍞 Cette semaine, sur Discord</span>
         <span class="nt" style="margin:0 0 0 auto">${enCours ? '<span class="spin"></span>AI en cours de lecture…' : doc && doc.t ? 'mis à jour ' + new Date(doc.t).toLocaleString('fr-CA', { weekday: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : ''}</span>
         ${pret && !enCours ? '<button class="btn xs" id="acResumeMaj" title="Refaire le résumé maintenant">↻</button>' : ''}</div>
       ${doc && doc.texte ? `<p class="ac-texte">${esc(doc.texte)}</p>${(doc.afaire || []).length ? `<span class="eng" style="font-size:9px">Ce qui ressort à faire</span><ul class="ac-afaire">${doc.afaire.map(x => `<li>${esc(x)}</li>`).join('')}</ul>` : ''}`
-        : `<span class="nt">${!pret ? 'Ajoute la clé Gemini (Renfort AI) et allume l\'interrupteur AI pour avoir le résumé.' : enCours ? 'Miette lit les messages de la semaine…' : 'Pas encore de résumé : clique ↻ (ou attends la prochaine lecture de Miette).'}</span>`}`;
+        : `<span class="nt">${!pret ? 'Ajoute la clé Gemini (Réglages) et allume l\'interrupteur AI pour avoir le résumé.' : enCours ? 'Miette lit les messages de la semaine…' : 'Pas encore de résumé : clique ↻ (ou attends la prochaine lecture de Miette).'}</span>`}`;
     const b = $('#acResumeMaj', z); if (b) b.onclick = async () => { b.disabled = true;
       try { await BK.discord.ronde(() => {}, true).catch(() => {}); await BK.discord.resume(true); } catch (e) { z.insertAdjacentHTML('beforeend', `<span class="nt">${esc(e.message)}</span>`); } resume(); };
   }

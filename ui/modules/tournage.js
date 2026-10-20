@@ -32,7 +32,7 @@ BK.module('tournage', function (page) {
         <div class="box grow" style="margin-top:10px"><div class="to-liste" id="toListe"></div></div>
       </section>
     </div>
-    <div class="pane abar"><span class="ptitle">③ Barre</span><span class="vfd" id="toMsg">PRÊT</span>
+    <div class="pane abar"><span class="vfd" id="toMsg">PRÊT</span>
       <div class="right"><button class="btn" id="toCal" disabled>📅 Mettre au Calendrier</button><button class="btn pri" id="toPdf" disabled>🖨 Imprimer / PDF</button></div></div>`;
   const msg = t => $('#toMsg').textContent = String(t).toUpperCase();
 
@@ -78,7 +78,7 @@ BK.module('tournage', function (page) {
           <button class="to-img to-plus" id="toMoodPlus" title="Images de ce PC">+</button><button class="to-img to-plus to-plus-drive" id="toMoodDrive" title="Images du Drive">+ Drive</button></div>
         <input type="file" id="toMoodIn" accept="image/*" multiple hidden></div>
       <div class="box"><div class="ligne-titre"><span class="lb">Découpage</span>
-          <button class="btn xs" id="toRenfort" style="margin-left:auto">Idées avec le Renfort AI</button></div>
+          <button class="btn xs" id="toRenfort" style="margin-left:auto">🍞 Idées avec Miette</button></div>
         <table class="to-plans"><thead><tr><th>#</th><th>Cadrage</th><th>Ce qu'on voit / ce qui se passe</th><th>Durée</th><th>Notes</th><th></th></tr></thead>
           <tbody>${t.plans.map((p, i) => `<tr data-i="${i}"><td class="mono">${i + 1}</td>
             <td><select class="fld" data-p="cadrage"><option value="">—</option>${CADRAGES.map(c => `<option${p.cadrage === c ? ' selected' : ''}>${c}</option>`).join('')}</select></td>
@@ -121,7 +121,7 @@ BK.module('tournage', function (page) {
     $$('[data-audio]', z).forEach(b => b.onclick = () => versAudio(t.plans[+b.dataset.audio]));
     $('#toMoodIn').onchange = e => { ajouterImages(t, e.target.files); e.target.value = ''; };
     $('#toSuppr').onclick = async () => { if (!confirm(`Retirer « ${t.titre || 'ce tournage'} » ? (rangé dans la corbeille du Drive)`)) return; await BK.db.supprimer('tournages', t.id); T.courant = null; msg('Retiré'); charger(); };
-    $('#toRenfort').onclick = () => BK.renfortDemander ? BK.renfortDemander('decoupage', { tournage: t }) : msg('Renfort AI pas encore disponible');
+    $('#toRenfort').onclick = () => BK.renfortDemander ? BK.renfortDemander('decoupage', { tournage: t }) : msg('Miette pas encore disponible');
     $$('input,textarea', z).forEach(c => c.addEventListener('keydown', e => e.stopPropagation()));
   }
 
@@ -158,6 +158,7 @@ BK.module('tournage', function (page) {
     const C = { num: col(/^$/) , chanson: col(/chanson/i), audio: col(/audio/i), plans: col(/^plans?$/i), action: col(/action/i), lieu: col(/lieu/i), jour: col(/tourn/i), enjeux: col(/enjeu/i), horaire: col(/horaire|heure/i), camera: col(/camera/i) };
     const rows = lignes.slice(h + 1).filter(l => l[C.chanson]).map(l => ({ reel: l[C.chanson], audio: l[C.audio] || '', plans: l[C.plans] || '', action: l[C.action] || '', lieu: l[C.lieu] || '',
       jour: l[C.jour] || '?', enjeux: l[C.enjeux] || '', horaire: l[C.horaire] || '', camera: C.camera >= 0 && /x/i.test(l[C.camera] || '') }));
+    BK.regler('plan.lignes', rows.map(r => ({ reel: r.reel, audio: r.audio, jour: r.jour, plans: String(r.plans).slice(0, 80) })));   // l'Assistant audio retrouve les passages
     montrerPlan(rows, f);
   }
   function montrerPlan(rows, f) {

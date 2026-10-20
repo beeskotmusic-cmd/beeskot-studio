@@ -60,10 +60,13 @@ BK.module('mixprep', function (page) {
           <input class="fld" id="mpModele" style="margin-top:8px" value="${esc(M.modele)}">
           <span class="nt">Mots magiques : {PREFIXE} {MORCEAU} {PISTE} {BPM}</span>
           <div class="chips" style="margin-top:8px"><button class="chip on" id="mpCoul">Couleurs par groupe</button></div></div>
+        <div class="box"><span class="lb">Clic</span>
+          <div class="chips" style="margin-top:8px"><button class="chip" id="mpClic" disabled title="Arrive bientôt">＋ Ajouter un clic au projet</button></div>
+          <span class="nt">Arrive bientôt.</span></div>
         <div class="box"><span class="lb">Groupes</span><div class="surv">${ORDRE.map(k => `<div class="surv-l"><i class="pastille" style="background:#${GROUPES[k].couleur.toString(16).padStart(6, '0')}"></i><span class="nt" style="margin:0"><b>${k}_</b> ${GROUPES[k].nom}</span></div>`).join('')}</div></div>
       </section>
     </div>
-    <div class="pane abar"><span class="ptitle">Barre</span><span class="vfd" id="mpMsg">PRÊT</span>
+    <div class="pane abar"><span class="vfd" id="mpMsg">PRÊT</span>
       <div class="right"><button class="btn" id="mpPrec">◀ Étape précédente</button><button class="btn pri" id="mpSuiv">Étape suivante ▶</button></div></div>`;
   const msg = t => $('#mpMsg').textContent = String(t).toUpperCase();
   const vit = $('#mpVit');

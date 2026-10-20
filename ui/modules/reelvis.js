@@ -84,7 +84,7 @@ BK.module('reelvis', function (page) {
         <div class="box"><span class="lb">Export</span></div>
       </section>
     </div>
-    <div class="pane abar"><span class="ptitle">③ Barre</span><span class="vfd" id="rvMsg">GLISSE UNE VIDÉO</span>
+    <div class="pane abar"><span class="vfd" id="rvMsg">GLISSE UNE VIDÉO</span>
       <div class="right">
         <button class="btn" id="rvPlay" disabled>▶ Lire</button><button class="btn pri" id="rvExport" disabled>Exporter en MP4 ▶</button></div></div>`;
 

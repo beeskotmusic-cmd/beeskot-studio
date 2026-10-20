@@ -33,7 +33,7 @@ BK.module('biblio', function (page) {
         <div class="box"><span class="lb">Dernier inventaire</span><span class="nt" id="biScanInfo">—</span></div>
       </section>
     </div>
-    <div class="pane abar" aria-label="Barre"><span class="ptitle">③ Barre</span>
+    <div class="pane abar" aria-label="Barre">
       <span class="vfd" id="biMsg">PRÊT</span>
       <div class="right"><button class="btn pri" id="biScan">Scanner ce PC ▶</button></div></div>`;
 
@@ -326,7 +326,7 @@ BK.module('biblio', function (page) {
       $('.lect-barre', el).onclick = e => { if (lecteur.id !== m.id || !lecteur.audio.duration) return; const r = e.currentTarget.getBoundingClientRect(); lecteur.audio.currentTime = (e.clientX - r.left) / r.width * lecteur.audio.duration; };
       $$('[data-ecoute]', el).forEach(b => b.onclick = () => lecteur.jouer(m, { drive: b.dataset.ecoute, nom: b.dataset.nom }));
       $$('[data-dreel]', el).forEach(b => b.onclick = async () => { try { msg('Téléchargement depuis le Drive…'); const o = await BK.drive.telecharger(b.dataset.dreel); BK.ouvrir('reels'); await BK.reelsCharger(new File([o], b.dataset.nom)); } catch (e) { msg('Téléchargement impossible'); } });
-      $('.fiche-tete', el).onclick = () => { B.ouverts.has(m.id) ? B.ouverts.delete(m.id) : B.ouverts.add(m.id); BK.regler('biblio.ouverts', [...B.ouverts]); rendre(); };
+      $('.fiche-tete', el).onclick = e => { if (e.currentTarget.dataset.pasClic) return; B.ouverts.has(m.id) ? B.ouverts.delete(m.id) : B.ouverts.add(m.id); BK.regler('biblio.ouverts', [...B.ouverts]); rendre(); };
       $$('.tiroir-tete', el).forEach(b => b.onclick = () => {
         const id = b.parentElement.dataset.t, l = B.tiroirs[m.id] = B.tiroirs[m.id] || [];
         l.includes(id) ? l.splice(l.indexOf(id), 1) : l.push(id); BK.regler('biblio.tiroirs', B.tiroirs); rendre(); });
@@ -417,6 +417,32 @@ BK.module('biblio', function (page) {
   }
 
   $$('#biVues .chip').forEach(c => c.onclick = () => { B.vue = c.dataset.v; BK.regler('biblio.vue', B.vue); rendre(); });
+  // ---------- clic maintenu sur un morceau, puis glisser sur « Next release », « Work in progress » ou « Sortis » ----------
+  let gl = null;
+  const ongletSous = (x, y) => { const el = document.elementFromPoint(x, y); return el && el.closest('#biVues .chip[data-v]:not([data-v="ranger"])'); };
+  $('#biListe').addEventListener('pointerdown', e => {
+    const t = e.target.closest('.fiche-tete'), bt = e.target.closest('button,input,select,a,.lecteur'); if (!t || e.button !== 0 || (bt && bt !== t)) return;
+    const f = t.closest('.fiche');
+    gl = { id: f.dataset.id, tete: t, x: e.clientX, y: e.clientY, fantome: null, pret: false };
+    gl.minuteur = setTimeout(() => { if (gl) { gl.pret = true; t.classList.add('prise'); $('#biVues').classList.add('cible'); msg('Glisse sur Next release, Work in progress ou Sortis'); } }, 350);
+  });
+  window.addEventListener('pointermove', e => {
+    if (!gl) return;
+    if (!gl.pret) { if (Math.hypot(e.clientX - gl.x, e.clientY - gl.y) > 8) { clearTimeout(gl.minuteur); gl = null; } return; }
+    if (!gl.fantome) { const r = gl.tete.getBoundingClientRect(); gl.fantome = gl.tete.cloneNode(true); gl.fantome.className = 'fiche-tete fiche-fantome';
+      gl.fantome.style.width = Math.min(r.width, 420) + 'px'; gl.dx = Math.min(gl.x - r.left, 400); gl.dy = gl.y - r.top; document.body.appendChild(gl.fantome); }
+    gl.fantome.style.left = (e.clientX - gl.dx) + 'px'; gl.fantome.style.top = (e.clientY - gl.dy) + 'px';
+    $$('#biVues .chip').forEach(c => c.classList.remove('survol')); const o = ongletSous(e.clientX, e.clientY); o && o.classList.add('survol');
+  });
+  window.addEventListener('pointerup', async e => {
+    if (!gl) return; const d = gl; gl = null; clearTimeout(d.minuteur);
+    d.tete.classList.remove('prise'); $('#biVues').classList.remove('cible'); $$('#biVues .chip').forEach(c => c.classList.remove('survol'));
+    if (!d.pret) return;
+    d.fantome && d.fantome.remove(); d.tete.dataset.pasClic = '1'; setTimeout(() => delete d.tete.dataset.pasClic, 50);
+    const o = ongletSous(e.clientX, e.clientY), m = B.morceaux.find(x => x.id === d.id); if (!o || !m) return msg('PRÊT');
+    if ((m.statut || 'chantier') === o.dataset.v) return msg('Déjà là');
+    m.statut = o.dataset.v; await sauver(m); rendre(); msg(m.nom + ' → ' + o.textContent.trim());
+  });
   $('#biCherche').oninput = e => { B.filtre = e.target.value; rendre(); };
   $('#biAjout').onclick = async () => { const n = $('#biNom').value.trim(); if (!n) return;
     B.morceaux.push(await BK.db.ecrire('morceaux', { nom: n, statut: 'chantier', fait: 0 })); $('#biNom').value = ''; B.vue = 'chantier'; msg('Fiche créée'); rendre(); };

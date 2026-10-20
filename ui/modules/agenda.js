@@ -74,7 +74,7 @@ BK.module('agenda', function (page) {
         <div class="box grow"><span class="lb">À venir</span><div id="agVenir" class="surv"></div></div>
       </section>
     </div>
-    <div class="pane abar"><span class="ptitle">③ Barre</span><span class="vfd" id="agMsg">PRÊT</span></div>`;
+    <div class="pane abar"><span class="vfd" id="agMsg">PRÊT</span></div>`;
 
   const msg = t => $('#agMsg').textContent = String(t).toUpperCase();
   $('#agDate').value = jour(new Date());

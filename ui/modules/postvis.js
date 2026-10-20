@@ -57,7 +57,7 @@ BK.module('postvis', function (page) {
         <div class="box"><span class="lb">Export</span></div>
       </section>
     </div>
-    <div class="pane abar"><span class="ptitle">③ Barre</span><span class="vfd" id="pvMsg">AJOUTE DES PHOTOS</span>
+    <div class="pane abar"><span class="vfd" id="pvMsg">AJOUTE DES PHOTOS</span>
       <div class="right"><button class="btn pri" id="pvExport" disabled>Exporter les images ▶</button></div></div>`;
 
   const msg = t => $('#pvMsg').textContent = String(t).toUpperCase().slice(0, 90);

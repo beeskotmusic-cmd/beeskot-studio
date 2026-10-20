@@ -48,7 +48,7 @@ BK.ia = {
   // demander quelque chose à Gemini. json = true : réponse rangée (tableau / objet)
   async demander(texte, { systeme = '', json = false, temperature = 0.4, niveau = '', vite = false, delai = 90 } = {}) {
     if (!BK.ia.active()) throw new Error('L\'AI est coupée (interrupteur en bas du menu)');
-    const c = await BK.ia.config(); if (!c.gemini) throw new Error('Pas de clé Gemini (Renfort AI › Réglages)');
+    const c = await BK.ia.config(); if (!c.gemini) throw new Error('Pas de clé Gemini (Réglages › Miette)');
     niveau = niveau || c.niveau || 'normal';
     let sansReflexion = false;
     for (let essai = 0; essai < 4; essai++) {

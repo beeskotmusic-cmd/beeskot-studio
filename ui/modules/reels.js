@@ -42,6 +42,8 @@ BK.module('reels', function (page) {
           <button class="btn xs" id="reCharger">Charger</button>
         </div>
         <div class="box">
+          <div class="re-prevus"><select class="fld" id="rePrevus" title="Les passages déjà choisis pour les tournages (fiches Tournages, PLAN.xlsx, Discord)"><option value="">📋 Passages prévus pour ce morceau…</option></select>
+            <button class="btn xs" id="reMiettePass" title="Miette cherche dans Discord les timings donnés pour ce morceau">🍞 Chercher sur Discord</button></div>
           <div class="ligne-titre"><span class="lb">Passage</span>
             <span class="nt" style="margin:0 0 0 auto">Glisse le bloc · tire ses bords · <b>I</b> / <b>O</b> · molette = zoom</span>
             <span class="onde-zoom"><span class="eng">Zoom</span><button class="btn xs" id="reZm" title="Dézoomer">−</button><button class="btn xs" id="reZp" title="Zoomer (molette) · clic molette maintenu : glisser à gauche / droite">+</button><button class="btn xs" id="reZpass" title="Zoomer sur le passage">⤢ Passage</button><button class="btn xs" id="reZtout">Tout</button></span></div>
@@ -84,14 +86,14 @@ BK.module('reels', function (page) {
           <span class="nt" id="reExplique"></span>
           </div>
         <div class="box"><span class="lb">Avant le passage (tournage)</span>
-          <div class="chips" style="margin-top:8px"><button class="chip" id="reClic">Clic d'élan 1-2-3-4 ×2</button></div>
+          <div class="chips" style="margin-top:8px"><button class="chip" id="reClic">Pré-clic 1-2-3-4 ×2</button></div>
           <div class="reel-bpm"><span class="eng">Tempo</span><input class="fld" id="reBpm" inputmode="decimal" placeholder="BPM"><button class="btn xs" id="reTap" title="Tape en rythme 4 fois ou plus">Taper</button><span class="nt" id="reBpmLien" style="margin:0"></span></div>
-          <span class="nt" id="reClicTxt">Le clic démarre pile 2 mesures avant le passage : place le début du bloc sur un premier temps.</span>
-          <div class="chips" style="margin-top:10px" id="reElan"><button class="chip on" data-e="0">Sans élan musical</button><button class="chip" data-e="2">Élan 2 s</button><button class="chip" data-e="4">Élan 4 s</button></div>
+          <span class="nt" id="reClicTxt">Le pré-clic démarre pile 2 mesures avant le passage : place le début du bloc sur un premier temps.</span>
+          <div class="chips" style="margin-top:10px" id="reElan"><span class="eng" style="align-self:center;margin-right:4px">Musique avant</span><button class="chip on" data-e="0">Aucune</button><button class="chip" data-e="2">2 s</button><button class="chip" data-e="4">4 s</button></div>
           <div class="chips" style="margin-top:8px"><button class="chip" id="reFondu">Fondu de fin (1 s)</button></div></div>
       </section>
     </div>
-    <div class="pane abar" aria-label="Barre"><span class="ptitle">③ Barre</span>
+    <div class="pane abar" aria-label="Barre">
       <span class="vfd" id="reMsg">CHARGE UN MORCEAU</span>
       <span class="nt" id="reQuoi" style="margin:0 12px"></span>
       <div class="right"><button class="btn hidden" id="reDrive" title="Dans Photos/Vidéos › Tournages › WAV tournages › le morceau">⇪ Tournage → Drive</button><button class="btn pri" id="reExport" disabled>Exporter ▶</button></div></div>`;
@@ -194,6 +196,43 @@ BK.module('reels', function (page) {
       if (debut != null && fin > debut && R.buffer) { R.debut = debut; R.duree = Math.min(fin - debut, R.buffer.duration - debut); suivreDuree(); maj(); msg(`Passage ${BK.audio.temps(debut)} → ${BK.audio.temps(fin)} placé`); }
     } catch (e) { msg('Impossible : ' + e.message); }
   };
+  // ---------- les passages déjà prévus (fiches Tournages, PLAN.xlsx, Discord) ----------
+  const enSec = txt => { const t = String(txt || '').replace(/\s*[:'’]\s*/g, ':'), m = t.match(/(\d{1,2}):(\d{2})\s*[-–—à>]+\s*(\d{1,2}):(\d{2})/); return m ? { debut: +m[1] * 60 + +m[2], fin: +m[3] * 60 + +m[4] } : null; };
+  async function morceauActuel() {
+    const ms = await BK.db.liste('morceaux'), id = R.source === 'biblio' && $('#reMorceau').value;
+    return { ms, m: (id && ms.find(x => x.id === id)) || (R.nom ? BK.inv.trouverMorceau(R.nom, ms) : null) };
+  }
+  async function passagesPrevus() {
+    const { ms, m } = await morceauActuel(); if (!m) return { m: null, l: [] };
+    const l = [], vu = new Set(), ajout = p => { const k = p.debut + '-' + p.fin; if (!vu.has(k)) { vu.add(k); l.push(p); } };
+    const deCeMorceau = nom => { const x = BK.inv.trouverMorceau(nom || '', ms); return x && x.id === m.id; };
+    for (const t of await BK.db.liste('tournages')) for (const p of t.plans || []) {
+      if (!deCeMorceau(p.reel) && !(t.morceau === m.nom && !p.reel)) continue;
+      const ps = enSec(p.audio); if (ps) ajout({ ...ps, nom: '🎬 ' + (t.titre || 'Tournage') + (p.action ? ' · ' + p.action : '') });
+    }
+    for (const r of BK.reglage('plan.lignes', [])) if (deCeMorceau(r.reel)) { const ps = enSec(r.audio); if (ps) ajout({ ...ps, nom: '📋 PLAN · ' + (r.jour || '') + (r.plans ? ' · ' + r.plans : '') }); }
+    for (const p of (BK.reglage('passages.discord', {})[m.id] || [])) ajout(p);
+    return { m, l };
+  }
+  async function remplirPrevus() {
+    const { m, l } = await passagesPrevus(), sel = $('#rePrevus'); R.prevus = l;
+    sel.innerHTML = `<option value="">${!m ? '📋 Choisis d\'abord un morceau' : l.length ? '📋 ' + l.length + ' passage(s) prévu(s) pour ' + m.nom + '…' : '📋 Aucun passage prévu pour ' + m.nom}</option>`
+      + l.map((p, i) => `<option value="${i}">${BK.audio.temps(p.debut).replace(/\.\d$/, '')} → ${BK.audio.temps(p.fin).replace(/\.\d$/, '')} · ${p.nom.replace(/</g, '&lt;').slice(0, 70)}</option>`).join('');
+  }
+  $('#rePrevus').addEventListener('focus', remplirPrevus);
+  $('#rePrevus').addEventListener('pointerdown', remplirPrevus);
+  $('#rePrevus').onchange = async e => { const p = (R.prevus || [])[+e.target.value]; e.target.value = ''; if (!p) return;
+    const { m } = await morceauActuel();
+    if (R.buffer && m && ($('#reMorceau').value === m.id || R.source !== 'biblio')) { R.debut = p.debut; R.duree = Math.min(p.fin - p.debut, R.buffer.duration - p.debut); suivreDuree(); maj(); msg(`Passage ${BK.audio.temps(p.debut)} → ${BK.audio.temps(p.fin)} placé`); }
+    else if (m) BK.reelsPasser({ morceau: m, debut: p.debut, fin: p.fin }); };
+  $('#reMiettePass').onclick = async () => {
+    const b = $('#reMiettePass'), { ms, m } = await morceauActuel(); if (!m) return msg('Choisis d\'abord un morceau');
+    b.disabled = true; b.innerHTML = '<span class="spin"></span>Miette cherche…';
+    try { const l = await BK.discord.passages(m, ms), tout = BK.reglage('passages.discord', {}); tout[m.id] = l; BK.regler('passages.discord', tout);
+      msg(l.length ? l.length + ' passage(s) trouvé(s) sur Discord : ouvre « Passages prévus »' : 'Aucun timing trouvé sur Discord pour ' + m.nom); await remplirPrevus(); }
+    catch (e) { msg(e.message); }
+    b.disabled = false; b.textContent = '🍞 Chercher sur Discord';
+  };
   BK.reelAudio = () => R.buffer ? { nom: R.nom, url: R.url, debut: R.debut, duree: R.duree } : null;   // pour l'Assistant visuel
   $('#rePick').onclick = () => $('#reInput').click();
   $('#reInput').onchange = e => e.target.files[0] && charger(e.target.files[0]);
@@ -250,7 +289,7 @@ BK.module('reels', function (page) {
     const t0 = R.debut - elan - clicSrc, dureeT = dureeClic() + (R.duree + elan) / R.v;
     const tourn = $('#reTourn'); tourn.classList.toggle('hidden', !deux);
     if (deux) { tourn.style.left = pc(t0) + '%'; tourn.style.width = (pc(R.debut + R.duree) - pc(t0)) + '%';
-      $('#rePre').style.width = (elan + clicSrc) / (R.duree + elan + clicSrc) * 100 + '%'; $('#rePre').textContent = R.clic ? '1-2-3-4 ×2' : elan ? 'élan' : '';
+      $('#rePre').style.width = (elan + clicSrc) / (R.duree + elan + clicSrc) * 100 + '%'; $('#rePre').textContent = R.clic ? '1-2-3-4 ×2' : elan ? '+' + elan + ' s' : '';
       $('#rePre').classList.toggle('hidden', !(elan + clicSrc));
       $('#reTournTxt').textContent = `Tournage ${Math.round(dureeT)} s${R.v !== 1 ? ' (×' + x2(R.v) + ')' : ''}`; }
     $('#reDeb').textContent = BK.audio.temps(R.debut); $('#reFin').textContent = BK.audio.temps(R.debut + R.duree);
@@ -272,7 +311,7 @@ BK.module('reels', function (page) {
     $$('#reElan .chip').forEach(c => c.disabled = R.clic);
     $('#reClicTxt').textContent = R.clic
       ? (R.bpm ? `${x2(R.bpm * R.v, 1)} BPM au tournage : 1-2-3-4, 1-2-3-4, puis le passage. Place le début du bloc sur un premier temps.` : 'Indique le tempo du morceau (ou tape-le en rythme).')
-      : 'Le clic démarre pile 2 mesures avant le passage : place le début du bloc sur un premier temps.';
+      : 'Le pré-clic démarre pile 2 mesures avant le passage : place le début du bloc sur un premier temps.';
     maj();
   }
 
@@ -333,7 +372,7 @@ BK.module('reels', function (page) {
   async function ecouter(tournage) {
     if (!R.buffer) return;
     if (R.lecture || R.src) return stop();
-    if (tournage && R.clic && !R.bpm) return msg('Indique le tempo pour le clic d\'élan');
+    if (tournage && R.clic && !R.bpm) return msg('Indique le tempo pour le pré-clic');
     const b = tournage ? $('#reEcouteT') : $('#rePlay'); b.textContent = '…';
     const f = await fabriquer(tournage ? 'T' : 'M'); msg('Écoute du fichier ' + (tournage ? 'tournage' : 'montage'));
     const ctx = BK.audio.contexte(); if (ctx.state === 'suspended') await ctx.resume();
@@ -373,7 +412,7 @@ BK.module('reels', function (page) {
   // ---------- export ----------
   $('#reExport').onclick = async () => {
     if (!R.buffer) return; stop();
-    if (R.clic && !R.bpm) return msg('Indique le tempo pour le clic d\'élan');
+    if (R.clic && !R.bpm) return msg('Indique le tempo pour le pré-clic');
     const b = $('#reExport'); b.disabled = true; b.innerHTML = '<span class="spin"></span>Export…';
     try {
       const d = Math.round(R.duree), dossier = BK.chemin('Reels', R.nom), m = await fabriquer('M');

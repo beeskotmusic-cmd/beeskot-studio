@@ -71,7 +71,7 @@ BK.module('lumieres', function (page) {
           <span class="nt">Rangé dans votre Drive : tous les PC l'ont.</span></div>
       </section>
     </div>
-    <div class="pane abar"><span class="ptitle">③ Barre</span><span class="vfd" id="luMsg">PRÊT</span><div class="right"><button class="btn" id="luRelire">↻ Relire les lampes</button></div></div>`;
+    <div class="pane abar"><span class="vfd" id="luMsg">PRÊT</span><div class="right"><button class="btn" id="luRelire">↻ Relire les lampes</button></div></div>`;
   const msg = t => $('#luMsg').textContent = String(t).toUpperCase().slice(0, 90);
 
   // ---------- programme de Pierre ----------

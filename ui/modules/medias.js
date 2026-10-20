@@ -39,7 +39,7 @@ BK.module('medias', function (page) {
       <div class="md-aj-tete"><div class="seg" id="mdRub"><button data-rub="morceaux">♪ Morceaux</button><button data-rub="tournage">🎬 Tournage</button><button data-rub="lumiere">💡 Lumière / scène</button></div>
         <span class="nt">Glisse un média sur une case (ou clique le média, puis la case). Un fichier peut aller dans plusieurs cases.</span></div>
       <div class="md-paniers" id="mdPaniers"></div></div>
-    <div class="pane abar"><span class="ptitle">③ Barre</span><span class="vfd" id="mdMsg">PRÊT</span>
+    <div class="pane abar"><span class="vfd" id="mdMsg">PRÊT</span>
       <div class="right"><button class="btn" id="mdRelire">↻ Relire</button></div></div>`;
   const msg = t => $('#mdMsg').textContent = String(t).toUpperCase().slice(0, 90);
   const ici = () => M.pile[M.pile.length - 1];

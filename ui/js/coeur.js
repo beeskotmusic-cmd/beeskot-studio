@@ -7,7 +7,7 @@ const $ = (s, r = document) => r.querySelector(s);
 const $$ = (s, r = document) => [...r.querySelectorAll(s)];
 
 const BK = {
-  version: '0.9.1 bêta',
+  version: '0.9.2 bêta',
   modules: {},
   onglets: [],
   cotes: [],
@@ -57,7 +57,7 @@ const BK = {
     }
     const ia = BK.reglage('ia.active', true);
     html += `<div class="navfoot">
-        <button class="st bascule${ia ? ' on' : ''}" id="iaBascule" title="Active ou coupe l'AI (Gemini) sur ce PC"><span class="interrupteur"><i></i></span><span class="eng">AI ${ia ? 'activée' : 'coupée'}</span><span class="led ${ia ? 'amb' : ''}"></span></button>
+        <button class="st bascule${ia ? ' on' : ''}" id="iaBascule" title="Active ou coupe l'AI (Gemini) sur ce PC"><span class="interrupteur"><i></i></span><span class="eng">AI ${ia ? 'activée' : 'coupée'}</span></button>
         <div class="st"><span id="ledDrive" class="led"></span><span class="eng">Drive BEESKOT</span></div>
         <div class="st"><span id="ledLive" class="led"></span><span class="eng">Ableton Live</span></div>
       </div>`;

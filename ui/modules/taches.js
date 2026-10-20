@@ -40,7 +40,7 @@ BK.module('taches', function (page) {
           <input class="fld" id="taMembres" style="margin-top:8px"></div>
       </section>
     </div>
-    <div class="pane abar"><span class="ptitle">③ Barre</span><span class="vfd" id="taMsg">PRÊT</span>
+    <div class="pane abar"><span class="vfd" id="taMsg">PRÊT</span>
       <span class="nt" style="margin:0 12px">Double-clic sur une tâche pour la modifier · ✕ pour la retirer</span></div>`;
   const msg = t => $('#taMsg').textContent = String(t).toUpperCase();
 

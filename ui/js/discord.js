@@ -53,10 +53,14 @@ BK.discord = {
   },
 
   // pseudos Discord → prénoms (modifiable dans la config « discord », champ membres)
-  MEMBRES: { 'drumblebee.skot': 'Baptiste', 'pierrec1.': 'Pierre', 'yaya': 'Yacine' },
+  // les pseudos Discord du groupe : sneakers = Yacine, drumbli.scott / drumblebee.skot = Baptiste, pierrec1. = Pierre
+  MEMBRES: { 'sneakers': 'Yacine', 'drumblebee.skot': 'Baptiste', 'drumbli.scott': 'Baptiste', 'pierrec1.': 'Pierre', 'yaya': 'Yacine' },
+  PSEUDOS: [[/sneaker|yaya|yacine|dari/, 'Yacine'], [/drumbl|drumblebee|baptiste|^bat$/, 'Baptiste'], [/pierre/, 'Pierre']],
   prenom(a, nick, membres) {
     const t = { ...BK.discord.MEMBRES, ...(membres || {}) };
     for (const k of [a.username, a.global_name, nick]) if (k && t[String(k).toLowerCase()]) return t[String(k).toLowerCase()];
+    for (const k of [a.username, a.global_name, nick]) { if (!k) continue; const n = String(k).toLowerCase().replace(/[^a-z]/g, '');
+      const r = BK.discord.PSEUDOS.find(([re]) => re.test(n)); if (r) return r[1]; }
     return nick || a.global_name || a.username;
   },
   // les messages du bot « zipper » (Cracotte APP) se lisent sans IA
@@ -142,7 +146,7 @@ Types possibles :
 - {"type":"sortie","morceau":"nom exact","date":"AAAA-MM-JJ"}  (date de sortie décidée)
 - {"type":"note","morceau":"nom exact ou vide","texte":"…"}  (décision importante à retenir)
 Chaque objet a aussi "source" : l'identifiant (msg …) du message principal, et "pourquoi" : 1 phrase courte qui cite ce qui a été dit.
-Les dates relatives (« samedi », « demain ») se calculent à partir de la date du message. Noms de morceaux connus (avec leurs surnoms entre parenthèses ; réponds toujours avec le nom principal) : ${ms.map(m => m.nom + ((m.alias || []).length ? ' (' + m.alias.join(', ') + ')' : '')).join(', ')}. Membres : Yacine (Yaya), Pierre, Baptiste (Bat).
+Les dates relatives (« samedi », « demain ») se calculent à partir de la date du message. Noms de morceaux connus (avec leurs surnoms entre parenthèses ; réponds toujours avec le nom principal) : ${ms.map(m => m.nom + ((m.alias || []).length ? ' (' + m.alias.join(', ') + ')' : '')).join(', ')}. Membres : Yacine (Yaya, Dari, pseudo Discord « sneakers »), Pierre (« pierrec1. »), Baptiste (Bat, « drumbli.scott »).
 Si rien n'est décidé, réponds [].`;
     const r = await BK.ia.demander(`${await BK.ia.contexte()}\n\nMessages :\n${BK.discord.texte(lignes)}`, { systeme, json: true, temperature: 0.1 });
     return Array.isArray(r) ? r : (r && r.propositions) || [];
@@ -188,6 +192,20 @@ Si rien n'est décidé, réponds [].`;
     } finally { BK.discord.resumeEnCours = false; window.dispatchEvent(new CustomEvent('bk:resume')); }
   },
 
+  // ---------- PASSAGES : les timings de tournage donnés sur Discord (ex. « Mother 1:12 - 1:42 ») ----------
+  async passages(m, morceaux) {
+    if (!(await BK.ia.pret())) throw new Error('Il faut la clé Gemini et l\'AI allumée');
+    const j = await BK.discord.journal(12), heure = /\d{1,2}\s*[:'’h]\s*\d{2}|\d+\s*s\b/i;
+    const noms = [m.nom, ...(m.alias || [])].map(BK.inv.normaliser);
+    const l = j.filter(x => heure.test(x.txt || '') || noms.some(n => BK.inv.normaliser((x.txt || '') + ' ' + (x.pj || '')).includes(n)));
+    if (!l.length) return [];
+    const r = await BK.ia.demander(`Morceau recherché : « ${m.nom} »${(m.alias || []).length ? ' (surnoms : ' + m.alias.join(', ') + ')' : ''}.\nAutres morceaux : ${morceaux.map(x => x.nom).join(', ')}.\n\nMessages Discord :\n${BK.discord.texte(l.slice(-700))}`,
+      { systeme: 'Tu aides le groupe BEESKOT. Dans ces messages, trouve les passages du morceau recherché choisis pour des reels ou des tournages : un début et une fin dans le morceau (ex. « de 1:12 à 1:42 », « 0:45-1:15 »). Ignore les heures de rendez-vous (14h00) et les autres morceaux. Réponds en JSON : un tableau de {"debut":"m:ss","fin":"m:ss","note":"à quoi sert ce passage, très court","source":"l\'identifiant (msg …)"}. Si rien, [].',
+        json: true, temperature: 0.1, vite: true, delai: 60 });
+    const sec = t => { const x = String(t || '').match(/(\d{1,2})\s*[:'’]\s*(\d{2})/); return x ? +x[1] * 60 + +x[2] : (/^\d+(\.\d+)?$/.test(t) ? +t : null); };
+    return (Array.isArray(r) ? r : []).map(p => ({ debut: sec(p.debut), fin: sec(p.fin), nom: '🍞 Discord · ' + (p.note || '') })).filter(p => p.debut != null && p.fin > p.debut);
+  },
+
   // ---------- TÂCHES : Miette relit les 2 dernières semaines et prépare la to-do list ----------
   async tachesProposer() {
     if (!(await BK.ia.pret())) throw new Error('Il faut la clé Gemini et l\'AI allumée');
@@ -200,7 +218,7 @@ Trouve TOUT ce que quelqu'un doit faire : promis (« je m'en occupe », « faut 
 Une tâche = une action concrète et courte qui commence par un verbe (ex. « Envoyer le mix v4 de Mother à Nico »).
 Ne propose PAS ce qui est déjà fait dans les messages, ni ce qui est déjà dans la liste existante.
 Réponds en JSON : un tableau de {"texte":"…","qui":"Yacine|Pierre|Baptiste|BEESKOT|","morceau":"nom exact ou vide","date":"AAAA-MM-JJ si une échéance est dite, sinon vide","source":"l'identifiant (msg …) du message","pourquoi":"1 phrase courte qui cite ce qui a été dit"}.
-« BEESKOT » = tout le groupe. Membres : Yacine (Yaya, Dari), Pierre, Baptiste (Bat, Drumblebee). Morceaux : ${ms.map(m => m.nom + ((m.alias || []).length ? ' (' + m.alias.join(', ') + ')' : '')).join(', ')}.`;
+« BEESKOT » = tout le groupe. Membres : Yacine (Yaya, Dari, pseudo Discord « sneakers »), Pierre (« pierrec1. »), Baptiste (Bat, Drumblebee). Morceaux : ${ms.map(m => m.nom + ((m.alias || []).length ? ' (' + m.alias.join(', ') + ')' : '')).join(', ')}.`;
     const r = await BK.ia.demander(`${await BK.ia.contexte()}\n\nDéjà dans la liste (ne pas reproposer) :\n${deja.slice(-150).join('\n') || 'rien'}\n\nMessages Discord des 14 derniers jours :\n${BK.discord.texte(recents.slice(-700))}`,
       { systeme, json: true, temperature: 0.2, vite: true, delai: 90 });
     const l = (Array.isArray(r) ? r : (r && r.taches) || []).filter(t => t && t.texte).map(t => ({ ...t, type: 'tache' }));
