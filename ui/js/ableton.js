@@ -44,9 +44,10 @@ BK.ableton = {
     return out;
   },
   async dossierUserLibrary(sansDemander) {
+    // d'abord celle qu'Ableton utilise VRAIMENT (ses réglages), ensuite celle retenue, ensuite Documents
+    const lus = await BK.ableton.userLibrariesAbleton(); if (lus.length) { BK.regler('ableton.userLibrary', lus[0]); return lus[0]; }
     const memo = BK.reglage('ableton.userLibrary', '');
     if (memo && await BK.fichier.existe(memo)) return memo;
-    const lus = await BK.ableton.userLibrariesAbleton(); if (lus.length) { BK.regler('ableton.userLibrary', lus[0]); return lus[0]; }
     const docs = await BK.T.path.documentDir();
     const defaut = BK.chemin(docs, 'Ableton', 'User Library');
     if (await BK.fichier.existe(defaut)) return defaut;
@@ -62,9 +63,13 @@ BK.ableton = {
   },
   async majPontSiBesoin() {
     if (!BK.estExe) return;
-    try { const ul = await BK.ableton.dossierUserLibrary(true); if (!ul) return;
-      let ancien = false; for (const n of BK.ableton.ANCIENS_PONTS) ancien = ancien || await BK.fichier.existe(BK.chemin(ul, 'Remote Scripts', n));
-      if ((ancien || await BK.fichier.existe(BK.chemin(ul, 'Remote Scripts', BK.ableton.NOM_PONT))) && !(await BK.ableton.pontAJour(ul))) await BK.ableton.installerPont(); } catch (e) {}
+    try {                                                           // on vérifie CHAQUE User Library (Ableton peut en utiliser une ailleurs que dans Documents)
+      const ul = await BK.ableton.dossierUserLibrary(true); if (!ul) return;
+      for (const u of [...new Set([ul, ...(await BK.ableton.userLibrariesAbleton())])]) {
+        let deja = await BK.fichier.existe(BK.chemin(u, 'Remote Scripts', BK.ableton.NOM_PONT));
+        for (const n of BK.ableton.ANCIENS_PONTS) deja = deja || await BK.fichier.existe(BK.chemin(u, 'Remote Scripts', n));
+        if (deja && !(await BK.ableton.pontAJour(u))) { await BK.ableton.installerPont(); return; }
+      } } catch (e) {}
   },
   // installe le pont dans TOUTES les User Library trouvées (Live 11, Live 12…) : rien à chercher soi-même
   async installerPont() {
