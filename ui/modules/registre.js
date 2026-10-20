@@ -8,7 +8,7 @@
 // =====================================================================
 BK.onglets = [
   { id: 'accueil',  cote: 'general', titre: 'Accueil',        sous: 'Next et à faire',              couleur: 'var(--mus)',  pret: true,  defaut: true },
-  { id: 'renforts', cote: 'general', titre: 'Renfort AI',     sous: 'Veilleur Discord, aides',      couleur: 'var(--teal)', pret: true,  defaut: true },
+  { id: 'renforts', cote: 'general', titre: 'Renfort AI',     sous: 'Miette (Discord), aides',      couleur: 'var(--teal)', pret: true,  defaut: true },
 
   { id: 'biblio',   cote: 'audio',   titre: 'Bibliothèque',   sous: 'Morceaux, exports, projets',    couleur: 'var(--org)',  pret: true , defaut: true },
   { id: 'mixprep',  cote: 'audio',   titre: 'Ableton Live Assistant', sous: 'Noms, couleurs, gel, zip', couleur: 'var(--rust)', pret: true , defaut: true },

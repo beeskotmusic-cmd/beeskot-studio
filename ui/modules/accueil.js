@@ -32,7 +32,7 @@ async function donnees() {
   const ret = afaire.filter(t => t.date && t.date < auj).length;
   if (ret) alertes.push({ led: 'amb', txt: `${ret} tâche(s) en retard` });
   const props = (await BK.db.liste('propositions')).filter(p => p.statut === 'attente').length;
-  if (props) alertes.unshift({ led: 'amb', txt: `Le Veilleur a ${props} proposition(s) à valider (Renfort AI)` });
+  if (props) alertes.unshift({ led: 'amb', txt: `Miette a ${props} proposition(s) à valider (Renfort AI)` });
   const demarrer = [
     { ok: !!BK.reglage('dernierScan', ''), txt: 'Scanner ce PC', va: 'biblio' },
     { ok: morceaux.length > BK.FICHES_DEPART.length, txt: 'Créer les fiches de vos morceaux', va: 'biblio' },

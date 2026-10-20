@@ -25,13 +25,13 @@ const AIDES = {
 };
 
 BK.module('renforts', function (page) {
-  $('.sub', page).textContent = 'Le Veilleur Discord, les questions, les aides';
+  $('.sub', page).textContent = 'Miette (Discord), les questions, les aides';
   $('.hdr .right', page).innerHTML = `<div><span class="eng" style="font-size:9px">À valider</span><span class="vfd" id="raNb">00</span></div>
     <div><span class="eng" style="font-size:9px">Gemini</span><span class="vfd" id="raGem">—</span></div>`;
   $('.grid', page).innerHTML = `
     <div class="cols">
       <section class="pane vit ra-vit"><span class="ptitle">① Vitrine</span>
-        <div class="seg ra-volets" id="raVolets"><button data-v="veilleur">Le Veilleur</button><button data-v="question">Poser une question</button><button data-v="aides">Aides</button></div>
+        <div class="seg ra-volets" id="raVolets"><button data-v="veilleur">🍞 Miette</button><button data-v="question">Poser une question</button><button data-v="aides">Aides</button></div>
         <div class="ra-volet" id="raVolet"></div>
       </section>
       <section class="pane reg ra-reg" style="width:300px"><span class="ptitle">② Réglages</span>
@@ -74,11 +74,11 @@ BK.module('renforts', function (page) {
     const props = (await BK.db.liste('propositions')).sort((a, b) => (b.vu || '').localeCompare(a.vu || ''));
     const att = props.filter(p => p.statut === 'attente'), faites = props.filter(p => p.statut === 'ok').slice(0, 12);
     $('#raNb').textContent = String(att.length).padStart(2, '0');
-    const manque = !d.jeton ? 'Colle le code du bot Discord dans les Réglages (à droite).' : !(d.salons || []).length ? 'Choisis les salons à lire (à droite).' : !pret ? 'Ajoute la clé Gemini pour que le Veilleur comprenne les messages.' : '';
+    const manque = !d.jeton ? 'Colle le code du bot Discord dans les Réglages (à droite).' : !(d.salons || []).length ? 'Choisis les salons à lire (à droite).' : !pret ? 'Ajoute la clé Gemini pour que Miette comprenne vos conversations.' : '';
     z.innerHTML = `
-      <div class="box ra-etat"><div class="ligne-titre"><span class="lb">Le Veilleur</span>
+      <div class="box ra-etat"><div class="ligne-titre"><span class="lb">🍞 Miette, la bot Discord</span>
           <button class="btn sm pri" id="raRonde" style="margin-left:auto"${manque ? ' disabled' : ''}>↻ Lire Discord maintenant</button></div>
-        <span class="nt">${manque || `Il lit ${d.salons.length} salon(s) toutes les 30 min quand le logiciel est ouvert, et te propose ce qui a été décidé.${verrou && verrou.passage ? ` Dernière lecture : ${new Date(verrou.passage).toLocaleString('fr-CA', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })} (${esc(verrou.par || '')}).` : ''}`}</span></div>
+        <span class="nt">${manque || `Miette lit ${d.salons.length} salon(s) toutes les 30 min quand le logiciel est ouvert, et te propose ce qui a été décidé.${verrou && verrou.passage ? ` Dernière lecture : ${new Date(verrou.passage).toLocaleString('fr-CA', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })} (${esc(verrou.par || '')}).` : ''}`}</span></div>
       <div class="box grow ra-props"><span class="lb">À valider (${att.length})</span>
         ${att.length ? att.map(p => carte(p, true)).join('') : '<span class="nt" style="padding:14px 0">Rien à valider pour l\'instant.</span>'}
         ${faites.length ? `<span class="lb" style="margin-top:14px">Déjà ajouté</span>${faites.map(p => carte(p, false)).join('')}` : ''}</div>`;
