@@ -198,19 +198,24 @@ Si rien n'est décidé, réponds [].`;
   },
 
   // ---------- MÉDIAS : les photos / vidéos postées dans les salons (surtout « media ») ----------
-  async medias(pages = 4) {
+  async medias(pages = 4, quoi = 'media') {
     const c = await BK.discord.config(); if (!c.jeton) throw new Error('Règle d\'abord Miette (code du bot) dans Réglages');
     let salons = [];
     try { salons = (await BK.discord.salons(c.jeton)).filter(x => !x.forum); } catch (e) { salons = c.salons || []; }
-    const rang = s => /m[ée]dia/i.test(s.nom) ? 0 : /photo|video|vid[ée]o|outfit|tournage|shoot/i.test(s.nom) ? 1 : 9;
-    salons = salons.filter(x => rang(x) < 9).sort((a, b) => rang(a) - rang(b)).slice(0, 4);
+    const rangMedia = s => /m[ée]dia/i.test(s.nom) ? 0 : /photo|video|vid[ée]o|outfit|tournage|shoot/i.test(s.nom) ? 1 : 9;
+    const rangAudio = s => /maquette|mix|master|export|able|drum|record|son/i.test(s.nom) ? 0 : /m[ée]dia|projet|vrac|g[ée]n[ée]ral/i.test(s.nom) ? 1 : 9;
+    const rang = quoi === 'audio' ? rangAudio : rangMedia;
+    salons = salons.filter(x => rang(x) < 9).sort((a, b) => rang(a) - rang(b)).slice(0, quoi === 'audio' ? 6 : 4);
     const out = [];
     for (const s of salons) {
       let avant = null;
       for (let p = 0; p < pages; p++) {
         const l = await BK.discord.api(`/channels/${s.id}/messages?limit=100${avant ? '&before=' + avant : ''}`, c.jeton).catch(() => []);
         if (!l.length) break; avant = l[l.length - 1].id;
-        for (const m of l) for (const a of m.attachments || []) if (/^(image|video)\//.test(a.content_type || '') || /\.(jpe?g|png|webp|heic|mp4|mov|m4v|webm)$/i.test(a.filename))
+        const estBon = a => quoi === 'audio'
+          ? (/^audio\//.test(a.content_type || '') || /\.(wav|mp3|aiff?|flac|m4a|ogg)$/i.test(a.filename))
+          : (/^(image|video)\//.test(a.content_type || '') || /\.(jpe?g|png|webp|heic|mp4|mov|m4v|webm)$/i.test(a.filename));
+        for (const m of l) for (const a of m.attachments || []) if (estBon(a))
           out.push({ id: a.id, nom: a.filename, url: a.url, apercu: a.proxy_url, video: /^video|\.(mp4|mov|m4v|webm)$/i.test(a.content_type || a.filename), taille: a.size,
             t: m.timestamp, salon: s.nom, qui: BK.discord.prenom(m.author, m.member && m.member.nick, c.membres), texte: (m.content || '').slice(0, 120) });
       }

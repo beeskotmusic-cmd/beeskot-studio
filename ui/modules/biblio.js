@@ -326,14 +326,34 @@ BK.module('biblio', function (page) {
     $$('.md-menu').forEach(x => x.remove());
     const r = el.getBoundingClientRect(), menu = document.createElement('div'); menu.className = 'md-menu';
     menu.style.left = Math.min(r.left, innerWidth - 230) + 'px'; menu.style.top = Math.min(r.bottom + 4, innerHeight - 120) + 'px';
-    menu.innerHTML = '<button data-ex="pc">💻 Sur ce PC…</button>' + (BK.drive.relie() ? '<button data-ex="drive">☁ Dans le Drive…</button>' : '');
+    menu.innerHTML = (BK.drive.relie() ? '<button data-ex="drive">☁ Dans le Drive…</button><button data-ex="discord">🍞 Posté sur Discord…</button>' : '')
+      + '<button data-ex="pc">💻 Sur ce PC…</button>';
     document.body.appendChild(menu);
     const fermer = e => { if (!menu.contains(e.target)) { menu.remove(); document.removeEventListener('pointerdown', fermer, true); } };
     setTimeout(() => document.addEventListener('pointerdown', fermer, true));
+    const duDrive = f => ({ chemin: 'drive:' + f.id, driveId: f.id, drive: true, nom: f.name, pc: 'Drive', modif: f.modifiedTime || new Date().toISOString() });
     menu.onclick = async e => { const b = e.target.closest('[data-ex]'); if (!b) return; menu.remove();
       if (b.dataset.ex === 'pc') { const f = await choisirExport(); if (f) suite(f); return; }
+      if (b.dataset.ex === 'discord') {                                    // le fichier posté sur Discord est copié dans le Drive, puis relié à la fiche
+        const l = await BK.choisirImages({ titre: '🍞 Les audios postés sur Discord', bouton: 'Mettre dans le Drive et relier',
+          charger: async () => (await BK.discord.medias(5, 'audio')).map(x => ({ id: x.id, nom: x.nom, info: x.qui + ' · #' + x.salon + ' · ' + new Date(x.t).toLocaleDateString('fr-CA', { day: 'numeric', month: 'short' }), x })) });
+        if (!l || !l[0]) return;
+        const it = l[0];
+        try {
+          msg('Téléchargement de ' + it.nom + '…');
+          const r = await BK.discord.fetch(it.x.url); if (!r.ok) throw new Error('fichier expiré sur Discord');
+          const blob = await r.blob();
+          await BK.dossiers.assurer();
+          const d = (await BK.dossiers.get('cl')) || (await BK.dossiers.get('recording'));
+          const dos = d ? d.id : await BK.drive.racine();
+          const n = await BK.drive.envoyerBlob(new File([blob], it.nom, { type: blob.type || 'audio/wav' }), it.nom, dos, p => msg('Envoi dans le Drive · ' + Math.round(p * 100) + ' %'));
+          BK.dossiers.oublier();
+          msg('Copié dans ' + (d ? BK.dossiers.joli(d.nom) : 'le Drive'));
+          suite({ chemin: 'drive:' + n.id, driveId: n.id, drive: true, nom: it.nom, pc: 'Drive (depuis Discord)', modif: new Date().toISOString(), discord: it.x.lien || '' });
+        } catch (er) { msg('Impossible : ' + (er.message || er)); }
+        return; }
       const l = await BK.explorerDrive({ titre: 'Export de « ' + m.nom + ' » dans le Drive', mode: 'audio', depart: 'cl' }); if (!l || !l[0]) return;
-      const f = l[0]; suite({ chemin: 'drive:' + f.id, driveId: f.id, drive: true, nom: f.name, pc: 'Drive', modif: f.modifiedTime || new Date().toISOString() }); };
+      suite(duDrive(l[0])); };
   }
 
   // ---------- actions ----------
