@@ -7,7 +7,7 @@ const $ = (s, r = document) => r.querySelector(s);
 const $$ = (s, r = document) => [...r.querySelectorAll(s)];
 
 const BK = {
-  version: '0.9.27 bêta',
+  version: '0.9.28 bêta',
   modules: {},
   onglets: [],
   cotes: [],
@@ -199,13 +199,20 @@ const BK = {
       out.textContent = sel ? (short[v] || el.options[v].text) : fmt.replace('{}', v);
       w.setAttribute('aria-valuetext', out.textContent);
       $$('.tk', w).forEach((x, i) => x.classList.toggle('on', Math.abs(i / Math.max(1, ticks.length - 1) - p) < .01)); };
-    const set = v => { v = Math.max(min, Math.min(max, Math.round(v / step) * step)); if (v === get()) return;
+    // pendant qu'on tourne le bouton : seulement « input ». « change » part à la fin,
+    // sinon l'écran se redessine sous la souris à chaque cran (et le bouton se dérobe).
+    const set = (v, fin = true) => { v = Math.max(min, Math.min(max, Math.round(v / step) * step)); if (v === get()) return;
       if (sel) el.selectedIndex = v; else el.value = v;
-      el.dispatchEvent(new Event('input', { bubbles: true })); el.dispatchEvent(new Event('change', { bubbles: true })); draw(); };
+      el.dispatchEvent(new Event('input', { bubbles: true }));
+      if (fin) el.dispatchEvent(new Event('change', { bubbles: true }));
+      draw(); };
     let y0 = null, v0 = 0;
     w.addEventListener('pointerdown', e => { if (e.target.classList.contains('tk')) return; y0 = e.clientY; v0 = get(); w.setPointerCapture(e.pointerId); });
-    w.addEventListener('pointermove', e => { if (y0 === null) return; set(v0 + (y0 - e.clientY) / (sel ? 28 : 3) * (sel ? 1 : step)); });
-    w.addEventListener('pointerup', () => y0 = null);
+    // sensibilité douce : il faut glisser ~400 px pour parcourir tout le bouton (Maj = encore plus fin)
+    w.addEventListener('pointermove', e => { if (y0 === null) return;
+      const d = (y0 - e.clientY) * (e.shiftKey ? 0.25 : 1);
+      set(sel ? v0 + d / 36 : v0 + d * (max - min) / 400, false); });
+    w.addEventListener('pointerup', () => { if (y0 !== null && get() !== v0) el.dispatchEvent(new Event('change', { bubbles: true })); y0 = null; });
     w.addEventListener('keydown', e => { if (e.key === 'ArrowUp' || e.key === 'ArrowRight') set(get() + step); if (e.key === 'ArrowDown' || e.key === 'ArrowLeft') set(get() - step); });
     $$('.tk', w).forEach(x => x.onclick = () => set(min + (max - min) * (+x.dataset.i) / Math.max(1, ticks.length - 1)));
     // cliquer sur l'afficheur = taper soi-même une valeur (ex. 35)
