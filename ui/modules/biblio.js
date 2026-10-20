@@ -92,7 +92,7 @@ BK.module('biblio', function (page) {
 
   function fiche(m) {
     const ouvert = B.ouverts.has(m.id), fs = fichiersDe(m);
-    const exps = fs.filter(x => x.type === 'audio').sort((a, b) => (b.modif || '').localeCompare(a.modif || ''));
+    const exps = BK.inv.exportsDe(m, B.fichiers, B.morceaux);
     const als = fs.filter(x => x.type === 'als').sort((a, b) => (b.modif || '').localeCompare(a.modif || ''));
     const pc = Math.round(BK.pourcent(m));
     const t = (id, titre, resume, corps) => { const o = (B.tiroirs[m.id] || []).includes(id);
@@ -104,11 +104,15 @@ BK.module('biblio', function (page) {
         <span class="mini-etapes">${BK.etapes.map((e, i) => `<i class="${i < (m.fait || 0) ? 'fait' : i === (m.fait || 0) ? 'encours' : ''}" style="flex:${e.poids}"></i>`).join('')}</span>
         <span class="vfd fiche-pc">${pc} %</span><span class="fleche">${ouvert ? '▾' : '▸'}</span></button>
       ${ouvert ? `<div class="fiche-corps">
-        ${t('exports', 'Exports', exps.length ? `${exps.length} fichier(s) · dernier : ${date(exps[0].modif)}` : 'aucun', () => exps.length ? exps.map((x, i) => `
-          <div class="ligne-f${i === 0 ? ' recent' : ''}"><span class="etoile">${i === 0 ? '★' : ''}</span><span class="mono f-nom" title="${esc(x.chemin)}">${esc(x.nom)}</span>
-            <span class="nt f-meta">${date(x.modif)} · ${esc(x.pc)}</span>
+        ${t('exports', 'Exports', exps.length ? `${exps.length} fichier(s) · principal : ${esc(exps[0].nom)}` : 'aucun', () => (exps.length ? exps.map((x, i) => `
+          <div class="ligne-f${i === 0 ? ' recent' : ''}"><button class="etoile etoile-b${i === 0 ? ' on' : ''}" data-princ="${esc(x.chemin)}" title="${i === 0 ? 'Version principale' : 'En faire la version principale'}">${i === 0 ? '★' : '☆'}</button>
+            <span class="mono f-nom" title="${esc(x.chemin)}">${esc(x.nom)}</span>
+            <span class="nt f-meta">${date(x.modif)} · ${esc(x.pc)}${x.manuel ? ' · ajouté à la main' : ''}</span>
             <input class="fld f-note" data-f="${esc(x.nom)}" placeholder="note…" value="${esc((m.notesExports || {})[x.nom] || '')}">
-            ${x.ici ? `<button class="btn xs" data-reel="${esc(x.chemin)}" data-nom="${esc(x.nom)}">→ Reel</button>` : ''}</div>`).join('') : '<span class="nt">Aucun export trouvé. Lance « Scanner ce PC ».</span>')}
+            ${x.ici ? `<button class="btn xs" data-reel="${esc(x.chemin)}" data-nom="${esc(x.nom)}">→ Reel</button>` : ''}
+            <button class="btn xs" data-remplacer="${esc(x.chemin)}" title="Choisir une autre version à la place">Remplacer…</button>
+            <button class="btn xs" data-expx="${esc(x.chemin)}" title="Retirer de la fiche (le fichier n'est pas effacé)">✕</button></div>`).join('') : '<span class="nt">Aucun export trouvé. Lance « Scanner ce PC », ou ajoute-le à la main.</span>')
+          + `<div class="chips" style="margin-top:8px"><button class="chip" data-act="ajexport">+ Ajouter un export…</button></div>`)}
         ${t('projets', 'Projets Ableton', als.length ? `${als.filter(x => !x.sauvegarde).length} version(s) · ${als.some(x => !x.ici && als[0] === x) ? '⚠ la plus récente n\'est pas sur ce PC' : 'à jour'}` : 'aucun', () => als.length ? als.map((x, i) => `
           <div class="ligne-f${i === 0 ? ' recent' : ''}"><span class="etoile">${i === 0 ? '★' : ''}</span><span class="mono f-nom" title="${esc(x.chemin)}">${esc(x.nom)}${x.sauvegarde ? ' <em>(sauvegarde auto)</em>' : ''}</span>
             <span class="nt f-meta">${date(x.modif)} · ${esc(x.pc)}${/[\\/]my drive[\\/]|[\\/]mon drive[\\/]|^g:/i.test(x.chemin) ? ' · Drive ✓' : ''}</span>
@@ -152,6 +156,12 @@ BK.module('biblio', function (page) {
 
   // ---------- actions ----------
   async function sauver(m) { await BK.db.ecrire('morceaux', m); }
+  async function choisirExport() {                 // choisir un WAV / MP3 sur ce PC
+    if (!BK.estExe) { msg('Disponible dans le logiciel installé'); return null; }
+    const p = await BK.fichier.choisirFichier('Choisis l\'export (WAV ou MP3)', [{ name: 'Audio', extensions: ['wav', 'mp3', 'WAV', 'MP3'] }]); if (!p) return null;
+    let modif = new Date().toISOString(); try { const st = await BK.fichier.infos(p); if (st && st.mtime) modif = new Date(st.mtime).toISOString(); } catch (e) {}
+    return { chemin: p, nom: p.split(/[\\/]/).pop(), pc: BK.inv.monPc(), modif };
+  }
   function brancherFiches() {
     $$('.fiche', page).forEach(el => {
       const m = B.morceaux.find(x => x.id === el.dataset.id);
@@ -169,12 +179,24 @@ BK.module('biblio', function (page) {
         try { msg('Envoi vers Reels…'); const o = await BK.fichier.lireOctets(b.dataset.reel); BK.ouvrir('reels'); await BK.reelsCharger(new File([o], b.dataset.nom)); }
         catch (e) { msg('Fichier illisible'); } });
       $$('.lien', el).forEach(a => a.onclick = e => { e.preventDefault(); BK.ouvrirLien(a.dataset.url); });
+      $$('[data-princ]', el).forEach(b => b.onclick = async () => { m.exportPrincipal = b.dataset.princ; await sauver(m); msg('Version principale choisie'); rendre(); });
+      $$('[data-expx]', el).forEach(b => b.onclick = async () => {
+        const c = b.dataset.expx; m.exportsManuels = (m.exportsManuels || []).filter(f => f.chemin !== c);
+        if (B.fichiers.some(f => f.chemin === c)) (m.exportsCaches = m.exportsCaches || []).push(c);
+        if (m.exportPrincipal === c) m.exportPrincipal = ''; await sauver(m); msg('Retiré de la fiche'); rendre(); });
+      $$('[data-remplacer]', el).forEach(b => b.onclick = async () => {
+        const f = await choisirExport(); if (!f) return; const c = b.dataset.remplacer;
+        m.exportsManuels = (m.exportsManuels || []).filter(x => x.chemin !== c && x.chemin !== f.chemin);
+        if (B.fichiers.some(x => x.chemin === c)) (m.exportsCaches = m.exportsCaches || []).push(c);
+        m.exportsManuels.push(f); m.exportPrincipal = f.chemin; await sauver(m); msg('Export remplacé'); rendre(); });
       $$('[data-lienx]', el).forEach(b => b.onclick = async () => { m.liens.splice(+b.dataset.lienx, 1); await sauver(m); rendre(); });
       $$('[data-act]', el).forEach(b => b.onclick = async () => {
         const a = b.dataset.act;
         if (a === 'statut') { m.statut = m.statut === 'sorti' ? 'chantier' : 'sorti'; await sauver(m); rendre(); }
         if (a === 'renommer') { const n = prompt('Nouveau nom du morceau', m.nom); if (n && n.trim()) { (m.alias = m.alias || []).push(m.nom); m.nom = n.trim(); await sauver(m); rendre(); } }
         if (a === 'suppr') { if (confirm(`Retirer « ${m.nom} » de la Bibliothèque ?\n(La fiche est rangée dans la corbeille du Drive, et aucun fichier audio ou Ableton n'est touché.)`)) { await BK.db.supprimer('morceaux', m.id); await charger(); } }
+        if (a === 'ajexport') { const f = await choisirExport(); if (!f) return; m.exportsManuels = (m.exportsManuels || []).filter(x => x.chemin !== f.chemin); m.exportsManuels.push(f);
+          m.exportsCaches = (m.exportsCaches || []).filter(c => c !== f.chemin); await sauver(m); msg('Export ajouté'); rendre(); }
         if (a === 'copier') { await navigator.clipboard.writeText(BK.parolesPropres(m.paroles)); msg('Paroles copiées'); }
         if (a === 'plein') BK.pleinEcran(m.nom, m.paroles);
         if (a === 'lien') { const u = $('[data-lien="url"]', el).value.trim(); if (!/^https?:\/\//i.test(u)) return msg('Colle un lien qui commence par https://');

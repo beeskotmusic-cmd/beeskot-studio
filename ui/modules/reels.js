@@ -115,7 +115,7 @@ BK.module('reels', function (page) {
   async function remplirVersions() {
     const m = (R.morceaux || []).find(x => x.id === $('#reMorceau').value), v = $('#reVersion');
     if (!m) { v.innerHTML = '<option value="">—</option>'; return; }
-    const fs = (await BK.inv.tous()).filter(f => f.type === 'audio' && f.ici && BK.inv.trouverMorceau(f.nom, R.morceaux) === m).sort((a, b) => (b.modif || '').localeCompare(a.modif || ''));
+    const fs = BK.inv.exportsDe(m, await BK.inv.tous(), R.morceaux).filter(f => f.ici);
     v.innerHTML = fs.length ? fs.map((f, i) => `<option value="${esc(f.chemin)}">${i === 0 ? '★ ' : ''}${esc(f.nom)}</option>`).join('')
       : '<option value="">aucun export sur ce PC (Bibliothèque › Scanner ce PC)</option>';
     if (m.bpm && !R.clicBpmManuel) { R.bpm = parseFloat(String(m.bpm).replace(',', '.')) || 0; $('#reBpm').value = m.bpm; }

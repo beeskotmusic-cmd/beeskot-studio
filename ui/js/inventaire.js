@@ -69,4 +69,15 @@ BK.inv = {
     for (const inv of invs) for (const f of inv.fichiers || []) out.push({ ...f, pc: inv.pc, ici: inv.id === monId });
     return out;
   },
+  monPc() { return BK.reglage('nomPc', '') || 'CE PC'; },
+
+  // les exports d'un morceau : trouvés au scan + ajoutés à la main ; la version principale (★) en premier
+  exportsDe(m, tous, morceaux) {
+    const caches = new Set(m.exportsCaches || []), ici = BK.inv.monPc();
+    const scan = tous.filter(f => f.type === 'audio' && BK.inv.trouverMorceau(f.nom, morceaux) === m && !caches.has(f.chemin));
+    const main = (m.exportsManuels || []).map(f => ({ ...f, type: 'audio', manuel: true, ici: f.pc === ici }));
+    const l = [...main, ...scan.filter(f => !main.some(x => x.chemin === f.chemin))].sort((a, b) => (b.modif || '').localeCompare(a.modif || ''));
+    const i = l.findIndex(f => f.chemin === m.exportPrincipal); if (i > 0) l.unshift(l.splice(i, 1)[0]);
+    return l;
+  },
 };

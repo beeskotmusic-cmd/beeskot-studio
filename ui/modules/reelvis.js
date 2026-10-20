@@ -41,16 +41,26 @@ BK.module('reelvis', function (page) {
             <div class="rv-zones" id="rvZones"></div><div id="rvCalque"></div>
           </div></div>
           <div class="rv-cote">
-            <div class="box"><span class="lb">Couper la vidéo</span>
-              <div class="rv-trim"><span class="eng">Début</span><input type="range" id="rvDeb" min="0" max="100" step="0.1" value="0"><span class="vfd" id="rvDebV">0:00.0</span></div>
-              <div class="rv-trim"><span class="eng">Fin</span><input type="range" id="rvFin" min="0" max="100" step="0.1" value="100"><span class="vfd" id="rvFinV">0:00.0</span></div>
-              <span class="nt">Durée gardée : <b id="rvGarde">—</b></span></div>
+            <div class="box"><div class="ligne-titre"><span class="lb">Couper la vidéo</span>
+                <span class="nt" style="margin:0 0 0 auto">Glisse le bloc · tire ses bords · <b>I</b> / <b>O</b> = début / fin à la tête de lecture</span></div>
+              <div class="onde rv-bande" id="rvBande">
+                <div class="rv-vignettes" id="rvVign"></div>
+                <div class="onde-bloc hidden" id="rvBloc"><span class="poignee g"></span><span class="bloc-txt" id="rvBlocTxt"></span><span class="poignee d"></span></div>
+                <div class="onde-tete hidden" id="rvTete"></div>
+                <span class="nt onde-vide" id="rvBandeVide">Aucune vidéo</span>
+              </div>
+              <div class="compteurs">
+                <div><span class="eng">Début</span><span class="vfd" id="rvDebV">—</span></div>
+                <div><span class="eng">Fin</span><span class="vfd" id="rvFinV">—</span></div>
+                <div><span class="eng">Durée gardée</span><span class="vfd" id="rvGarde">—</span></div>
+                <div class="compteurs-btn"><button class="btn sm" id="rvI" title="Début ici (touche I)">I</button><button class="btn sm" id="rvO" title="Fin ici (touche O)">O</button></div>
+              </div></div>
             <div class="box"><span class="lb">Recadrer et couleur</span>
               <span class="nt">Fais glisser l'image dans le téléphone pour la déplacer.</span>
-              <div class="knobs" style="justify-content:space-around">
-                <div class="kb"><input id="rvZoom" type="range" min="100" max="300" step="1" value="100" class="knobify" data-ticks="100,150,200,250,300" data-fmt="{} %"><span class="lb">Zoom</span></div>
-                <div class="kb"><input id="rvForce" type="range" min="0" max="100" step="1" value="100" class="knobify" data-ticks="0,25,50,75,100" data-fmt="{} %"><span class="lb">Force LUT</span></div></div>
-              <div class="chips"><button class="chip" id="rvCentre">Recentrer</button><button class="chip" id="rvLutB">Charger une LUT (.cube)…</button><button class="chip hidden" id="rvLutX">Sans LUT</button></div>
+              <div class="rv-reglages">
+                <span class="eng">Zoom</span><input class="fld rv-glisse" id="rvZoom" value="0 %" title="Clic maintenu et glisse la souris (ou double-clic pour taper)">
+                <button class="chip" id="rvCentre">Recentrer</button></div>
+              <div class="chips"><button class="chip" id="rvLutB">Charger une LUT (.cube)…</button><button class="chip hidden" id="rvLutX">Sans LUT</button></div>
               <input type="file" id="rvLutIn" accept=".cube" hidden><span class="nt" id="rvLutNom"></span></div>
             <div class="box grow"><div class="ligne-titre"><span class="lb">Sous-titres</span>
                 <button class="chip on" id="rvSousOn" style="margin-left:auto">Afficher</button></div>
@@ -100,9 +110,9 @@ BK.module('reelvis', function (page) {
     $('#rvNomH').textContent = V.nom.toUpperCase(); msg('Lecture de la vidéo…');
   }
   vid.onloadedmetadata = () => {
-    V.debut = 0; V.fin = vid.duration; $('#rvDeb').max = $('#rvFin').max = vid.duration; $('#rvDeb').value = 0; $('#rvFin').value = vid.duration;
+    V.debut = 0; V.fin = vid.duration; $('#rvBloc').classList.remove('hidden'); $('#rvBandeVide').classList.add('hidden'); vignettes();
     $('#rvVide').classList.add('hidden'); ['#rvPlay', '#rvExport', '#rvCaler'].forEach(s => $(s).disabled = false);
-    V.x = V.y = 0; majTrim(); msg(`Vidéo prête · ${vid.videoWidth}×${vid.videoHeight}`);
+    V.x = V.y = 0; reglerZoom(100); majTrim(); msg(`Vidéo prête · ${vid.videoWidth}×${vid.videoHeight}`);
   };
   vid.onseeked = () => { if (!V.lecture) dessiner(); };
   vid.onerror = () => msg('Vidéo illisible (essaie un MP4)');
@@ -110,20 +120,64 @@ BK.module('reelvis', function (page) {
   $('#rvInput').onchange = e => charger(e.target.files[0]);
   page.addEventListener('dragover', e => { e.preventDefault(); ecran.classList.add('survol'); });
   page.addEventListener('dragleave', e => { if (e.target === page) ecran.classList.remove('survol'); });
-  page.addEventListener('drop', e => { e.preventDefault(); ecran.classList.remove('survol'); const f = e.dataTransfer.files[0];
-    if (f && /\.cube$/i.test(f.name)) return chargerLut(f); charger(f); });
+  page.addEventListener('drop', e => { e.preventDefault(); ecran.classList.remove('survol'); const f = e.dataTransfer.files[0]; if (!f) return;
+    if ( /\.cube$/i.test(f.name)) return chargerLut(f); charger(f); });
 
-  // ---------- couper ----------
+  // ---------- couper : une bande d'images avec un bloc, comme l'Assistant audio ----------
+  const bande = $('#rvBande'), bloc = $('#rvBloc'), tete = $('#rvTete');
   function majTrim() {
-    V.debut = Math.min(+$('#rvDeb').value, V.fin - 0.5); V.fin = Math.max(+$('#rvFin').value, V.debut + 0.5);
+    const D = vid.duration || 1;
+    V.debut = Math.max(0, Math.min(V.debut, D - 0.5)); V.fin = Math.min(D, Math.max(V.fin, V.debut + 0.5));
+    bloc.style.left = (V.debut / D * 100) + '%'; bloc.style.width = ((V.fin - V.debut) / D * 100) + '%';
+    $('#rvBlocTxt').textContent = Math.round(V.fin - V.debut) + ' s';
     $('#rvDebV').textContent = t2(V.debut); $('#rvFinV').textContent = t2(V.fin);
     $('#rvGarde').textContent = t2(V.fin - V.debut); $('#rvDurH').textContent = Math.round(V.fin - V.debut) + ' S';
   }
-  $('#rvDeb').oninput = () => { majTrim(); vid.currentTime = V.debut; };
-  $('#rvFin').oninput = () => { majTrim(); vid.currentTime = V.fin; };
+  function montrerTete() { if (!vid.duration) return; tete.classList.remove('hidden'); tete.style.left = (vid.currentTime / vid.duration * 100) + '%'; }
+  vid.addEventListener('timeupdate', montrerTete); vid.addEventListener('seeked', montrerTete);
+  async function vignettes() {                    // petites images le long de la bande (une 2e vidéo, sans gêner l'aperçu)
+    const n = 10, z = $('#rvVign'); z.innerHTML = ''; const v2 = document.createElement('video'); v2.muted = true; v2.src = V.url; v2.preload = 'auto';
+    await new Promise(r => v2.onloadeddata = r);
+    const c = document.createElement('canvas'); c.height = 72; c.width = Math.round(72 * v2.videoWidth / v2.videoHeight) || 128; const g = c.getContext('2d');
+    for (let i = 0; i < n; i++) {
+      if (v2.src !== V.url) return;
+      v2.currentTime = (i + 0.5) * v2.duration / n; await new Promise(r => v2.onseeked = r);
+      g.drawImage(v2, 0, 0, c.width, c.height); const im = new Image(); im.draggable = false; im.src = c.toDataURL('image/jpeg', 0.6); z.appendChild(im);
+      await BK.audio.pause();
+    }
+    v2.removeAttribute('src'); v2.load();
+  }
+  let drag = null;
+  const tempsA = x => { const b = bande.getBoundingClientRect(); return Math.max(0, Math.min(1, (x - b.left) / b.width)) * vid.duration; };
+  bloc.addEventListener('pointerdown', e => { if (!vid.duration) return; e.stopPropagation(); bloc.setPointerCapture(e.pointerId);
+    drag = { mode: e.target.classList.contains('g') ? 'g' : e.target.classList.contains('d') ? 'd' : 'm', t0: tempsA(e.clientX), deb: V.debut, fin: V.fin }; });
+  bloc.addEventListener('pointermove', e => { if (!drag) return; const dt = tempsA(e.clientX) - drag.t0, D = vid.duration;
+    if (drag.mode === 'm') { const l = drag.fin - drag.deb; V.debut = Math.max(0, Math.min(D - l, drag.deb + dt)); V.fin = V.debut + l; vid.currentTime = V.debut; }
+    if (drag.mode === 'g') { V.debut = Math.min(drag.fin - 0.5, Math.max(0, drag.deb + dt)); vid.currentTime = V.debut; }
+    if (drag.mode === 'd') { V.fin = Math.max(drag.deb + 0.5, Math.min(D, drag.fin + dt)); vid.currentTime = V.fin; }
+    majTrim(); });
+  bloc.addEventListener('pointerup', () => { drag = null; });
+  bande.addEventListener('pointerdown', e => { if (!vid.duration || e.target.closest('#rvBloc')) return; vid.currentTime = tempsA(e.clientX); });
+  $('#rvI').onclick = () => { if (!vid.duration) return; V.debut = Math.min(vid.currentTime, V.fin - 0.5); majTrim(); };
+  $('#rvO').onclick = () => { if (!vid.duration) return; V.fin = Math.max(vid.currentTime, V.debut + 0.5); majTrim(); };
+  document.addEventListener('keydown', e => {
+    if (page.classList.contains('hidden') || !vid.duration || V.calage >= 0 || /INPUT|SELECT|TEXTAREA/.test(document.activeElement.tagName)) return;
+    if (e.key === 'i' || e.key === 'I') $('#rvI').click();
+    if (e.key === 'o' || e.key === 'O') $('#rvO').click();
+  });
 
   // ---------- recadrer ----------
-  $('#rvZoom').onchange = $('#rvZoom').oninput = e => { V.zoom = +e.target.value; dessiner(); };
+  const champZoom = $('#rvZoom');
+  const reglerZoom = z => { V.zoom = Math.round(Math.max(100, Math.min(400, z))); champZoom.value = (V.zoom - 100) + ' %'; dessiner(); };
+  champZoom.readOnly = true; let zg = null;
+  champZoom.addEventListener('pointerdown', e => { if (!champZoom.readOnly) return; e.preventDefault(); champZoom.setPointerCapture(e.pointerId); zg = { x: e.clientX, y: e.clientY, z: V.zoom }; });
+  champZoom.addEventListener('pointermove', e => { if (!zg) return; reglerZoom(zg.z + (e.clientX - zg.x) - (e.clientY - zg.y)); });
+  champZoom.addEventListener('pointerup', () => { zg = null; });
+  champZoom.addEventListener('dblclick', () => { champZoom.readOnly = false; champZoom.value = V.zoom - 100; champZoom.select(); });
+  const finSaisie = () => { if (champZoom.readOnly) return; champZoom.readOnly = true; const v = parseFloat(champZoom.value.replace(',', '.')); reglerZoom(isNaN(v) ? V.zoom : 100 + v); };
+  champZoom.addEventListener('blur', finSaisie);
+  champZoom.addEventListener('keydown', e => { e.stopPropagation(); if (e.key === 'Enter') champZoom.blur(); });
+  champZoom.addEventListener('wheel', e => { e.preventDefault(); reglerZoom(V.zoom - Math.sign(e.deltaY) * 5); }, { passive: false });
   $('#rvCentre').onclick = () => { V.x = V.y = 0; dessiner(); };
   let d0 = null;
   ecran.addEventListener('pointerdown', e => { if (!vid.videoWidth) return; d0 = { x: e.clientX, y: e.clientY, vx: V.x, vy: V.y }; ecran.setPointerCapture(e.pointerId); });
@@ -139,7 +193,6 @@ BK.module('reelvis', function (page) {
   $('#rvLutB').onclick = () => $('#rvLutIn').click();
   $('#rvLutIn').onchange = e => e.target.files[0] && chargerLut(e.target.files[0]);
   $('#rvLutX').onclick = () => { V.lut = null; r.lut(null); $('#rvLutNom').textContent = ''; $('#rvLutX').classList.add('hidden'); dessiner(); };
-  $('#rvForce').onchange = $('#rvForce').oninput = e => { V.force = +e.target.value; dessiner(); };
 
   // ---------- sous-titres ----------
   async function remplirMorceaux() {
@@ -198,7 +251,7 @@ BK.module('reelvis', function (page) {
     if (a) { son.src = a.url; son.currentTime = a.debut; son.play(); }
     vid.play(); $('#rvPlay').textContent = '■ Stop';
     const fin = a ? Math.min(V.fin, V.debut + a.duree) : V.fin;
-    const tic = () => { dessiner(); if (vid.currentTime >= fin || vid.paused) return stop(); V.lecture = requestAnimationFrame(tic); };
+    const tic = () => { dessiner(); montrerTete(); if (vid.currentTime >= fin || vid.paused) return stop(); V.lecture = requestAnimationFrame(tic); };
     V.lecture = requestAnimationFrame(tic);
   }
   $('#rvPlay').onclick = () => lire();
