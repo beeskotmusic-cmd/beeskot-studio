@@ -141,8 +141,8 @@ BK.module('lumieres', function (page) {
         <span class="led ${allume ? 'amb' : ''}"></span><b>${esc(d.name)}</b><span class="nt">${d.online === false ? 'hors ligne' : ''}</span>
         <button class="btn xs" data-on="${d.id}">${allume ? 'Éteindre' : 'Allumer'}</button></div>`;
     }).join('') : '<span class="nt">Aucune lampe trouvée sur ce compte Tuya.</span>';
-    $$('[data-ch]').forEach(c => c.onchange = () => { c.checked ? L.choisies.add(c.dataset.ch) : L.choisies.delete(c.dataset.ch); BK.regler('lum.choisies', [...L.choisies]); });
-    $$('[data-on]').forEach(b => b.onclick = async () => { const d = L.lampes.find(x => x.id === b.dataset.on), st = Object.fromEntries((d.status || []).map(x => [x.code, x.value]));
+    $$('[data-ch]', page).forEach(c => c.onchange = () => { c.checked ? L.choisies.add(c.dataset.ch) : L.choisies.delete(c.dataset.ch); BK.regler('lum.choisies', [...L.choisies]); });
+    $$('[data-on]', page).forEach(b => b.onclick = async () => { const d = L.lampes.find(x => x.id === b.dataset.on), st = Object.fromEntries((d.status || []).map(x => [x.code, x.value]));
       await commande([d], [{ code: 'switch_led', value: !(st.switch_led ?? st.switch_1) }]); });
   }
   async function commande(lampes, cmds) {
@@ -153,10 +153,10 @@ BK.module('lumieres', function (page) {
     if (ok) msg(`${ok} lampe(s) réglée(s)`); rendre();
   }
   const choisies = () => L.lampes.filter(d => L.choisies.has(d.id));
-  $$('[data-sc]').forEach(b => b.onclick = () => { const s = SCENES[+b.dataset.sc];
+  $$('[data-sc]', page).forEach(b => b.onclick = () => { const s = SCENES[+b.dataset.sc];
     commande(choisies(), s.blanc ? [{ code: 'switch_led', value: true }, { code: 'work_mode', value: 'white' }, { code: 'bright_value_v2', value: s.v }, { code: 'temp_value_v2', value: s.temp }]
       : [{ code: 'switch_led', value: true }, { code: 'work_mode', value: 'colour' }, { code: 'colour_data_v2', value: { h: s.h, s: s.s, v: s.v } }]); });
-  $$('[data-tout]').forEach(b => b.onclick = () => commande(choisies(), [{ code: 'switch_led', value: b.dataset.tout === '1' }]));
+  $$('[data-tout]', page).forEach(b => b.onclick = () => commande(choisies(), [{ code: 'switch_led', value: b.dataset.tout === '1' }]));
 
   $('#luOk').onclick = async () => {
     await config(); const id = $('#luId').value.trim(), sec = $('#luSecret').value.trim();

@@ -193,8 +193,8 @@ BK.module('tournage', function (page) {
             ${r.enjeux ? `<span class="nt"><b>Enjeux :</b> ${esc(r.enjeux)}</span>` : ''}</div>`).join('')}</div>`; }).join('')}`;
     $('#toPlanOuvrir').onclick = () => BK.ouvrirLien(f.webViewLink);
     $('#toPlanRetour').onclick = () => { rendreFiche(); msg('PRÊT'); };
-    $$('[data-pa]').forEach(b => b.onclick = () => { const [j, i] = b.dataset.pa.split('|'); versAudio(rows.filter(r => r.jour === j)[+i]); });
-    $$('[data-jour]').forEach(b => b.onclick = async () => {
+    $$('[data-pa]', page).forEach(b => b.onclick = () => { const [j, i] = b.dataset.pa.split('|'); versAudio(rows.filter(r => r.jour === j)[+i]); });
+    $$('[data-jour]', page).forEach(b => b.onclick = async () => {
       const j = b.dataset.jour, rs = rows.filter(r => r.jour === j);
       let t = T.liste.find(x => x.source === 'plan-' + j);
       const plans = rs.map(r => ({ reel: r.reel, audio: r.audio, horaire: r.horaire, lieu: r.lieu.split(/\n/)[0], camera: r.camera, cadrage: '', action: r.plans, duree: '', notes: [r.action, r.enjeux].filter(Boolean).join(' — ') }));

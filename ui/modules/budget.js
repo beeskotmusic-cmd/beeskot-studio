@@ -88,8 +88,8 @@ BK.module('budget', function (page) {
   function chips() {
     $('#buPaye').innerHTML = B.membres.map(m => `<button class="chip${paye === m ? ' on' : ''}" data-pa="${esc(m)}">${esc(m)}</button>`).join('');
     $('#buPour').innerHTML = B.membres.map(m => `<button class="chip${pour.has(m) ? ' on' : ''}" data-po="${esc(m)}">${esc(m)}</button>`).join('');
-    $$('[data-pa]').forEach(b => b.onclick = () => { paye = b.dataset.pa; chips(); });
-    $$('[data-po]').forEach(b => b.onclick = () => { pour.has(b.dataset.po) ? pour.delete(b.dataset.po) : pour.add(b.dataset.po); if (!pour.size) pour.add(b.dataset.po); chips(); });
+    $$('[data-pa]', page).forEach(b => b.onclick = () => { paye = b.dataset.pa; chips(); });
+    $$('[data-po]', page).forEach(b => b.onclick = () => { pour.has(b.dataset.po) ? pour.delete(b.dataset.po) : pour.add(b.dataset.po); if (!pour.size) pour.add(b.dataset.po); chips(); });
   }
 
   function rendre() {

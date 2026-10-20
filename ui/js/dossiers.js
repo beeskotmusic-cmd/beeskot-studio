@@ -302,3 +302,63 @@ BK.galerieDrive = async function (el, { type = 'video', choisir, source = null, 
   zone.addEventListener('pointerdown', e => e.stopPropagation());
   zone.addEventListener('click', e => { e.stopPropagation(); const b = e.target.closest('.gd-t'); if (b) choisir(tout.find(f => f.id === b.dataset.id)); });
 };
+
+// ---------- les « sujets » (étiquettes) : morceaux, tournages, live, réseaux… — pour choisir de quoi parle un post ----------
+BK.etiquettes.RUBRIQUES = {
+  tournage: [{ k: 'c:tournage', nom: 'Tournage (général)' }, { k: 'c:outfits', nom: 'Tenues' }, { k: 'c:moodboard', nom: 'Moodboard' }],
+  live: [{ k: 'c:live', nom: 'Live / concert' }, { k: 'c:lumiere', nom: 'Light show' }, { k: 'c:scenographie', nom: 'Scénographie' }],
+  reseaux: [{ k: 'c:cover', nom: 'Covers' }, { k: 'c:insta', nom: 'Posts Instagram' }, { k: 'c:story', nom: 'Stories' }, { k: 'c:reel', nom: 'Reels / TikTok' }, { k: 'c:affiche', nom: 'Affiches / flyers' }, { k: 'c:presse', nom: 'Presse / EPK' }],
+};
+BK.etiquettes.sujets = async function () {
+  const [ms, ts] = await Promise.all([BK.db.liste('morceaux'), BK.db.liste('tournages')]);
+  return [
+    { groupe: '♪ Morceaux', l: ms.sort((a, b) => a.nom.localeCompare(b.nom)).map(m => ({ k: m.id, nom: m.nom, morceau: m })) },
+    { groupe: '🎬 Tournages', l: [...BK.etiquettes.RUBRIQUES.tournage, ...ts.map(t => ({ k: 't:' + t.id, nom: t.titre || 'Tournage' }))] },
+    { groupe: '🎤 Live / concert', l: BK.etiquettes.RUBRIQUES.live },
+    { groupe: '📣 Promo, réseaux et tout le reste', l: BK.etiquettes.RUBRIQUES.reseaux },
+  ];
+};
+// les fichiers du Drive qui portent une étiquette (un morceau : aussi ceux devinés par le nom)
+BK.etiquettes.fichiersDe = async function (k) {
+  await BK.dossiers.assurer();
+  const ms = await BK.db.liste('morceaux'), m = ms.find(x => x.id === k);
+  if (m) return BK.dossiers.duMorceau(m, ms);
+  const tags = await BK.etiquettes.tous();
+  return (await BK.dossiers.tousFichiers()).filter(f => BK.etiquettes.liste(tags, f.id).includes(k));
+};
+
+// ---------- une fenêtre pour choisir plusieurs images (clic, Maj + clic, Tout sélectionner) ----------
+// items : [{ id, nom, info, apercu (url) ou vignette: async () => url }]
+BK.choisirImages = function ({ titre = 'Choisir', items, charger, bouton = 'Ajouter' }) {
+  return new Promise(fin => {
+    const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+    const v = document.createElement('div'); v.className = 'voile ex-voile';
+    v.innerHTML = `<div class="ex-box"><div class="ex-tete"><span class="lb">${esc(titre)}</span><button class="btn xs" data-ci="x">✕</button></div>
+      <div class="ex-liste md-dc" id="ciL"><span class="nt"><span class="spin"></span>Recherche…</span></div>
+      <div class="ex-pied"><span class="nt" id="ciInfo">Clique les images (Maj + clic : toutes celles entre les deux).</span><button class="btn" data-ci="tout">Tout sélectionner</button><button class="btn" data-ci="x">Annuler</button><button class="btn pri" data-ci="ok" disabled>${esc(bouton)}</button></div></div>`;
+    document.body.appendChild(v);
+    const choisis = new Set(); let l = [], dernier = null;
+    const maj = () => { v.querySelectorAll('[data-cii]').forEach(t => t.classList.toggle('on', choisis.has(t.dataset.cii)));
+      v.querySelector('#ciInfo').textContent = choisis.size ? choisis.size + ' image(s) choisie(s)' : 'Clique les images (Maj + clic : toutes celles entre les deux).';
+      v.querySelector('[data-ci="ok"]').disabled = !choisis.size; v.querySelector('[data-ci="tout"]').textContent = choisis.size && choisis.size === l.length ? 'Tout désélectionner' : 'Tout sélectionner'; };
+    const fermer = r => { v.remove(); fin(r); };
+    v.addEventListener('click', e => {
+      const t = e.target.closest('[data-cii]'), a = e.target.closest('[data-ci]');
+      if (t) { const id = t.dataset.cii, ids = l.map(x => String(x.id));
+        if (e.shiftKey && dernier && ids.includes(dernier)) { const [i, j] = [ids.indexOf(dernier), ids.indexOf(id)].sort((x, y) => x - y); ids.slice(i, j + 1).forEach(k => choisis.add(k)); }
+        else choisis.has(id) ? choisis.delete(id) : choisis.add(id);
+        dernier = id; return maj(); }
+      if (!a) return;
+      if (a.dataset.ci === 'x') return fermer(null);
+      if (a.dataset.ci === 'tout') { if (choisis.size === l.length) choisis.clear(); else l.forEach(x => choisis.add(String(x.id))); return maj(); }
+      if (a.dataset.ci === 'ok') fermer(l.filter(x => choisis.has(String(x.id))));
+    });
+    (async () => {
+      try { l = items || await charger(); } catch (e) { v.querySelector('#ciL').innerHTML = `<span class="nt">${esc(e.message)}</span>`; return; }
+      const z = v.querySelector('#ciL');
+      z.innerHTML = l.length ? l.map(x => `<button class="md-dc-t" data-cii="${esc(x.id)}" title="${esc(x.nom)}"><span class="md-dc-img">${x.apercu ? `<img src="${esc(x.apercu)}" loading="lazy" draggable="false" referrerpolicy="no-referrer">` : '<span class="spin"></span>'}</span>
+          <span class="md-nom">${esc(x.nom)}</span>${x.info ? `<span class="nt">${esc(x.info)}</span>` : ''}</button>`).join('') : '<span class="nt">Aucune image trouvée.</span>';
+      for (const x of l) if (!x.apercu && x.vignette) { const u = await x.vignette().catch(() => null), b = z.querySelector(`[data-cii="${CSS.escape(String(x.id))}"] .md-dc-img`); if (b) b.innerHTML = u ? `<img src="${u}" draggable="false">` : '🖼'; }
+    })();
+  });
+};

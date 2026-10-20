@@ -31,18 +31,21 @@ BK.module('postvis', function (page) {
             <div class="pv-legende"><b>beeskot</b> <span id="pvLegAff">La légende du post…</span></div>
           </div></div>
           <div class="rv-cote">
-            <div class="box"><div class="ligne-titre"><span class="lb">Les photos (ordre du carrousel)</span>
+            <div class="box"><span class="lb">① De quoi parle le post ?</span>
+              <select class="fld" id="pvSujet" style="margin-top:8px"><option value="">Choisis : un morceau, un tournage, un live, la promo…</option></select></div>
+            <div class="box"><div class="ligne-titre"><span class="lb">② Les photos (ordre du carrousel)</span>
                 <span class="nt" style="margin:0 0 0 auto">Clique une photo pour la régler · ‹ › pour changer l'ordre</span></div>
               <div class="pv-bande" id="pvBande"></div>
-              <div class="chips" style="margin-top:8px"><button class="chip" id="pvAjout">+ Ajouter des photos…</button><button class="chip" id="pvDrive">+ Depuis le Drive…</button><input type="file" id="pvInput" accept="image/*" multiple hidden></div></div>
-            <div class="box"><span class="lb">Recadrer et couleur (photo choisie)</span>
+              <div class="chips" style="margin-top:8px"><button class="btn sm pri" id="pvAjout">+ Ajouter des photos</button><input type="file" id="pvInput" accept="image/*" multiple hidden></div></div>
+            <div class="box"><span class="lb">③ Recadrer et couleur</span>
               <span class="nt">Fais glisser l'image dans l'aperçu pour la déplacer.</span>
               <div class="rv-reglages"><span class="eng">Zoom</span><input class="fld rv-glisse" id="pvZoom" value="0 %" title="Clic maintenu et glisse la souris (ou double-clic pour taper)">
                 <button class="chip" id="pvCentre">Recentrer</button><button class="chip" id="pvTous">Même cadrage pour toutes</button></div>
               <span class="eng" style="margin-top:6px">Filtre</span><div class="chips filtres" id="pvFiltres">${['Aucun', ...BK.filtres.map(f => f.nom)].map((n, i) => `<button class="chip${i ? '' : ' on'}" data-fi="${i ? n : ''}">${n}</button>`).join('')}</div>
+              <div class="rv-reglages"><span class="eng">Intensité</span><input class="fld rv-glisse" id="pvForce" value="100 %" title="Clic maintenu et glisse la souris (ou double-clic pour taper)"></div>
               <div class="chips"><button class="chip" id="pvLutB">Ma LUT (.cube)…</button><button class="chip hidden" id="pvLutX">Sans LUT</button></div>
               <input type="file" id="pvLutIn" accept=".cube" hidden><span class="nt" id="pvLutNom"></span></div>
-            <div class="box pv-leg-box"><span class="lb">Légende</span>
+            <div class="box pv-leg-box"><span class="lb">④ Légende</span>
               <textarea class="fld" id="pvLeg" rows="3" placeholder="Le texte du post, les hashtags…"></textarea>
               <div class="pv-idees-l"><select class="fld" id="pvMorceau"><option value="">Morceau (pour l'AI)…</option></select><input class="fld" id="pvIdee" placeholder="ce que montre le post (facultatif)"></div>
               <div class="chips" style="margin-top:8px"><button class="chip" id="pvRenfort">✨ Idées de légende</button><button class="chip" id="pvCopier">Copier la légende</button></div>
@@ -75,7 +78,7 @@ BK.module('postvis', function (page) {
   function dessiner() {
     const s = S(); $('#pvVide').classList.toggle('hidden', !!s);
     if (!s) { c2.clearRect(0, 0, cv.width, cv.height); return; }
-    r.dessiner(s.img, { zoom: s.zoom / 100, x: s.x, y: s.y }, 1, ''); c2.drawImage(r.sortie, 0, 0);
+    r.dessiner(s.img, { zoom: s.zoom / 100, x: s.x, y: s.y }, (P.force ?? 100) / 100, ''); c2.drawImage(r.sortie, 0, 0);
     $('#pvZoom').value = (s.zoom - 100) + ' %';
   }
   function majTout() {
@@ -88,9 +91,9 @@ BK.module('postvis', function (page) {
         <span class="pv-n">${k + 1}</span><span class="pv-mb"><button data-g="${k}">‹</button><button data-d="${k}">›</button><button data-x="${k}">✕</button></span></div>`).join('')
       || '<span class="nt">Aucune photo pour l\'instant.</span>';
     $$('.pv-mini').forEach(el => el.onclick = e => { if (e.target.closest('button')) return; P.i = +el.dataset.k; majTout(); });
-    $$('[data-g]').forEach(b => b.onclick = () => bouger(+b.dataset.g, -1));
-    $$('[data-d]').forEach(b => b.onclick = () => bouger(+b.dataset.d, 1));
-    $$('[data-x]').forEach(b => b.onclick = () => { const k = +b.dataset.x; URL.revokeObjectURL(P.slides[k].url); P.slides.splice(k, 1); P.i = Math.min(P.i, P.slides.length - 1); P.i = Math.max(0, P.i); majTout(); });
+    $$('[data-g]', $('#pvBande')).forEach(b => b.onclick = () => bouger(+b.dataset.g, -1));
+    $$('[data-d]', $('#pvBande')).forEach(b => b.onclick = () => bouger(+b.dataset.d, 1));
+    $$('[data-x]', $('#pvBande')).forEach(b => b.onclick = () => { const k = +b.dataset.x; URL.revokeObjectURL(P.slides[k].url); P.slides.splice(k, 1); P.i = Math.min(P.i, P.slides.length - 1); P.i = Math.max(0, P.i); majTout(); });
     dessiner();
   }
   function bouger(k, d) { const j = k + d; if (j < 0 || j >= P.slides.length) return; [P.slides[k], P.slides[j]] = [P.slides[j], P.slides[k]]; P.i = j; majTout(); }
@@ -107,16 +110,42 @@ BK.module('postvis', function (page) {
       img.src = url;
     }
   }
-  $('#pvAjout').onclick = () => $('#pvInput').click();
-  $('#pvInput').onchange = e => { ajouter(e.target.files); e.target.value = ''; };
-  $('#pvDrive').onclick = async () => {
-    if (!BK.drive.relie()) return msg('Relie d\'abord le Drive (Réglages)');
-    const l = await BK.explorerDrive({ titre: 'Photos du Drive pour le post', mode: 'images', depart: 'photovideo' }); if (!l || !l.length) return;
-    msg('Téléchargement des photos…'); const fs = [];
-    for (const f of l) { try { fs.push(new File([await (await BK.drive.api(`/files/${f.id}?alt=media`)).blob()], f.name, { type: f.mimeType })); } catch (e) {} }
-    ajouter(fs);
+  // ---------- ① le sujet : les photos déjà étiquetées passent en premier ----------
+  (async () => { const g = await BK.etiquettes.sujets();
+    $('#pvSujet').innerHTML = '<option value="">Choisis : un morceau, un tournage, un live, la promo…</option>' + g.map(x => `<optgroup label="${esc(x.groupe)}">${x.l.map(c => `<option value="${esc(c.k)}">${esc(c.nom)}</option>`).join('')}</optgroup>`).join('');
+    P.sujets = g.flatMap(x => x.l); })();
+  const sujet = () => (P.sujets || []).find(c => c.k === $('#pvSujet').value);
+  $('#pvSujet').onchange = () => { const c = sujet(); galerie();
+    if (c && c.morceau && [...$('#pvMorceau').options].some(o => o.value === c.morceau.nom || o.textContent === c.morceau.nom)) $('#pvMorceau').value = [...$('#pvMorceau').options].find(o => o.textContent === c.morceau.nom).value;
+    msg(c ? 'Les photos de « ' + c.nom + ' » d\'abord' : 'PRÊT'); };
+  const telecharger = async f => new File([await (await BK.drive.api(`/files/${f.id}?alt=media`)).blob()], f.name, { type: f.mimeType || 'image/jpeg' });
+  async function ajouterDrive(l) { msg('Téléchargement des photos…'); const fs = []; for (const f of l) { try { fs.push(await telecharger(f)); } catch (e) {} } ajouter(fs); }
+  // ---------- ② « + Ajouter des photos » : d'abord celles du sujet, puis PC, Drive, Discord ----------
+  $('#pvAjout').onclick = e => {
+    $$('.md-menu').forEach(x => x.remove());
+    const c = sujet(), r0 = e.currentTarget.getBoundingClientRect(), menu = document.createElement('div'); menu.className = 'md-menu';
+    menu.style.left = Math.min(r0.left, innerWidth - 240) + 'px'; menu.style.top = Math.min(r0.bottom + 4, innerHeight - 200) + 'px';
+    menu.innerHTML = (BK.drive.relie() ? `<button data-aj="tag">🏷 ${c ? 'Les photos de « ' + esc(c.nom) + ' »' : 'Les photos étiquetées (choisis d\'abord le sujet)'}</button>` : '')
+      + '<button data-aj="pc">💻 Depuis ce PC…</button>' + (BK.drive.relie() ? '<button data-aj="drive">☁ Depuis le Drive…</button>' : '') + '<button data-aj="discord">🍞 Depuis Discord…</button>';
+    document.body.appendChild(menu);
+    const fermer = ev => { if (!menu.contains(ev.target)) { menu.remove(); document.removeEventListener('pointerdown', fermer, true); } };
+    setTimeout(() => document.addEventListener('pointerdown', fermer, true));
+    menu.onclick = async ev => { const b = ev.target.closest('[data-aj]'); if (!b) return; menu.remove(); const k = b.dataset.aj;
+      if (k === 'pc') return $('#pvInput').click();
+      if (k === 'drive') { const l = await BK.explorerDrive({ titre: 'Photos du Drive pour le post', mode: 'images', depart: 'photovideo' }); if (l && l.length) ajouterDrive(l); return; }
+      if (k === 'tag') { if (!c) { $('#pvSujet').focus(); return msg('Choisis d\'abord de quoi parle le post'); }
+        const l = await BK.choisirImages({ titre: '🏷 Les photos de « ' + c.nom + ' »', bouton: 'Ajouter au post',
+          charger: async () => (await BK.etiquettes.fichiersDe(c.k)).filter(f => /^image\//.test(f.mimeType || '')).map(f => ({ id: f.id, nom: f.name, f, vignette: () => BK.drive.vignette(f) })) });
+        if (l && l.length) ajouterDrive(l.map(x => x.f)); return; }
+      if (k === 'discord') { const l = await BK.choisirImages({ titre: '🍞 Photos postées sur Discord', bouton: 'Ajouter au post',
+          charger: async () => (await BK.discord.medias()).filter(x => !x.video).map(x => ({ id: x.id, nom: x.nom, apercu: x.apercu + '?width=240&height=240', info: x.qui + ' · #' + x.salon, x })) });
+        if (!l || !l.length) return; msg('Téléchargement depuis Discord…'); const fs = [];
+        for (const it of l) { try { const r = await BK.discord.fetch(it.x.url); fs.push(new File([await r.blob()], it.nom, { type: 'image/jpeg' })); } catch (er) {} }
+        ajouter(fs); }
+    };
   };
-  const galerie = () => BK.galerieDrive($('#pvGal'), { type: 'image', choisir: async f => { msg('Téléchargement de ' + f.name + '…');
+  $('#pvInput').onchange = e => { ajouter(e.target.files); e.target.value = ''; };
+  const galerie = () => BK.galerieDrive($('#pvGal'), { type: 'image', titre: (sujet() || {}).nom || '', source: sujet() ? () => BK.etiquettes.fichiersDe(sujet().k) : null, choisir: async f => { msg('Téléchargement de ' + f.name + '…');
     try { ajouter([new File([await (await BK.drive.api(`/files/${f.id}?alt=media`)).blob()], f.name, { type: f.mimeType })]); } catch (e) { msg('Téléchargement impossible'); } } });
   galerie();
   (BK.surOuvrir = BK.surOuvrir || {}).postvis = () => { if (!$('#pvGal .gd-l')) galerie(); };
@@ -148,6 +177,16 @@ BK.module('postvis', function (page) {
   champ.addEventListener('keydown', e => { e.stopPropagation(); if (e.key === 'Enter') champ.blur(); });
   ecran.addEventListener('wheel', e => { if (!S()) return; e.preventDefault(); zoom(S().zoom - Math.sign(e.deltaY) * 5); }, { passive: false });
   champ.addEventListener('wheel', e => { if (!S()) return; e.preventDefault(); zoom(S().zoom - Math.sign(e.deltaY) * 5); }, { passive: false });
+  // ---------- intensité du filtre (0 à 100 %) : glisser la souris sur la case, ou double-clic pour taper ----------
+  const fc = $('#pvForce'); fc.readOnly = true; let fg = null; P.force = P.force ?? 100;
+  const force = v => { P.force = Math.round(Math.max(0, Math.min(100, v))); fc.value = P.force + ' %'; dessiner(); };
+  fc.addEventListener('pointerdown', e => { if (!fc.readOnly) return; e.preventDefault(); fc.setPointerCapture(e.pointerId); fg = { x: e.clientX, y: e.clientY, v: P.force }; });
+  fc.addEventListener('pointermove', e => { if (fg) force(fg.v + ((e.clientX - fg.x) - (e.clientY - fg.y)) / 2); });
+  fc.addEventListener('pointerup', () => { fg = null; });
+  fc.addEventListener('dblclick', () => { fc.readOnly = false; fc.value = P.force; fc.select(); });
+  fc.addEventListener('blur', () => { if (fc.readOnly) return; fc.readOnly = true; const v = parseFloat(fc.value.replace(',', '.')); force(isNaN(v) ? P.force : v); });
+  fc.addEventListener('keydown', e => { e.stopPropagation(); if (e.key === 'Enter') fc.blur(); });
+  fc.addEventListener('wheel', e => { e.preventDefault(); force(P.force - Math.sign(e.deltaY) * 5); }, { passive: false });
   $('#pvCentre').onclick = () => { const s = S(); if (!s) return; s.x = s.y = 0; s.zoom = 100; dessiner(); };
   $('#pvTous').onclick = () => { const s = S(); if (!s) return; P.slides.forEach(x => { x.zoom = s.zoom; x.x = s.x; x.y = s.y; }); msg('Même cadrage partout'); };
 
@@ -201,7 +240,7 @@ BK.module('postvis', function (page) {
     try {
       const f = F(), rr = BK.rendu.creer(f.L, f.H); rr.lut(P.lut); let dernier = null;
       for (let k = 0; k < P.slides.length; k++) {
-        const s = P.slides[k]; rr.dessiner(s.img, { zoom: s.zoom / 100, x: s.x, y: s.y }, 1, '');
+        const s = P.slides[k]; rr.dessiner(s.img, { zoom: s.zoom / 100, x: s.x, y: s.y }, (P.force ?? 100) / 100, '');
         const blob = await new Promise(ok => rr.sortie.toBlob(ok, 'image/jpeg', 0.92));
         dernier = await BK.enregistrerFichier(BK.chemin('Posts', P.nom), `${P.nom}_${String(k + 1).padStart(2, '0')}_${f.L}x${f.H}.jpg`, new Uint8Array(await blob.arrayBuffer()), 'image/jpeg');
         msg(`Export ${k + 1}/${P.slides.length}`); await BK.audio.pause();

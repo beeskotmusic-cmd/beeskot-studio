@@ -134,7 +134,7 @@ BK.module('agenda', function (page) {
       <div><span class="nt" style="margin:0;color:var(--ink)">${esc(e.titre || TYPES[e.type].nom)}${e.morceau ? ' · ' + esc(e.morceau) : ''}</span>
       <span class="nt" style="margin:0;font-size:11px">${e.debut.toLocaleDateString('fr-CA', { weekday: 'short', day: 'numeric', month: 'short' })}${e.journee ? '' : ' · ' + e.debut.toTimeString().slice(0, 5)} · ${(TYPES[e.type] || TYPES.autre).nom}${e.local ? '' : ' · Google'}</span></div>
       ${e.local ? `<button class="btn xs" data-suppr="${e.id}" style="margin-left:auto">✕</button>` : ''}</div>`).join('') : '<span class="nt">Rien de prévu.</span>';
-    $$('[data-suppr]').forEach(b => b.onclick = async () => { await BK.db.supprimer('evenements', b.dataset.suppr); await charger(); });
+    $$('[data-suppr]', page).forEach(b => b.onclick = async () => { await BK.db.supprimer('evenements', b.dataset.suppr); await charger(); });
   }
 
   // ---------- ce que Miette a repéré sur Discord ----------
