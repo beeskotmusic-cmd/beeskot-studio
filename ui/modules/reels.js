@@ -5,7 +5,7 @@
 // =====================================================================
 (() => {
 const R = { nom: '', buffer: null, url: '', pics: null, debut: 0, duree: 30, v: 1, elan: 0, clic: false, bpm: 0,
-  fondu: false, lecture: null, source: BK.reglage('reel.source', 'fichier'), timers: [] };
+  fondu: false, lecture: null, source: BK.reglage('reel.source', 'biblio'), timers: [] };
 const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 const x2 = (n, d = 2) => n.toLocaleString('fr-CA', { maximumFractionDigits: d });
 
@@ -29,7 +29,7 @@ BK.module('reels', function (page) {
   $('.grid', page).innerHTML = `
     <div class="cols">
       <section class="pane vit" aria-label="Vitrine">
-        <div class="seg reel-src" id="reSrc"><button data-s="fichier">Charger un fichier</button><button data-s="biblio">Depuis la Bibliothèque</button></div>
+        <div class="seg reel-src" id="reSrc"><button data-s="biblio">Depuis la Bibliothèque</button><button data-s="fichier">Charger un fichier</button></div>
         <div class="box pick" id="reZoneF">
           <div><span class="lb">Fichier</span><span class="nt mono" id="reFich">Glisse un WAV ou un MP3 ici, ou clique sur Charger</span></div>
           <button class="btn xs" id="rePick">Charger…</button>
@@ -418,6 +418,9 @@ BK.module('reels', function (page) {
     const e = { id: Date.now().toString(36), nom, chemin, morceau: m ? m.nom : R.nom, debut: R.debut, duree: R.duree, t: new Date().toISOString() };
     BK.reelsExports[e.id] = URL.createObjectURL(new Blob([octets], { type: 'audio/wav' }));
     BK.regler('reels.exports', [e, ...BK.reglage('reels.exports', [])].slice(0, 30));
+    if (BK.suiviEnCours) { try { const l = await BK.db.liste('reels'), r = l.find(x => x.id === BK.suiviEnCours);     // relié à la page Reels
+      if (r) { r.audio = e.id; r.passage = { debut: R.debut, fin: R.debut + R.duree }; if (r.statut === 'idee') r.statut = 'audio';
+        await BK.db.ecrire('reels', r); BK.suiviRecharger && BK.suiviRecharger(); } } catch (er) {} }
   }
   $('#reExport').onclick = async () => {
     if (!R.buffer) return; stop();

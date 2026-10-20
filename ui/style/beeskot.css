@@ -755,3 +755,24 @@ body.dropping main>section:not(.hidden) .box.pick::after{content:none!important;
 .bv-msg{font:600 11.5px Jost,sans-serif;letter-spacing:.08em;text-transform:uppercase;color:#7ee08a}
 .bv-btns{display:flex;gap:10px;margin-top:6px}
 .bv-num{font-size:10px;opacity:.6;margin:0}
+.sysgrid .vfd.chaud span{color:#ff8a6a}
+/* ---------- page Reels (suivi) ---------- */
+.su-liste{display:flex;flex-direction:column;gap:10px;overflow:auto;min-height:0}
+.su-c{border-radius:8px;background:rgba(0,0,0,.24);box-shadow:inset 0 0 0 1px rgba(239,230,210,.08);padding:10px 12px;display:flex;flex-direction:column;gap:8px}
+.su-tete{display:flex;align-items:center;gap:10px}
+.su-tete b{font:600 13px Jost,sans-serif;letter-spacing:.04em}
+.su-m{font:600 10px 'Share Tech Mono',monospace;color:#ffb23e;padding:2px 7px;border-radius:3px;background:rgba(255,178,62,.12)}
+.su-etapes{display:flex;gap:4px;margin-left:auto}
+.su-e{width:28px;height:26px;font-family:"Segoe UI Emoji","Noto Color Emoji",sans-serif;display:flex;align-items:center;justify-content:center;border-radius:5px;border:1px solid rgba(239,230,210,.14);background:rgba(0,0,0,.3);cursor:pointer;font-size:12px;opacity:.45;padding:0}
+.su-e.ok{opacity:1;background:rgba(90,130,70,.22);border-color:rgba(140,190,110,.4)}
+.su-e.on{box-shadow:0 0 0 1px #ffb23e;background:rgba(255,178,62,.18);border-color:#ffb23e}
+.su-l{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:8px}
+.su-b{display:flex;flex-direction:column;gap:2px;padding:8px;border-radius:6px;background:rgba(0,0,0,.22);border-left:3px solid rgba(239,230,210,.14)}
+.su-b.fait{border-left-color:#7ee08a}
+.su-b b{font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.su-b .nt{font-size:10px;margin:0}
+.su-b .btn{align-self:flex-start;margin-top:4px}
+.su-n{font-size:11px;margin:0}
+.to-plus{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;font-size:17px;line-height:1}
+.to-plus small{font:600 8.5px Jost,sans-serif;letter-spacing:.1em;text-transform:uppercase;opacity:.75}
+.to-plus-tag{box-shadow:inset 0 0 0 1px rgba(255,178,62,.5)}

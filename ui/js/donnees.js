@@ -153,6 +153,21 @@ BK.semer = async function () {
   for (const f of BK.FICHES_DEPART) if (!deja.has(f.id)) await BK.db.ecrire('morceaux', { ...f, statut: 'chantier', fait: 0 });
   BK.regler('seme.v1', true);
 };
+// le budget de départ : le loyer du studio (chaque mois) et les factures déjà payées
+// (créés une seule fois pour tout le groupe, grâce à des identifiants fixes)
+BK.semerBudget = async function () {
+  if (BK.reglage('budget.v1', false) || !BK.db.drive()) return;
+  const tous = ['Yacine', 'Pierre', 'Baptiste'];
+  const abos = await BK.db.liste('abonnements');
+  if (!abos.some(a => a.id === 'loyer-studio'))
+    await BK.db.ecrire('abonnements', { id: 'loyer-studio', titre: 'Loyer du studio', montant: 770.33, payePar: 'Baptiste', pour: tous,
+      cat: 'Studio', jour: 28, depuis: new Date().toISOString().slice(0, 7), actif: true }, { sansAnnuler: true });
+  const deps = await BK.db.liste('depenses');
+  if (!deps.some(d => d.id === 'evan-king-1'))
+    await BK.db.ecrire('depenses', { id: 'evan-king-1', titre: 'Mixage — Evan King (facture)', montant: 330.46, payePar: 'Yacine', pour: tous,
+      date: new Date().toISOString().slice(0, 10), cat: 'Mixage / master' }, { sansAnnuler: true });
+  BK.regler('budget.v1', true);
+};
 // les petits noms utilisés dans le Drive et sur Discord (OPP, GLAM…) : ajoutés une fois aux fiches
 BK.ALIAS_DEPART = { 'glamorous-sky': ['GLAM', 'GLAMOROUSSKY'], 'one-point-perspective': ['OPP'], 'moon-blue': ['MOONBLUE'] };
 BK.semerAlias = async function () {

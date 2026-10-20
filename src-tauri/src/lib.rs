@@ -65,6 +65,38 @@ async fn zipper(dossier: String, destination: String) -> Result<u64, String> {
 // ---------- connexion Google : on attend le retour du navigateur sur ce PC (127.0.0.1) ----------
 static ECOUTE: std::sync::Mutex<Option<std::net::TcpListener>> = std::sync::Mutex::new(None);
 
+// ce que BEESKOT Studio consomme sur ce PC (pour l'afficheur du bandeau)
+#[tauri::command]
+fn ressources() -> Result<String, String> {
+    use sysinfo::{Pid, ProcessRefreshKind, ProcessesToUpdate, System};
+    use std::sync::Mutex;
+    static SYS: Mutex<Option<System>> = Mutex::new(None);
+    let mut g = SYS.lock().map_err(|e| e.to_string())?;
+    let sys = g.get_or_insert_with(System::new);
+    let moi = Pid::from_u32(std::process::id());
+    sys.refresh_processes_specifics(ProcessesToUpdate::All, true, ProcessRefreshKind::everything());
+    let coeurs = std::thread::available_parallelism().map(|n| n.get() as f32).unwrap_or(1.0);
+    let mut cpu = 0.0f32;
+    let mut ram: u64 = 0;
+    // le processus principal + ceux de la fenêtre (WebView) : tout ce que le logiciel utilise
+    let miens: Vec<&sysinfo::Process> = sys
+        .processes()
+        .values()
+        .filter(|p| p.pid() == moi || p.parent() == Some(moi) || p.parent().map(|q| sys.process(q).map(|x| x.parent() == Some(moi)).unwrap_or(false)).unwrap_or(false))
+        .collect();
+    for p in miens {
+        cpu += p.cpu_usage();
+        ram += p.memory();
+    }
+    let total = sys.total_memory().max(1);
+    Ok(format!(
+        "{{\"cpu\":{:.1},\"ramMo\":{},\"ramPct\":{:.1}}}",
+        (cpu / coeurs).min(100.0),
+        ram / 1_048_576,
+        (ram as f64 / total as f64) * 100.0
+    ))
+}
+
 #[tauri::command]
 fn oauth_port() -> Result<u16, String> {
     let l = std::net::TcpListener::bind("127.0.0.1:0").map_err(|e| e.to_string())?;
@@ -140,7 +172,7 @@ pub fn run() {
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_http::init())
         .plugin(tauri_plugin_updater::Builder::new().build())
-        .invoke_handler(tauri::generate_handler![ableton, zipper, oauth_port, oauth_code, drive_envoyer])
+        .invoke_handler(tauri::generate_handler![ableton, zipper, oauth_port, oauth_code, drive_envoyer, ressources])
         .run(tauri::generate_context!())
         .expect("BEESKOT Studio n'a pas pu démarrer");
 }

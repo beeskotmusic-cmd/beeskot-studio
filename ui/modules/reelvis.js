@@ -42,8 +42,8 @@ BK.module('reelvis', function (page) {
           </div></div>
           <div class="rv-cote">
             <div class="box"><div class="ligne-titre"><span class="lb">① La vidéo</span></div>
-              <div class="rv-charge"><select class="fld" id="rvMorceau"><option value="">Morceau…</option></select>
-                <button class="btn sm" id="rvDrive">☁ Depuis le Drive…</button><button class="btn sm" id="rvPick">💻 Depuis le PC…</button><input type="file" id="rvInput" accept="video/*" hidden></div></div>
+              <div class="rv-charge"><select class="fld" id="rvMorceau"><option value="">Choisis : un morceau, un tournage, un live…</option></select>
+                <button class="btn sm pri" id="rvTag">🏷 Les vidéos de Médias</button><button class="btn sm" id="rvPick">💻 Ce PC…</button><button class="btn sm" id="rvDrive">☁ Drive…</button><input type="file" id="rvInput" accept="video/*" hidden></div></div>
             <div class="box"><div class="ligne-titre"><span class="lb">② Couper la vidéo</span>
                 <span class="nt" style="margin:0 0 0 auto">Glisse le bloc · tire ses bords · <b>I</b> / <b>O</b> = début / fin à la tête de lecture</span></div>
               <div class="onde rv-bande" id="rvBande">
@@ -133,14 +133,25 @@ BK.module('reelvis', function (page) {
     try { const o = await BK.drive.telecharger(f.id); charger(new File([o], f.name, { type: f.mimeType || 'video/mp4' })); } catch (e) { msg('Téléchargement impossible'); } }
   BK.galerieDrive($('#rvGal'), { type: 'video', choisir: depuisDrive });
   const galerieSiVide = () => { if (!$('#rvGal .gd-l') && !$('#rvMorceau').value) BK.galerieDrive($('#rvGal'), { type: 'video', choisir: depuisDrive }); };
-  // le menu des morceaux : choisir un morceau montre ses vidéos du Drive et prépare ses paroles
-  (async () => { const ms = (await BK.db.liste('morceaux')).sort((a, b) => a.nom.localeCompare(b.nom));
-    $('#rvMorceau').innerHTML = '<option value="">Morceau…</option>' + ms.map(m => `<option value="${m.id}">${m.nom.replace(/</g, '&lt;')}</option>`).join('');
-    $('#rvMorceau').onchange = e => { const m = ms.find(x => x.id === e.target.value);
-      BK.galerieDrive($('#rvGal'), { type: 'video', choisir: depuisDrive, titre: m ? m.nom : '', source: m ? () => BK.dossiers.duMorceau(m, ms) : null });
+  // ---------- ① le sujet : morceau, tournage, live, promo — ses vidéos passent en premier ----------
+  (async () => { const g = await BK.etiquettes.sujets();
+    $('#rvMorceau').innerHTML = '<option value="">Choisis : un morceau, un tournage, un live…</option>'
+      + g.map(x => `<optgroup label="${esc(x.groupe)}">${x.l.map(c => `<option value="${esc(c.k)}">${esc(c.nom)}</option>`).join('')}</optgroup>`).join('');
+    V.sujets = g.flatMap(x => x.l);
+    $('#rvMorceau').onchange = e => { const c = (V.sujets || []).find(x => x.k === e.target.value), m = c && c.morceau;
+      BK.galerieDrive($('#rvGal'), { type: 'video', choisir: depuisDrive, titre: c ? c.nom : '', source: c ? () => BK.etiquettes.fichiersDe(c.k) : null });
       const so = $('#rvSousM'); if (m && so && [...so.options].some(o => o.value === m.id)) { so.value = m.id; so.dispatchEvent(new Event('change')); }
-      if (m && vid.videoWidth) msg('Pour une autre vidéo de ' + m.nom + ' : ☁ Depuis le Drive'); };
+      if (c && vid.videoWidth) msg('Pour une autre vidéo de ' + c.nom + ' : 🏷 Les vidéos de Médias'); };
   })();
+  const sujetV = () => (V.sujets || []).find(x => x.k === $('#rvMorceau').value);
+  // les vidéos déjà étiquetées dans Médias (en premier), avec Maj + clic et Tout sélectionner
+  $('#rvTag').onclick = async () => {
+    if (!BK.drive.relie()) return msg('Relie d\'abord le Drive (Réglages)');
+    const c = sujetV(); if (!c) { $('#rvMorceau').focus(); return msg('Choisis d\'abord le morceau ou le sujet'); }
+    const l = await BK.choisirImages({ titre: '🏷 Les vidéos de « ' + c.nom + ' »', bouton: 'Charger la vidéo',
+      charger: async () => (await BK.etiquettes.fichiersDe(c.k)).filter(f => /^video\//.test(f.mimeType || '')).map(f => ({ id: f.id, nom: f.name, f, vignette: () => BK.drive.vignette(f) })) });
+    if (l && l[0]) depuisDrive(l[0].f);
+  };
   $('#rvInput').onchange = e => charger(e.target.files[0]);
   page.addEventListener('dragover', e => { e.preventDefault(); ecran.classList.add('survol'); });
   page.addEventListener('dragleave', e => { if (e.target === page) ecran.classList.remove('survol'); });

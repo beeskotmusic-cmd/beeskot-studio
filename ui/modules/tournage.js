@@ -47,6 +47,7 @@ BK.module('tournage', function (page) {
     rendreListe(); rendreFiche(); proposes();
   }
   BK.tournagesRecharger = charger;
+  BK.tournageOuvrir = async id => { BK.ouvrir('tournage'); await charger(); const t = T.liste.find(x => x.id === id); if (t) { T.courant = t; rendreListe(); rendreFiche(); } };
   // 🍞 les tournages dont on parle sur Discord (le bouton jaune) : un clic crée la fiche déjà remplie
   async function proposes() {
     const l = (await BK.db.liste('propositions')).filter(p => p.type === 'tournage' && p.statut === 'attente'), z = $('#toMiette');
@@ -89,7 +90,7 @@ BK.module('tournage', function (page) {
         </div></div>
       <div class="box"><div class="ligne-titre"><span class="lb">Moodboard</span><span class="nt" style="margin:0 0 0 auto">Glisse des images ici (captures, photos, Pinterest…)</span></div>
         <div class="to-mood" id="toMood">${t.moodboard.map((u, i) => `<div class="to-img" style="background-image:url(${u})"><button class="md-x" data-mx="${i}">✕</button></div>`).join('')}
-          <button class="to-img to-plus" id="toMoodPlus" title="Images de ce PC">+</button><button class="to-img to-plus to-plus-drive" id="toMoodDrive" title="Images du Drive">+ Drive</button></div>
+          <button class="to-img to-plus to-plus-tag" id="toMoodTag" title="Les médias étiquetés tournage (Médias)">🏷<small>Médias</small></button><button class="to-img to-plus" id="toMoodPlus" title="Images de ce PC">💻<small>Ce PC</small></button><button class="to-img to-plus to-plus-drive" id="toMoodDrive" title="Images du Drive">☁<small>Drive</small></button></div>
         ${(t.moodboardDocs || []).length ? `<div class="to-docs">${t.moodboardDocs.map((d, i) => `<span class="to-doc"><a href="#" data-url="${esc(d.url)}">📄 ${esc(d.nom)}</a><button class="md-x" data-dx="${i}">✕</button></span>`).join('')}</div>` : ''}
         ${t.moodboardAuto ? '<span class="nt">🍞 Rempli par Miette depuis le dossier moodboard du Drive.</span>' : ''}
         <input type="file" id="toMoodIn" accept="image/*" multiple hidden></div>
@@ -129,6 +130,28 @@ BK.module('tournage', function (page) {
     $$('[data-dx]', z).forEach(b => b.onclick = () => { t.moodboardDocs.splice(+b.dataset.dx, 1); sauver(t); rendreFiche(); });
     $$('[data-mx]', z).forEach(b => b.onclick = () => { t.moodboard.splice(+b.dataset.mx, 1); sauver(t); rendreFiche(); });
     $('#toMoodPlus').onclick = () => $('#toMoodIn').click();
+    // en priorité : ce qui est déjà étiqueté dans Médias (moodboard, tenues, ce tournage, le morceau)
+    $('#toMoodTag').onclick = async () => {
+      if (!BK.drive.relie()) return msg('Relie d\'abord le Drive');
+      const ms = await BK.db.liste('morceaux'), m = BK.inv.trouverMorceau(t.morceau || '', ms);
+      const cles = ['c:moodboard', 'c:tournage', 'c:outfits', 't:' + t.id, ...(m ? [m.id] : [])];
+      const l = await BK.choisirImages({ titre: '🏷 Les médias étiquetés pour ce tournage', bouton: 'Ajouter au moodboard', charger: async () => {
+        await BK.dossiers.assurer();
+        const [tous, tags, carte] = await Promise.all([BK.dossiers.tousFichiers(), BK.etiquettes.tous(), BK.dossiers.carte()]);
+        const vus = new Set(), out = [];
+        for (const k of cles) for (const f of tous) {
+          if (vus.has(f.id) || !/^image\//.test(f.mimeType || '')) continue;
+          const et = BK.etiquettes.liste(tags, f.id);
+          const dossierMood = (f.parents || [])[0] && BK.dossiers.ancetres(f.parents[0], carte).some(a => /mood|outfit|tournage/i.test(carte[a].name));
+          if (!et.includes(k) && !(k === 'c:moodboard' && dossierMood)) continue;
+          vus.add(f.id); out.push({ id: f.id, nom: f.name, f, vignette: () => BK.drive.vignette(f) });
+        }
+        return out; } });
+      if (!l || !l.length) return;
+      msg('Ajout des images…');
+      for (const x of l) { try { const u = await BK.drive.vignette(x.f); if (u) t.moodboard.push(await enDataUrl(u)); } catch (e) {} await BK.audio.pause(); }
+      t.moodboardAuto = false; await BK.db.ecrire('tournages', t); msg(l.length + ' image(s) ajoutée(s)'); rendreFiche();
+    };
     $('#toMoodDrive').onclick = async () => {
       if (!BK.drive.relie()) return msg('Relie d\'abord le Drive');
       const l = await BK.explorerDrive({ titre: 'Images du Drive pour le moodboard', mode: 'images', depart: 'moodboard' }); if (!l || !l.length) return;

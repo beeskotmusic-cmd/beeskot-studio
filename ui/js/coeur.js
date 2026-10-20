@@ -7,7 +7,7 @@ const $ = (s, r = document) => r.querySelector(s);
 const $$ = (s, r = document) => [...r.querySelectorAll(s)];
 
 const BK = {
-  version: '0.9.16 bêta',
+  version: '0.9.17 bêta',
   modules: {},
   onglets: [],
   cotes: [],
@@ -99,10 +99,19 @@ const BK = {
   },
 
   // ---------- bandeau du haut ----------
+  // l'afficheur « charge » : ce que le logiciel prend sur cet ordinateur
+  async charge() {
+    const c = document.getElementById('syCpu'), r = document.getElementById('syRam'); if (!c) return;
+    if (!BK.estExe) { c.textContent = 'APERÇU'; r.textContent = '·'; return; }
+    try { const j = JSON.parse(await BK.T.core.invoke('ressources'));
+      c.textContent = Math.round(j.cpu) + ' % CPU'; r.textContent = j.ramMo >= 1024 ? (j.ramMo / 1024).toFixed(1) + ' Go' : j.ramMo + ' Mo';
+      c.parentElement.classList.toggle('chaud', j.cpu > 60);
+    } catch (e) { c.textContent = '—'; }
+  },
   horloge() {
     const d = new Date();
-    $('#syDate').textContent = d.toLocaleDateString('fr-CA', { weekday: 'short', day: '2-digit', month: 'short' }).toUpperCase();
-    $('#syHeure').textContent = d.toLocaleTimeString('fr-CA', { hour: '2-digit', minute: '2-digit' });
+    const dd = document.getElementById('syDate'); if (dd) dd.textContent = d.toLocaleDateString('fr-CA', { weekday: 'short', day: '2-digit', month: 'short' }).toUpperCase();
+    const hh = document.getElementById('syHeure'); if (hh) hh.textContent = d.toLocaleTimeString('fr-CA', { hour: '2-digit', minute: '2-digit' });
   },
 
   // ---------- bouton STOP : relancer / fermer / version ----------
@@ -148,7 +157,7 @@ const BK = {
 
   async demarrer() {
     BK.boutonStop();
-    try { await BK.semer(); await BK.semerAlias(); } catch (e) { console.error(e); }
+    try { await BK.semer(); await BK.semerAlias(); await BK.semerBudget(); } catch (e) { console.error(e); }
     BK.construireMenu();
     BK.construirePages();
     $$('.knobify').forEach(BK.knobify);
@@ -157,6 +166,7 @@ const BK = {
     $('#syPc').textContent = BK.reglage('nomPc', 'CE PC').toUpperCase();
     BK.etatDrive && BK.etatDrive();
     BK.horloge(); setInterval(BK.horloge, 20000);   // léger : une mise à jour toutes les 20 s
+    BK.charge(); setInterval(BK.charge, 5000);
     BK.appliquerZoom(BK.reglage('zoom', 100));
     BK.synchro && BK.synchro.demarrer();                              // ce qu'un autre PC change arrive ici tout seul
     const bm = document.getElementById('btMiette');                 // le bouton jaune : Miette relit tout

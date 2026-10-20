@@ -12,6 +12,7 @@ BK.onglets = [
 
   { id: 'biblio',   cote: 'audio',   titre: 'Bibliothèque',   sous: 'Morceaux, exports, projets',    couleur: 'var(--org)',  pret: true , defaut: true },
 
+  { id: 'suivi',    cote: 'outils',  titre: 'Reels',          sous: 'Suivi : audio, tournage, médias', couleur: 'var(--teal)', pret: true , defaut: true },
   { id: 'tournage', cote: 'outils',  titre: 'Tournages',      sous: 'Plan, moodboard, PDF',          couleur: 'var(--navy)', pret: true, defaut: true },
   { id: 'agenda',   cote: 'outils',  titre: 'Calendrier',     sous: 'Agenda BEESKOT, promo',         couleur: 'var(--mus)',  pret: true , defaut: true },
   { id: 'taches',   cote: 'outils',  titre: 'To-do list',     sous: 'À faire',                       couleur: 'var(--crm)',  pret: true , defaut: true },
