@@ -4,7 +4,7 @@
 // Sous-onglets : En chantier / Sortis / À ranger (fichiers pas encore reliés).
 // =====================================================================
 (() => {
-const B = { vue: 'chantier', ouverts: new Set(BK.reglage('biblio.ouverts', [])), tiroirs: BK.reglage('biblio.tiroirs', {}), morceaux: [], fichiers: [], filtre: '' };
+const B = { vue: BK.reglage('biblio.vue', 'prochaine'), ouverts: new Set(BK.reglage('biblio.ouverts', [])), tiroirs: BK.reglage('biblio.tiroirs', {}), morceaux: [], fichiers: [], filtre: '' };
 const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 const date = iso => iso ? new Date(iso).toLocaleDateString('fr-CA', { day: '2-digit', month: 'short', year: '2-digit' }).toUpperCase() : '—';
 
@@ -17,7 +17,7 @@ BK.module('biblio', function (page) {
     <div class="cols">
       <section class="pane vit" aria-label="Vitrine">
         <div class="ligne-titre">
-          <div class="chips" id="biVues"><button class="chip on" data-v="chantier">En chantier</button><button class="chip" data-v="sorti">Sortis</button><button class="chip" data-v="ranger">À ranger <span id="biNbR"></span></button></div>
+          <div class="chips" id="biVues"><button class="chip on" data-v="prochaine">Next release</button><button class="chip" data-v="chantier">Work in progress</button><button class="chip" data-v="sorti">Sortis</button><button class="chip" data-v="ranger">À ranger <span id="biNbR"></span></button></div>
           <input class="fld" id="biCherche" placeholder="chercher un morceau…" style="max-width:240px;margin-left:auto">
         </div>
         <div id="biListe" class="bi-liste"></div>
@@ -40,6 +40,7 @@ BK.module('biblio', function (page) {
   const msg = t => $('#biMsg').textContent = String(t).toUpperCase();
 
   // ---------- chargement ----------
+  window.addEventListener('bk:annule', () => charger());   // après « ↶ Annuler » : on relit
   async function charger() {
     B.morceaux = await BK.db.liste('morceaux');
     B.fichiers = await BK.inv.tous();
@@ -62,8 +63,10 @@ BK.module('biblio', function (page) {
     const liste = $('#biListe');
     if (B.vue === 'ranger') { liste.innerHTML = '<div id="biDriveNeufs"></div>' + rendreOrphelins(O); brancherOrphelins(); neufsDuDrive(); return; }
     const f = BK.inv.normaliser(B.filtre);
-    const l = (B.vue === 'sorti' ? S : C).filter(m => !f || BK.inv.normaliser(m.nom).includes(f)).sort((a, b) => (b.maj || '').localeCompare(a.maj || ''));
-    liste.innerHTML = l.length ? l.map(fiche).join('') : `<span class="nt" style="padding:20px">${B.vue === 'sorti' ? 'Aucun morceau sorti pour l\'instant.' : 'Aucun morceau en chantier. Crée une fiche à droite, ou lance « Scanner ce PC ».'}</span>`;
+    const auj = new Date().toISOString().slice(0, 10), prochaine = m => m.statut === 'prochaine' || (m.statut !== 'sorti' && m.sortie && m.sortie >= auj);
+    const P = C.filter(prochaine), W = C.filter(m => !prochaine(m));
+    const l = (B.vue === 'sorti' ? S : B.vue === 'prochaine' ? P : W).filter(m => !f || BK.inv.normaliser(m.nom).includes(f)).sort((a, b) => (b.maj || '').localeCompare(a.maj || ''));
+    liste.innerHTML = l.length ? l.map(fiche).join('') : `<span class="nt" style="padding:20px">${B.vue === 'sorti' ? 'Aucun morceau sorti pour l\'instant.' : B.vue === 'prochaine' ? 'Aucun morceau prévu pour la prochaine sortie. Ouvre une fiche et clique « ⭐ Next release ».' : 'Aucun morceau en chantier. Crée une fiche à droite, ou lance « Scanner ce PC ».'}</span>`;
     brancherFiches(); lecteur.maj();
     remplirDrive();
   }
@@ -74,11 +77,13 @@ BK.module('biblio', function (page) {
   const ROLE_SECTION = { recording: 'mix', ableton: 'ableton', cl: 'cl', wavtournage: 'wavtournage', photovideo: 'medias', moodboard: 'medias', tournage: 'medias', outfits: 'medias', scenographie: 'medias' };
   const sectionsFermees = BK.reglage('biblio.sections', {});
   const icone = n => /\.(zip|rar|7z)$/i.test(n) ? '🗜' : /\.(wav|mp3|aiff?|flac)$/i.test(n) ? '♪' : /\.als$/i.test(n) ? '▤' : /\.(jpe?g|png|webp|heic|gif)$/i.test(n) ? '🖼' : /\.(mp4|mov|m4v)$/i.test(n) ? '🎬' : /\.pdf$/i.test(n) ? '📕' : '📄';
+  const trierStems = l => BK.trierStems(l);
   async function fichiersDrive(m) {
     await BK.dossiers.assurer();
-    const l = await BK.dossiers.duMorceau(m, B.morceaux), parts = {};
-    for (const f of l) { const k = ROLE_SECTION[f.role] || 'ailleurs'; (parts[k] = parts[k] || []).push(f); }
-    return SECTIONS.filter(([k]) => parts[k]).map(([k, titre]) => ({ k, titre, l: parts[k] }));
+    const l = trierStems(await BK.dossiers.duMorceau(m, B.morceaux)), parts = {};
+    for (const f of l) { const k = ROLE_SECTION[f.role] || (f.groupe ? 'stems' : 'ailleurs'); (parts[k] = parts[k] || []).push(f); }
+    for (const f of l) if (f.groupe) { f.role = f.role || ''; }
+    return [...SECTIONS, ['stems', 'Stems (pistes séparées)']].filter(([k]) => parts[k]).map(([k, titre]) => ({ k, titre, l: parts[k] }));
   }
   window.addEventListener('bk:change', e => { if (e.detail.col === 'config' && /etiquettes|dossiers/.test(e.detail.id)) for (const k in trouves) delete trouves[k]; });
   BK.biblioDrive = async m => {                                   // pour le lecteur et l'analyse (gardé 10 min)
@@ -92,7 +97,7 @@ BK.module('biblio', function (page) {
       try {
         const parts = await BK.biblioDrive(m); if (!el.isConnected) continue;
         const deja = new Set((m.exportsManuels || []).filter(x => x.drive).map(x => x.driveId));
-        const l = parts.filter(p => p.k === 'cl' || p.k === 'mix').flatMap(p => p.l).filter(f => /\.(wav|mp3|aiff?|flac)$/i.test(f.name) && !deja.has(f.id))
+        const l = parts.filter(p => p.k === 'cl' || p.k === 'mix' || p.k === 'ailleurs').flatMap(p => p.l).filter(f => !f.groupe && /\.(wav|mp3|aiff?|flac)$/i.test(f.name) && !/tournage/i.test(f.name) && !deja.has(f.id))
           .sort((a, b) => (b.modifiedTime || '').localeCompare(a.modifiedTime || ''));
         el.innerHTML = l.length ? `<span class="nt drive-sec" style="cursor:default">☁ Dans le Drive (${l.length})</span>` + l.slice(0, 15).map(f => `<div class="ligne-f">
             <button class="etoile etoile-b" data-dprinc="${f.id}" data-nom="${esc(f.name)}" data-t="${esc(f.modifiedTime || '')}" title="En faire la version principale">☆</button>
@@ -119,7 +124,10 @@ BK.module('biblio', function (page) {
         if (!el.isConnected) continue;
         el.innerHTML = parts.length ? parts.map(p => `<div class="drive-bloc${sectionsFermees[p.k] ? ' ferme' : ''}" data-sec="${p.k}">
             <button class="drive-sec"><span class="fleche">${sectionsFermees[p.k] ? '▸' : '▾'}</span>${p.titre} <em>(${p.l.length})</em></button>
-            <div class="drive-l">${p.l.slice(0, 30).map((f, i) => `<div class="ligne-f${i === 0 ? ' recent' : ''}"><span class="etoile">${i === 0 ? '★' : icone(f.name)}</span>
+            <div class="drive-l">${p.l.slice(0, 30).map((f, i) => f.groupe ? `<div class="ligne-f"><span class="etoile">🎚</span>
+              <a href="#" class="f-nom lien" data-url="https://drive.google.com/drive/folders/${f.id}">Stems : ${f.n} fichier(s)</a>
+              <span class="nt f-chemin">📁 ${esc((f.dossiers || []).map(BK.dossiers.joli).join(' / '))}</span><span class="nt f-meta">ouvrir le dossier</span></div>`
+              : `<div class="ligne-f${i === 0 ? ' recent' : ''}"><span class="etoile">${i === 0 ? '★' : icone(f.name)}</span>
               <a href="#" class="f-nom lien" data-url="${esc(f.webViewLink)}" title="${esc([...(f.dossiers || []), f.name].join(' / '))}">${esc(f.name)}</a>
               ${p.k === 'ailleurs' || p.k === 'medias' || p.k === 'mix' ? `<span class="nt f-chemin" title="${esc((f.dossiers || []).join(' / '))}">📁 ${esc((f.dossiers || []).map(BK.dossiers.joli).join(' / ') || 'Mon Drive')}</span>` : ''}
               <span class="nt f-meta">${date(f.modifiedTime)}${f.size ? ' · ' + Math.max(1, Math.round(f.size / 1e6)) + ' Mo' : ''}</span>
@@ -178,6 +186,8 @@ BK.module('biblio', function (page) {
       }
     },
   };
+  BK.mini.suivre(lecteur.audio, { page: 'biblio', titre: () => { const m = B.morceaux.find(x => x.id === lecteur.id); return (m ? m.nom + ' · ' : '') + (lecteur.nom[lecteur.id] || ''); } });
+
   ['timeupdate', 'pause', 'play', 'ended', 'loadedmetadata'].forEach(ev => lecteur.audio.addEventListener(ev, () => lecteur.maj()));
 
   // morceaux qui ont un dossier dans « Ableton Projects » mais pas encore de fiche
@@ -245,7 +255,7 @@ BK.module('biblio', function (page) {
           <span class="nt">La tonalité est une estimation : vérifie à l'oreille.</span>`)}
         ${t('avance', 'Avancement', `${BK.etapes[Math.min(m.fait || 0, 5)].nom} · ${pc} %`, () => `
           <div class="etapes-clic">${BK.etapes.map((e, i) => `<button class="etape-b ${i < (m.fait || 0) ? 'fait' : i === (m.fait || 0) ? 'encours' : ''}" data-etape="${i}">${e.nom}</button>`).join('')}</div>
-          <span class="nt">Clique sur une étape quand elle est terminée.</span>`)}
+          `)}
         ${t('liens', 'Drive BEESKOT', ((m.liens || []).length ? m.liens.length + ' lien(s) · ' : '') + (BK.drive.relie() ? 'projets, exports, tournages, photos…' : 'Drive non relié'), () => `
           ${BK.drive.relie() ? `<div class="drive-res" data-m="${m.id}"><span class="nt"><span class="spin"></span>Recherche dans le Drive…</span></div>` : ''}
           ${(m.liens || []).map((l, i) => `<div class="ligne-f"><span class="etoile">🔗</span><a href="#" class="f-nom lien" data-url="${esc(l.url)}" title="${esc(l.url)}">${esc(l.titre || l.url)}</a><button class="btn xs" data-lienx="${i}">✕</button></div>`).join('')}
@@ -253,7 +263,7 @@ BK.module('biblio', function (page) {
           ${BK.drive.relie() ? '' : '<span class="nt">Relie le Drive (Réglages) : les fichiers déposés dans le Drive, par ex. par le zipper Discord, apparaîtront ici tout seuls.</span>'}`)}
         ${t('notes', 'Notes du groupe', m.resumeDiscord ? '🍞 résumé Discord · ' + date(m.resumeDiscord.t) : m.notes ? m.notes.split('\n')[0].slice(0, 50) : '—', () => `${m.resumeDiscord ? `<div class="box" style="margin-bottom:8px"><span class="lb">🍞 Ce que Miette a compris de Discord (${m.resumeDiscord.nb} messages, ${date(m.resumeDiscord.t)})</span><p class="ac-texte" style="white-space:pre-wrap">${esc(m.resumeDiscord.texte)}</p></div>` : ''}<textarea class="fld" data-champ="notes" placeholder="ex. attention au break à 2:10">${esc(m.notes || '')}</textarea>`)}
         <div class="fiche-actions">
-          <button class="btn sm" data-act="statut">${m.statut === 'sorti' ? '↩ Remettre en chantier' : '✓ Marquer comme sorti'}</button>
+          ${[['prochaine', '⭐ Next release'], ['chantier', '🔧 Work in progress'], ['sorti', '✓ Sorti']].map(([k, t]) => `<button class="btn sm${(m.statut || 'chantier') === k ? ' pri' : ''}" data-act="st-${k}">${t}</button>`).join('')}
           <button class="btn sm" data-act="renommer">Renommer</button>
           <button class="btn sm" data-act="suppr">Retirer</button></div>
       </div>` : ''}
@@ -343,7 +353,7 @@ BK.module('biblio', function (page) {
       $$('[data-lienx]', el).forEach(b => b.onclick = async () => { m.liens.splice(+b.dataset.lienx, 1); await sauver(m); rendre(); });
       $$('[data-act]', el).forEach(b => b.onclick = async () => {
         const a = b.dataset.act;
-        if (a === 'statut') { m.statut = m.statut === 'sorti' ? 'chantier' : 'sorti'; await sauver(m); rendre(); }
+        if (/^st-/.test(a)) { m.statut = a.slice(3); await sauver(m); rendre(); }
         if (a === 'renommer') { const n = prompt('Nouveau nom du morceau', m.nom); if (n && n.trim()) { (m.alias = m.alias || []).push(m.nom); m.nom = n.trim(); await sauver(m); rendre(); } }
         if (a === 'suppr') { if (confirm(`Retirer « ${m.nom} » de la Bibliothèque ?\n(La fiche est rangée dans la corbeille du Drive, et aucun fichier audio ou Ableton n'est touché.)`)) { await BK.db.supprimer('morceaux', m.id); await charger(); } }
         if (a === 'ajexport') { const f = await choisirExport(); if (!f) return; m.exportsManuels = (m.exportsManuels || []).filter(x => x.chemin !== f.chemin); m.exportsManuels.push(f);
@@ -406,7 +416,7 @@ BK.module('biblio', function (page) {
     };
   }
 
-  $$('#biVues .chip').forEach(c => c.onclick = () => { B.vue = c.dataset.v; rendre(); });
+  $$('#biVues .chip').forEach(c => c.onclick = () => { B.vue = c.dataset.v; BK.regler('biblio.vue', B.vue); rendre(); });
   $('#biCherche').oninput = e => { B.filtre = e.target.value; rendre(); };
   $('#biAjout').onclick = async () => { const n = $('#biNom').value.trim(); if (!n) return;
     B.morceaux.push(await BK.db.ecrire('morceaux', { nom: n, statut: 'chantier', fait: 0 })); $('#biNom').value = ''; B.vue = 'chantier'; msg('Fiche créée'); rendre(); };

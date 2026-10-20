@@ -88,18 +88,26 @@ BK.module('accueil', function (page) {
   }
 
   // ---------- « Cette semaine » : le résumé de Miette (Discord + Gemini) ----------
-  async function resume() {
+  // le dernier résumé est gardé sur ce PC : il s'affiche tout de suite, sans attendre ni clignoter.
+  // On ne le refait que s'il y a de nouveaux messages (ou si on clique ↻).
+  function afficherResume(doc, { pret = true, enCours = false, regle = true } = {}) {
     const z = $('#acResume', page); if (!z) return;
-    const pret = BK.ia && await BK.ia.pret(), d = await BK.discord.config().catch(() => ({}));
-    if (!d.jeton) { z.innerHTML = `<span class="lb">🍞 Cette semaine</span><span class="nt">Règle Miette (Renfort AI) pour voir ici le résumé de ce que vous vous êtes dit sur Discord.</span>`; return; }
-    const doc = (await BK.db.liste('veille')).find(x => x.id === 'resume');
-    const enCours = BK.discord.resumeEnCours;
+    if (!regle && !(doc && doc.texte)) { z.innerHTML = `<span class="lb">🍞 Cette semaine</span><span class="nt">Règle Miette (Renfort AI) pour voir ici le résumé de ce que vous vous êtes dit sur Discord.</span>`; return; }
     z.innerHTML = `<div class="ligne-titre"><span class="lb">🍞 Cette semaine, sur Discord</span>
-        <span class="nt" style="margin:0 0 0 auto">${enCours ? '<span class="spin"></span>AI en cours de lecture…' : doc && doc.t ? 'mis à jour ' + new Date(doc.t).toLocaleString('fr-CA', { weekday: 'short', hour: '2-digit', minute: '2-digit' }) : ''}</span>
+        <span class="nt" style="margin:0 0 0 auto">${enCours ? '<span class="spin"></span>AI en cours de lecture…' : doc && doc.t ? 'mis à jour ' + new Date(doc.t).toLocaleString('fr-CA', { weekday: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : ''}</span>
         ${pret && !enCours ? '<button class="btn xs" id="acResumeMaj" title="Refaire le résumé maintenant">↻</button>' : ''}</div>
       ${doc && doc.texte ? `<p class="ac-texte">${esc(doc.texte)}</p>${(doc.afaire || []).length ? `<span class="eng" style="font-size:9px">Ce qui ressort à faire</span><ul class="ac-afaire">${doc.afaire.map(x => `<li>${esc(x)}</li>`).join('')}</ul>` : ''}`
         : `<span class="nt">${!pret ? 'Ajoute la clé Gemini (Renfort AI) et allume l\'interrupteur AI pour avoir le résumé.' : enCours ? 'Miette lit les messages de la semaine…' : 'Pas encore de résumé : clique ↻ (ou attends la prochaine lecture de Miette).'}</span>`}`;
-    const b = $('#acResumeMaj', z); if (b) b.onclick = async () => { b.disabled = true; try { await BK.discord.ronde(() => {}, true).catch(() => {}); await BK.discord.resume(true); } catch (e) { z.insertAdjacentHTML('beforeend', `<span class="nt">${esc(e.message)}</span>`); } resume(); };
+    const b = $('#acResumeMaj', z); if (b) b.onclick = async () => { b.disabled = true;
+      try { await BK.discord.ronde(() => {}, true).catch(() => {}); await BK.discord.resume(true); } catch (e) { z.insertAdjacentHTML('beforeend', `<span class="nt">${esc(e.message)}</span>`); } resume(); };
+  }
+  async function resume() {
+    let doc = BK.reglage('accueil.resume', null);
+    afficherResume(doc, { enCours: BK.discord.resumeEnCours });                 // tout de suite, la dernière version connue
+    const pret = BK.ia && await BK.ia.pret(), d = await BK.discord.config().catch(() => ({}));
+    const dist = (await BK.db.liste('veille').catch(() => [])).find(x => x.id === 'resume');
+    if (dist && dist.texte && (!doc || (dist.t || 0) > (doc.t || 0))) { doc = dist; BK.regler('accueil.resume', { id: 'resume', texte: dist.texte, afaire: dist.afaire, t: dist.t }); }
+    afficherResume(doc, { pret, enCours: BK.discord.resumeEnCours, regle: !!d.jeton });
   }
   window.addEventListener('bk:resume', () => { if (!page.classList.contains('hidden')) resume(); });
   window.addEventListener('bk:ia', () => resume());

@@ -37,11 +37,14 @@ BK.module('reelvis', function (page) {
           <div class="rv-tel"><div class="rv-ecran" id="rvEcran">
             <canvas id="rvCanvas" width="540" height="960"></canvas>
             <video id="rvVideo" playsinline preload="auto" hidden></video>
-            <div class="rv-vide" id="rvVide"><span class="dymo">Glisse une vidéo ici</span><span class="nt">MP4, MOV… · ou bouton « Charger »</span></div>
+            <div class="rv-vide" id="rvVide"><span class="dymo">Glisse une vidéo ici</span><span class="nt">MP4, MOV… · ou choisis-en une du Drive :</span><div class="gd" id="rvGal"></div></div>
             <div class="rv-zones" id="rvZones"></div><div id="rvCalque"></div>
           </div></div>
           <div class="rv-cote">
-            <div class="box"><div class="ligne-titre"><span class="lb">Couper la vidéo</span>
+            <div class="box"><div class="ligne-titre"><span class="lb">① La vidéo</span></div>
+              <div class="rv-charge"><select class="fld" id="rvMorceau"><option value="">Morceau…</option></select>
+                <button class="btn sm" id="rvDrive">☁ Depuis le Drive…</button><button class="btn sm" id="rvPick">💻 Depuis le PC…</button><input type="file" id="rvInput" accept="video/*" hidden></div></div>
+            <div class="box"><div class="ligne-titre"><span class="lb">② Couper la vidéo</span>
                 <span class="nt" style="margin:0 0 0 auto">Glisse le bloc · tire ses bords · <b>I</b> / <b>O</b> = début / fin à la tête de lecture</span></div>
               <div class="onde rv-bande" id="rvBande">
                 <div class="rv-vignettes" id="rvVign"></div>
@@ -55,14 +58,14 @@ BK.module('reelvis', function (page) {
                 <div><span class="eng">Durée gardée</span><span class="vfd" id="rvGarde">—</span></div>
                 <div class="compteurs-btn"><button class="btn sm" id="rvI" title="Début ici (touche I)">I</button><button class="btn sm" id="rvO" title="Fin ici (touche O)">O</button></div>
               </div></div>
-            <div class="box"><span class="lb">Recadrer et couleur</span>
+            <div class="box"><span class="lb">③ Recadrer et couleur</span>
               <span class="nt">Fais glisser l'image dans le téléphone pour la déplacer.</span>
               <div class="rv-reglages">
                 <span class="eng">Zoom</span><input class="fld rv-glisse" id="rvZoom" value="0 %" title="Clic maintenu et glisse la souris (ou double-clic pour taper)">
                 <button class="chip" id="rvCentre">Recentrer</button></div>
               <div class="chips"><button class="chip" id="rvLutB">Charger une LUT (.cube)…</button><button class="chip hidden" id="rvLutX">Sans LUT</button></div>
               <input type="file" id="rvLutIn" accept=".cube" hidden><span class="nt" id="rvLutNom"></span></div>
-            <div class="box grow"><div class="ligne-titre"><span class="lb">Sous-titres</span>
+            <div class="box grow"><div class="ligne-titre"><span class="lb">④ Sous-titres</span>
                 <button class="chip on" id="rvSousOn" style="margin-left:auto">Afficher</button></div>
               <div class="rv-sous-src"><select class="fld" id="rvSousM"><option value="">Paroles d'un morceau…</option></select><button class="btn xs" id="rvSousColler">Coller du texte…</button></div>
               <button class="btn sm warm" id="rvCaler" disabled>⏺ Caler en écoutant (Espace à chaque phrase)</button>
@@ -74,15 +77,15 @@ BK.module('reelvis', function (page) {
         <div class="box"><span class="lb">Gabarit</span>
           <div class="chips" style="margin-top:10px" id="rvGab">${Object.entries(GABARITS).map(([k, g]) => `<button class="chip" data-g="${k}">${g.nom}</button>`).join('')}</div>
           <div class="chips" style="margin-top:8px"><button class="chip on" id="rvZonesB">Montrer les zones à éviter</button></div>
-          <span class="nt">Les zones hachurées sont cachées par l'appli : n'y mets rien d'important. Le gabarit n'apparaît pas dans le MP4.</span></div>
+          <span class="nt">Les zones hachurées sont cachées par l'appli : n'y mets rien d'important.</span></div>
         <div class="box"><span class="lb">Musique</span>
           <div class="chips" style="margin-top:10px" id="rvMus"><button class="chip" data-m="video">Son de la vidéo</button><button class="chip" data-m="reel">Passage de l'Assistant audio</button></div>
           <span class="nt" id="rvMusTxt"></span></div>
-        <div class="box"><span class="lb">Export</span><span class="nt">MP4 vertical 1080×1920, 30 images/s. L'export prend un peu plus de temps que la durée du reel : le PC reste utilisable.</span></div>
+        <div class="box"><span class="lb">Export</span></div>
       </section>
     </div>
     <div class="pane abar"><span class="ptitle">③ Barre</span><span class="vfd" id="rvMsg">GLISSE UNE VIDÉO</span>
-      <div class="right"><button class="btn" id="rvPick">Charger une vidéo…</button><button class="btn" id="rvDrive">Depuis le Drive…</button><input type="file" id="rvInput" accept="video/*" hidden>
+      <div class="right">
         <button class="btn" id="rvPlay" disabled>▶ Lire</button><button class="btn pri" id="rvExport" disabled>Exporter en MP4 ▶</button></div></div>`;
 
   const msg = t => $('#rvMsg').textContent = String(t).toUpperCase();
@@ -124,6 +127,18 @@ BK.module('reelvis', function (page) {
     try { const o = await BK.drive.telecharger(f.id); charger(new File([o], f.name, { type: f.mimeType || 'video/mp4' })); }
     catch (e) { msg('Téléchargement impossible'); }
   };
+  async function depuisDrive(f) { msg('Téléchargement de ' + f.name + '…');
+    try { const o = await BK.drive.telecharger(f.id); charger(new File([o], f.name, { type: f.mimeType || 'video/mp4' })); } catch (e) { msg('Téléchargement impossible'); } }
+  BK.galerieDrive($('#rvGal'), { type: 'video', choisir: depuisDrive });
+  const galerieSiVide = () => { if (!$('#rvGal .gd-l') && !$('#rvMorceau').value) BK.galerieDrive($('#rvGal'), { type: 'video', choisir: depuisDrive }); };
+  // le menu des morceaux : choisir un morceau montre ses vidéos du Drive et prépare ses paroles
+  (async () => { const ms = (await BK.db.liste('morceaux')).sort((a, b) => a.nom.localeCompare(b.nom));
+    $('#rvMorceau').innerHTML = '<option value="">Morceau…</option>' + ms.map(m => `<option value="${m.id}">${m.nom.replace(/</g, '&lt;')}</option>`).join('');
+    $('#rvMorceau').onchange = e => { const m = ms.find(x => x.id === e.target.value);
+      BK.galerieDrive($('#rvGal'), { type: 'video', choisir: depuisDrive, titre: m ? m.nom : '', source: m ? () => BK.dossiers.duMorceau(m, ms) : null });
+      const so = $('#rvSousM'); if (m && so && [...so.options].some(o => o.value === m.id)) { so.value = m.id; so.dispatchEvent(new Event('change')); }
+      if (m && vid.videoWidth) msg('Pour une autre vidéo de ' + m.nom + ' : ☁ Depuis le Drive'); };
+  })();
   $('#rvInput').onchange = e => charger(e.target.files[0]);
   page.addEventListener('dragover', e => { e.preventDefault(); ecran.classList.add('survol'); });
   page.addEventListener('dragleave', e => { if (e.target === page) ecran.classList.remove('survol'); });
@@ -246,7 +261,7 @@ BK.module('reelvis', function (page) {
     $('#rvMusTxt').textContent = V.musique === 'reel' ? (a ? `Passage de « ${a.nom} » : ${t2(a.debut)} → ${t2(a.debut + a.duree)}` : 'Choisis d\'abord un passage dans l\'Assistant audio Reel.') : 'Le son d\'origine de la vidéo.';
   }
   $$('#rvMus .chip').forEach(c => c.onclick = () => { V.musique = c.dataset.m; majMusique(); });
-  BK.surOuvrir = BK.surOuvrir || {}; BK.surOuvrir.reelvis = () => { majMusique(); remplirMorceaux(); };
+  BK.surOuvrir = BK.surOuvrir || {}; BK.surOuvrir.reelvis = () => { galerieSiVide(); majMusique(); remplirMorceaux(); };
 
   // ---------- lecture ----------
   function stop() { vid.pause(); son.pause(); cancelAnimationFrame(V.lecture); V.lecture = null; $('#rvPlay').textContent = '▶ Lire';

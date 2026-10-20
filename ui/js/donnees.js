@@ -56,11 +56,16 @@ BK.db = {
       BK.db.cache[col] = out;
     }
     BK.etatDrive && BK.etatDrive();
+    const ph = BK.db.photo[col] = BK.db.photo[col] || {};             // copie « avant » pour pouvoir annuler
+    for (const f of Object.values(BK.db.cache[col])) ph[f.id] = JSON.stringify(f);
     return Object.values(BK.db.cache[col]);
   },
 
-  async ecrire(col, fiche) {
+  photo: {},
+  async ecrire(col, fiche, { sansAnnuler = false } = {}) {
     fiche.id = fiche.id || BK.db.nouvelId();
+    if (!sansAnnuler) BK.annuler.noter(col, fiche.id, 'ecrire', fiche);
+    (BK.db.photo[col] = BK.db.photo[col] || {})[fiche.id] = JSON.stringify(fiche);
     fiche.maj = new Date().toISOString();
     fiche.par = BK.reglage('nomPc', '') || 'ce PC';
     (BK.db.cache[col] = BK.db.cache[col] || {})[fiche.id] = fiche;
@@ -71,7 +76,9 @@ BK.db = {
     return fiche;
   },
 
-  async supprimer(col, id) {                                        // jamais effacé : rangé dans « corbeille »
+  async supprimer(col, id, { sansAnnuler = false } = {}) {          // jamais effacé : rangé dans « corbeille »
+    if (!sansAnnuler) BK.annuler.noter(col, id, 'supprimer');
+    if (BK.db.photo[col]) delete BK.db.photo[col][id];
     if (BK.db.cache[col]) delete BK.db.cache[col][id];
     if (!BK.db.drive()) { BK.db.memoire(col, null, id); return; }
     try { await BK.drive.supprimer(col, id); } catch (e) { BK.db.attendre({ col, id, suppr: true }); }
@@ -160,3 +167,48 @@ BK.semerAlias = async function () {
 
 // ---------- ouvrir un lien (Drive…) dans le navigateur ----------
 BK.ouvrirLien = url => { if (!/^https?:\/\//i.test(url)) return; BK.estExe ? BK.T.opener.openUrl(url) : window.open(url, '_blank'); };
+
+
+// ---------- ANNULER : ce qu'on vient de faire (Ctrl+Z ou le bouton « ↶ Annuler » qui apparaît en bas) ----------
+// On garde la fiche telle qu'elle était juste avant. Tout ce qu'un seul clic a changé s'annule d'un coup.
+BK.annuler = {
+  pile: [], geste: 0,
+  PAS: new Set(['veille', 'renforts']),                                      // le journal automatique : pas besoin
+  CONFIG_OK: new Set(['etiquettes', 'membres']),
+  NOMS: { morceaux: 'la fiche du morceau', taches: 'la tâche', evenements: 'le rendez-vous', tournages: 'la fiche tournage', inventaires: 'l\'inventaire', propositions: 'la proposition', config: 'le réglage' },
+  noter(col, id, quoi, fiche) {
+    if (BK.annuler.PAS.has(col) || (col === 'config' && !BK.annuler.CONFIG_OK.has(id))) return;
+    if (Date.now() - BK.annuler.geste > 15000) return;                       // pas un geste de quelqu'un (travail en fond)
+    const avant = (BK.db.photo[col] || {})[id] ?? null, p = BK.annuler.pile, der = p[p.length - 1];
+    const net = j => { if (!j) return j; const o = typeof j === 'string' ? JSON.parse(j) : { ...j }; delete o.maj; delete o.par; return JSON.stringify(o); };
+    if (fiche && avant && net(avant) === net(fiche)) return;                 // rien n'a vraiment changé
+    const g = der && der.geste === BK.annuler.geste ? der : (p.push({ t: 0, geste: BK.annuler.geste, l: [] }), p[p.length - 1]);   // un clic = un seul « annuler »
+    g.t = Date.now(); if (!g.l.some(x => x.col === col && x.id === id)) g.l.push({ col, id, avant, quoi });
+    if (p.length > 30) p.shift();
+    BK.annuler.montrer(g);
+  },
+  montrer(g) {
+    let b = document.getElementById('bkAnnuler');
+    if (!b) { b = document.createElement('div'); b.id = 'bkAnnuler'; b.className = 'bk-annuler'; document.body.appendChild(b);
+      b.onclick = e => { if (e.target.closest('button')) BK.annuler.faire(); }; }
+    const x = g.l[0], txt = (x.quoi === 'supprimer' ? 'Retiré : ' : x.avant ? 'Modifié : ' : 'Créé : ') + (BK.annuler.NOMS[x.col] || x.col) + (g.l.length > 1 ? ` (+${g.l.length - 1})` : '');
+    b.innerHTML = `<span>${txt}</span><button class="btn xs">↶ Annuler</button><span class="nt">Ctrl+Z</span>`;
+    b.classList.add('on'); clearTimeout(BK.annuler.min); BK.annuler.min = setTimeout(() => b.classList.remove('on'), 9000);
+  },
+  async faire() {
+    const g = BK.annuler.pile.pop(), b = document.getElementById('bkAnnuler');
+    if (!g) { if (b) { b.innerHTML = '<span>Rien à annuler</span>'; b.classList.add('on'); clearTimeout(BK.annuler.min); BK.annuler.min = setTimeout(() => b.classList.remove('on'), 2500); } return; }
+    for (const x of g.l.reverse()) {
+      if (x.avant) await BK.db.ecrire(x.col, JSON.parse(x.avant), { sansAnnuler: true });
+      else await BK.db.supprimer(x.col, x.id, { sansAnnuler: true });
+    }
+    if (b) { b.innerHTML = '<span>↶ Annulé</span>'; b.classList.add('on'); clearTimeout(BK.annuler.min); BK.annuler.min = setTimeout(() => b.classList.remove('on'), 2500); }
+    window.dispatchEvent(new CustomEvent('bk:annule', { detail: g }));
+  },
+};
+['pointerdown', 'keydown'].forEach(t => window.addEventListener(t, e => { if (e.isTrusted) BK.annuler.geste = Date.now(); }, true));
+window.addEventListener('keydown', e => {
+  if (!(e.ctrlKey || e.metaKey) || e.key.toLowerCase() !== 'z' || e.shiftKey) return;
+  const a = document.activeElement; if (a && (/^(INPUT|TEXTAREA|SELECT)$/.test(a.tagName) || a.isContentEditable)) return;   // dans un champ : le Ctrl+Z normal du texte
+  e.preventDefault(); BK.annuler.faire();
+});

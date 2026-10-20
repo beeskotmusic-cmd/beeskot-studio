@@ -591,3 +591,45 @@ a.lien{color:var(--mus);text-decoration:none}a.lien:hover{text-decoration:underl
 .pv-idees{display:flex;flex-direction:column;gap:8px;margin-top:8px;max-height:260px;overflow:auto}
 .pv-idee{display:flex;align-items:flex-start;gap:10px;padding:8px 10px;border-radius:5px;background:rgba(239,230,210,.05);box-shadow:inset 0 0 0 1px rgba(239,230,210,.1)}
 .pv-idee p{flex:1;margin:0;white-space:pre-wrap;font:13px/1.45 Jost,sans-serif;color:var(--ink)}
+/* galerie des médias du Drive dans une zone vide (Reel / Post) */
+.rv-vide .gd{width:100%;flex:1;min-height:0;display:flex;flex-direction:column;gap:6px;pointer-events:auto}
+.gd-tete{display:flex;flex-direction:column;gap:4px;align-items:stretch}
+.gd-q{font-size:11px;padding:4px 6px}
+.gd-l{flex:1;min-height:0;overflow:auto;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px;align-content:start}
+.gd-t{display:flex;flex-direction:column;gap:2px;padding:4px;border-radius:6px;border:1px solid rgba(255,255,255,.12);background:rgba(0,0,0,.35);color:inherit;cursor:pointer;text-align:left;font:inherit}
+.gd-t:hover{border-color:var(--orange,#e8892a)}
+.gd-img{aspect-ratio:16/10;display:flex;align-items:center;justify-content:center;background:#000;border-radius:4px;overflow:hidden;font-size:16px;opacity:.9}
+.gd-img img{width:100%;height:100%;object-fit:cover;pointer-events:none}
+.gd-n{font-size:10px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.gd-o{font-size:9px;opacity:.55;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+/* le petit bandeau « ↶ Annuler » en bas */
+.bk-annuler{position:fixed;left:50%;bottom:52px;transform:translate(-50%,30px);opacity:0;pointer-events:none;transition:.2s;z-index:9999;display:flex;gap:10px;align-items:center;padding:8px 14px;border-radius:10px;background:#1b1712;border:1px solid rgba(232,137,42,.6);box-shadow:0 6px 24px rgba(0,0,0,.5);font-size:12px;color:#f3e7d3}
+.bk-annuler.on{transform:translate(-50%,0);opacity:1;pointer-events:auto}
+/* To-do : les propositions de Miette */
+.todo-miette{display:flex;flex-direction:column;gap:8px}
+.todo-miette .ligne-titre{display:flex;align-items:center;gap:8px}
+.ta-props{display:flex;flex-direction:column;gap:5px;max-height:190px;overflow:auto}
+.ta-prop{display:flex;align-items:center;gap:6px;padding:6px 8px;border-radius:8px;border:1px dashed rgba(232,137,42,.55);background:rgba(232,137,42,.06)}
+.ta-prop .carte-c{flex:1;min-width:0;display:flex;flex-direction:column}
+.ta-prop .carte-m{font-size:10px;opacity:.65}
+/* page pas encore prête : grisée */
+.grid.bientot{position:relative}
+.grid.bientot > :not(.bientot-voile){opacity:.3;filter:grayscale(1);pointer-events:none;user-select:none}
+.bientot-voile{position:absolute!important;top:0;bottom:0;left:0;right:0;width:auto!important;height:auto!important;display:flex;align-items:center;justify-content:center;z-index:5;pointer-events:auto;background:rgba(10,6,3,.25)}
+.bientot-voile .dymo{font-size:20px;padding:12px 22px;align-self:center!important;margin:auto!important}
+.md-aj-tete{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.md-aj-tete .seg button{font-size:11px}
+.md-menu-t{display:block;padding:6px 10px 2px;font:600 9px Jost,sans-serif;letter-spacing:.14em;text-transform:uppercase;color:var(--ink2)}
+.md-tag{max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.rv-charge{display:flex;gap:8px;align-items:center;margin-top:8px;flex-wrap:wrap}
+.rv-charge select{flex:1;min-width:140px}
+/* le mini-lecteur tout en bas (visible partout) */
+.mini-lect{flex:none;display:flex;align-items:center;gap:8px;padding:5px 14px;background:linear-gradient(180deg,#1c140d,#120c07);border-top:1px solid rgba(255,178,62,.35);font-size:12px;color:var(--ink)}
+.mini-lect.hidden{display:none}
+.mini-titre{max-width:34%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font:600 11px Jost,sans-serif;letter-spacing:.06em;text-transform:uppercase}
+.mini-barre{flex:1;height:6px;border-radius:3px;background:rgba(239,230,210,.12);cursor:pointer;position:relative;overflow:hidden}
+.mini-plein{position:absolute;left:0;top:0;bottom:0;background:linear-gradient(90deg,#d48a1c,#ffcf7a)}
+.mini-t{font-size:11px;color:#ffb23e;white-space:nowrap}
+/* tant qu'il n'y a pas de vidéo : pas de gabarit par-dessus, la galerie du Drive passe devant */
+.rv-ecran:has(#rvVide:not(.hidden)) #rvZones,.rv-ecran:has(#rvVide:not(.hidden)) #rvCalque{display:none}
+#rvVide,#pvVide{z-index:6;justify-content:flex-start;padding-top:28px}

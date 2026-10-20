@@ -44,7 +44,7 @@ BK.module('reels', function (page) {
         <div class="box">
           <div class="ligne-titre"><span class="lb">Passage</span>
             <span class="nt" style="margin:0 0 0 auto">Glisse le bloc · tire ses bords · <b>I</b> / <b>O</b> · molette = zoom</span>
-            <span class="onde-zoom"><span class="eng">Zoom</span><button class="btn xs" id="reZm" title="Dézoomer">−</button><button class="btn xs" id="reZp" title="Zoomer (ou molette sur la forme d'onde)">+</button><button class="btn xs" id="reZpass" title="Zoomer sur le passage">⤢ Passage</button><button class="btn xs" id="reZtout">Tout</button></span></div>
+            <span class="onde-zoom"><span class="eng">Zoom</span><button class="btn xs" id="reZm" title="Dézoomer">−</button><button class="btn xs" id="reZp" title="Zoomer (molette) · clic molette maintenu : glisser à gauche / droite">+</button><button class="btn xs" id="reZpass" title="Zoomer sur le passage">⤢ Passage</button><button class="btn xs" id="reZtout">Tout</button></span></div>
           <div class="onde reel-onde" id="reOnde">
             <canvas id="reCanvas"></canvas>
             <div class="onde-tourn hidden" id="reTourn"><span class="onde-pre" id="rePre"></span><span class="tourn-txt" id="reTournTxt"></span></div>
@@ -82,7 +82,7 @@ BK.module('reels', function (page) {
               <span class="lb">Vitesse tournage</span></div></div>
           <span class="nt conseil">Clique sur un afficheur pour taper ta valeur. Conseillé : <b>15 à 30 s</b> (jusqu'à 90 s).</span>
           <span class="nt" id="reExplique"></span>
-          <span class="nt">La note reste toujours la même (ni plus aiguë, ni plus grave).</span></div>
+          </div>
         <div class="box"><span class="lb">Avant le passage (tournage)</span>
           <div class="chips" style="margin-top:8px"><button class="chip" id="reClic">Clic d'élan 1-2-3-4 ×2</button></div>
           <div class="reel-bpm"><span class="eng">Tempo</span><input class="fld" id="reBpm" inputmode="decimal" placeholder="BPM"><button class="btn xs" id="reTap" title="Tape en rythme 4 fois ou plus">Taper</button><span class="nt" id="reBpmLien" style="margin:0"></span></div>
@@ -99,6 +99,7 @@ BK.module('reels', function (page) {
   const msg = t => $('#reMsg').textContent = String(t).toUpperCase();
   const cv = $('#reCanvas'), onde = $('#reOnde'), bloc = $('#reBloc'), tete = $('#reTete');
   const audio = new Audio(); audio.preload = 'auto';
+  BK.mini.suivre(audio, { page: 'reels', titre: () => 'Assistant audio · ' + (($('#reFich') || {}).textContent || '') });
 
   // ---------- source : fichier ou Bibliothèque ----------
   function source(s) {
@@ -125,7 +126,7 @@ BK.module('reels', function (page) {
     if (BK.drive.relie()) {
       v.innerHTML = '<option value="">recherche dans le Drive…</option>';
       try {
-        await BK.dossiers.assurer(); const l = await BK.dossiers.duMorceau(m, R.morceaux), vus = new Set(opts.map(o => o.v));
+        await BK.dossiers.assurer(); const l = BK.trierStems(await BK.dossiers.duMorceau(m, R.morceaux)).filter(f => !f.groupe), vus = new Set(opts.map(o => o.v));
         const rang = f => ({ cl: 0, recording: 1, ableton: 2 }[f.role] ?? 3);
         l.filter(f => /\.(wav|mp3|aiff?|flac)$/i.test(f.name) && !/tournage/i.test(f.name) && f.role !== 'wavtournage')
           .sort((a, b) => rang(a) - rang(b) || (b.modifiedTime || '').localeCompare(a.modifiedTime || ''))
@@ -279,7 +280,7 @@ BK.module('reels', function (page) {
   let drag = null;
   const tempsA = clientX => { const r = onde.getBoundingClientRect(), v = vue(); return v.a + Math.max(0, Math.min(1, (clientX - r.left) / r.width)) * (v.b - v.a); };
   const tempsBrut = clientX => { const r = onde.getBoundingClientRect(), v = vue(); return v.a + (clientX - r.left) / r.width * (v.b - v.a); };   // pour glisser au-delà du bord
-  bloc.addEventListener('pointerdown', e => { if (!R.buffer) return; e.stopPropagation(); bloc.setPointerCapture(e.pointerId);
+  bloc.addEventListener('pointerdown', e => { if (!R.buffer || e.button !== 0) return; e.stopPropagation(); bloc.setPointerCapture(e.pointerId);
     drag = { mode: e.target.classList.contains('g') ? 'g' : e.target.classList.contains('d') ? 'd' : 'm', t0: tempsA(e.clientX), deb: R.debut, dur: R.duree }; });
   bloc.addEventListener('pointermove', e => { if (!drag) return; const dt = tempsBrut(e.clientX) - drag.t0;
     if (drag.mode === 'm') R.debut = drag.deb + dt;
@@ -287,10 +288,17 @@ BK.module('reels', function (page) {
     if (drag.mode === 'g') { const fin = drag.deb + drag.dur; R.debut = Math.min(fin - 3, Math.max(0, drag.deb + dt)); R.duree = fin - R.debut; suivreDuree(); }
     maj(); });
   bloc.addEventListener('pointerup', () => { drag = null; });
-  onde.addEventListener('pointerdown', e => { if (!R.buffer || e.target !== cv) return; audio.currentTime = tempsA(e.clientX); montrerTete(); });
+  onde.addEventListener('pointerdown', e => { if (!R.buffer || e.button !== 0 || e.target !== cv) return; audio.currentTime = tempsA(e.clientX); montrerTete(); });
   onde.addEventListener('wheel', e => { if (!R.buffer) return; e.preventDefault();       // molette = zoom autour de la souris ; Maj + molette = se déplacer
     if (e.shiftKey || Math.abs(e.deltaX) > Math.abs(e.deltaY)) { const v = vue(); decaler((e.deltaX || e.deltaY) / 400 * (v.b - v.a)); }
     else zoomer(e.deltaY > 0 ? 1.25 : 0.8, tempsA(e.clientX)); }, { passive: false });
+  // clic molette (bouton du milieu) maintenu = attraper la forme d'onde et glisser à gauche / à droite
+  onde.addEventListener('mousedown', e => { if (e.button !== 1 || !R.buffer) return; e.preventDefault(); e.stopPropagation();
+    let x = e.clientX; onde.style.cursor = 'grabbing';
+    const bouge = ev => { const v = vue(), w = onde.getBoundingClientRect().width || 1; decaler(-(ev.clientX - x) / w * (v.b - v.a)); x = ev.clientX; };
+    const fin = () => { onde.style.cursor = ''; window.removeEventListener('mousemove', bouge); window.removeEventListener('mouseup', fin); };
+    window.addEventListener('mousemove', bouge); window.addEventListener('mouseup', fin); }, true);
+  onde.addEventListener('auxclick', e => { if (e.button === 1) e.preventDefault(); });
   $('#reZp').onclick = () => zoomer(0.6, R.debut + R.duree / 2);
   $('#reZm').onclick = () => zoomer(1 / 0.6, R.debut + R.duree / 2);
   $('#reZpass').onclick = () => { if (!R.buffer) return; const D = R.buffer.duration, marge = Math.max(1, R.duree * 0.15), a = Math.max(0, R.debut - marge), b = Math.min(D, R.debut + R.duree + marge); R.vue = { a, b }; R.pics = null; dessiner(); maj(); montrerTete(); };

@@ -172,7 +172,7 @@ Si rien n'est décidé, réponds [].`;
     const doc = (await BK.db.liste('veille')).find(d => d.id === 'resume') || { id: 'resume' };
     const j = await BK.discord.journal(2), semaine = new Date(Date.now() - 7 * 864e5).toISOString(), recents = j.filter(l => l.t >= semaine);
     const dernier = recents.length ? recents[recents.length - 1].id : '';
-    if (!force && doc.texte && (doc.dernier === dernier || Date.now() - (doc.t || 0) < 60 * 60e3)) return doc;
+    if (!force && doc.texte && (doc.dernier === dernier || Date.now() - (doc.t || 0) < 20 * 60e3)) return doc;   // rien de nouveau : on garde le résumé
     if (!recents.length) return doc;
     BK.discord.resumeEnCours = true; window.dispatchEvent(new CustomEvent('bk:resume'));
     try {
@@ -182,8 +182,30 @@ Si rien n'est décidé, réponds [].`;
         { systeme, json: true, temperature: 0.3, vite: true, delai: 90 });
       Object.assign(doc, { texte: r.semaine || '', afaire: Array.isArray(r.afaire) ? r.afaire : [], dernier, t: Date.now(), nb: recents.length });
       await BK.db.ecrire('veille', doc);
+      BK.regler('accueil.resume', { id: 'resume', texte: doc.texte, afaire: doc.afaire, t: doc.t });          // gardé sur ce PC : s'affiche tout de suite
+      BK.renfortGarder && BK.renfortGarder({ type: 'resume', q: 'Cette semaine sur Discord (' + new Date().toLocaleDateString('fr-CA', { day: 'numeric', month: 'short' }) + ')', r: doc.texte + ((doc.afaire || []).length ? '\n\nÀ faire :\n• ' + doc.afaire.join('\n• ') : '') });
       return doc;
     } finally { BK.discord.resumeEnCours = false; window.dispatchEvent(new CustomEvent('bk:resume')); }
+  },
+
+  // ---------- TÂCHES : Miette relit les 2 dernières semaines et prépare la to-do list ----------
+  async tachesProposer() {
+    if (!(await BK.ia.pret())) throw new Error('Il faut la clé Gemini et l\'AI allumée');
+    const j = await BK.discord.journal(2), depuis = new Date(Date.now() - 14 * 864e5).toISOString(), recents = j.filter(l => l.t >= depuis);
+    if (!recents.length) return 0;
+    const [ts, ms, props] = await Promise.all([BK.db.liste('taches'), BK.db.liste('morceaux'), BK.db.liste('propositions')]);
+    const deja = [...ts.map(t => t.texte + (t.fait ? ' (fait)' : '')), ...props.filter(p => p.type === 'tache').map(p => p.texte)];
+    const systeme = `Tu prépares la to-do list du groupe de musique BEESKOT à partir de leurs messages Discord (français familier).
+Trouve TOUT ce que quelqu'un doit faire : promis (« je m'en occupe », « faut que je… »), demandé (« tu peux… ? »), ou évident (une date validée → préparer, réserver, envoyer…).
+Une tâche = une action concrète et courte qui commence par un verbe (ex. « Envoyer le mix v4 de Mother à Nico »).
+Ne propose PAS ce qui est déjà fait dans les messages, ni ce qui est déjà dans la liste existante.
+Réponds en JSON : un tableau de {"texte":"…","qui":"Yacine|Pierre|Baptiste|BEESKOT|","morceau":"nom exact ou vide","date":"AAAA-MM-JJ si une échéance est dite, sinon vide","source":"l'identifiant (msg …) du message","pourquoi":"1 phrase courte qui cite ce qui a été dit"}.
+« BEESKOT » = tout le groupe. Membres : Yacine (Yaya, Dari), Pierre, Baptiste (Bat, Drumblebee). Morceaux : ${ms.map(m => m.nom + ((m.alias || []).length ? ' (' + m.alias.join(', ') + ')' : '')).join(', ')}.`;
+    const r = await BK.ia.demander(`${await BK.ia.contexte()}\n\nDéjà dans la liste (ne pas reproposer) :\n${deja.slice(-150).join('\n') || 'rien'}\n\nMessages Discord des 14 derniers jours :\n${BK.discord.texte(recents.slice(-700))}`,
+      { systeme, json: true, temperature: 0.2, vite: true, delai: 90 });
+    const l = (Array.isArray(r) ? r : (r && r.taches) || []).filter(t => t && t.texte).map(t => ({ ...t, type: 'tache' }));
+    const avant = props.length; await BK.discord.rangerPropositions(l);
+    return (await BK.db.liste('propositions')).length - avant;
   },
 
   // ---------- GRAND RANGEMENT : relire TOUT l'historique des salons, puis tout faire analyser ----------
@@ -228,7 +250,9 @@ Si rien n'est décidé, réponds [].`;
   // toutes les 30 min, si le Veilleur est réglé (un seul PC le fait à la fois)
   surveiller() {
     const tour = async () => { try { const r = await BK.discord.ronde(); if (r.propositions) { BK.veilleurMaj && BK.veilleurMaj(); BK.surOuvrir && BK.surOuvrir.accueil && BK.surOuvrir.accueil(); }
-      if (!r.pasPret && !r.attente) await BK.discord.resume(); } catch (e) { console.warn(e); } };
+      if (!r.pasPret && !r.attente) await BK.discord.resume();
+      if (r.messages && Date.now() - BK.reglage('todo.miette', 0) > 6 * 3600e3) { BK.regler('todo.miette', Date.now()); await BK.discord.tachesProposer(); BK.tachesRecharger && BK.tachesRecharger(); }   // la to-do se prépare toute seule (max 4 fois / jour)
+    } catch (e) { console.warn(e); } };
     setTimeout(tour, 90e3); setInterval(tour, 30 * 60e3);
   },
 };

@@ -25,6 +25,7 @@ BK.module('taches', function (page) {
           <input class="fld" id="taDate" type="date" title="Pour quand ?">
           <button class="btn pri" id="taAjout">+ Ajouter</button>
         </div>
+        <div class="box todo-miette" id="taMiette"></div>
         <div class="box grow todo-vrac zone" data-zone="">
           <span class="lb">Tâches en vrac</span>
           <div class="vrac-cartes" id="taVrac"></div>
@@ -43,6 +44,7 @@ BK.module('taches', function (page) {
       <span class="nt" style="margin:0 12px">Double-clic sur une tâche pour la modifier · ✕ pour la retirer</span></div>`;
   const msg = t => $('#taMsg').textContent = String(t).toUpperCase();
 
+  window.addEventListener('bk:annule', () => charger());   // après « ↶ Annuler » : on relit
   async function charger() {
     T.taches = await BK.db.liste('taches');
     const cfg = (await BK.db.liste('config')).find(c => c.id === 'membres');
@@ -52,7 +54,40 @@ BK.module('taches', function (page) {
     T.morceaux = (await BK.db.liste('morceaux')).map(m => m.nom).sort();
     $('#taMorceau').innerHTML = '<option value="">morceau…</option>' + T.morceaux.map(m => `<option>${esc(m)}</option>`).join('');
     $('#taMembres').value = T.membres.join(', ');
-    rendre();
+    rendre(); miette();
+  }
+
+  // ---------- 🍞 Miette propose des tâches lues sur Discord ----------
+  async function miette() {
+    const z = $('#taMiette'), pret = await BK.ia.pret().catch(() => false), d = BK.discord ? await BK.discord.config().catch(() => ({})) : {};
+    const props = (await BK.db.liste('propositions')).filter(p => p.type === 'tache' && p.statut === 'attente').sort((a, b) => (b.vu || '').localeCompare(a.vu || ''));
+    T.props = props;
+    const bouton = `<button class="btn sm${props.length ? '' : ' pri'}" id="taLire"${!pret || !d.jeton ? ' disabled title="Il faut Miette (Discord) et la clé Gemini : Réglages"' : ''}>${T.lecture ? '<span class="spin"></span>Miette lit Discord…' : '🍞 Lire Discord et proposer des tâches'}</button>`;
+    z.innerHTML = `<div class="ligne-titre"><span class="lb">🍞 Miette propose (${props.length})</span>
+        ${props.length > 1 ? '<button class="btn xs pri" id="taToutOk" style="margin-left:auto">✓ Tout ajouter</button>' : ''}<span style="${props.length > 1 ? '' : 'margin-left:auto'}">${bouton}</span></div>
+      ${props.length ? `<div class="ta-props">${props.slice(0, 12).map(p => `<div class="ta-prop" data-p="${p.id}">
+          <div class="carte-c"><span class="carte-t">${esc(p.texte)}</span><span class="carte-m">${esc([p.qui && '→ ' + p.qui, p.morceau, p.date && 'pour le ' + p.date].filter(Boolean).join(' · '))}${p.pourquoi ? ' — « ' + esc(p.pourquoi) + ' »' : ''}</span></div>
+          <button class="btn xs pri" data-pok="${p.id}" title="Ajouter à la liste">✓</button><button class="btn xs" data-pnon="${p.id}" title="Ignorer">✕</button></div>`).join('')}</div>`
+        : `<span class="nt">${pret && d.jeton ? 'Miette lit vos messages Discord (toutes les 30 min) et prépare ici les tâches qui en ressortent. Tu valides d\'un clic.' : 'Ajoute Miette (Discord) et la clé Gemini dans les Réglages : elle lira vos messages et préparera les tâches ici.'}</span>`}`;
+    const lb = $('#taLire'); if (lb) lb.onclick = async () => {
+      T.lecture = true; miette();
+      try { await BK.discord.ronde(msg, true).catch(() => {}); const n = await BK.discord.tachesProposer(); msg(n ? n + ' tâche(s) proposée(s)' : 'Rien de nouveau à faire'); }
+      catch (e) { msg(e.message); }
+      T.lecture = false; miette();
+    };
+    $$('[data-pok]', z).forEach(b => b.onclick = () => accepter([T.props.find(p => p.id === b.dataset.pok)]));
+    $$('[data-pnon]', z).forEach(b => b.onclick = async () => { const p = T.props.find(x => x.id === b.dataset.pnon); p.statut = 'non'; await BK.db.ecrire('propositions', p); miette(); });
+    const to = $('#taToutOk'); if (to) to.onclick = () => accepter(T.props);
+  }
+  (BK.surOuvrir = BK.surOuvrir || {}).taches = () => { if (!T.lecture) miette(); };
+  window.addEventListener('bk:change', e => { if (e.detail.col === 'propositions' && !T.lecture && !page.classList.contains('hidden')) { clearTimeout(T.mt); T.mt = setTimeout(miette, 400); } });
+  async function accepter(l) {
+    for (const p of l) {
+      const qui = p.qui === GROUPE || T.membres.includes(p.qui) ? p.qui : '';
+      const n = await BK.db.ecrire('taches', { texte: p.texte, qui, morceau: T.morceaux.includes(p.morceau) ? p.morceau : '', date: /^\d{4}-\d\d-\d\d$/.test(p.date || '') ? p.date : '', fait: false, ordre: Date.now(), discord: p.source || '' });
+      T.taches.push(n); p.statut = 'ok'; await BK.db.ecrire('propositions', p);
+    }
+    msg(l.length > 1 ? l.length + ' tâches ajoutées' : 'Tâche ajoutée'); rendre(); miette();
   }
   BK.tachesRecharger = charger;
 

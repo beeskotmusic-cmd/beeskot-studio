@@ -80,7 +80,7 @@ BK.ia = {
     const auj = new Date().toISOString().slice(0, 10);
     return [
       `Aujourd'hui : ${auj}. Groupe de musique BEESKOT (prononcé « Biscotte »), membres : Yacine, Pierre, Baptiste.`,
-      'Morceaux : ' + ms.map(m => `${m.nom} (${m.statut === 'sorti' ? 'sorti' : BK.etapes[Math.min(m.fait || 0, 5)].nom}${m.bpm ? ', ' + m.bpm + ' BPM' : ''}${m.sortie ? ', sortie ' + m.sortie : ''})`).join(' ; '),
+      'Morceaux : ' + ms.map(m => `${m.nom} (${m.statut === 'sorti' ? 'sorti' : BK.etapes[Math.min(m.fait || 0, 5)].nom + (m.statut === 'prochaine' ? ', prévu pour la prochaine sortie' : '')}${m.bpm ? ', ' + m.bpm + ' BPM' : ''}${m.sortie ? ', sortie ' + m.sortie : ''})`).join(' ; '),
       'Tâches à faire : ' + (ts.filter(t => !t.fait).map(t => t.texte + (t.qui ? ' [' + t.qui + ']' : '')).join(' ; ') || 'aucune'),
       'Rendez-vous à venir : ' + (evs.filter(e => (e.date || '') >= auj).map(e => `${e.date} ${e.heure || ''} ${e.titre}`).join(' ; ') || 'aucun'),
     ].join('\n');

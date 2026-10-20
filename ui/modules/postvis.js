@@ -25,7 +25,7 @@ BK.module('postvis', function (page) {
           <div class="pv-tel"><div class="pv-app">
             <div class="pv-tete"><span class="rv-avatar petit"></span><b>beeskot</b><span class="pv-pts">⋯</span></div>
             <div class="pv-ecran" id="pvEcran"><canvas id="pvCanvas"></canvas>
-              <div class="rv-vide" id="pvVide"><span class="dymo">Glisse des photos ici</span><span class="nt">JPG, PNG… · ou « Ajouter »</span></div>
+              <div class="rv-vide" id="pvVide"><span class="dymo">Glisse des photos ici</span><span class="nt">JPG, PNG… · ou clique celles du Drive :</span><div class="gd" id="pvGal"></div></div>
               <button class="pv-fl g" id="pvPrec">‹</button><button class="pv-fl d" id="pvSuiv">›</button><span class="pv-num" id="pvNum"></span></div>
             <div class="pv-icones"><span>♡</span><span>💬</span><span>➤</span><span class="pv-points" id="pvPoints"></span><span style="margin-left:auto">⌑</span></div>
             <div class="pv-legende"><b>beeskot</b> <span id="pvLegAff">La légende du post…</span></div>
@@ -54,7 +54,7 @@ BK.module('postvis', function (page) {
           <div class="chips" style="margin-top:10px" id="pvFmt">${Object.entries(FORMATS).map(([k, f]) => `<button class="chip" data-f="${k}">${f.nom}</button>`).join('')}</div>
           <span class="nt">Instagram : <b>Portrait 4:5</b> prend le plus de place dans le fil. Toutes les photos d'un carrousel ont le même format.</span></div>
         <div class="box"><span class="lb">Nom du post</span><input class="fld" id="pvNom" value="post" style="margin-top:8px"></div>
-        <div class="box"><span class="lb">Export</span><span class="nt">Une image JPG par photo (1080 px de large), numérotées dans l'ordre du carrousel.</span></div>
+        <div class="box"><span class="lb">Export</span></div>
       </section>
     </div>
     <div class="pane abar"><span class="ptitle">③ Barre</span><span class="vfd" id="pvMsg">AJOUTE DES PHOTOS</span>
@@ -115,6 +115,10 @@ BK.module('postvis', function (page) {
     for (const f of l) { try { fs.push(new File([await (await BK.drive.api(`/files/${f.id}?alt=media`)).blob()], f.name, { type: f.mimeType })); } catch (e) {} }
     ajouter(fs);
   };
+  const galerie = () => BK.galerieDrive($('#pvGal'), { type: 'image', choisir: async f => { msg('Téléchargement de ' + f.name + '…');
+    try { ajouter([new File([await (await BK.drive.api(`/files/${f.id}?alt=media`)).blob()], f.name, { type: f.mimeType })]); } catch (e) { msg('Téléchargement impossible'); } } });
+  galerie();
+  (BK.surOuvrir = BK.surOuvrir || {}).postvis = () => { if (!$('#pvGal .gd-l')) galerie(); };
   page.addEventListener('dragover', e => { e.preventDefault(); ecran.classList.add('survol'); });
   page.addEventListener('dragleave', e => { if (e.target === page) ecran.classList.remove('survol'); });
   page.addEventListener('drop', e => { e.preventDefault(); ecran.classList.remove('survol'); const fs = [...e.dataTransfer.files]; if (!fs.length) return;

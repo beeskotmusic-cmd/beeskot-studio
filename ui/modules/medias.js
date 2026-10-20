@@ -19,7 +19,7 @@ BK.module('medias', function (page) {
         <div class="box md-barre">
           <div class="seg" id="mdRacines">${RACINES.map(([k, n]) => `<button data-r="${k}">${n}</button>`).join('')}</div>
           <div class="md-fil" id="mdFil"></div>
-          <label class="md-filtre"><span class="eng">🏷 Morceau</span><select class="fld" id="mdFiltre"><option value="">Tous (dossier ouvert)</option></select></label>
+          <label class="md-filtre"><span class="eng">🏷 Voir</span><select class="fld" id="mdFiltre"><option value="">Tous (dossier ouvert)</option></select></label>
         </div>
         <div class="box grow md-zone" id="mdZone"><div class="md-grille" id="mdGrille"></div></div>
       </section>
@@ -32,11 +32,12 @@ BK.module('medias', function (page) {
         <div class="box"><span class="lb">Drive</span>
           <span class="nt mono" id="mdChemin">—</span>
           <button class="btn sm" id="mdOuvrirDos" style="margin-top:10px">Ouvrir ce dossier dans le Drive</button></div>
-        <div class="box"><span class="lb">Rien n'est effacé</span><span class="nt">✕ range le fichier dans la corbeille de BEESKOT Studio (dans le Drive). On peut toujours le récupérer.</span></div>
+        <div class="box"><span class="lb">Rien n'est effacé</span></div>
       </section>
     </div>
     <div class="pane md-ajouter"><span class="ptitle">Ajouter à</span>
-      <span class="nt">Glisse une photo ou une vidéo sur un morceau (ou clique la photo, puis le morceau) : elle prend son étiquette 🏷</span>
+      <div class="md-aj-tete"><div class="seg" id="mdRub"><button data-rub="morceaux">♪ Morceaux</button><button data-rub="tournage">🎬 Tournage</button><button data-rub="lumiere">💡 Lumière / scène</button></div>
+        <span class="nt">Glisse un média sur une case (ou clique le média, puis la case). Un fichier peut aller dans plusieurs cases.</span></div>
       <div class="md-paniers" id="mdPaniers"></div></div>
     <div class="pane abar"><span class="ptitle">③ Barre</span><span class="vfd" id="mdMsg">PRÊT</span>
       <div class="right"><button class="btn" id="mdRelire">↻ Relire</button></div></div>`;
@@ -56,37 +57,54 @@ BK.module('medias', function (page) {
 
   async function etiquettes() {
     M.morceaux = (await BK.db.liste('morceaux')).sort((a, b) => a.nom.localeCompare(b.nom)); M.tags = await BK.etiquettes.tous();
-    const sel = $('#mdFiltre'), v = sel.value;
-    sel.innerHTML = '<option value="">Tous (dossier ouvert)</option>' + M.morceaux.map(m => `<option value="${m.id}">${esc(m.nom)}</option>`).join(''); sel.value = v;
+    M.tournages = (await BK.db.liste('tournages')).sort((a, b) => (b.date || b.maj || '').localeCompare(a.date || a.maj || ''));
+    const sel = $('#mdFiltre'), v = sel.value, rubs = cases();
+    sel.innerHTML = '<option value="">Tous (dossier ouvert)</option>' + [['morceaux', 'Morceaux'], ['tournage', 'Tournage'], ['lumiere', 'Lumière / scène']]
+      .map(([r, t]) => `<optgroup label="${t}">${rubs[r].map(c => `<option value="${c.k}">${esc(c.nom)}</option>`).join('')}</optgroup>`).join(''); sel.value = v;
     paniers();
   }
   // ---------- « Ajouter à » : un panier par morceau, on y lâche les médias ----------
+  // les cases de chaque rubrique : morceaux, tournages (une case par fiche + « général »), lumière / scène
+  function cases() {
+    return {
+      morceaux: M.morceaux.map(m => ({ k: m.id, nom: m.nom, ph: m.photo, ic: '♪' })),
+      tournage: [{ k: 'c:tournage', nom: 'Tournage (général)', ic: '🎬' }, { k: 'c:outfits', nom: 'Tenues', ic: '👕' }, { k: 'c:moodboard', nom: 'Moodboard', ic: '🖼' },
+        ...(M.tournages || []).map(t => ({ k: 't:' + t.id, nom: t.titre || 'Tournage', ic: '🎬' }))],
+      lumiere: [{ k: 'c:lumiere', nom: 'Light show', ic: '💡' }, { k: 'c:scenographie', nom: 'Scénographie', ic: '🎭' }, { k: 'c:live', nom: 'Live / concert', ic: '🎤' }],
+    };
+  }
+  const nomCase = k => Object.values(cases()).flat().find(c => c.k === k);
   function paniers() {
-    const z = $('#mdPaniers');
-    z.innerHTML = M.morceaux.map(m => { const n = Object.values(M.tags).filter(x => x === m.id).length;
-      return `<div class="md-panier" data-pan="${m.id}">${m.photo ? `<span class="md-pan-ph" style="background-image:url(${m.photo})"></span>` : '<span class="md-pan-ph">♪</span>'}<b>${esc(m.nom)}</b>${n ? `<em>${n}</em>` : ''}</div>`; }).join('')
+    const z = $('#mdPaniers'), rub = M.rub = M.rub || BK.reglage('medias.rub', 'morceaux');
+    $$('#mdRub button').forEach(b => { b.classList.toggle('on', b.dataset.rub === rub); b.onclick = () => { M.rub = b.dataset.rub; BK.regler('medias.rub', M.rub); paniers(); }; });
+    const compte = k => Object.keys(M.tags).filter(id => BK.etiquettes.liste(M.tags, id).includes(k)).length;
+    z.innerHTML = cases()[rub].map(c => { const n = compte(c.k);
+      return `<div class="md-panier" data-pan="${esc(c.k)}">${c.ph ? `<span class="md-pan-ph" style="background-image:url(${c.ph})"></span>` : `<span class="md-pan-ph">${c.ic}</span>`}<b>${esc(c.nom)}</b>${n ? `<em>${n}</em>` : ''}</div>`; }).join('')
       || '<span class="nt">Aucun morceau : crée d\'abord des fiches dans la Bibliothèque.</span>';
     $$('.md-panier', z).forEach(p => {
-      p.ondragover = e => { if (e.dataTransfer.types.includes('text/bk-media')) { e.preventDefault(); e.stopPropagation(); p.classList.add('survol'); } };
+      p.ondragover = e => { if (e.dataTransfer.types.includes('text/bk-media') || e.dataTransfer.types.includes('Files')) { e.preventDefault(); e.stopPropagation(); p.classList.add('survol'); } };
       p.ondragleave = () => p.classList.remove('survol');
-      p.ondrop = e => { const id = e.dataTransfer.getData('text/bk-media'); if (!id) return; e.preventDefault(); e.stopPropagation(); p.classList.remove('survol'); etiqueter(id, p.dataset.pan); };
-      p.onclick = () => { if (M.choisi) etiqueter(M.choisi, p.dataset.pan); else msg('Clique d\'abord une photo, ou glisse-la ici'); };
+      p.ondrop = e => { e.preventDefault(); e.stopPropagation(); p.classList.remove('survol');
+        const id = e.dataTransfer.getData('text/bk-media'); if (id) return etiqueter(id, p.dataset.pan);
+        if (e.dataTransfer.files.length) envoyer(e.dataTransfer.files, p.dataset.pan); };     // un fichier du PC lâché sur une case : envoyé dans le bon dossier + étiqueté
+      p.onclick = () => { if (M.choisi) etiqueter(M.choisi, p.dataset.pan, null); else { const sel = $('#mdFiltre'); sel.value = p.dataset.pan; sel.onchange({ target: sel }); } };
     });
   }
-  async function etiqueter(fileId, morceauId) {
-    const m = M.morceaux.find(x => x.id === morceauId), f = M.fichiers.find(x => x.id === fileId);
-    await BK.etiquettes.mettre(fileId, morceauId); M.tags = await BK.etiquettes.tous(); M.choisi = null;
-    msg(`« ${f ? f.name : 'fichier'} » → ${m ? m.nom : ''} 🏷`); rendre(!!M.filtre); paniers();
+  async function etiqueter(fileId, cle, forcer = true) {
+    const c = nomCase(cle), f = M.fichiers.find(x => x.id === fileId);
+    const a = await BK.etiquettes.basculer(fileId, cle, forcer); M.tags = await BK.etiquettes.tous(); M.choisi = null;
+    msg(`« ${f ? f.name : 'fichier'} » ${a ? '→' : 'retiré de'} ${c ? c.nom : ''} 🏷`); rendre(!!M.filtre); paniers();
   }
   // tout ce qui porte l'étiquette d'un morceau, dans tous les dossiers médias
   async function parMorceau(id) {
-    const m = M.morceaux.find(x => x.id === id); if (!m) return;
-    $('#mdFil').innerHTML = `<span class="ex-miette">🏷 Tout ce qui concerne ${esc(m.nom)}</span>`; $('#mdChemin').textContent = 'Plusieurs dossiers';
+    const m = M.morceaux.find(x => x.id === id), c = nomCase(id); if (!m && !c) return;
+    $('#mdFil').innerHTML = `<span class="ex-miette">🏷 Tout ce qui est dans « ${esc((m || c).nom)} »</span>`; $('#mdChemin').textContent = 'Plusieurs dossiers';
     $('#mdGrille').innerHTML = '<span class="nt md-vide"><span class="spin"></span>Recherche dans le Drive…</span>';
-    try { const l = await BK.dossiers.duMorceau(m, M.morceaux);
+    try { const l = m ? await BK.dossiers.duMorceau(m, M.morceaux) : (await BK.dossiers.tousFichiers()).filter(f => BK.etiquettes.liste(M.tags, f.id).includes(id));
       M.fichiers = l.filter(f => /^(image|video)\//.test(f.mimeType) || /\.pdf$/i.test(f.name)); if (M.filtre === id) rendre(true); }
     catch (e) { vide('Drive injoignable pour l\'instant.'); }
   }
+  window.addEventListener('bk:annule', () => charger());   // après « ↶ Annuler » : on relit
   async function charger() {
     if (M.filtre) return parMorceau(M.filtre);
     const cur = ici(); if (!cur) return;
@@ -101,8 +119,9 @@ BK.module('medias', function (page) {
 
   function rendre(filtre) {
     const ds = M.fichiers.filter(f => f.mimeType === DOSSIER), fs = M.fichiers.filter(f => f.mimeType !== DOSSIER);
-    const tag = f => { const m = BK.etiquettes.de({ ...f, dossiers: f.dossiers || M.pile.map(p => p.nom) }, M.morceaux, M.tags), main = M.tags[f.id];
-      return `<button class="md-tag${main ? ' main' : m ? '' : ' vide'}" data-tag="${f.id}" title="${main ? 'Étiquette choisie à la main' : m ? 'Étiquette devinée par le nom' : 'Étiqueter pour un morceau'}">🏷 ${esc(m ? m.nom : 'Étiqueter')}</button>`; };
+    const tag = f => { const ms = BK.etiquettes.morceauxDe({ ...f, dossiers: f.dossiers || M.pile.map(p => p.nom) }, M.morceaux, M.tags), l = BK.etiquettes.liste(M.tags, f.id);
+      const main = l.some(BK.etiquettes.estMorceau), noms = [...ms.map(m => m.nom), ...l.filter(k => /^[a-z]:/.test(k)).map(k => (nomCase(k) || {}).nom).filter(Boolean)];
+      return `<button class="md-tag${l.length ? ' main' : noms.length ? '' : ' vide'}" data-tag="${f.id}" title="${main || l.length ? 'Étiquettes choisies à la main' : noms.length ? 'Devinée par le nom' : 'Étiqueter'}">🏷 ${esc(noms.length ? noms.join(' · ') : 'Étiqueter')}</button>`; };
     $('#mdNb').textContent = String(fs.length).padStart(2, '0');
     $('#mdGrille').innerHTML = ds.map(d => `<button class="md-tuile md-dos" data-dos="${d.id}" data-nom="${esc(d.name)}"><span class="md-dos-ic">📁</span><span class="md-nom">${esc(d.name)}</span></button>`).join('')
       + (filtre ? '' : `<button class="md-tuile md-plus" id="mdPlus"><span>+</span><span class="nt">Ajouter ici</span></button>`)
@@ -137,24 +156,42 @@ BK.module('medias', function (page) {
     $$('.md-menu').forEach(x => x.remove());
     const id = b.dataset.tag, r = b.getBoundingClientRect(), menu = document.createElement('div'); menu.className = 'md-menu';
     menu.style.left = Math.min(r.left, innerWidth - 230) + 'px'; menu.style.top = Math.min(r.bottom + 4, innerHeight - 320) + 'px';
-    menu.innerHTML = M.morceaux.map(m => `<button data-m="${m.id}"${M.tags[id] === m.id ? ' class="on"' : ''}>${esc(m.nom)}</button>`).join('')
-      + `<button data-m="-"${M.tags[id] === '-' ? ' class="on"' : ''}>— Aucun morceau</button>${M.tags[id] ? '<button data-m="">↺ Deviner par le nom</button>' : ''}`;
+    const l = BK.etiquettes.liste(M.tags, id), rubs = cases();
+    const dessiner = () => { const l = BK.etiquettes.liste(M.tags, id);
+      menu.innerHTML = [['morceaux', 'Morceaux'], ['tournage', 'Tournage'], ['lumiere', 'Lumière / scène']].map(([r, t]) => `<span class="md-menu-t">${t}</span>`
+        + rubs[r].map(c => `<button data-m="${esc(c.k)}"${l.includes(c.k) ? ' class="on"' : ''}>${l.includes(c.k) ? '☑' : '☐'} ${esc(c.nom)}</button>`).join('')).join('')
+        + `<span class="md-menu-t"></span><button data-m="-"${l.includes('-') ? ' class="on"' : ''}>— Aucun morceau</button>${l.length ? '<button data-m="">↺ Tout enlever (deviner par le nom)</button>' : ''}`; };
+    dessiner();
     document.body.appendChild(menu);
     const fermer = e => { if (!menu.contains(e.target)) { menu.remove(); document.removeEventListener('pointerdown', fermer, true); } };
     setTimeout(() => document.addEventListener('pointerdown', fermer, true));
-    menu.onclick = async e => { const x = e.target.closest('[data-m]'); if (!x) return; menu.remove();
-      await BK.etiquettes.mettre(id, x.dataset.m); M.tags = await BK.etiquettes.tous(); msg('Étiquette enregistrée'); rendre(!!M.filtre); };
+    menu.onclick = async e => { const x = e.target.closest('[data-m]'); if (!x) return; const k = x.dataset.m;
+      if (k === '' || k === '-') { const d = await BK.etiquettes.charger(); if (k) d.map[id] = ['-']; else delete d.map[id]; await BK.db.ecrire('config', d); menu.remove(); }
+      else { await BK.etiquettes.basculer(id, k); }
+      M.tags = await BK.etiquettes.tous(); msg('Étiquettes enregistrées'); if (menu.isConnected) dessiner(); rendre(!!M.filtre); paniers(); };
   }
 
   // ---------- ajouter des fichiers dans le dossier ouvert ----------
-  async function envoyer(liste) {
-    const cur = ici(); if (!cur) return msg('Ouvre d\'abord un dossier');
+  // où va un fichier lâché sur une case : le dossier du Drive qui correspond (sinon le dossier ouvert)
+  const ROLE_CASE = { 'c:tournage': 'tournage', 'c:outfits': 'outfits', 'c:moodboard': 'moodboard', 'c:lumiere': 'lightshow', 'c:scenographie': 'scenographie', 'c:live': 'scenographie' };
+  async function dossierPour(cle) {
+    const r = ROLE_CASE[cle] || (/^t:/.test(cle) ? 'tournage' : '');
+    if (r) { const d = await BK.dossiers.get(r).catch(() => null); if (d) return { id: d.id, nom: BK.dossiers.joli(d.nom) }; }
+    if (!M.filtre && ici()) return ici();
+    const d = await BK.dossiers.get('photovideo').catch(() => null); return d ? { id: d.id, nom: BK.dossiers.joli(d.nom) } : ici();
+  }
+  async function envoyer(liste, cle = '') {
+    const cur = cle || M.filtre ? await dossierPour(cle || M.filtre) : ici(); if (!cur) return msg('Ouvre d\'abord un dossier');
     if (M.envoi) return msg('Un envoi est déjà en cours');
     const fs = [...liste]; if (!fs.length) return;
     M.envoi = true;
     try {
-      for (let i = 0; i < fs.length; i++) await BK.drive.envoyerBlob(fs[i], fs[i].name, cur.id, p => msg(`Envoi ${i + 1}/${fs.length} · ${Math.round(p * 100)} %`));
-      msg(fs.length > 1 ? fs.length + ' fichiers envoyés' : 'Fichier envoyé');
+      for (let i = 0; i < fs.length; i++) {
+        const n = await BK.drive.envoyerBlob(fs[i], fs[i].name, cur.id, p => msg(`Envoi ${i + 1}/${fs.length} vers ${cur.nom} · ${Math.round(p * 100)} %`));
+        if ((cle || M.filtre) && n && n.id) await BK.etiquettes.basculer(n.id, cle || M.filtre, true);      // et il prend l'étiquette de la case
+      }
+      BK.dossiers.oublier(); M.tags = await BK.etiquettes.tous();
+      msg((fs.length > 1 ? fs.length + ' fichiers envoyés' : 'Fichier envoyé') + ' dans ' + cur.nom); paniers();
     } catch (e) { msg('Envoi impossible : ' + e.message); console.error(e); }
     M.envoi = false; charger();
   }

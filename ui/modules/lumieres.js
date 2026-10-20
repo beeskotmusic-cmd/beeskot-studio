@@ -42,6 +42,10 @@ async function tuya(methode, chemin, corps, sansJeton) {
 }
 
 BK.module('lumieres', function (page) {
+  setTimeout(() => {                                                          // pas encore prêt : tout grisé
+    const g = $('.grid', page); g.classList.add('bientot');
+    if (!$('.bientot-voile', page)) g.insertAdjacentHTML('beforeend', '<div class="bientot-voile"><span class="dymo">Arrive dans la prochaine version</span></div>');
+  }, 0);
   $('.sub', page).textContent = 'Light Show (Pulse LED, TouchDesigner) et lampes Globe, depuis le PC';
   $('.hdr .right', page).innerHTML = `<div><span class="eng" style="font-size:9px">Lampes</span><span class="vfd" id="luNb">—</span></div>`;
   $('.grid', page).innerHTML = `

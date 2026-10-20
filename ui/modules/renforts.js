@@ -225,7 +225,7 @@ BK.module('renforts', function (page) {
   BK.renfortGarder = garder;
   async function rendreHist() {
     const f = norm($('#raHistQ').value), l = (await historique()).filter(h => !f || norm(h.q + ' ' + h.r).includes(f));
-    $('#raHist').innerHTML = l.length ? l.slice(0, 200).map(h => `<button class="ra-h" data-h="${h.id}"><span class="ra-h-t">${h.type === 'aide' ? '✨' : h.type === 'legende' ? '✍' : '❓'} ${esc(h.q)}</span>
+    $('#raHist').innerHTML = l.length ? l.slice(0, 200).map(h => `<button class="ra-h" data-h="${h.id}"><span class="ra-h-t">${h.type === 'aide' ? '✨' : h.type === 'legende' ? '✍' : h.type === 'resume' ? '🍞' : '❓'} ${esc(h.q)}</span>
         <span class="nt">${new Date(h.t).toLocaleString('fr-CA', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })} · ${esc(h.par || '')}</span></button>`).join('')
       : '<span class="nt">Aucune question pour l\'instant. Elles seront toutes gardées ici.</span>';
     $$('#raHist .ra-h').forEach(b => b.onclick = async () => {

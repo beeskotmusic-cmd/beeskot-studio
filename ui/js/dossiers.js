@@ -147,8 +147,8 @@ BK.dossiers = {
       if (/\.json$/i.test(f.name)) continue;
       const p = (f.parents || [])[0], anc = p ? BK.dossiers.ancetres(p, carte) : [];
       if (anc.some(a => exclus.has(a))) continue;
-      const t = tags[f.id];
-      const ok = t ? t === m.id : (estM(f.name) || (p && dossierDuMorceau(p)));
+      const tl = BK.etiquettes.liste(tags, f.id), sm = tl.filter(BK.etiquettes.estMorceau);
+      const ok = sm.length ? sm.includes(m.id) : tl.includes('-') ? false : (estM(f.name) || (p && dossierDuMorceau(p)));
       if (!ok) continue;
       out.push({ ...f, dossiers: anc.slice().reverse().map(id => carte[id].name), role: (anc.map(a => roleIds[a]).find(Boolean)) || '' });
     }
@@ -229,14 +229,76 @@ BK.etiquettes = {
   doc: null,
   async charger() { if (!BK.etiquettes.doc) BK.etiquettes.doc = (await BK.db.liste('config')).find(x => x.id === 'etiquettes') || { id: 'etiquettes', map: {} }; return BK.etiquettes.doc; },
   async tous() { return (await BK.etiquettes.charger()).map; },
-  async mettre(fileId, morceauId) {                      // '' = enlever l'étiquette manuelle ; '-' = « aucun morceau »
-    const d = await BK.etiquettes.charger();
-    if (morceauId) d.map[fileId] = morceauId; else delete d.map[fileId];
+  // un fichier peut avoir PLUSIEURS étiquettes : des morceaux (leur id) et des rubriques (« c:tournage », « t:<fiche tournage> », « c:lumiere »…)
+  // '-' = « aucun morceau » (on ne devine plus par le nom)
+  liste(tags, id) { const t = tags[id]; return !t ? [] : Array.isArray(t) ? t : [t]; },
+  estMorceau: k => k && k !== '-' && !/^[a-z]:/.test(k),
+  async mettre(fileId, morceauId) {                      // '' = enlever les étiquettes de morceau ; '-' = « aucun morceau »
+    const d = await BK.etiquettes.charger(), autres = BK.etiquettes.liste(d.map, fileId).filter(k => /^[a-z]:/.test(k));
+    const l = morceauId ? [morceauId, ...autres] : autres;
+    if (l.length) d.map[fileId] = l; else delete d.map[fileId];
     await BK.db.ecrire('config', d);
   },
-  // l'étiquette d'un fichier : manuelle d'abord, sinon devinée (nom du fichier, puis dossiers)
-  de(f, morceaux, tags) {
-    const t = tags[f.id]; if (t) return t === '-' ? null : morceaux.find(m => m.id === t) || null;
-    return BK.inv.trouverMorceau(f.name, morceaux) || (f.dossiers || []).map(d => BK.inv.trouverMorceau(d, morceaux)).find(Boolean) || null;
+  async basculer(fileId, cle, forcer) {                  // ajoute (ou retire) une étiquette, sans toucher aux autres
+    const d = await BK.etiquettes.charger(); let l = BK.etiquettes.liste(d.map, fileId).filter(k => k !== '-');
+    const a = forcer ?? !l.includes(cle); l = l.filter(k => k !== cle); if (a) l.push(cle);
+    if (l.length) d.map[fileId] = l; else delete d.map[fileId];
+    await BK.db.ecrire('config', d); return a;
   },
+  // les morceaux d'un fichier : à la main d'abord, sinon devinés (nom du fichier, puis dossiers)
+  morceauxDe(f, morceaux, tags) {
+    const l = BK.etiquettes.liste(tags, f.id), sm = l.filter(BK.etiquettes.estMorceau);
+    if (sm.length) return sm.map(id => morceaux.find(m => m.id === id)).filter(Boolean);
+    if (l.includes('-')) return [];
+    const g = BK.inv.trouverMorceau(f.name, morceaux) || (f.dossiers || []).map(d => BK.inv.trouverMorceau(d, morceaux)).find(Boolean);
+    return g ? [g] : [];
+  },
+  de(f, morceaux, tags) { return BK.etiquettes.morceauxDe(f, morceaux, tags)[0] || null; },
+};
+
+(() => {
+// les STEMS (pistes séparées : perc, drums, bass, vox…) ne sont pas des exports : on les regroupe en une ligne par dossier
+const AUDIO = /\.(wav|mp3|aiff?|flac|m4a|ogg)$/i;
+const MOT_EXPORT = /(master|mix|final|bounce|instru|full|(^|[_\s.-])cl([_\s.-]|$))/i;
+const MOT_STEM = /(^|[_\s.-])(perc|percs|perk|drums?|kick|snare|hh|hats?|hihat|bass|basse|gtr|guit|guitars?|guitare|synths?|keys|piano|pad|vox|voix|voice|vocals?|lead|backs?|ch(oe|œ)urs?|choir|brass|cuivres?|fx|sfx|sim|write|clap|toms?|oh|overheads?|room|sub|arp|strings?|cordes|congas?|shaker|tamb)([_\s.-]|\d|$)/i;
+BK.trierStems = function (l) {
+  const parDossier = {};
+  for (const f of l) if (AUDIO.test(f.name)) { const p = (f.parents || [])[0]; parDossier[p] = (parDossier[p] || 0) + 1; }
+  const garde = [], stems = {};
+  for (const f of l) {
+    if (/\.(asd|ini|ds_store|tmp)$/i.test(f.name)) continue;                 // fichiers techniques d'Ableton / Windows
+    const n = f.name.replace(/\.[^.]+$/, ''), p = (f.parents || [])[0];
+    const stem = AUDIO.test(f.name) && !MOT_EXPORT.test(n) && (MOT_STEM.test(n) || parDossier[p] >= 6);
+    if (!stem) { garde.push(f); continue; }
+    (stems[p] = stems[p] || { groupe: true, id: p, n: 0, dossiers: f.dossiers, name: (f.dossiers || []).slice(-1)[0] || 'Stems', modifiedTime: f.modifiedTime }).n++;
+  }
+  return [...garde, ...Object.values(stems)];
+};
+})();
+
+// petite galerie des médias du Drive (vidéos ou photos), les plus récents d'abord — à poser dans une zone vide
+BK.galerieDrive = async function (el, { type = 'video', choisir, source = null, titre = '' }) {
+  const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+  if (!BK.drive.relie()) { el.innerHTML = '<span class="nt">Relie le Drive (Réglages) pour voir ses ' + (type === 'video' ? 'vidéos' : 'photos') + ' ici.</span>'; return; }
+  el.innerHTML = '<span class="nt">Recherche dans le Drive…</span>';
+  let tout = [];
+  try {
+    await BK.dossiers.assurer();
+    const [l, carte] = await Promise.all([source ? source() : BK.dossiers.tousFichiers(), BK.dossiers.carte()]);
+    const bon = type === 'video' ? f => /^video\//.test(f.mimeType || '') : f => /^image\/(jpe?g|png|webp|heic)/.test(f.mimeType || '');
+    tout = l.filter(bon).map(f => ({ ...f, ou: BK.dossiers.ancetres((f.parents || [])[0], carte).reverse().map(a => BK.dossiers.joli(carte[a].name)).slice(-2).join(' / ') }))
+      .sort((a, b) => (b.modifiedTime || '').localeCompare(a.modifiedTime || ''));
+  } catch (e) { el.innerHTML = '<span class="nt">Drive injoignable pour le moment.</span>'; return; }
+  el.innerHTML = `<div class="gd-tete"><span class="eng">☁ ${type === 'video' ? 'Vidéos' : 'Photos'} du Drive${titre ? ' · ' + esc(titre) : ''}</span><input class="fld gd-q" placeholder="chercher (morceau, dossier…)"></div><div class="gd-l"></div>`;
+  const q = el.querySelector('.gd-q'), zone = el.querySelector('.gd-l');
+  ['keydown', 'pointerdown', 'click'].forEach(t => q.addEventListener(t, e => e.stopPropagation()));
+  function montrer() {
+    const m = q.value.trim().toLowerCase(), l = tout.filter(f => !m || (f.name + ' ' + f.ou).toLowerCase().includes(m)).slice(0, 40);
+    zone.innerHTML = l.length ? l.map(f => `<button class="gd-t" data-id="${f.id}" title="${esc(f.ou + ' / ' + f.name)}"><span class="gd-img">${type === 'video' ? '▶' : '🖼'}</span><span class="gd-n">${esc(f.name)}</span><span class="gd-o">${esc(f.ou)}</span></button>`).join('')
+      : '<span class="nt">Rien trouvé.</span>';
+    (async () => { for (const f of l) { if (!f.thumbnailLink) continue; const u = await BK.drive.vignette(f), b = zone.querySelector(`.gd-t[data-id="${f.id}"] .gd-img`); if (b && u) b.innerHTML = `<img src="${u}" draggable="false">`; } })();
+  }
+  q.oninput = montrer; montrer();
+  zone.addEventListener('pointerdown', e => e.stopPropagation());
+  zone.addEventListener('click', e => { e.stopPropagation(); const b = e.target.closest('.gd-t'); if (b) choisir(tout.find(f => f.id === b.dataset.id)); });
 };

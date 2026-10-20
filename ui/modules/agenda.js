@@ -79,6 +79,7 @@ BK.module('agenda', function (page) {
   const msg = t => $('#agMsg').textContent = String(t).toUpperCase();
   $('#agDate').value = jour(new Date());
 
+  window.addEventListener('bk:annule', () => charger());   // après « ↶ Annuler » : on relit
   async function charger() {
     A.locaux = (await BK.db.liste('evenements')).map(e => ({ ...e, debut: new Date(e.date + 'T' + (e.heure || '00:00')), local: true }));
     const cfg = (await BK.db.liste('config')).find(c => c.id === 'agenda');
