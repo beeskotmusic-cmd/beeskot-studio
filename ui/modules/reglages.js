@@ -52,8 +52,8 @@ BK.module('reglages', function (page) {
     const c = BK.drive.conf(), z = $('#rgDriveZone', page);
     if (!BK.estExe) { z.innerHTML = '<span class="nt">Disponible dans le logiciel installé.</span>'; return; }
     if (BK.drive.relie()) z.innerHTML = `<span class="nt">✅ Relié. Les fiches sont partagées avec tous les PC (dossier « BEESKOT Studio » du Drive).</span>
-      <div class="chips" style="margin-top:10px"><button class="chip" data-d="carte">Fabriquer la carte d'accès…</button><button class="chip" data-d="sync">↻ Relire le Drive</button><button class="chip" data-d="off">Déconnecter</button></div>
-      <span class="nt">La carte d'accès sert à relier les autres PC sans mot de passe. Ne l'envoie qu'aux membres.</span>`;
+      <div class="chips" style="margin-top:10px"><button class="btn sm pri" data-d="carte">🎫 Fabriquer la carte d'accès</button><button class="chip" data-d="sync">↻ Relire le Drive</button><button class="chip" data-d="off">Déconnecter</button></div>
+      <span class="nt">La carte d'accès relie les autres PC du groupe en un clic : le Drive <b>et</b> les codes de Miette. Elle se range sur ton Bureau. Ne l'envoie qu'aux membres (message privé).</span>`;
     else z.innerHTML = `<span class="nt"><b>Chez Yacine (1 fois)</b> : importe le fichier client Google, puis connecte-toi.<br><b>Autres PC</b> : importe la carte d'accès.</span>
       <div class="chips" style="margin-top:10px">
         <button class="chip" data-d="client">${c && c.client_id ? '✓ Fichier client importé' : '1. Importer le fichier client…'}</button>
@@ -65,12 +65,16 @@ BK.module('reglages', function (page) {
         if (a === 'client') { if (await BK.drive.importerClient()) rmsg('Fichier client importé'); }
         if (a === 'connecter') { rmsg('Autorise BEESKOT Studio dans la page Google…'); await BK.drive.connecter(); rmsg('Drive relié'); BK.synchro(); }
         if (a === 'importer') { if (await BK.drive.importerCarte()) { rmsg('Drive relié avec la carte'); BK.synchro(); } }
-        if (a === 'carte') { const p = await BK.drive.exporterCarte(); if (p) { rmsg('Carte enregistrée'); BK.drive.derniereCarte = p; } }
+        if (a === 'carte') { const p = await BK.drive.exporterCarte(); if (p) { rmsg('Carte enregistrée sur le Bureau'); BK.drive.derniereCarte = p; } }
         if (a === 'sync') { rmsg('Lecture du Drive…'); await BK.synchro(); rmsg('Drive relu'); }
         if (a === 'off') { if (confirm('Déconnecter ce PC du Drive BEESKOT ? (rien n\'est effacé)')) { BK.drive.deconnecter(); rmsg('Déconnecté'); } }
       } catch (e) { console.error(e); rmsg('Problème : ' + (e.message || e)); }
       zoneDrive(); BK.etatDrive();
-      if (BK.drive.derniereCarte) { $('#rgDriveZone', page).insertAdjacentHTML('beforeend', `<span class="nt" style="color:#ffb23e">✓ Carte enregistrée ici : ${BK.drive.derniereCarte.replace(/[<>&]/g, '')}</span>`); BK.drive.derniereCarte = null; }
+      if (BK.drive.derniereCarte) { const c = BK.drive.derniereCarte, dos = c.replace(/[\\/][^\\/]+$/, '');
+        $('#rgDriveZone', page).insertAdjacentHTML('beforeend', `<div class="box" style="margin-top:8px"><span class="nt" style="color:#ffb23e">✓ Carte enregistrée ici :<br><span class="mono" style="white-space:normal">${c.replace(/[<>&]/g, '')}</span></span>
+          <div class="chips" style="margin-top:8px"><button class="chip" id="rgCarteDos">📂 Ouvrir le dossier</button></div></div>`);
+        const bd = $('#rgCarteDos', page); if (bd) bd.onclick = () => BK.fichier.ouvrir(dos);
+        BK.drive.derniereCarte = null; }
     });
   }
   zoneDrive();

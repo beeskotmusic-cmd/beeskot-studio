@@ -48,8 +48,9 @@ BK.drive = {
     const c = BK.drive.conf(); if (!c || !c.refresh_token) throw new Error('Connecte d\'abord le Drive');
     const txt = JSON.stringify({ type: 'carte-acces-beeskot', ...c }, null, 1);
     if (!BK.estExe) return BK.enregistrerFichier('', 'BEESKOT-carte-acces.json', new TextEncoder().encode(txt), 'application/json');
-    const p = await BK.T.dialog.save({ title: 'Enregistrer la carte d\'accès', defaultPath: 'BEESKOT-carte-acces.json', filters: [{ name: 'Carte d\'accès', extensions: ['json'] }] });
-    if (!p) return null;
+    // rangée toute seule sur le Bureau : pas de fenêtre où se perdre
+    const bureau = await BK.T.path.desktopDir().catch(() => null) || await BK.T.path.documentDir();
+    const p = BK.chemin(bureau, 'BEESKOT-carte-acces.json');
     await BK.T.fs.writeTextFile(p, txt);
     return p;
   },
