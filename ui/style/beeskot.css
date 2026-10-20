@@ -649,3 +649,24 @@ a.lien{color:var(--mus);text-decoration:none}a.lien:hover{text-decoration:underl
 #biVues .chip.survol{box-shadow:0 0 0 2px #ffb23e,0 0 14px rgba(255,160,40,.5)!important;transform:translateY(-2px)}
 .re-prevus{display:flex;gap:8px;align-items:center;margin-bottom:8px}
 .re-prevus select{flex:1;min-width:0}
+/* Calendrier : sorties (fiches) et dates repérées par Miette */
+.cal-ev.sortie{font-weight:700;background:color-mix(in srgb,var(--c) 75%,transparent);border-left-width:4px;color:#fff3e0}
+.cal-ev.miette.possible{background:repeating-linear-gradient(135deg,color-mix(in srgb,var(--c) 30%,transparent) 0 5px,transparent 5px 9px);border-left-style:dashed;font-style:italic}
+.cal-ev.miette.valide{box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--c) 70%,transparent)}
+.ag-repere{display:flex;flex-direction:column;gap:6px;max-height:220px;overflow:auto;margin-top:6px}
+.ag-rep{display:flex;align-items:center;gap:6px;padding:6px 8px;border-radius:6px;border-left:3px solid var(--c);background:rgba(0,0,0,.25)}
+.ag-rep.possible{border-left-style:dashed}
+.ag-rep-c{flex:1;min-width:0;display:flex;flex-direction:column}
+.ag-rep-c b{font-size:12px}.ag-rep-c .nt{font-size:10.5px;margin:0}
+.cal-ev.tache{--c:#cfc4ae;background:rgba(239,230,210,.08);border-left:2px solid #cfc4ae;color:var(--ink2)}
+.pv-leg-box{flex:none!important}
+.pv-leg-box .chips{flex-wrap:wrap}
+.pv-reflechit{display:flex;align-items:center;gap:6px;color:#ffcf7a}
+.chips.filtres{gap:5px}
+.chips.filtres .chip{font-size:10px;padding:4px 8px}
+.ta-faites-box{min-height:0}
+.ta-faites{display:flex;flex-direction:column;gap:5px;overflow:auto;max-height:100%;margin-top:6px}
+.ta-f{display:grid;grid-template-columns:1fr auto;gap:0 6px;align-items:center;padding:5px 7px;border-radius:5px;background:rgba(0,0,0,.22)}
+.ta-f-t{font-size:12px;text-decoration:line-through;opacity:.8}
+.ta-f-m{grid-column:1;font-size:10px;color:#ffb23e;opacity:.85}
+.ta-f .btn{grid-row:1/span 2;grid-column:2}

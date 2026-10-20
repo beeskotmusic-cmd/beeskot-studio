@@ -124,3 +124,31 @@ BK.rendu = {
     return new Uint8Array(muxer.target.buffer);
   },
 };
+
+// ---------- FILTRES prêts à l'emploi (fabriqués ici, sans fichier) : comme une LUT, en un clic ----------
+(() => {
+  const cl = x => Math.min(1, Math.max(0, x)), lum = (r, g, b) => 0.2126 * r + 0.7152 * g + 0.0722 * b;
+  const sat = (r, g, b, k) => { const l = lum(r, g, b); return [l + (r - l) * k, l + (g - l) * k, l + (b - l) * k]; };
+  const contraste = (x, k) => 0.5 + (x - 0.5) * k, courbeS = x => x * x * (3 - 2 * x);
+  BK.filtres = [
+    { nom: 'Chaud', f: (r, g, b) => [r * 1.06 + .02, g * 1.01, b * .9] },
+    { nom: 'Froid', f: (r, g, b) => [r * .92, g * 1.0, b * 1.08 + .02] },
+    { nom: 'Vintage 70s', f: (r, g, b) => { [r, g, b] = sat(r, g, b, .8); return [.08 + r * .9 * 1.05, .06 + g * .88, .05 + b * .78]; } },
+    { nom: 'Délavé', f: (r, g, b) => { [r, g, b] = sat(r, g, b, .75); return [.1 + r * .82, .1 + g * .82, .12 + b * .8]; } },
+    { nom: 'Teal & orange', f: (r, g, b) => { const l = lum(r, g, b), t = courbeS(l); return [r * .85 + t * .2, g * .92 + .02, b * (1.15 - t * .35) + (1 - t) * .06]; } },
+    { nom: 'Pop', f: (r, g, b) => sat(contraste(r, 1.15), contraste(g, 1.15), contraste(b, 1.15), 1.35) },
+    { nom: 'Nuit', f: (r, g, b) => { [r, g, b] = sat(r, g, b, .7); return [r * .8, g * .88, b * 1.05 + .05]; } },
+    { nom: 'Pellicule', f: (r, g, b) => { [r, g, b] = sat(r, g, b, .9); return [.03 + courbeS(r) * .95, .03 + courbeS(g) * .97 + .01, .06 + courbeS(b) * .85]; } },
+    { nom: 'Noir & blanc', f: (r, g, b) => { const l = lum(r, g, b); return [l, l, l]; } },
+    { nom: 'N&B contrasté', f: (r, g, b) => { const l = courbeS(contraste(lum(r, g, b), 1.2)); return [l, l, l]; } },
+  ];
+  const memo = {};
+  BK.rendu.filtre = nom => {
+    if (memo[nom]) return memo[nom];
+    const F = BK.filtres.find(x => x.nom === nom); if (!F) return null;
+    const n = 17, lignes = ['LUT_3D_SIZE ' + n];
+    for (let b = 0; b < n; b++) for (let g = 0; g < n; g++) for (let r = 0; r < n; r++) {
+      const o = F.f(r / (n - 1), g / (n - 1), b / (n - 1)); lignes.push(o.map(x => cl(x).toFixed(4)).join(' ')); }
+    return memo[nom] = BK.rendu.lireCube(lignes.join('\n'));
+  };
+})();

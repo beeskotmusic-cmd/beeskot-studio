@@ -163,7 +163,7 @@ BK.module('tournage', function (page) {
   }
   function montrerPlan(rows, f) {
     const jours = [...new Set(rows.map(r => r.jour))];
-    $('#toFiche').innerHTML = `<div class="box"><div class="ligne-titre"><span class="lb">PLAN.xlsx · ${rows.length} reels · ${jours.length} jour(s) de tournage</span>
+    $('#toFiche').innerHTML = `<div class="box"><div class="ligne-titre"><button class="btn sm" id="toPlanRetour">← Retour</button><span class="lb">PLAN.xlsx · ${rows.length} reels · ${jours.length} jour(s) de tournage</span>
         <button class="btn xs" id="toPlanOuvrir" style="margin-left:auto">Ouvrir dans le Drive</button></div>
         <span class="nt">Lu dans le Drive (rien n'est modifié). « Créer la fiche » range le jour de tournage dans BEESKOT Studio (moodboard, tenues, PDF…). « → Audio » prépare le passage dans l'Assistant audio Reel.</span></div>
       ${jours.map(j => { const rs = rows.filter(r => r.jour === j);
@@ -174,6 +174,7 @@ BK.module('tournage', function (page) {
             <span class="nt"><b>Audio :</b> ${esc(r.audio)}</span><span class="nt"><b>Plans :</b> ${esc(r.plans)}</span><span class="nt"><b>Action :</b> ${esc(r.action)}</span>
             ${r.enjeux ? `<span class="nt"><b>Enjeux :</b> ${esc(r.enjeux)}</span>` : ''}</div>`).join('')}</div>`; }).join('')}`;
     $('#toPlanOuvrir').onclick = () => BK.ouvrirLien(f.webViewLink);
+    $('#toPlanRetour').onclick = () => { rendreFiche(); msg('PRÊT'); };
     $$('[data-pa]').forEach(b => b.onclick = () => { const [j, i] = b.dataset.pa.split('|'); versAudio(rows.filter(r => r.jour === j)[+i]); });
     $$('[data-jour]').forEach(b => b.onclick = async () => {
       const j = b.dataset.jour, rs = rows.filter(r => r.jour === j);

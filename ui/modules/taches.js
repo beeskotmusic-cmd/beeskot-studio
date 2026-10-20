@@ -6,7 +6,7 @@
 // Une tâche = un petit fichier dans le Drive (partagé avec tout le groupe).
 // =====================================================================
 (() => {
-const T = { taches: [], membres: [], masquerFaites: BK.reglage('todo.masquer', false), morceaux: [], choisie: null };
+const T = { taches: [], membres: [], masquerFaites: !BK.reglage('todo.voirFaites', false), morceaux: [], choisie: null };
 const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 const MEMBRES_DEFAUT = ['Yacine', 'Pierre', 'Baptiste'];
 const GROUPE = 'BEESKOT';
@@ -34,7 +34,8 @@ BK.module('taches', function (page) {
       </section>
       <section class="pane reg" style="width:250px"><span class="ptitle">② Réglages</span>
         <div class="box"><span class="lb">Affichage</span>
-          <div class="chips" style="margin-top:10px"><button class="chip${T.masquerFaites ? ' on' : ''}" id="taMasq">Masquer les tâches faites</button></div></div>
+          <div class="chips" style="margin-top:10px"><button class="chip${T.masquerFaites ? '' : ' on'}" id="taMasq">Afficher les tâches faites</button></div></div>
+        <div class="box grow ta-faites-box"><span class="lb">✓ Déjà fait <span id="taNbF"></span></span><div class="ta-faites" id="taFaites"></div></div>
         <div class="box"><span class="lb">Paniers</span>
           <span class="nt">Les membres, séparés par des virgules. Le panier BEESKOT est toujours là.</span>
           <input class="fld" id="taMembres" style="margin-top:8px"></div>
@@ -116,6 +117,12 @@ BK.module('taches', function (page) {
         <div class="panier-cartes">${l.map(t => carte(t, auj)).join('')}</div></div>`;
     }).join('');
     $('.todo-vit').classList.toggle('en-choix', !!T.choisie);
+    // l'historique : tout ce qui a été fait, et par qui
+    const faites = T.taches.filter(t => t.fait).sort((a, b) => (b.faitLe || b.maj || '').localeCompare(a.faitLe || a.maj || ''));
+    $('#taNbF').textContent = faites.length ? '(' + faites.length + ')' : '';
+    $('#taFaites').innerHTML = faites.length ? faites.slice(0, 60).map(t => `<div class="ta-f"><span class="ta-f-t">${esc(t.texte)}</span>
+        <span class="ta-f-m">${esc(t.qui || 'en vrac')}${t.faitLe ? ' · ' + new Date(t.faitLe).toLocaleDateString('fr-CA', { day: 'numeric', month: 'short' }) : ''}${t.faitPar ? ' · coché sur ' + esc(t.faitPar) : ''}</span>
+        <button class="btn xs" data-case="${t.id}" title="Remettre à faire">↩</button></div>`).join('') : '<span class="nt">Rien de fait pour l\'instant.</span>';
   }
 
   // ---------- ajouter ----------
@@ -170,9 +177,12 @@ BK.module('taches', function (page) {
   // ---------- cocher, retirer, modifier ----------
   vit.addEventListener('click', async e => {
     const b = e.target.closest('[data-case]'), x = e.target.closest('[data-x]');
-    if (b) { const t = T.taches.find(y => y.id === b.dataset.case); t.fait = !t.fait; rendre(); await BK.db.ecrire('taches', t); msg(t.fait ? 'Bravo !' : 'Remise à faire'); }
+    if (b) { const t = T.taches.find(y => y.id === b.dataset.case); t.fait = !t.fait; if (t.fait) { t.faitLe = new Date().toISOString(); t.faitPar = BK.reglage('nomPc', '') || 'ce PC'; } else { delete t.faitLe; delete t.faitPar; }
+      rendre(); await BK.db.ecrire('taches', t); msg(t.fait ? 'Bravo ! (rangée dans « Déjà fait »)' : 'Remise à faire'); }
     if (x) { T.taches = T.taches.filter(y => y.id !== x.dataset.x); rendre(); await BK.db.supprimer('taches', x.dataset.x); msg('Tâche retirée'); }
   });
+  $('#taFaites').addEventListener('click', async e => { const b = e.target.closest('[data-case]'); if (!b) return;
+    const t = T.taches.find(y => y.id === b.dataset.case); if (!t) return; t.fait = false; delete t.faitLe; delete t.faitPar; rendre(); await BK.db.ecrire('taches', t); msg('Remise à faire'); });
   vit.addEventListener('dblclick', e => {
     const c = e.target.closest('.carte'); if (!c) return;
     const s = $('.carte-t', c), t = T.taches.find(x => x.id === c.dataset.id); T.choisie = null;
@@ -181,7 +191,7 @@ BK.module('taches', function (page) {
     s.onblur = fin; s.onkeydown = ev => { ev.stopPropagation(); if (ev.key === 'Enter') { ev.preventDefault(); s.blur(); } };
   });
 
-  $('#taMasq').onclick = e => { T.masquerFaites = !T.masquerFaites; BK.regler('todo.masquer', T.masquerFaites); e.target.classList.toggle('on', T.masquerFaites); rendre(); };
+  $('#taMasq').onclick = e => { T.masquerFaites = !T.masquerFaites; BK.regler('todo.voirFaites', !T.masquerFaites); e.target.classList.toggle('on', !T.masquerFaites); rendre(); };
   $('#taMembres').addEventListener('keydown', e => e.stopPropagation());
   $('#taMembres').onchange = async e => { const l = e.target.value.split(',').map(s => s.trim()).filter(s => s && s !== GROUPE); await BK.db.ecrire('config', { id: 'membres', liste: l }); msg('Paniers enregistrés'); charger(); };
   charger();

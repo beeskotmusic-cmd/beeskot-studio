@@ -410,6 +410,15 @@ BK.module('reels', function (page) {
   };
 
   // ---------- export ----------
+  // chaque export « montage » est noté : l'Assistant visuel Reel le retrouve tout seul (menu Musique)
+  BK.reelsExports = BK.reelsExports || {};
+  async function garderExport(chemin, nom, octets) {
+    if (!chemin) return;
+    const { m } = await morceauActuel().catch(() => ({}));
+    const e = { id: Date.now().toString(36), nom, chemin, morceau: m ? m.nom : R.nom, debut: R.debut, duree: R.duree, t: new Date().toISOString() };
+    BK.reelsExports[e.id] = URL.createObjectURL(new Blob([octets], { type: 'audio/wav' }));
+    BK.regler('reels.exports', [e, ...BK.reglage('reels.exports', [])].slice(0, 30));
+  }
   $('#reExport').onclick = async () => {
     if (!R.buffer) return; stop();
     if (R.clic && !R.bpm) return msg('Indique le tempo pour le pré-clic');
@@ -417,10 +426,12 @@ BK.module('reels', function (page) {
     try {
       const d = Math.round(R.duree), dossier = BK.chemin('Reels', R.nom), m = await fabriquer('M');
       if (!deuxFichiers()) {
-        await BK.enregistrerFichier(dossier, `${R.nom}_REEL_${d}s.wav`, BK.audio.wav(m.canaux, m.sr), 'audio/wav');
+        const o = BK.audio.wav(m.canaux, m.sr), p = await BK.enregistrerFichier(dossier, `${R.nom}_REEL_${d}s.wav`, o, 'audio/wav');
+        garderExport(p, `${R.nom}_REEL_${d}s.wav`, o);
         msg('Fichier prêt');
       } else {
-        await BK.enregistrerFichier(dossier, `${R.nom}_REEL_${d}s_MONTAGE.wav`, BK.audio.wav(m.canaux, m.sr), 'audio/wav');
+        const o = BK.audio.wav(m.canaux, m.sr), p = await BK.enregistrerFichier(dossier, `${R.nom}_REEL_${d}s_MONTAGE.wav`, o, 'audio/wav');
+        garderExport(p, `${R.nom}_REEL_${d}s_MONTAGE.wav`, o);
         await BK.audio.pause();
         const t = await fabriquer('T'), nomV = String(Math.round(R.v * 100)).padStart(3, '0');
         await BK.enregistrerFichier(dossier, `${R.nom}_REEL_${d}s_TOURNAGE_${nomV}pc${R.clic ? '_CLIC' : ''}.wav`, BK.audio.wav(t.canaux, t.sr), 'audio/wav');

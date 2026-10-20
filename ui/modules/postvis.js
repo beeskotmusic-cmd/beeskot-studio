@@ -39,10 +39,11 @@ BK.module('postvis', function (page) {
               <span class="nt">Fais glisser l'image dans l'aperçu pour la déplacer.</span>
               <div class="rv-reglages"><span class="eng">Zoom</span><input class="fld rv-glisse" id="pvZoom" value="0 %" title="Clic maintenu et glisse la souris (ou double-clic pour taper)">
                 <button class="chip" id="pvCentre">Recentrer</button><button class="chip" id="pvTous">Même cadrage pour toutes</button></div>
-              <div class="chips"><button class="chip" id="pvLutB">Charger une LUT (.cube)…</button><button class="chip hidden" id="pvLutX">Sans LUT</button></div>
+              <span class="eng" style="margin-top:6px">Filtre</span><div class="chips filtres" id="pvFiltres">${['Aucun', ...BK.filtres.map(f => f.nom)].map((n, i) => `<button class="chip${i ? '' : ' on'}" data-fi="${i ? n : ''}">${n}</button>`).join('')}</div>
+              <div class="chips"><button class="chip" id="pvLutB">Ma LUT (.cube)…</button><button class="chip hidden" id="pvLutX">Sans LUT</button></div>
               <input type="file" id="pvLutIn" accept=".cube" hidden><span class="nt" id="pvLutNom"></span></div>
-            <div class="box grow"><span class="lb">Légende</span>
-              <textarea class="fld" id="pvLeg" rows="4" placeholder="Le texte du post, les hashtags…"></textarea>
+            <div class="box pv-leg-box"><span class="lb">Légende</span>
+              <textarea class="fld" id="pvLeg" rows="3" placeholder="Le texte du post, les hashtags…"></textarea>
               <div class="pv-idees-l"><select class="fld" id="pvMorceau"><option value="">Morceau (pour l'AI)…</option></select><input class="fld" id="pvIdee" placeholder="ce que montre le post (facultatif)"></div>
               <div class="chips" style="margin-top:8px"><button class="chip" id="pvRenfort">✨ Idées de légende</button><button class="chip" id="pvCopier">Copier la légende</button></div>
               <div class="pv-idees" id="pvIdees"></div></div>
@@ -152,11 +153,15 @@ BK.module('postvis', function (page) {
 
   // ---------- couleur : LUT ----------
   async function chargerLut(f) {
-    try { P.lut = BK.rendu.lireCube(await f.text()); P.lutNom = f.name; r.lut(P.lut); $('#pvLutNom').textContent = 'LUT : ' + f.name; $('#pvLutX').classList.remove('hidden'); dessiner(); msg('LUT appliquée à toutes les photos'); }
+    try { P.lut = BK.rendu.lireCube(await f.text()); P.lutNom = f.name; r.lut(P.lut); $('#pvLutNom').textContent = 'LUT : ' + f.name; $('#pvLutX').classList.remove('hidden'); $$('#pvFiltres .chip').forEach(x => x.classList.remove('on')); dessiner(); msg('LUT appliquée à toutes les photos'); }
     catch (e) { msg(e.message); }
   }
   $('#pvLutB').onclick = () => $('#pvLutIn').click();
   $('#pvLutIn').onchange = e => e.target.files[0] && chargerLut(e.target.files[0]);
+  // filtres prêts à l'emploi (un clic) — ou sa propre LUT .cube
+  $$('#pvFiltres .chip').forEach(c => c.onclick = () => { const n = c.dataset.fi;
+    P.lut = n ? BK.rendu.filtre(n) : null; P.lutNom = n; r && r.lut(P.lut); $$('#pvFiltres .chip').forEach(x => x.classList.toggle('on', x === c));
+    $('#pvLutNom').textContent = ''; $('#pvLutX').classList.add('hidden'); dessiner(); msg(n ? 'Filtre : ' + n : 'Sans filtre'); });
   $('#pvLutX').onclick = () => { P.lut = null; r.lut(null); $('#pvLutNom').textContent = ''; $('#pvLutX').classList.add('hidden'); dessiner(); };
 
   // ---------- format, légende, nom ----------
@@ -173,14 +178,19 @@ BK.module('postvis', function (page) {
     const demande = `Écris 5 légendes courtes et différentes pour un post Instagram de BEESKOT (groupe de musique, prononcé « Biscotte »)${P.slides.length > 1 ? ', un carrousel de ' + P.slides.length + ' photos' : ''}${morceau ? ', pour le morceau « ' + morceau + ' »' : ''}${idee ? '. Le post montre : ' + idee : ''}${P.legende ? '. Brouillon actuel : « ' + P.legende + ' »' : ''}. Ton naturel, pas trop marketing, 1 ou 2 emojis maximum, et 6 à 8 hashtags pertinents à la fin de chaque légende. Réponds en JSON : un tableau de 5 textes.`;
     const z = $('#pvIdees');
     if (!BK.ia || !(await BK.ia.pret())) { try { await navigator.clipboard.writeText(demande); } catch (e) {} z.innerHTML = '<span class="nt">Pas de clé Gemini (ou AI coupée) : la demande est copiée, colle-la dans ChatGPT ou Gemini.</span>'; return; }
-    const b = $('#pvRenfort'); b.disabled = true; z.innerHTML = '<span class="nt"><span class="spin"></span>AI en cours…</span>';
+    const b = $('#pvRenfort'); b.disabled = true; const t0 = Date.now();
+    const attente = () => { z.innerHTML = `<span class="nt pv-reflechit"><span class="spin"></span>🍞 Miette réfléchit à tes légendes… ${Math.round((Date.now() - t0) / 1000)} s</span>`; };
+    attente(); const tic = setInterval(attente, 1000);
     try {
-      const r = await BK.ia.demander(demande, { json: true, vite: true, temperature: 0.8 }), l = (Array.isArray(r) ? r : r.legendes || []).map(String).slice(0, 6);
+      const r = await BK.ia.demander(demande, { json: true, vite: true, temperature: 0.8, delai: 60 });
+      const tab = Array.isArray(r) ? r : (r && (r.legendes || Object.values(r).find(Array.isArray))) || (r && typeof r === 'object' ? Object.values(r).filter(x => typeof x === 'string') : []);
+      clearInterval(tic);
+      const l = tab.map(x => typeof x === 'string' ? x : (x && (x.legende || x.texte || x.caption || Object.values(x).find(v => typeof v === 'string'))) || '').filter(Boolean).slice(0, 6);
       z.innerHTML = l.map((t, i) => `<div class="pv-idee"><p>${esc(t)}</p><button class="btn xs" data-pi="${i}">Utiliser</button></div>`).join('') || '<span class="nt">Pas d\'idée reçue, réessaie.</span>';
       $$('[data-pi]', z).forEach(x => x.onclick = () => { P.legende = l[+x.dataset.pi]; $('#pvLeg').value = P.legende; $('#pvLegAff').textContent = P.legende.split('\n')[0]; msg('Légende choisie'); });
       BK.renfortGarder && BK.renfortGarder({ type: 'legende', q: 'Légende Insta' + (morceau ? ' · ' + morceau : '') + (idee ? ' · ' + idee : ''), r: l.join('\n\n———\n\n') });
-    } catch (e) { z.innerHTML = `<span class="nt">${esc(e.message)}</span>`; }
-    b.disabled = false;
+    } catch (e) { clearInterval(tic); z.innerHTML = `<span class="nt">${esc(e.message)}</span>`; }
+    clearInterval(tic); b.disabled = false;
   };
   $('#pvNom').onchange = e => { P.nom = e.target.value.trim() || 'post'; };
   $('#pvNom').addEventListener('keydown', e => e.stopPropagation());

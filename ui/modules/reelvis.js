@@ -63,7 +63,8 @@ BK.module('reelvis', function (page) {
               <div class="rv-reglages">
                 <span class="eng">Zoom</span><input class="fld rv-glisse" id="rvZoom" value="0 %" title="Clic maintenu et glisse la souris (ou double-clic pour taper)">
                 <button class="chip" id="rvCentre">Recentrer</button></div>
-              <div class="chips"><button class="chip" id="rvLutB">Charger une LUT (.cube)…</button><button class="chip hidden" id="rvLutX">Sans LUT</button></div>
+              <span class="eng" style="margin-top:6px">Filtre</span><div class="chips filtres" id="rvFiltres">${['Aucun', ...BK.filtres.map(f => f.nom)].map((n, i) => `<button class="chip${i ? '' : ' on'}" data-fi="${i ? n : ''}">${n}</button>`).join('')}</div>
+              <div class="chips"><button class="chip" id="rvLutB">Ma LUT (.cube)…</button><button class="chip hidden" id="rvLutX">Sans LUT</button></div>
               <input type="file" id="rvLutIn" accept=".cube" hidden><span class="nt" id="rvLutNom"></span></div>
             <div class="box grow"><div class="ligne-titre"><span class="lb">④ Sous-titres</span>
                 <button class="chip on" id="rvSousOn" style="margin-left:auto">Afficher</button></div>
@@ -79,7 +80,8 @@ BK.module('reelvis', function (page) {
           <div class="chips" style="margin-top:8px"><button class="chip on" id="rvZonesB">Montrer les zones à éviter</button></div>
           <span class="nt">Les zones hachurées sont cachées par l'appli : n'y mets rien d'important.</span></div>
         <div class="box"><span class="lb">Musique</span>
-          <div class="chips" style="margin-top:10px" id="rvMus"><button class="chip" data-m="video">Son de la vidéo</button><button class="chip" data-m="reel">Passage de l'Assistant audio</button></div>
+          <div class="chips" style="margin-top:10px" id="rvMus"><button class="chip" data-m="video">Son de la vidéo</button><button class="chip" data-m="export">Un export de l'Assistant audio</button><button class="chip" data-m="reel">Le passage ouvert dans l'Assistant audio</button></div>
+          <select class="fld hidden" id="rvExp" style="margin-top:8px"></select>
           <span class="nt" id="rvMusTxt"></span></div>
         <div class="box"><span class="lb">Export</span></div>
       </section>
@@ -209,11 +211,15 @@ BK.module('reelvis', function (page) {
 
   // ---------- couleur : LUT ----------
   async function chargerLut(f) {
-    try { V.lut = BK.rendu.lireCube(await f.text()); V.lutNom = f.name; r.lut(V.lut); $('#rvLutNom').textContent = 'LUT : ' + f.name; $('#rvLutX').classList.remove('hidden'); dessiner(); msg('LUT appliquée'); }
+    try { V.lut = BK.rendu.lireCube(await f.text()); V.lutNom = f.name; r.lut(V.lut); $('#rvLutNom').textContent = 'LUT : ' + f.name; $('#rvLutX').classList.remove('hidden'); $$('#rvFiltres .chip').forEach(x => x.classList.remove('on')); dessiner(); msg('LUT appliquée'); }
     catch (e) { msg(e.message); }
   }
   $('#rvLutB').onclick = () => $('#rvLutIn').click();
   $('#rvLutIn').onchange = e => e.target.files[0] && chargerLut(e.target.files[0]);
+  // filtres prêts à l'emploi (un clic) — ou sa propre LUT .cube
+  $$('#rvFiltres .chip').forEach(c => c.onclick = () => { const n = c.dataset.fi;
+    V.lut = n ? BK.rendu.filtre(n) : null; V.lutNom = n; r.lut(V.lut); $$('#rvFiltres .chip').forEach(x => x.classList.toggle('on', x === c));
+    $('#rvLutNom').textContent = ''; $('#rvLutX').classList.add('hidden'); dessiner(); msg(n ? 'Filtre : ' + n : 'Sans filtre'); });
   $('#rvLutX').onclick = () => { V.lut = null; r.lut(null); $('#rvLutNom').textContent = ''; $('#rvLutX').classList.add('hidden'); dessiner(); };
 
   // ---------- sous-titres ----------
@@ -255,10 +261,33 @@ BK.module('reelvis', function (page) {
   });
 
   // ---------- musique ----------
+  // la musique du reel : le son de la vidéo, un export de l'Assistant audio, ou le passage ouvert là-bas
+  const musique = () => V.musique === 'reel' ? (BK.reelAudio && BK.reelAudio()) : V.musique === 'export' ? V.exp || null : null;
+  function remplirExports() {
+    const l = BK.reglage('reels.exports', []), m = $('#rvMorceau') && $('#rvMorceau').selectedOptions[0], nomM = m && m.value ? m.textContent : '';
+    const tri = [...l].sort((a, b) => (nomM ? (b.morceau === nomM) - (a.morceau === nomM) : 0) || b.t.localeCompare(a.t));
+    $('#rvExp').innerHTML = (tri.length ? '<option value="">Choisis un export…</option>' : '<option value="">Aucun export : fais-en un dans l\'Assistant audio Reel</option>')
+      + tri.map(e => `<option value="${e.id}"${V.exp && V.exp.id === e.id ? ' selected' : ''}>${esc(e.nom)} · ${new Date(e.t).toLocaleDateString('fr-CA', { day: 'numeric', month: 'short' })}</option>`).join('');
+    return tri;
+  }
+  async function choisirExport(id) {
+    const e = BK.reglage('reels.exports', []).find(x => x.id === id); if (!e) { V.exp = null; return majMusique(); }
+    try {
+      let url = (BK.reelsExports || {})[e.id];
+      if (!url && BK.estExe) url = URL.createObjectURL(new Blob([await BK.fichier.lireOctets(e.chemin)], { type: 'audio/wav' }));
+      if (!url) return msg('Fichier introuvable sur ce PC');
+      const d = await new Promise(ok => { const a = new Audio(url); a.onloadedmetadata = () => ok(a.duration); a.onerror = () => ok(0); });
+      V.exp = { id: e.id, nom: e.nom, url, debut: 0, duree: d || e.duree }; msg('Musique : ' + e.nom);
+    } catch (er) { msg('Fichier introuvable : il a peut-être été déplacé'); V.exp = null; }
+    majMusique();
+  }
+  $('#rvExp').onchange = e => choisirExport(e.target.value);
   function majMusique() {
     $$('#rvMus .chip').forEach(c => c.classList.toggle('on', c.dataset.m === V.musique));
+    $('#rvExp').classList.toggle('hidden', V.musique !== 'export');
+    if (V.musique === 'export') { const l = remplirExports(); if (!V.exp && l[0]) { choisirExport(l[0].id); return; } }
     const a = BK.reelAudio && BK.reelAudio();
-    $('#rvMusTxt').textContent = V.musique === 'reel' ? (a ? `Passage de « ${a.nom} » : ${t2(a.debut)} → ${t2(a.debut + a.duree)}` : 'Choisis d\'abord un passage dans l\'Assistant audio Reel.') : 'Le son d\'origine de la vidéo.';
+    $('#rvMusTxt').textContent = V.musique === 'export' ? (V.exp ? `« ${V.exp.nom} » (${t2(V.exp.duree)}) remplace le son de la vidéo.` : '') : V.musique === 'reel' ? (a ? `Passage de « ${a.nom} » : ${t2(a.debut)} → ${t2(a.debut + a.duree)}` : 'Choisis d\'abord un passage dans l\'Assistant audio Reel.') : 'Le son d\'origine de la vidéo.';
   }
   $$('#rvMus .chip').forEach(c => c.onclick = () => { V.musique = c.dataset.m; majMusique(); });
   BK.surOuvrir = BK.surOuvrir || {}; BK.surOuvrir.reelvis = () => { galerieSiVide(); majMusique(); remplirMorceaux(); };
@@ -268,7 +297,7 @@ BK.module('reelvis', function (page) {
     if (V.calage >= 0) { V.calage = -1; sauverSous(); majSous(); } }
   function lire(force) {
     if (V.lecture && !force) return stop();
-    const a = V.musique === 'reel' && BK.reelAudio && BK.reelAudio();
+    const a = musique();
     vid.currentTime = V.debut; vid.muted = !!a;
     if (a) { son.src = a.url; son.currentTime = a.debut; son.play(); }
     vid.play(); $('#rvPlay').textContent = '■ Stop';
@@ -282,7 +311,7 @@ BK.module('reelvis', function (page) {
   $('#rvExport').onclick = async () => {
     stop(); const b = $('#rvExport'); b.disabled = true; b.innerHTML = '<span class="spin"></span>Export…';
     try {
-      const a = V.musique === 'reel' && BK.reelAudio && BK.reelAudio();
+      const a = musique();
       let audio = null, fin = V.fin;
       if (a) { fin = Math.min(V.fin, V.debut + a.duree); const buf = await BK.audio.decoder(new Uint8Array(await (await fetch(a.url)).arrayBuffer())); audio = tranche(buf, a.debut, fin - V.debut); }
       else { try { const buf = await BK.audio.decoder(new Uint8Array(await V.fichier.arrayBuffer())); audio = tranche(buf, V.debut, fin - V.debut); } catch (e) { audio = null; } }

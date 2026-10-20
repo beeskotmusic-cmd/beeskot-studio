@@ -192,6 +192,29 @@ Si rien n'est décidé, réponds [].`;
     } finally { BK.discord.resumeEnCours = false; window.dispatchEvent(new CustomEvent('bk:resume')); }
   },
 
+  // ---------- PLANNING : les dates dont on a parlé (validées ou juste possibles) → le Calendrier ----------
+  async planning() {
+    if (!(await BK.ia.pret())) throw new Error('Il faut la clé Gemini et l\'AI allumée');
+    const j = await BK.discord.journal(3), depuis = new Date(Date.now() - 45 * 864e5).toISOString(), recents = j.filter(l => l.t >= depuis);
+    const doc = (await BK.db.liste('veille')).find(d => d.id === 'planning') || { id: 'planning', l: [] };
+    if (!recents.length) return doc;
+    const ms = await BK.db.liste('morceaux'), auj = new Date().toISOString().slice(0, 10);
+    const systeme = `Tu tiens le calendrier du groupe de musique BEESKOT à partir de leurs messages Discord (français familier). Aujourd'hui : ${auj}.
+Trouve TOUTES les dates à venir dont on parle : tournages, shootings photo, enregistrements, répétitions, mixages, sorties de morceaux, publications, concerts.
+Pour chacune, dis si c'est « valide » (décidé, confirmé) ou « possible » (proposé, hésitation entre plusieurs jours, « peut-être », pas encore confirmé).
+Si on hésite entre plusieurs jours (« le 24 ou le 25 »), mets toutes les dates possibles dans "dates".
+Les dates relatives se calculent depuis la date du message. Ne garde que les dates à partir d'aujourd'hui.
+Réponds en JSON : un tableau de {"type":"tournage|shooting|enreg|repet|mixage|sortie|promo|autre","titre":"court","morceau":"nom exact ou vide","dates":["AAAA-MM-JJ"],"heure":"HH:MM ou vide","lieu":"","statut":"valide|possible","pourquoi":"1 phrase qui cite ce qui a été dit","source":"l'identifiant (msg …)"}.
+Morceaux : ${ms.map(m => m.nom + ((m.alias || []).length ? ' (' + m.alias.join(', ') + ')' : '')).join(', ')}.`;
+    const r = await BK.ia.demander(`Messages Discord des 45 derniers jours :\n${BK.discord.texte(recents.slice(-800))}`, { systeme, json: true, temperature: 0.1, vite: true, delai: 90 });
+    const ignores = new Set(doc.ignores || []);
+    doc.l = (Array.isArray(r) ? r : []).filter(e => e && Array.isArray(e.dates) && e.dates.some(d => /^\d{4}-\d\d-\d\d$/.test(d) && d >= auj))
+      .map(e => ({ ...e, cle: [e.type, e.morceau, e.titre, e.dates.join('+')].join('|') })).filter(e => !ignores.has(e.cle));
+    doc.t = Date.now(); await BK.db.ecrire('veille', doc);
+    BK.agendaRecharger && BK.agendaRecharger();
+    return doc;
+  },
+
   // ---------- PASSAGES : les timings de tournage donnés sur Discord (ex. « Mother 1:12 - 1:42 ») ----------
   async passages(m, morceaux) {
     if (!(await BK.ia.pret())) throw new Error('Il faut la clé Gemini et l\'AI allumée');
@@ -269,6 +292,7 @@ Réponds en JSON : un tableau de {"texte":"…","qui":"Yacine|Pierre|Baptiste|BE
   surveiller() {
     const tour = async () => { try { const r = await BK.discord.ronde(); if (r.propositions) { BK.veilleurMaj && BK.veilleurMaj(); BK.surOuvrir && BK.surOuvrir.accueil && BK.surOuvrir.accueil(); }
       if (!r.pasPret && !r.attente) await BK.discord.resume();
+      if (r.messages && Date.now() - BK.reglage('agenda.miette', 0) > 6 * 3600e3) { BK.regler('agenda.miette', Date.now()); await BK.discord.planning().catch(e => console.warn(e)); }   // le Calendrier se remplit tout seul
       if (r.messages && Date.now() - BK.reglage('todo.miette', 0) > 6 * 3600e3) { BK.regler('todo.miette', Date.now()); await BK.discord.tachesProposer(); BK.tachesRecharger && BK.tachesRecharger(); }   // la to-do se prépare toute seule (max 4 fois / jour)
     } catch (e) { console.warn(e); } };
     setTimeout(tour, 90e3); setInterval(tour, 30 * 60e3);
