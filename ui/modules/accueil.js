@@ -65,9 +65,9 @@ BK.module('accueil', function (page) {
               : `<span class="nt">Aucun rendez-vous prévu. <a href="#" data-va="agenda">Ajouter dans le Calendrier</a></span>`}</div>
           <div class="box ac-resume" id="acResume"></div>
           ${d.release.length ? `<div class="box ac-rel"><span class="lb">Prochaine release</span>
-            <div class="ac-rel-l">${d.release.map(m => `<button class="ac-rel-m" data-va="biblio" title="Ouvrir la Bibliothèque">
+            <div class="ac-rel-l">${d.release.slice(0, 2).map(m => `<button class="ac-rel-m" data-va="biblio" title="Ouvrir la Bibliothèque">
               <span class="ac-rel-p${m.photo ? '' : ' vide'}"${m.photo ? ` style="background-image:url(${esc(m.photo)})"` : ''}>${m.photo ? '' : '♪'}</span>
-              <span class="ac-rel-n">${esc(m.nom)}</span></button>`).join('')}</div></div>` : ''}
+              <span class="ac-rel-n">${esc(m.nom)}</span><span class="vfd ac-rel-pc">${Math.round(BK.pourcent(m))} %</span></button>`).join('')}</div></div>` : ''}
           <div class="box grow"><div class="ligne-titre"><span class="lb">À faire</span><button class="btn xs" data-va="taches" style="margin-left:auto">Ouvrir la To-do list</button></div>
             <div class="af-liste">${d.afaire.length ? d.afaire.map(x => `<div class="af-l${x.date && x.date < d.auj ? ' retard' : ''}">
                 <button class="ta-case" data-id="${x.id}"></button><span class="af-t">${esc(x.texte)}</span>

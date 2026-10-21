@@ -134,10 +134,10 @@ BK.module('budget', function (page) {
         const aPayer = moi && pr.doivent.includes(moi);
         return `<div class="bu-d"><span class="bu-d-c"><b>${esc(d.titre)}</b><span class="nt">${esc(d.date || '')} · payé par ${esc(d.payePar)} · pour ${esc((d.pour && d.pour.length && d.pour.length < B.membres.length ? d.pour : ['tout le monde']).join(', '))} · ${esc(d.cat || '')}${d.abo ? ' · ↻ revient tout seul' : ''}${pr.payes.length ? ' · part payée par ' + esc(pr.payes.join(', ')) : ''}</span></span>
           <span class="vfd">${argent(d.montant)}</span>
-          ${aPayer ? `<button class="btn xs pri" data-part="${d.id}|${esc(moi)}" title="Tu fais le virement à ${esc(d.payePar)}">↩ J'ai payé ma part · ${argent(part)}</button>` : ''}
+          ${aPayer ? `<button class="btn xs pri" data-part="${d.id}|${esc(moi)}" title="Tu fais le virement à ${esc(d.payePar)}">↩ Ma part · ${argent(part)}</button>` : ''}
           ${pr.doivent.filter(m => m !== moi).length ? `<button class="btn xs" data-rp="${d.id}" title="Noter la part de quelqu'un d'autre">${ouvert ? '▾' : '↩'}</button>` : ''}
           <button class="btn xs" data-x="${d.id}" title="Retirer">✕</button>
-          ${ouvert ? `<div class="bu-parts">${pr.doivent.filter(m => m !== moi).map(m => `<button class="chip" data-part="${d.id}|${esc(m)}">${esc(m)} a payé sa part · ${argent(part)}</button>`).join('')}</div>` : ''}</div>`;
+          ${ouvert ? `<div class="bu-parts"><span class="lb">Qui a déjà remboursé sa part ?</span>${pr.doivent.filter(m => m !== moi).map(m => `<button class="chip" data-part="${d.id}|${esc(m)}" title="${esc(m)} a remboursé ${esc(d.payePar)}">${esc(m)} · ${argent(part)}</button>`).join('')}<button class="btn xs" data-rp="${d.id}" style="margin-left:auto">✕ Annuler</button></div>` : ''}</div>`;
       })()).join('')
       : '<span class="nt">Aucune dépense ce mois-ci.</span>';
     const ligneAbo = a => `<div class="bu-d"><span class="bu-d-c"><b>${esc(a.titre)}</b><span class="nt">${a.cadence === 'an'
@@ -180,6 +180,10 @@ BK.module('budget', function (page) {
     if (r) { const [de, a, m] = r.dataset.remb.split('|'); B.dep.push(await BK.db.ecrire('depenses', { type: 'remboursement', de, a, montant: +m, date: auj() })); msg(de + ' a remboursé ' + a); rendre(); }
     if (ab) { const a = B.abos.find(y => y.id === ab.dataset.ab); a.actif = a.actif === false; if (a.actif) a.depuis = auj().slice(0, 7); await BK.db.ecrire('abonnements', a); msg(a.actif ? 'Repris' : 'Arrêté (plus ajouté les prochains mois)'); rendre(); }
   });
+  // Échap : on referme les petites fenêtres « qui a payé sa part »
+  page.addEventListener('keydown', e => { if (e.key === 'Escape' && B.rOuvert && B.rOuvert.size) { e.stopPropagation(); B.rOuvert.clear(); rendre(); } });
+  document.addEventListener('keydown', e => { if (e.key === 'Escape' && B.rOuvert && B.rOuvert.size && !page.classList.contains('hidden')) { B.rOuvert.clear(); rendre(); } });
+
   charger();
 });
 })();

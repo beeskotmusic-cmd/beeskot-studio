@@ -7,7 +7,7 @@ const $ = (s, r = document) => r.querySelector(s);
 const $$ = (s, r = document) => [...r.querySelectorAll(s)];
 
 const BK = {
-  version: '0.9.36 bêta',
+  version: '0.9.37 bêta',
   modules: {},
   onglets: [],
   cotes: [],
@@ -134,12 +134,12 @@ const BK = {
       BK.majDispo = m;
       $('#stopLed').classList.add('on'); $('#syMaj').textContent = 'MAJ ' + m.version;
       $('#btStop').classList.add('maj'); $('#btStop').title = 'Mise à jour ' + m.version + ' disponible';
-      const b = $('#stMaj'); b.classList.remove('hidden'); b.textContent = '⬇ Installer la version ' + m.version;
+      const b = $('#stMaj'); b.classList.remove('hidden'); b.classList.add('clignote'); b.textContent = '⬇ Installer la version ' + m.version;
     } catch (e) { /* pas d'Internet : on réessaiera tout à l'heure */ }
   },
   async installerMaj() {
     if (!BK.majDispo) return;
-    const b = $('#stMaj'); b.disabled = true; b.innerHTML = '<span class="spin"></span>Téléchargement…';
+    const b = $('#stMaj'); b.disabled = true; b.classList.remove('clignote'); b.innerHTML = '<span class="spin"></span>Téléchargement…';
     try { await BK.majDispo.downloadAndInstall(); await BK.T.process.relaunch(); }
     catch (e) { b.disabled = false; b.textContent = 'Échec : réessayer'; }
   },
