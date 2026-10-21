@@ -212,8 +212,8 @@ BK.module('reels', function (page) {
       if (!deCeMorceau(p.reel) && !(t.morceau === m.nom && !p.reel)) continue;
       const ps = enSec(p.audio); if (ps) ajout({ ...ps, nom: '🎬 ' + (t.titre || 'Tournage') + (p.action ? ' · ' + p.action : '') });
     }
-    for (const r of BK.reglage('plan.lignes', [])) if (deCeMorceau(r.reel)) { const ps = enSec(r.audio); if (ps) ajout({ ...ps, nom: '📋 PLAN · ' + (r.jour || '') + (r.plans ? ' · ' + r.plans : '') }); }
-    for (const p of (BK.reglage('passages.discord', {})[m.id] || [])) ajout(p);
+    for (const r of await BK.partage.lire('plan.lignes', [])) if (deCeMorceau(r.reel)) { const ps = enSec(r.audio); if (ps) ajout({ ...ps, nom: '📋 PLAN · ' + (r.jour || '') + (r.plans ? ' · ' + r.plans : '') }); }
+    for (const p of ((await BK.partage.lire('passages.discord', {}))[m.id] || [])) ajout(p);
     return { m, l };
   }
   async function remplirPrevus() {
@@ -230,7 +230,7 @@ BK.module('reels', function (page) {
   $('#reMiettePass').onclick = async () => {
     const b = $('#reMiettePass'), { ms, m } = await morceauActuel(); if (!m) return msg('Choisis d\'abord un morceau');
     b.disabled = true; b.innerHTML = '<span class="spin"></span>Miette cherche…';
-    try { const l = await BK.discord.passages(m, ms), tout = BK.reglage('passages.discord', {}); tout[m.id] = l; BK.regler('passages.discord', tout);
+    try { const l = await BK.discord.passages(m, ms), tout = await BK.partage.lire('passages.discord', {}); tout[m.id] = l; await BK.partage.ecrire('passages.discord', tout);
       msg(l.length ? l.length + ' passage(s) trouvé(s) sur Discord : ouvre « Passages prévus »' : 'Aucun timing trouvé sur Discord pour ' + m.nom); await remplirPrevus(); }
     catch (e) { msg(e.message); }
     b.disabled = false; b.textContent = '🍞 Chercher sur Discord';

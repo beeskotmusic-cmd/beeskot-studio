@@ -102,11 +102,11 @@ Règles : "taches" = ce que quelqu'un doit faire et qui n'est pas déjà fait ni
     // Assistant audio : les passages
     if (Array.isArray(r.passages)) {
       const sec = t => { const x = String(t || '').match(/(\d{1,2})\s*[:'’]\s*(\d{2})/); return x ? +x[1] * 60 + +x[2] : null; };
-      const tout = BK.reglage('passages.discord', {}); let n = 0;
+      const tout = await BK.partage.lire('passages.discord', {}); let n = 0;
       for (const p of r.passages) { const m = BK.inv.trouverMorceau(p.morceau || '', ms); const debut = sec(p.debut), fin = sec(p.fin);
         if (!m || debut == null || !(fin > debut)) continue;
         const ls = tout[m.id] = tout[m.id] || []; if (!ls.some(x => x.debut === debut && x.fin === fin)) { ls.push({ debut, fin, nom: '🍞 Discord · ' + (p.note || '') }); n++; } }
-      BK.regler('passages.discord', tout); nb(n, 'passage(s) de morceaux');
+      await BK.partage.ecrire('passages.discord', tout); nb(n, 'passage(s) de morceaux');
     }
     return out;
   },

@@ -216,7 +216,7 @@ BK.module('tournage', function (page) {
     const C = { num: col(/^$/) , chanson: col(/chanson/i), audio: col(/audio/i), plans: col(/^plans?$/i), action: col(/action/i), lieu: col(/lieu/i), jour: col(/tourn/i), enjeux: col(/enjeu/i), horaire: col(/horaire|heure/i), camera: col(/camera/i) };
     const rows = lignes.slice(h + 1).filter(l => l[C.chanson]).map(l => ({ reel: l[C.chanson], audio: l[C.audio] || '', plans: l[C.plans] || '', action: l[C.action] || '', lieu: l[C.lieu] || '',
       jour: l[C.jour] || '?', enjeux: l[C.enjeux] || '', horaire: l[C.horaire] || '', camera: C.camera >= 0 && /x/i.test(l[C.camera] || '') }));
-    BK.regler('plan.lignes', rows.map(r => ({ reel: r.reel, audio: r.audio, jour: r.jour, plans: String(r.plans).slice(0, 80) })));   // l'Assistant audio retrouve les passages
+    await BK.partage.ecrire('plan.lignes', rows.map(r => ({ reel: r.reel, audio: r.audio, jour: r.jour, plans: String(r.plans).slice(0, 80) })));   // l'Assistant audio retrouve les passages (sur tous les PC)
     montrerPlan(rows, f);
   }
   function montrerPlan(rows, f) {

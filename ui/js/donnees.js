@@ -149,6 +149,26 @@ BK.etatDrive = function () {
   const led = $('#ledDrive'); if (led) { led.className = 'led ' + (ok ? (hl ? 'amb' : 'grn') : ''); }
 };
 
+// ---------- les petites listes partagées (PLAN.xlsx, passages repérés sur Discord…) ----------
+// Elles ne vivaient que sur le PC qui les avait faites. Maintenant elles sont aussi sur le Drive,
+// donc visibles partout et rattrapables par la Time Machine.
+BK.partage = {
+  async lire(id, defaut) {
+    const loc = BK.reglage('partage.' + id, undefined) ?? BK.reglage(id, defaut);
+    if (!BK.db.drive()) return loc;
+    try {
+      const d = (await BK.db.liste('config')).find(x => x.id === 'partage-' + id);
+      if (d && d.v !== undefined) { BK.regler('partage.' + id, d.v); return d.v; }
+      if (loc !== undefined && JSON.stringify(loc) !== JSON.stringify(defaut)) await BK.partage.ecrire(id, loc);   // 1re fois : ce PC partage ce qu'il avait
+    } catch (e) {}
+    return loc ?? defaut;
+  },
+  async ecrire(id, v) {
+    BK.regler('partage.' + id, v);
+    if (BK.db.drive()) { try { await BK.db.ecrire('config', { id: 'partage-' + id, v }, { sansAnnuler: true }); } catch (e) {} }
+  },
+};
+
 // ---------- les exports de l'Assistant Reels Audio ----------
 // Avant, cette liste ne vivait que sur le PC qui avait fait l'export : les autres PC ne la voyaient
 // pas, et la Time Machine ne pouvait pas la récupérer. Maintenant elle est aussi sur le Drive.
