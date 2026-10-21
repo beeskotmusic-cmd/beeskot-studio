@@ -907,3 +907,6 @@ body.dropping main>section:not(.hidden) .box.pick::after{content:none!important;
 .su-aff-date{right:8px;color:#cbbfa8}
 /* le panneau qui s'ouvre sous la grille */
 .su-liste .su-c{border:1px solid rgba(255,178,62,.45);background:rgba(0,0,0,.34)}
+
+/* la petite croix de la Time Machine */
+.rt-x{position:absolute;top:8px;right:8px;padding:2px 7px;line-height:1.4}
