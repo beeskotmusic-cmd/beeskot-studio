@@ -142,6 +142,38 @@ BK.enregistrerFichier = async function (sousDossier, nom, octets, type = 'applic
   return nom;
 };
 
+// ---------- le bilan après un export : les fichiers écrits, « Ouvrir le dossier », « Upload Drive » ----------
+// faits : [{ nom, p (chemin sur ce PC), octets, type }] ; drive : { role: 'photovideo'|'wavtournage'…, sous: ['Posts', nom], titre }
+BK.montrerExports = function (el, faits, { drive, msg = () => {} } = {}) {
+  if (!el) return;
+  const esc = t => String(t ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+  const vrais = faits.filter(f => f.p);
+  el.classList.remove('hidden');
+  const dos = vrais[0] && String(vrais[0].p).replace(/[\\/][^\\/]+$/, '');
+  el.innerHTML = `<span class="lb">✓ ${vrais.length} fichier(s) écrit(s)</span>`
+    + vrais.map(f => `<div class="re-fait">${esc(f.ic || '📄')} ${esc(f.nom)}</div>`).join('')
+    + (faits.length > vrais.length ? `<span class="nt" style="color:#ff8a6a">${faits.length - vrais.length} fichier(s) n'ont pas pu être écrits</span>` : '')
+    + (dos && BK.estExe ? `<span class="nt mono" style="white-space:normal">${esc(dos)}</span>` : '')
+    + `<div class="chips" style="margin-top:6px">${dos && BK.estExe ? '<button class="btn xs" data-ex="ouvrir">📂 Ouvrir le dossier</button>' : ''}`
+    + (drive && BK.drive && BK.drive.relie() && vrais.some(f => f.octets) ? '<button class="btn xs" data-ex="drive">⇪ Upload Drive</button>' : '') + '</div>';
+  const bo = el.querySelector('[data-ex="ouvrir"]'); if (bo) bo.onclick = () => { try { BK.T.opener.openPath(dos); } catch (e) { msg('Dossier : ' + dos); } };
+  const bd = el.querySelector('[data-ex="drive"]'); if (bd) bd.onclick = async () => {
+    bd.disabled = true; bd.innerHTML = '<span class="spin"></span>Envoi…';
+    try {
+      await BK.dossiers.assurer();
+      const dossierDe = async d => { const base = await BK.dossiers.get(d.role); if (!base) throw new Error('dossier « ' + d.role + ' » introuvable (Réglages › Vos dossiers du Drive)');
+        let id = base.id; for (const n of (d.sous || [])) id = await BK.drive.dossier(String(n).replace(/[\\/]/g, '-'), id); return id; };
+      let id = await dossierDe(drive), k = 0;
+      for (const f of vrais.filter(f => f.octets)) { k++;
+        const cible = f.drive ? await dossierDe(f.drive) : id;          // un fichier peut avoir sa propre destination (ex. le WAV tournage)
+        await BK.drive.envoyerBlob(new Blob([f.octets], { type: f.type || 'application/octet-stream' }), f.nom, cible, p => msg(`Envoi ${k}/${vrais.length} · ${Math.round(p * 100)} %`)); }
+      msg('Dans le Drive ✓'); BK.dossiers.oublier && BK.dossiers.oublier();
+      bd.disabled = false; bd.textContent = '☁ Ouvrir le dossier du Drive'; bd.onclick = () => BK.ouvrirLien('https://drive.google.com/drive/folders/' + id);
+      el.insertAdjacentHTML('beforeend', `<span class="nt">☁ ${vrais.length} fichier(s) → Drive${drive.titre ? ' (' + esc(drive.titre) + ')' : ''}</span>`);
+    } catch (e) { bd.disabled = false; bd.textContent = '⇪ Upload Drive'; msg('Envoi impossible : ' + (e.message || e)); }
+  };
+};
+
 // ---------- voyant et afficheur « Drive » du bandeau ----------
 BK.etatDrive = function () {
   const ok = BK.drive && BK.drive.relie(), hl = ok && !BK.db.enLigne;

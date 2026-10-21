@@ -11,6 +11,9 @@ BK.etapes = [            // les étapes d'un morceau et leur poids dans le pourc
   { id: 'promo',    nom: 'Promo',      poids: 20 },
 ];
 BK.pourcent = m => BK.etapes.reduce((t, e, i) => t + (i < (m.fait || 0) ? e.poids : i === (m.fait || 0) ? e.poids * (m.enCours || 0) : 0), 0);
+// la couleur de l'avancement : les mêmes que le rail sous les titres (rouge → orange → jaune → bleu → vert)
+BK.couleurAvance = (m) => { const pc = m.statut === 'sorti' ? 100 : BK.pourcent(m);
+  return pc >= 100 ? '#6c9a52' : pc >= 80 ? 'var(--teal)' : pc >= 60 ? 'var(--mus)' : pc >= 40 ? 'var(--org)' : pc >= 20 ? 'var(--rust)' : 'var(--ox)'; };
 
 (() => {
 const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
@@ -52,7 +55,7 @@ BK.module('accueil', function (page) {
     $('.hdr .right', page).innerHTML = `<div><span class="eng" style="font-size:9px">À faire</span><span class="vfd">${String(d.afaire.length).padStart(2, '0')}</span></div>
       <div><span class="eng" style="font-size:9px">Morceaux en chantier</span><span class="vfd">${String(d.morceaux.length).padStart(2, '0')}</span></div>`;
     const barre = m => { const p = Math.round(BK.pourcent(m));
-      return `<div class="avance mini"><span class="avance-nom">${esc(m.nom)}</span>
+      return `<div class="avance mini" style="--av:${BK.couleurAvance(m)}"><span class="avance-nom">${esc(m.nom)}</span>
         <div class="avance-piste"><div class="etapes">${BK.etapes.map((e, i) => `<span class="seg-etape ${i < (m.fait || 0) ? 'fait' : i === (m.fait || 0) ? 'encours' : ''}" style="flex:${e.poids}"><i style="width:${i < (m.fait || 0) ? 100 : 0}%"></i></span>`).join('')}</div></div>
         <span class="vfd avance-pc">${p} %</span></div>`; };
     const toutFait = d.demarrer.slice(0, 3).every(x => x.ok);

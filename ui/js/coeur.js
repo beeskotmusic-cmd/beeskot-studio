@@ -7,7 +7,7 @@ const $ = (s, r = document) => r.querySelector(s);
 const $$ = (s, r = document) => [...r.querySelectorAll(s)];
 
 const BK = {
-  version: '0.9.48 bêta',
+  version: '0.9.49 bêta',
   modules: {},
   onglets: [],
   cotes: [],
@@ -135,7 +135,29 @@ const BK = {
       $('#stopLed').classList.add('on'); $('#syMaj').textContent = 'MAJ ' + m.version;
       $('#btStop').classList.add('maj'); $('#btStop').title = 'Mise à jour ' + m.version + ' disponible';
       const b = $('#stMaj'); b.classList.remove('hidden'); b.classList.add('clignote'); b.textContent = '⬇ Installer la version ' + m.version;
+      BK.popupMaj(m);
     } catch (e) { /* pas d'Internet : on réessaiera tout à l'heure */ }
+  },
+  // ---------- la mise à jour est obligatoire (tout le monde sur la même version) : un gros pop-up au milieu ----------
+  popupMaj(m) {
+    if (document.getElementById('majVoile')) return;
+    if (Date.now() < BK.reglage('maj.plusTard', 0)) { setTimeout(() => BK.popupMaj(m), BK.reglage('maj.plusTard', 0) - Date.now() + 500); return; }
+    const v = document.createElement('div'); v.className = 'voile maj-voile'; v.id = 'majVoile';
+    v.innerHTML = `<div class="stopbox maj-box">
+      <span class="screw tl"></span><span class="screw tr"></span><span class="screw bl"></span><span class="screw br"></span>
+      <img src="look/patch-biscotte.png" class="maj-biscotte" alt="">
+      <span class="dymo">Mise à jour nécessaire</span>
+      <p class="maj-txt">Si tu ne veux pas que tout parte en miettes,<br><b>fais la mise à jour.</b></p>
+      <span class="nt">Version ${String(m.version).replace(/[<>&]/g, '')} · tout le groupe doit avoir la même pour que le travail reste synchronisé. Ça prend une minute, le logiciel se relance tout seul.</span>
+      <button class="btn pri maj-go" id="majGo">⬇ Installer maintenant</button>
+      <button class="maj-tard" id="majTard">Plus tard (10 min) — je finis ce que je fais</button></div>`;
+    document.body.appendChild(v);
+    v.querySelector('#majGo').onclick = async () => {
+      const b = v.querySelector('#majGo'); b.disabled = true; b.innerHTML = '<span class="spin"></span>Téléchargement…'; v.querySelector('#majTard').remove();
+      try { await BK.majDispo.downloadAndInstall(); await BK.T.process.relaunch(); }
+      catch (e) { b.disabled = false; b.textContent = 'Échec : réessayer'; }
+    };
+    v.querySelector('#majTard').onclick = () => { BK.regler('maj.plusTard', Date.now() + 10 * 60e3); v.remove(); setTimeout(() => BK.popupMaj(m), 10 * 60e3 + 500); };
   },
   async installerMaj() {
     if (!BK.majDispo) return;
@@ -170,6 +192,10 @@ const BK = {
     BK.charge(); setInterval(BK.charge, 5000);
     BK.appliquerZoom(BK.reglage('zoom', 100));
     BK.synchro && BK.synchro.demarrer();                              // ce qu'un autre PC change arrive ici tout seul
+    // ce qu'on fait ici (la ligne d'état en bas de l'onglet) est partagé avec les autres PC
+    new MutationObserver(ms => { for (const m of ms) { const v = (m.target.nodeType === 3 ? m.target.parentElement : m.target); if (!v) continue;
+      const vfd = v.closest && v.closest('.pane.abar > .vfd'); if (vfd && vfd === vfd.parentElement.querySelector('.vfd') && !vfd.closest('.page.hidden')) BK.presence && BK.presence.noter(vfd.textContent); } })
+      .observe(document.body, { subtree: true, childList: true, characterData: true });
     const ba = document.getElementById('stAmeliorer');                 // raconter un souci → Miette AI › Aides
     if (ba) ba.onclick = () => { document.getElementById('stopVoile').classList.add('hidden');
       BK.regler('renfort.aide', 'amelioration'); BK.renfortDemander ? BK.renfortDemander('amelioration', {}) : BK.ouvrir('renforts'); };

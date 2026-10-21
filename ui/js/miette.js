@@ -149,11 +149,18 @@ Règles : "taches" = ce que quelqu'un doit faire et qui n'est pas déjà fait ni
 // ---------- qui travaille sur BEESKOT Studio en même temps que toi ----------
 // Chaque PC laisse un petit mot sur le Drive toutes les 40 s : son nom et l'onglet ouvert.
 BK.presence = {
+  action: '', actionT: 0, dernierEnvoi: 0,
+  // ce que ce PC est en train de faire : la petite ligne d'état de l'onglet ouvert (« Export 2/3 », « Image prête »…)
+  noter(t) { t = String(t || '').trim(); if (!t || t === BK.presence.action) return; BK.presence.action = t.slice(0, 60); BK.presence.actionT = Date.now();
+    const attente = 15e3 - (Date.now() - BK.presence.dernierEnvoi);                   // on prévient les autres vite, mais pas plus d'une fois toutes les 15 s
+    clearTimeout(BK.presence._t); BK.presence._t = setTimeout(() => BK.presence.maj(), Math.max(0, attente)); },
   async battre() {
     if (!BK.drive || !BK.drive.relie()) return;
     const moi = BK.reglage('nomPc', '') || 'ce PC';
     const o = (BK.onglets || []).find(x => x.id === BK.reglage('dernierOnglet', 'accueil'));
-    try { await BK.db.ecrire('config', { id: 'ici-' + moi.toLowerCase().replace(/[^a-z0-9]+/g, '-'), qui: moi, onglet: o ? o.titre : '', t: Date.now() }, { sansAnnuler: true }); } catch (e) {}
+    const action = Date.now() - BK.presence.actionT < 10 * 60e3 ? BK.presence.action : '';            // une action trop vieille ne compte plus
+    BK.presence.dernierEnvoi = Date.now();
+    try { await BK.db.ecrire('config', { id: 'ici-' + moi.toLowerCase().replace(/[^a-z0-9]+/g, '-'), qui: moi, onglet: o ? o.titre : '', action, t: Date.now() }, { sansAnnuler: true }); } catch (e) {}
   },
   async lire() {
     if (!BK.drive || !BK.drive.relie()) return [];
@@ -168,9 +175,18 @@ BK.presence = {
     const l = await BK.presence.lire();
     if (!b) return;
     b.style.display = BK.drive && BK.drive.relie() ? '' : 'none';
-    z.textContent = l.length ? l.map(x => String(x.qui).toUpperCase()).join(' · ') : 'PERSONNE';
+    const moi = BK.reglage('nomPc', '') || 'ce PC';
+    const tous = [{ qui: moi, onglet: '', moi: true }, ...l];                 // toi d'abord, puis les autres
+    z.innerHTML = tous.map(x => `<span class="sy-p${x.moi ? ' moi' : ''}" title="${String(x.qui + (x.onglet ? ' — ' + x.onglet : '')).replace(/"/g, '')}">● ${String(x.qui).toUpperCase().replace(/[<>&]/g, '')}${x.onglet ? `<small>${String(x.onglet).replace(/[<>&]/g, '')}</small>` : ''}</span>`).join('');
     b.title = l.length ? l.map(x => x.qui + (x.onglet ? ' — ' + x.onglet : '')).join('\n') : 'Tu es seul sur BEESKOT Studio en ce moment';
     b.classList.toggle('qui-on', !!l.length);
+    // la ligne d'équipe en bas de chaque page : qui fait quoi, en ce moment
+    const txt = l.filter(x => x.action || x.onglet).map(x => `<b>${String(x.qui).replace(/[<>&]/g, '')}</b> ${String(x.action || x.onglet).replace(/[<>&]/g, '')}`).join('<i>·</i>');
+    for (const bar of document.querySelectorAll('.pane.abar')) {
+      let e = bar.querySelector('.abar-equipe');
+      if (!e) { e = document.createElement('span'); e.className = 'abar-equipe'; const r = bar.querySelector('.right'); r ? bar.insertBefore(e, r) : bar.appendChild(e); }
+      e.innerHTML = txt ? '<em>EN CE MOMENT</em>' + txt : ''; e.classList.toggle('hidden', !txt);
+    }
   },
 };
 

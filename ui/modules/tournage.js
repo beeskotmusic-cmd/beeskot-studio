@@ -19,6 +19,9 @@ function reduire(f, max = 520) {
     im.onerror = () => { URL.revokeObjectURL(u); ko(new Error('Image illisible')); }; im.src = u; });
 }
 
+const iconeLien = u => /instagram\./i.test(u) ? '📸' : /tiktok\./i.test(u) ? '🎵' : /youtu\.?be/i.test(u) ? '▶' : /pinterest\./i.test(u) ? '📌' : '🔗';
+const nomLien = u => { try { const x = new URL(u); return x.hostname.replace(/^www\./, '') + (x.pathname.length > 1 ? x.pathname.slice(0, 28) : ''); } catch (e) { return u.slice(0, 40); } };
+
 BK.module('tournage', function (page) {
   $('.sub', page).textContent = 'Moodboard, découpage, tenues : une fiche à imprimer pour chaque tournage';
   $('.hdr .right', page).innerHTML = `<div><span class="eng" style="font-size:9px">Prochain</span><span class="vfd" id="toProchain" style="width:220px">—</span></div>`;
@@ -106,10 +109,13 @@ BK.module('tournage', function (page) {
         </div></div>
       <div class="box"><div class="ligne-titre"><span class="lb">Moodboard</span><span class="nt" style="margin:0 0 0 auto">Glisse des images ici (captures, photos, Pinterest…)</span></div>
         <div class="to-mood" id="toMood">${t.moodboard.map((u, i) => `<div class="to-img" style="background-image:url(${u})"><button class="md-x" data-mx="${i}">✕</button></div>`).join('')}
-          <button class="to-img to-plus to-plus-tag" id="toMoodTag" title="Les médias étiquetés tournage (Médias)">🏷<small>Médias</small></button><button class="to-img to-plus" id="toMoodPlus" title="Images de ce PC">💻<small>Ce PC</small></button><button class="to-img to-plus to-plus-drive" id="toMoodDrive" title="Images du Drive">☁<small>Drive</small></button></div>
+          <button class="to-img to-plus to-plus-tag" id="toMoodTag" title="Les médias étiquetés, tout le cloud, ou Discord">＋<small>Ajouter des images</small></button><button class="to-img to-plus" id="toMoodPlus" title="Images de ce PC">💻<small>Ce PC</small></button></div>
         ${(t.moodboardDocs || []).length ? `<div class="to-docs">${t.moodboardDocs.map((d, i) => `<span class="to-doc"><a href="#" data-url="${esc(d.url)}">📄 ${esc(d.nom)}</a><button class="md-x" data-dx="${i}">✕</button></span>`).join('')}</div>` : ''}
         ${t.moodboardAuto ? '<span class="nt">🍞 Rempli par Miette depuis le dossier moodboard du Drive.</span>' : ''}
-        <input type="file" id="toMoodIn" accept="image/*" multiple hidden></div>
+        <input type="file" id="toMoodIn" accept="image/*" multiple hidden>
+        <div class="to-refs"><div class="ligne-titre"><span class="lb">Références</span><span class="nt" style="margin:0 0 0 auto">Des liens : reels Instagram, TikTok, YouTube, Pinterest…</span></div>
+          <div class="to-refs-l">${(t.references || []).map((r, i) => `<span class="to-ref"><a href="#" data-url="${esc(r.url)}" title="${esc(r.url)}">${esc(iconeLien(r.url))} ${esc(r.note || nomLien(r.url))}</a><button class="md-x" data-rx="${i}">✕</button></span>`).join('')}</div>
+          <div class="to-refs-add"><input class="fld" id="toRefUrl" placeholder="Colle un lien (https://…)"><input class="fld" id="toRefNote" placeholder="En un mot : pourquoi (facultatif)"><button class="btn sm" id="toRefAdd">+ Ajouter</button></div></div></div>
       <div class="box"><div class="ligne-titre"><span class="lb">Découpage</span>
           <button class="btn xs" id="toRenfort" style="margin-left:auto">🍞 Idées avec Miette</button></div>
         <table class="to-plans"><thead><tr><th>#</th><th>Cadrage</th><th>Ce qu'on voit / ce qui se passe</th><th>Durée</th><th>Notes</th><th></th></tr></thead>
@@ -148,34 +154,74 @@ BK.module('tournage', function (page) {
     $$('[data-mx]', z).forEach(b => b.onclick = () => { t.moodboard.splice(+b.dataset.mx, 1); sauver(t); rendreFiche(); });
     $('#toMoodPlus').onclick = () => $('#toMoodIn').click();
     // en priorité : ce qui est déjà étiqueté dans Médias (moodboard, tenues, ce tournage, le morceau)
+    // chaque encadré de la fiche se replie d'un clic sur son titre (et on s'en souvient)
+    (() => {
+      const plis = BK.reglage('tournage.plis', {});
+      for (const box of $$('#toCorps > .box, #toCorps .deux-box > .box, #toCorps .to-refs')) {
+        const lb = box.querySelector(':scope > .lb, :scope > .ligne-titre > .lb'); if (!lb || lb.dataset.pli) continue;
+        const cle = lb.textContent.trim().replace(/[^a-zà-ÿ]/gi, '').toLowerCase() || 'x';
+        lb.dataset.pli = cle; lb.classList.add('pliable'); lb.title = 'Replier / déplier';
+        const tete = lb.parentElement.classList.contains('ligne-titre') ? lb.parentElement : lb; tete.classList.add('box-tete');
+        lb.insertAdjacentHTML('afterbegin', `<span class="pli-fleche">${plis[cle] ? '▸' : '▾'}</span>`);
+        box.classList.toggle('replie', !!plis[cle]);
+        lb.onclick = e => { e.stopPropagation(); const p = BK.reglage('tournage.plis', {}); p[cle] = !p[cle]; BK.regler('tournage.plis', p);
+          box.classList.toggle('replie', p[cle]); lb.querySelector('.pli-fleche').textContent = p[cle] ? '▸' : '▾'; };
+      }
+    })();
     $('#toMoodTag').onclick = async () => {
       if (!BK.drive.relie()) return msg('Relie d\'abord le Drive');
       const ms = await BK.db.liste('morceaux'), m = BK.inv.trouverMorceau(t.morceau || '', ms);
       const cles = ['c:moodboard', 'c:tournage', 'c:outfits', 't:' + t.id, ...(m ? [m.id] : [])];
-      const l = await BK.choisirImages({ titre: '🏷 Les médias étiquetés pour ce tournage', bouton: 'Ajouter au moodboard', charger: async () => {
+      const image = f => /^image\//.test(f.mimeType || '');
+      // 1. les médias déjà étiquetés pour ce tournage  2. tout le cloud  3. Discord
+      const etiquetes = async () => {
         await BK.dossiers.assurer();
         const [tous, tags, carte] = await Promise.all([BK.dossiers.tousFichiers(), BK.etiquettes.tous(), BK.dossiers.carte()]);
         const vus = new Set(), out = [];
         for (const k of cles) for (const f of tous) {
-          if (vus.has(f.id) || !/^image\//.test(f.mimeType || '')) continue;
+          if (vus.has(f.id) || !image(f)) continue;
           const et = BK.etiquettes.liste(tags, f.id);
           const dossierMood = (f.parents || [])[0] && BK.dossiers.ancetres(f.parents[0], carte).some(a => /mood|outfit|tournage/i.test(carte[a].name));
           if (!et.includes(k) && !(k === 'c:moodboard' && dossierMood)) continue;
           vus.add(f.id); out.push({ id: f.id, nom: f.name, f, vignette: () => BK.drive.vignette(f) });
         }
-        return out; } });
+        return out; };
+      const toutLeCloud = async () => { await BK.dossiers.assurer();
+        return (await BK.dossiers.tousFichiers()).filter(image).sort((a, b) => (b.modifiedTime || '').localeCompare(a.modifiedTime || '')).slice(0, 300)
+          .map(f => ({ id: f.id, nom: f.name, f, vignette: () => BK.drive.vignette(f) })); };
+      const discord = async () => { const l = await BK.discord.mediasVite('media', {}).catch(() => []);
+        return (l || []).filter(x => /\.(jpe?g|png|webp|gif)$/i.test(x.nom || x.name || '')).map(x => ({ id: 'dc:' + x.id, nom: x.nom || x.name, dc: x, apercu: x.url })); };
+      const l = await BK.choisirImages({ titre: 'Images pour le moodboard', bouton: 'Ajouter au moodboard',
+        sources: [{ nom: '🏷 Étiquetés pour ce tournage', charger: etiquetes }, { nom: '☁ Tout le cloud', charger: toutLeCloud }, { nom: '🍞 Discord', charger: discord }] });
       if (!l || !l.length) return;
       msg('Ajout des images…');
-      for (const x of l) { try { const u = await BK.drive.vignette(x.f); if (u) t.moodboard.push(await enDataUrl(u)); } catch (e) {} await BK.audio.pause(); }
-      t.moodboardAuto = false; await BK.db.ecrire('tournages', t); msg(l.length + ' image(s) ajoutée(s)'); rendreFiche();
+      const tagsMood = ['t:' + t.id, 'c:moodboard', 'c:tournage'];
+      let dosMood = null;
+      for (const x of l) {
+        try {
+          let f = x.f;
+          if (x.dc) {                                        // venu de Discord : on le range d'abord dans le Drive (dossier moodboard)
+            const r = await BK.discord.fetch(x.dc.url); if (!r.ok) throw new Error('expiré sur Discord');
+            const blob = await r.blob();
+            dosMood = dosMood || await BK.dossiers.get('moodboard');
+            if (dosMood) f = await BK.drive.envoyerBlob(new File([blob], x.nom, { type: blob.type || 'image/jpeg' }), x.nom, dosMood.id, () => {});
+            t.moodboard.push(await enDataUrl(URL.createObjectURL(blob)));
+          } else { const u = await BK.drive.vignette(f); if (u) t.moodboard.push(await enDataUrl(u)); }
+          if (f && f.id) for (const k of tagsMood) await BK.etiquettes.basculer(f.id, k, true);   // étiqueté tournage + moodboard, tout seul
+        } catch (e) { console.warn(e); }
+        await BK.audio.pause();
+      }
+      BK.dossiers.oublier && BK.dossiers.oublier();
+      t.moodboardAuto = false; await BK.db.ecrire('tournages', t); msg(l.length + ' image(s) ajoutée(s) et étiquetées'); rendreFiche();
     };
-    $('#toMoodDrive').onclick = async () => {
-      if (!BK.drive.relie()) return msg('Relie d\'abord le Drive');
-      const l = await BK.explorerDrive({ titre: 'Images du Drive pour le moodboard', mode: 'images', depart: 'moodboard' }); if (!l || !l.length) return;
-      msg('Ajout des images…');
-      for (const f of l) { try { const u = await BK.drive.vignette(f); if (u) t.moodboard.push(await enDataUrl(u)); } catch (e) {} }
-      await BK.db.ecrire('tournages', t); msg('Moodboard enregistré'); rendreFiche();
-    };
+    // les références (liens)
+    const ajouterRef = async () => { const u = $('#toRefUrl').value.trim(), n = $('#toRefNote').value.trim();
+      if (!/^https?:\/\//i.test(u)) { $('#toRefUrl').focus(); return msg('Colle un lien qui commence par https://'); }
+      t.references = t.references || []; t.references.push({ url: u, note: n }); await BK.db.ecrire('tournages', t); msg('Référence ajoutée'); rendreFiche(); };
+    $('#toRefAdd').onclick = ajouterRef;
+    ['#toRefUrl', '#toRefNote'].forEach(k => $(k).addEventListener('keydown', e => { e.stopPropagation(); if (e.key === 'Enter') ajouterRef(); }));
+    $$('[data-rx]', z).forEach(b => b.onclick = async () => { t.references.splice(+b.dataset.rx, 1); await BK.db.ecrire('tournages', t); rendreFiche(); });
+    $$('.to-ref a[data-url]', z).forEach(a => a.onclick = e => { e.preventDefault(); BK.ouvrirLien(a.dataset.url); });
     $$('[data-audio]', z).forEach(b => b.onclick = () => versAudio(t.plans[+b.dataset.audio]));
     $('#toMoodIn').onchange = e => { ajouterImages(t, e.target.files); e.target.value = ''; };
     $('#toSuppr').onclick = async () => { if (!confirm(`Retirer « ${t.titre || 'ce tournage'} » ? (rangé dans la corbeille du Drive)`)) return; await BK.db.supprimer('tournages', t.id); T.courant = null; msg('Retiré'); charger(); };

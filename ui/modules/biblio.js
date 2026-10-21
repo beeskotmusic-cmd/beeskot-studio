@@ -126,20 +126,31 @@ BK.module('biblio', function (page) {
     for (const el of $$('.drive-res', page)) {
       const m = B.morceaux.find(x => x.id === el.dataset.m); if (!m) continue;
       try {
-        const parts = await BK.biblioDrive(m);
+        const brut = await BK.biblioDrive(m), tags = await BK.etiquettes.tous().catch(() => ({}));
         if (!el.isConnected) continue;
+        // on range par ce que c'est, pas par dossier du Drive
+        const tous = brut.flatMap(p => p.l), vus = new Set(), G = { audio: [], ableton: [], medias: [], autres: [] };
+        for (const f of tous) { if (vus.has(f.id)) continue; vus.add(f.id);
+          const n = f.name || '';
+          const k = f.groupe ? 'audio' : /\.(wav|mp3|aiff?|flac|m4a)$/i.test(n) ? 'audio' : /\.(als|alp|zip)$/i.test(n) || f.role === 'ableton' ? 'ableton'
+            : /^(image|video)\//.test(f.mimeType || '') ? 'medias' : 'autres';
+          G[k].push(f); }
+        const parts = [['audio', '🎵 Audio (exports, mix, WAV tournage, stems)'], ['ableton', '🎛 Projets Ableton'], ['medias', '🖼 Photos et vidéos'], ['autres', '📄 Autres']]
+          .filter(([k]) => G[k].length).map(([k, titre]) => ({ k, titre, l: G[k].sort((a, b) => (b.modifiedTime || '').localeCompare(a.modifiedTime || '')) }));
+        const puces = f => { const l = BK.etiquettes.liste(tags, f.id).filter(x => /^[a-z]:/.test(x) && x !== 'c:masque');
+          return l.map(x => `<em class="etq" style="--tc:${BK.couleurTag(x)}">${esc(BK.nomTag(x) || x.replace(/^[a-z]:/, ''))}</em>`).join(''); };
         el.innerHTML = parts.length ? parts.map(p => `<div class="drive-bloc${sectionsFermees[p.k] ? ' ferme' : ''}" data-sec="${p.k}">
             <button class="drive-sec"><span class="fleche">${sectionsFermees[p.k] ? '▸' : '▾'}</span>${p.titre} <em>(${p.l.length})</em></button>
             <div class="drive-l">${p.l.slice(0, 30).map((f, i) => f.groupe ? `<div class="ligne-f"><span class="etoile">🎚</span>
               <a href="#" class="f-nom lien" data-url="https://drive.google.com/drive/folders/${f.id}">Stems : ${f.n} fichier(s)</a>
               <span class="nt f-chemin">📁 ${esc((f.dossiers || []).map(BK.dossiers.joli).join(' / '))}</span><span class="nt f-meta">ouvrir le dossier</span></div>`
               : `<div class="ligne-f${i === 0 ? ' recent' : ''}"><span class="etoile">${i === 0 ? '★' : icone(f.name)}</span>
-              <a href="#" class="f-nom lien" data-url="${esc(f.webViewLink)}" title="${esc([...(f.dossiers || []), f.name].join(' / '))}">${esc(f.name)}</a>
-              ${p.k === 'ailleurs' || p.k === 'medias' || p.k === 'mix' ? `<span class="nt f-chemin" title="${esc((f.dossiers || []).join(' / '))}">📁 ${esc((f.dossiers || []).map(BK.dossiers.joli).join(' / ') || 'Mon Drive')}</span>` : ''}
+              <a href="#" class="f-nom lien" data-url="${esc(f.webViewLink)}" title="${esc([...(f.dossiers || []), f.name].join(' / '))}">${esc(f.name)}</a><span class="etqs">${puces(f)}</span>
+              ${true ? `<span class="nt f-chemin" title="${esc((f.dossiers || []).join(' / '))}">📁 ${esc((f.dossiers || []).map(BK.dossiers.joli).join(' / ') || 'Mon Drive')}</span>` : ''}
               <span class="nt f-meta">${date(f.modifiedTime)}${f.size ? ' · ' + Math.max(1, Math.round(f.size / 1e6)) + ' Mo' : ''}</span>
               ${/\.(wav|mp3)$/i.test(f.name) ? `<button class="btn xs" data-ecoute="${f.id}" data-nom="${esc(f.name)}" title="Écouter">▶</button><button class="btn xs" data-dreel="${f.id}" data-nom="${esc(f.name)}">→ Reel</button>` : ''}</div>`).join('')}
               ${p.l.length > 30 ? `<span class="nt">… et ${p.l.length - 30} autre(s)</span>` : ''}</div></div>`).join('')
-          : '<span class="nt">Rien trouvé dans le Drive pour ce morceau. Dans Médias, tu peux étiqueter des fichiers pour ce morceau.</span>';
+          : '<span class="nt">Rien d\'étiqueté pour ce morceau pour l\'instant. Clique « 🏷 Étiqueter d\'autres fichiers » juste au-dessus.</span>';
         $$('.drive-sec', el).forEach(b => b.onclick = () => { const bl = b.parentElement, k = bl.dataset.sec; sectionsFermees[k] = !sectionsFermees[k]; BK.regler('biblio.sections', sectionsFermees);
           bl.classList.toggle('ferme', !!sectionsFermees[k]); $('.fleche', b).textContent = sectionsFermees[k] ? '▸' : '▾'; });
         $$('.lien', el).forEach(a => a.onclick = e => { e.preventDefault(); BK.ouvrirLien(a.dataset.url); });
@@ -208,7 +219,7 @@ BK.module('biblio', function (page) {
     const pc = Math.round(BK.pourcent(m));
     const t = (id, titre, resume, corps) => { const o = (B.tiroirs[m.id] || []).includes(id);
       return `<div class="tiroir${o ? ' ouvert' : ''}" data-t="${id}"><button class="tiroir-tete"><span class="fleche">${o ? '▾' : '▸'}</span><span class="lb">${titre}</span><span class="nt tiroir-resume">${resume}</span></button>${o ? `<div class="tiroir-corps">${corps()}</div>` : ''}</div>`; };
-    return `<article class="fiche${ouvert ? ' ouverte' : ''}" data-id="${m.id}">
+    return `<article class="fiche${ouvert ? ' ouverte' : ''}" data-id="${m.id}" style="--av:${BK.couleurAvance(m)}">
       <div class="fiche-haut">
         <button class="fiche-photo${m.photo ? '' : ' vide'}" data-act="photo" title="Choisir la photo du morceau" ${m.photo ? `style="background-image:url(${m.photo})"` : ''}>${m.photo ? '' : '🖼'}</button>
         <div class="fiche-droite">
@@ -243,7 +254,8 @@ BK.module('biblio', function (page) {
           <div class="chips" style="margin-top:8px"><button class="chip" data-act="plein">Plein écran</button><button class="chip" data-act="copier">Copier pour le distributeur</button><button class="chip" data-act="paroles" title="Ouvre la recherche dans ton navigateur : copie-colle les paroles ici">🔎 Chercher les paroles</button></div>`)}
         ${t('infos', 'Infos', [m.bpm && m.bpm + ' BPM', m.ton, m.duree, m.sortie && 'sortie ' + m.sortie].filter(Boolean).join(' · ') || '—', () => `
           <div class="infos">
-            <label><span class="eng">BPM</span><input class="fld" data-champ="bpm" value="${esc(m.bpm || '')}"></label>
+            <label><span class="eng">BPM <small class="nt" style="margin:0">${m.bpm ? ({ nous: '· écrit par vous', ableton: '· lu dans Ableton', detecte: '· deviné (à vérifier)' })[m.bpmSource || 'detecte'] : ''}</small></span>
+              <span class="bpm-ligne"><input class="fld" data-champ="bpm" value="${esc(m.bpm || '')}"><button class="btn xs" data-act="bpmAbleton" title="Lit le tempo du projet ouvert dans Ableton (pont BEESKOT)">🎛 Ableton</button></span></label>
             <label><span class="eng">Tonalité</span><input class="fld" data-champ="ton" value="${esc(m.ton || '')}" placeholder="ex. Mi mineur"></label>
             <label><span class="eng">Durée</span><input class="fld" data-champ="duree" value="${esc(m.duree || '')}" placeholder="3:45"></label>
             <label><span class="eng">Date de sortie</span><input class="fld" type="date" data-champ="sortie" value="${esc(m.sortie || '')}"></label>
@@ -255,8 +267,9 @@ BK.module('biblio', function (page) {
         ${t('avance', 'Avancement', `${BK.etapes[Math.min(m.fait || 0, 5)].nom} · ${pc} %`, () => `
           <div class="etapes-clic">${BK.etapes.map((e, i) => `<button class="etape-b ${i < (m.fait || 0) ? 'fait' : i === (m.fait || 0) ? 'encours' : ''}" data-etape="${i}">${e.nom}</button>`).join('')}</div>
           `)}
-        ${t('liens', 'Drive BEESKOT', ((m.liens || []).length ? m.liens.length + ' lien(s) · ' : '') + (BK.drive.relie() ? 'projets, exports, tournages, photos…' : 'Drive non relié'), () => `
-          ${BK.drive.relie() ? `<div class="drive-res" data-m="${m.id}"><span class="nt"><span class="spin"></span>Recherche dans le Drive…</span></div>` : ''}
+        ${t('liens', '🏷 Étiqueté BEESKOT', ((m.liens || []).length ? m.liens.length + ' lien(s) · ' : '') + (BK.drive.relie() ? 'tout ce qui concerne ce morceau' : 'Drive non relié'), () => `
+          ${BK.drive.relie() ? `<button class="btn xs etq-plus" data-act="etiqueter">🏷 Étiqueter d'autres fichiers pour ${esc(m.nom)}</button>
+            <div class="drive-res" data-m="${m.id}"><span class="nt"><span class="spin"></span>Recherche…</span></div>` : ''}
           ${(m.liens || []).map((l, i) => `<div class="ligne-f"><span class="etoile">🔗</span><a href="#" class="f-nom lien" data-url="${esc(l.url)}" title="${esc(l.url)}">${esc(l.titre || l.url)}</a><button class="btn xs" data-lienx="${i}">✕</button></div>`).join('')}
           <div class="lien-aj"><input class="fld" data-lien="titre" placeholder="ex. Projet Ableton v8 (zipper)"><input class="fld" data-lien="url" placeholder="colle le lien Google Drive…"><button class="btn xs" data-act="lien">+ Ajouter</button></div>
           ${BK.drive.relie() ? '' : '<span class="nt">Relie le Drive (Réglages) : les fichiers déposés dans le Drive, par ex. par le zipper Discord, apparaîtront ici tout seuls.</span>'}`)}
@@ -388,7 +401,8 @@ BK.module('biblio', function (page) {
         l.includes(id) ? l.splice(l.indexOf(id), 1) : l.push(id); BK.regler('biblio.tiroirs', B.tiroirs); rendre(); });
       $$('[data-champ]', el).forEach(c => c.onchange = async () => {
         const k = c.dataset.champ; m[k] = k === 'alias' ? c.value.split(',').map(s => s.trim()).filter(Boolean) : c.value;
-        await sauver(m); msg('Enregistré'); if (k === 'alias') { rendre(); } });
+        if (k === 'bpm') m.bpmSource = c.value.trim() ? 'nous' : '';             // ce que vous écrivez passe devant Ableton et la détection
+        await sauver(m); msg('Enregistré'); if (k === 'alias' || k === 'bpm') { rendre(); } });
       $$('.f-note', el).forEach(c => c.onchange = async () => { (m.notesExports = m.notesExports || {})[c.dataset.f] = c.value; await sauver(m); msg('Note enregistrée'); });
       $$('[data-etape]', el).forEach(b => b.onclick = async () => { const i = +b.dataset.etape; m.fait = (m.fait || 0) === i + 1 ? i : i + 1; m.enCours = 0; await sauver(m); rendre(); });
       $$('[data-ouvrir]', el).forEach(b => b.onclick = async () => { try { await BK.fichier.ouvrir(b.dataset.ouvrir); msg('Ouverture dans Ableton…'); } catch (e) { msg('Impossible d\'ouvrir'); } });
@@ -421,9 +435,18 @@ BK.module('biblio', function (page) {
           if (!BK.estExe && src.chemin) return msg('Disponible dans le logiciel installé');
           try { msg('Analyse de ' + src.nom + '…'); const buf = await BK.audio.decoder(await lecteur.octets(src));
             const r = await BK.audio.analyser(buf, p => msg('Analyse… ' + Math.round(p * 100) + ' %'));
-            Object.assign(m, { duree: r.duree, bpm: String(r.bpm), ton: r.ton }); await sauver(m); msg(`${r.duree} · ${r.bpm} BPM · ${r.ton}`); rendre(); }
+            m.duree = r.duree; if (!m.ton) m.ton = r.ton;
+            if (!m.bpm || m.bpmSource === 'detecte' || !m.bpmSource) { m.bpm = String(r.bpm); m.bpmSource = 'detecte'; }   // jamais par-dessus ce que vous ou Ableton avez dit
+            await sauver(m); msg(`${r.duree} · ${m.bpm} BPM (${m.bpmSource === 'detecte' ? 'deviné' : 'gardé'}) · ${m.ton}`); rendre(); }
           catch (e) { console.error(e); msg('Analyse impossible'); } }
         if (a === 'copier') { await navigator.clipboard.writeText(BK.parolesPropres(m.paroles)); msg('Paroles copiées'); }
+        if (a === 'etiqueter') { BK.ouvrirMediasMorceau ? BK.ouvrirMediasMorceau(m.id) : BK.ouvrir('medias'); return; }
+        if (a === 'bpmAbleton') {
+          if (!BK.ableton.relie) return msg('Ableton n\'est pas relié (ouvre Ableton avec le projet du morceau)');
+          try { const r = await BK.ableton.req({ cmd: 'ping' }); const t = Math.round((r.tempo || 0) * 100) / 100; if (!t) return msg('Ableton ne donne pas de tempo');
+            if (m.bpmSource === 'nous' && m.bpm && !confirm(`Vous aviez écrit ${m.bpm} BPM. Remplacer par ${t} lu dans Ableton ?`)) return;
+            m.bpm = String(t); m.bpmSource = 'ableton'; await sauver(m); msg(`${t} BPM lu dans Ableton`); rendre(); }
+          catch (e) { msg('Ableton ne répond pas : ' + (e.message || e)); } }
         if (a === 'plein') BK.pleinEcran(m.nom, m.paroles);
         if (a === 'lien') { const u = $('[data-lien="url"]', el).value.trim(); if (!/^https?:\/\//i.test(u)) return msg('Colle un lien qui commence par https://');
           (m.liens = m.liens || []).push({ titre: $('[data-lien="titre"]', el).value.trim(), url: u }); await sauver(m); msg('Lien ajouté'); rendre(); }

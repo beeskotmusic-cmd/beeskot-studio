@@ -97,7 +97,7 @@ BK.module('reels', function (page) {
     <div class="pane abar" aria-label="Barre">
       <span class="vfd" id="reMsg">CHARGE UN MORCEAU</span>
       <span class="nt" id="reQuoi" style="margin:0 12px"></span>
-      <div class="right"><button class="btn hidden" id="reDrive" title="Dans Photos/Vidéos › Tournages › WAV tournages › le morceau">⇪ Tournage → Drive</button><button class="btn pri" id="reExport" disabled>Exporter ▶</button></div></div>`;
+      <div class="right"><button class="btn pri" id="reExport" disabled>Exporter ▶</button></div></div>`;
 
   const msg = t => $('#reMsg').textContent = String(t).toUpperCase();
   const cv = $('#reCanvas'), onde = $('#reOnde'), bloc = $('#reBloc'), tete = $('#reTete');
@@ -168,9 +168,11 @@ BK.module('reels', function (page) {
   async function lierTempo() {
     if (R.clicBpmManuel || !R.buffer) return;
     const ms = R.morceaux || await BK.db.liste('morceaux'), m = R.source === 'biblio' ? ms.find(x => x.id === $('#reMorceau').value) : BK.inv.trouverMorceau(R.nom, ms);
-    if (m && m.bpm) { R.bpm = parseFloat(String(m.bpm).replace(',', '.')) || 0; $('#reBpm').value = m.bpm; $('#reBpmLien').textContent = '🔗 ' + m.nom; majClic(); return; }
-    try { const a = await BK.audio.analyser(R.buffer); R.bpm = a.bpm; $('#reBpm').value = a.bpm; $('#reBpmLien').textContent = m ? '🔗 ' + m.nom + ' (mesuré)' : '(mesuré)';
-      if (m && !m.bpm) { m.bpm = String(a.bpm); if (!m.ton) m.ton = a.ton; if (!m.duree) m.duree = a.duree; await BK.db.ecrire('morceaux', m); }
+    // priorité : ce que vous avez écrit dans la fiche, puis ce qu'Ableton a dit, puis seulement la détection
+    const src = { nous: 'écrit par vous', ableton: 'Ableton', detecte: 'deviné' };
+    if (m && m.bpm) { R.bpm = parseFloat(String(m.bpm).replace(',', '.')) || 0; $('#reBpm').value = m.bpm; $('#reBpmLien').textContent = '🔗 ' + m.nom + ' · ' + (src[m.bpmSource] || 'deviné'); majClic(); return; }
+    try { const a = await BK.audio.analyser(R.buffer); R.bpm = a.bpm; $('#reBpm').value = a.bpm; $('#reBpmLien').textContent = m ? '🔗 ' + m.nom + ' · deviné (à vérifier)' : '(deviné)';
+      if (m && !m.bpm) { m.bpm = String(a.bpm); m.bpmSource = 'detecte'; if (!m.ton) m.ton = a.ton; if (!m.duree) m.duree = a.duree; await BK.db.ecrire('morceaux', m); }
       majClic(); } catch (e) {}
   }
   async function charger(file) {
@@ -431,20 +433,6 @@ BK.module('reels', function (page) {
       if (r) { r.audio = e.id; r.passage = { debut: R.debut, fin: R.debut + R.duree }; if (r.statut === 'idee') r.statut = 'audio';
         await BK.db.ecrire('reels', r); BK.suiviRecharger && BK.suiviRecharger(); } } catch (er) {} }
   }
-  // après l'export : on montre NOIR SUR BLANC les fichiers écrits et où ils sont
-  function montrerFaits(faits) {
-    const vrais = faits.filter(f => f.p);
-    msg(vrais.length + ' fichier(s) prêt(s)');
-    const z = $('#reFaits'); if (!z) return;
-    z.classList.remove('hidden');
-    const dos = vrais[0] && String(vrais[0].p).replace(/[\\/][^\\/]+$/, '');
-    z.innerHTML = `<span class="lb">✓ ${vrais.length} fichier(s) écrit(s)</span>`
-      + vrais.map(f => `<div class="re-fait"><span>🎵 ${esc(f.nom)}</span></div>`).join('')
-      + (faits.length > vrais.length ? `<span class="nt" style="color:#ff8a6a">${faits.length - vrais.length} fichier(s) n'ont pas pu être écrits</span>` : '')
-      + (dos && BK.estExe ? `<span class="nt mono" style="white-space:normal">${esc(dos)}</span><button class="btn xs" id="reOuvrirDos">📂 Ouvrir le dossier</button>` : '');
-    const b = $('#reOuvrirDos'); if (b) b.onclick = () => { try { BK.T.opener.openPath(dos); } catch (e) { msg('Dossier : ' + dos); } };
-  }
-
   $('#reExport').onclick = async () => {
     if (!R.buffer) return; stop();
     if (R.clic && !R.bpm) return msg('Indique le tempo pour le pré-clic');
@@ -455,33 +443,23 @@ BK.module('reels', function (page) {
       if (!deuxFichiers()) {
         const nom = `${R.nom}_REEL_${d}s.wav`, o = BK.audio.wav(m.canaux, m.sr);
         const p = await BK.enregistrerFichier(dossier, nom, o, 'audio/wav');
-        await garderExport(p, nom, o); faits.push({ nom, p });
+        await garderExport(p, nom, o); faits.push({ nom, p, octets: o, type: 'audio/wav', ic: '🎵' });
       } else {
         const nomM = `${R.nom}_REEL_${d}s_MONTAGE.wav`, o = BK.audio.wav(m.canaux, m.sr);
         const pM = await BK.enregistrerFichier(dossier, nomM, o, 'audio/wav');
-        await garderExport(pM, nomM, o); faits.push({ nom: nomM, p: pM });
+        await garderExport(pM, nomM, o); faits.push({ nom: nomM, p: pM, octets: o, type: 'audio/wav', ic: '🎵' });
         await BK.audio.pause();
         const t = await fabriquer('T'), nomV = String(Math.round(R.v * 100)).padStart(3, '0');
         const nomT = `${R.nom}_REEL_${d}s_TOURNAGE_${nomV}pc${R.clic ? '_CLIC' : ''}.wav`, oT = BK.audio.wav(t.canaux, t.sr);
         const pT = await BK.enregistrerFichier(dossier, nomT, oT, 'audio/wav');
-        await garderExport(pT, nomT, oT, true); faits.push({ nom: nomT, p: pT });   // le fichier tournage est noté lui aussi
-        R.dernierTournage = { octets: oT, nom: nomT };
-        $('#reDrive').classList.toggle('hidden', !BK.drive.relie());
+        const ms = R.morceaux || await BK.db.liste('morceaux'), mo = BK.inv.trouverMorceau(R.nom, ms);
+        await garderExport(pT, nomT, oT, true);           // le fichier tournage est noté lui aussi ; sur le Drive il va dans WAV tournages › le morceau
+        faits.push({ nom: nomT, p: pT, octets: oT, type: 'audio/wav', ic: '🎬', drive: { role: 'wavtournage', sous: [(mo ? mo.nom : R.nom).toUpperCase().replace(/\s+/g, '')] } });
       }
-      montrerFaits(faits);
+      msg(faits.filter(f => f.p).length + ' fichier(s) prêt(s)');
+      BK.montrerExports($('#reFaits'), faits, { drive: { role: 'photovideo', sous: ['Reels', R.nom], titre: 'Photos/Vidéos › Reels › ' + R.nom }, msg });
     } catch (e) { msg('Erreur à l\'export'); console.error(e); }
     b.disabled = false; majBouton();
-  };
-  $('#reDrive').onclick = async () => {
-    const f = R.dernierTournage; if (!f) return;
-    try {
-      await BK.dossiers.assurer(); const w = await BK.dossiers.get('wavtournage'); if (!w) return msg('Dossier « WAV tournages » introuvable (Réglages)');
-      const ms = R.morceaux || await BK.db.liste('morceaux'), m = BK.inv.trouverMorceau(R.nom, ms);
-      const sous = (await BK.dossiers.enfants(w.id, true)).find(x => m && BK.inv.trouverMorceau(x.name, ms) === m);
-      const dos = sous ? sous.id : await BK.drive.dossier((m ? m.nom : R.nom).toUpperCase().replace(/\s+/g, ''), w.id);
-      await BK.drive.envoyerBlob(new Blob([f.octets], { type: 'audio/wav' }), f.nom, dos, p => msg('Envoi · ' + Math.round(p * 100) + ' %'));
-      msg('Dans le Drive ✓ (WAV tournages)'); $('#reDrive').classList.add('hidden');
-    } catch (e) { msg('Envoi impossible : ' + e.message); }
   };
   function majBouton() {
     const deux = deuxFichiers();

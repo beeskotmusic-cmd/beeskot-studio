@@ -229,6 +229,9 @@ BK.etiquettes = {
   doc: null,
   async charger() { if (!BK.etiquettes.doc) BK.etiquettes.doc = (await BK.db.liste('config')).find(x => x.id === 'etiquettes') || { id: 'etiquettes', map: {} }; return BK.etiquettes.doc; },
   async tous() { return (await BK.etiquettes.charger()).map; },
+  // un média Discord rangé dans le Drive : on se souvient de sa copie, pour afficher ses étiquettes dans la vue Discord
+  async noterCopie(dcId, driveId) { const d = await BK.etiquettes.charger(); d.copies = d.copies || {}; d.copies[dcId] = driveId; await BK.db.ecrire('config', d); },
+  copieDe(dcId) { return ((BK.etiquettes.doc || {}).copies || {})[dcId] || null; },
   // un fichier peut avoir PLUSIEURS étiquettes : des morceaux (leur id) et des rubriques (« c:tournage », « t:<fiche tournage> », « c:lumiere »…)
   // '-' = « aucun morceau » (on ne devine plus par le nom)
   liste(tags, id) { const t = tags[id]; return !t ? [] : Array.isArray(t) ? t : [t]; },
@@ -309,6 +312,10 @@ BK.etiquettes.RUBRIQUES = {
   live: [{ k: 'c:live', nom: 'Live / concert' }, { k: 'c:lumiere', nom: 'Light show' }, { k: 'c:scenographie', nom: 'Scénographie' }],
   reseaux: [{ k: 'c:cover', nom: 'Covers' }, { k: 'c:insta', nom: 'Posts Instagram' }, { k: 'c:story', nom: 'Stories' }, { k: 'c:reel', nom: 'Reels / TikTok' }, { k: 'c:affiche', nom: 'Affiches / flyers' }, { k: 'c:presse', nom: 'Presse / EPK' }],
 };
+// une couleur par étiquette, toujours la même partout (palette rétro du logiciel)
+BK.PALETTE_TAGS = ['#d2722e', '#2f7377', '#d9a93c', '#a8432a', '#5f8a9a', '#8a8a4a', '#7a2430', '#c98a5a', '#4e7c59', '#6a4e8a', '#b8691f', '#2a6f8a'];
+BK.couleurTag = k => { let h = 0; for (const c of String(k)) h = (h * 31 + c.charCodeAt(0)) >>> 0; return BK.PALETTE_TAGS[h % BK.PALETTE_TAGS.length]; };
+BK.nomTag = k => { for (const l of Object.values(BK.etiquettes.RUBRIQUES)) { const x = l.find(c => c.k === k); if (x) return x.nom; } return null; };
 BK.etiquettes.sujets = async function () {
   const [ms, ts] = await Promise.all([BK.db.liste('morceaux'), BK.db.liste('tournages')]);
   return [
@@ -329,11 +336,13 @@ BK.etiquettes.fichiersDe = async function (k) {
 
 // ---------- une fenêtre pour choisir plusieurs images (clic, Maj + clic, Tout sélectionner) ----------
 // items : [{ id, nom, info, apercu (url) ou vignette: async () => url }]
-BK.choisirImages = function ({ titre = 'Choisir', items, charger, bouton = 'Ajouter' }) {
+// sources : [{ nom, charger }] → des puces en haut pour changer d'endroit (étiquetés / tout le cloud / Discord)
+BK.choisirImages = function ({ titre = 'Choisir', items, charger, bouton = 'Ajouter', sources }) {
   return new Promise(fin => {
     const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
     const v = document.createElement('div'); v.className = 'voile ex-voile';
     v.innerHTML = `<div class="ex-box"><div class="ex-tete"><span class="lb">${esc(titre)}</span><button class="btn xs" data-ci="x">✕</button></div>
+      ${sources && sources.length ? `<div class="chips ci-src">${sources.map((x, i) => `<button class="chip${i ? '' : ' on'}" data-cis="${i}">${esc(x.nom)}</button>`).join('')}</div>` : ''}
       <div class="ex-liste md-dc" id="ciL"><span class="nt"><span class="spin"></span>Recherche…</span></div>
       <div class="ex-pied"><span class="nt" id="ciInfo">Clique les images (Maj + clic : toutes celles entre les deux).</span><button class="btn" data-ci="tout">Tout sélectionner</button><button class="btn" data-ci="x">Annuler</button><button class="btn pri" data-ci="ok" disabled>${esc(bouton)}</button></div></div>`;
     document.body.appendChild(v);
@@ -353,13 +362,20 @@ BK.choisirImages = function ({ titre = 'Choisir', items, charger, bouton = 'Ajou
       if (a.dataset.ci === 'tout') { if (choisis.size === l.length) choisis.clear(); else l.forEach(x => choisis.add(String(x.id))); return maj(); }
       if (a.dataset.ci === 'ok') fermer(l.filter(x => choisis.has(String(x.id))));
     });
-    (async () => {
-      try { l = items || await charger(); } catch (e) { v.querySelector('#ciL').innerHTML = `<span class="nt">${esc(e.message)}</span>`; return; }
-      const z = v.querySelector('#ciL');
+    let gen = 0;
+    const remplir = async (ch) => {
+      const z = v.querySelector('#ciL'); z.innerHTML = '<span class="nt"><span class="spin"></span>Recherche…</span>'; z.dataset.gen = String(++gen);
+      const mien = gen;
+      try { l = items || await ch(); } catch (e) { z.innerHTML = `<span class="nt">${esc(e.message)}</span>`; return; }
+      if (mien !== gen) return;
+      choisis.clear(); maj();
       z.innerHTML = l.length ? l.map(x => `<button class="md-dc-t" data-cii="${esc(x.id)}" title="${esc(x.nom)}"><span class="md-dc-img">${x.apercu ? `<img src="${esc(x.apercu)}" loading="lazy" draggable="false" referrerpolicy="no-referrer">` : '<span class="spin"></span>'}</span>
           <span class="md-nom">${esc(x.nom)}</span>${x.info ? `<span class="nt">${esc(x.info)}</span>` : ''}</button>`).join('') : '<span class="nt">Aucune image trouvée.</span>';
-      for (const x of l) if (!x.apercu && x.vignette) { const u = await x.vignette().catch(() => null), b = z.querySelector(`[data-cii="${CSS.escape(String(x.id))}"] .md-dc-img`); if (b) b.innerHTML = u ? `<img src="${u}" draggable="false">` : '🖼'; }
-    })();
+      for (const x of l) if (!x.apercu && x.vignette) { if (!z.isConnected || z.dataset.gen !== String(gen)) return; const u = await x.vignette().catch(() => null), b = z.querySelector(`[data-cii="${CSS.escape(String(x.id))}"] .md-dc-img`); if (b) b.innerHTML = u ? `<img src="${u}" draggable="false">` : '🖼'; }
+    };
+    const srcs = sources && sources.length ? sources : [{ charger }];
+    v.querySelectorAll('[data-cis]').forEach(b => b.onclick = () => { v.querySelectorAll('[data-cis]').forEach(x => x.classList.toggle('on', x === b)); remplir(srcs[+b.dataset.cis].charger); });
+    remplir(srcs[0].charger);
   });
 };
 

@@ -53,8 +53,9 @@
 .avance-piste{flex:1;min-width:0}
 .etapes{display:flex;gap:3px;height:16px;padding:3px;border-radius:4px;background:linear-gradient(180deg,#0a0604,#1b110a);box-shadow:inset 0 2px 5px rgba(0,0,0,.95),0 0 0 1px var(--laiton)}
 .seg-etape{position:relative;border-radius:2px;background:rgba(255,178,62,.1);overflow:hidden}
-.seg-etape i{position:absolute;left:0;top:0;bottom:0;background:linear-gradient(180deg,#ffd27a,#ffb23e 50%,#d98a16);box-shadow:0 0 6px rgba(255,160,40,.7)}
-.seg-etape.fait i{background:linear-gradient(180deg,#e9c46a,#c99a2e 55%,#9b7417);box-shadow:none;opacity:.9}
+.seg-etape i{position:absolute;left:0;top:0;bottom:0;background:var(--av,#ffb23e);box-shadow:0 0 6px var(--av,rgba(255,160,40,.7))}
+.seg-etape.fait i{background:var(--av,#c99a2e);box-shadow:none;opacity:.85}
+.avance-pc{color:var(--av,#ffb23e)!important}
 .avance-etape{margin:5px 0 0;font-size:11px}
 .avance-pc{width:74px;text-align:right;font-size:15px;flex:none}
 
@@ -120,7 +121,8 @@ body{background:#24140c url(../look/bois-fond.jpg) center/cover fixed}
 .fiche-tete .dymo{flex:none}
 .mini-etapes{flex:1;display:flex;gap:2px;height:8px;padding:2px;border-radius:3px;background:#0a0604;box-shadow:inset 0 1px 3px #000,0 0 0 1px var(--laiton)}
 .mini-etapes i{border-radius:1px;background:rgba(255,178,62,.1)}
-.mini-etapes i.fait{background:#c99a2e}.mini-etapes i.encours{background:#ffb23e;box-shadow:0 0 5px rgba(255,160,40,.8)}
+.mini-etapes i.fait{background:var(--av,#c99a2e);filter:brightness(.85)}.mini-etapes i.encours{background:var(--av,#ffb23e);box-shadow:0 0 6px var(--av,#ffb23e)}
+.fiche-pc{color:var(--av,#ffb23e)!important}
 .fiche-pc{font-size:13px;width:66px;text-align:right;flex:none}
 .fleche{color:var(--mus);width:12px;flex:none}
 .fiche-corps{padding:0 16px 14px;display:flex;flex-direction:column;gap:6px}
@@ -144,8 +146,8 @@ textarea.fld.paroles{min-height:180px;font-family:'Jost',sans-serif!important;co
 .etapes-clic{display:flex;gap:4px}
 .etape-b{flex:1;min-height:34px;border:0;border-radius:4px;cursor:pointer;font:600 10px Jost,sans-serif;letter-spacing:.1em;text-transform:uppercase;color:rgba(239,230,210,.6);
   background:linear-gradient(180deg,#2e251d,#161009);box-shadow:0 0 0 1px rgba(168,135,78,.4),0 2px 0 #14100a}
-.etape-b.fait{color:#2a1c06;background:linear-gradient(180deg,#e9c46a,#b8891f)}
-.etape-b.encours{color:#ffd48e;box-shadow:0 0 0 2px #ffb23e,0 0 10px rgba(255,160,40,.5)}
+.etape-b.fait{color:#fff4dc;background:var(--av,#b8891f);text-shadow:0 1px 2px rgba(0,0,0,.6)}
+.etape-b.encours{color:#ffd48e;box-shadow:0 0 0 2px var(--av,#ffb23e),0 0 10px var(--av,rgba(255,160,40,.5))}
 .fiche-actions{display:flex;gap:8px;justify-content:flex-end;margin-top:8px}
 .bi-dossiers{display:flex;flex-direction:column;gap:6px;margin-top:10px}
 .bi-dossiers .dos{display:flex;align-items:center;gap:8px}
@@ -339,7 +341,7 @@ a.lien{color:var(--mus);text-decoration:none}a.lien:hover{text-decoration:underl
 .md-barre label{display:flex;flex-direction:column;gap:5px}.md-barre label .eng{font-size:9px}.md-barre select{min-width:240px}
 .md-zone{min-height:0;overflow:auto}
 .md-zone.survol{box-shadow:inset 0 0 0 2px #ffb23e,0 0 14px rgba(255,160,40,.3)}
-.md-grille{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:14px;align-content:start}
+.md-grille{--tuile:170px;display:grid;grid-template-columns:repeat(auto-fill,minmax(var(--tuile),1fr));gap:14px;align-content:start}
 .md-vide{grid-column:1/-1;padding:30px;text-align:center}
 .md-tuile{position:relative;display:flex;flex-direction:column;gap:6px;padding:8px;border-radius:6px;cursor:pointer;border:0;text-align:left;
   background:linear-gradient(180deg,#2e251d,#1a130d);box-shadow:0 0 0 1px rgba(239,230,210,.14),0 4px 8px rgba(0,0,0,.45)}
@@ -841,7 +843,8 @@ body.dropping main>section:not(.hidden) .box.pick::after{content:none!important;
 /* Médias : vignettes plus petites, et fichiers mis de côté */
 .md-vue{margin-left:auto}
 .md-vue .chip{font-size:10px;padding:4px 9px}
-.md-grille.petit{grid-template-columns:repeat(auto-fill,minmax(104px,1fr));gap:8px}
+.md-grille.petit{gap:8px}
+.md-grille.mini{gap:5px}.md-grille.mini .md-nom,.md-grille.mini .md-tag{display:none}.md-grille.mini .md-tuile{padding:3px}
 .md-grille.petit .md-tuile{padding:5px;gap:3px}
 .md-grille.petit .md-nom{font-size:9.5px}
 .md-grille.petit .md-tag{font-size:9px;padding:1px 5px}
@@ -921,9 +924,15 @@ body.dropping main>section:not(.hidden) .box.pick::after{content:none!important;
 .ra-lu-m{display:flex;flex-direction:column;gap:1px;padding:5px 7px;border-radius:4px;background:rgba(0,0,0,.2);font-size:11.5px}
 .ra-lu-m .nt{margin:0;font-size:9.5px}
 
-/* bandeau : qui est sur BEESKOT Studio en même temps */
-#syQui.qui-on span{color:#7ee08a}
-#syQui.qui-on b{color:#7ee08a;opacity:.85}
+/* bandeau : qui est sur BEESKOT Studio en même temps — un rectangle sur deux lignes, en vert */
+.sysgrid{grid-template-columns:1fr 1fr auto}
+.sy-online{grid-column:3;grid-row:1 / span 2;flex-direction:column;align-items:flex-start;justify-content:flex-start;gap:3px;
+  min-width:150px;padding:4px 9px 5px;box-shadow:inset 0 0 0 1px rgba(126,224,138,.35),inset 0 1px 4px #000}
+.sy-online b{color:#7ee08a;opacity:.9;font-weight:600}
+.sy-online-l{display:flex;flex-direction:column;gap:2px;width:100%}
+.sy-p{color:#7ee08a;text-shadow:0 0 5px rgba(100,220,120,.55);display:flex;gap:6px;align-items:baseline;white-space:nowrap}
+.sy-p.moi{color:#cfe9c4;text-shadow:none;opacity:.85}
+.sy-p small{font-size:8.5px;color:#9ec894;letter-spacing:.04em;opacity:.9}
 
 /* Reels Audio : le bilan des fichiers écrits */
 .re-faits{margin-top:10px;gap:4px;box-shadow:inset 0 0 0 1px rgba(126,224,138,.4)}
@@ -940,3 +949,74 @@ body.dropping main>section:not(.hidden) .box.pick::after{content:none!important;
 .md-sur.vide em{background:rgba(0,0,0,.5);color:#9b9183;font-style:italic;text-transform:none;letter-spacing:.02em}
 .md-grille.petit .md-sur em{font-size:8px;padding:2px 4px}
 .md-lab{align-self:center;margin-right:7px;color:#8a7f70}
+
+/* Tournages : les encadrés se replient d'un clic sur leur titre */
+.lb.pliable{cursor:pointer;display:inline-flex;align-items:center;gap:6px;user-select:none}
+.lb.pliable:hover{color:#ffb23e}
+.pli-fleche{font-size:11px;color:#ffb23e;width:10px;display:inline-block}
+.box.replie > :not(.box-tete){display:none!important}
+.box.replie{padding-bottom:10px}
+.to-refs{margin-top:12px;padding-top:10px;border-top:1px solid rgba(239,230,210,.1);display:flex;flex-direction:column;gap:6px}
+.to-refs-l{display:flex;flex-wrap:wrap;gap:6px}
+.to-ref{display:inline-flex;align-items:center;gap:6px;padding:4px 8px;border-radius:4px;background:rgba(0,0,0,.28);box-shadow:inset 0 0 0 1px rgba(239,230,210,.12);font-size:11.5px}
+.to-ref a{color:var(--ink);text-decoration:none}.to-ref a:hover{color:#ffb23e}
+.to-ref .md-x{position:static;width:16px;height:16px;font-size:10px}
+.to-refs-add{display:grid;grid-template-columns:2fr 1.4fr auto;gap:6px;align-items:center}
+
+/* une couleur par étiquette */
+.md-sur em.main{background:var(--tc,#ffb23e);color:#fff6e4;text-shadow:0 1px 2px rgba(0,0,0,.6);box-shadow:inset 0 0 0 1px rgba(0,0,0,.3)}
+.md-sur em:not(.main){border-left:3px solid var(--tc,#888)}
+.md-panier{border-left:4px solid var(--tc,transparent)}
+.md-panier.survol{box-shadow:0 0 0 2px var(--tc,#ffb23e)}
+.md-grille.mini .md-sur em{font-size:7px;padding:1px 3px}
+.su-aff-edit{display:flex;align-items:center;gap:8px;margin-top:4px}
+.su-aff-edit .nt{margin:0}
+
+/* Médias : barre compacte, petites icônes à droite, dossier Discord */
+.md-barre{display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px}
+.md-fil{flex:1 1 auto;min-width:200px}
+.md-outils{margin-left:auto;display:flex;gap:4px}
+.md-ico{width:26px;height:24px;padding:0;border-radius:4px;border:0;cursor:pointer;background:rgba(0,0,0,.35);color:#cbbfa8;
+  box-shadow:inset 0 0 0 1px rgba(239,230,210,.14);font:600 13px/1 Jost,sans-serif;display:inline-flex;align-items:center;justify-content:center;gap:2px}
+.md-ico:hover{color:#ffb23e;box-shadow:inset 0 0 0 1px #ffb23e}
+.md-ico.on{background:rgba(255,178,62,.2);color:#ffb23e}
+.md-ico:disabled{opacity:.35;cursor:default}
+.md-ico span{font-size:9px;color:#ffb23e}
+.md-dos-dc{position:relative}
+.md-dos-badge{position:absolute;top:6px;right:6px;font:600 8.5px/1 Jost,sans-serif;letter-spacing:.06em;text-transform:uppercase;
+  padding:3px 5px;border-radius:3px;background:rgba(255,178,62,.9);color:#241a0c}
+.bpm-ligne{display:flex;gap:6px;align-items:center}.bpm-ligne .fld{flex:1;min-width:0}
+.su-sortie{display:flex;align-items:center;gap:10px;margin-top:6px;padding:8px 10px;border-radius:6px;background:rgba(0,0,0,.22)}
+.su-sortie .fld{width:150px}.su-sortie .nt{margin:0}
+.su-aff-date.sortie{color:#ffb23e;box-shadow:inset 0 0 0 1px rgba(255,178,62,.55)}
+
+/* la ligne d'équipe en bas : qui fait quoi en ce moment (quand la place le permet) */
+.abar-equipe{flex:1 1 auto;min-width:0;display:flex;align-items:center;gap:8px;font:500 11px Jost,sans-serif;letter-spacing:.03em;color:#9ec894;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;padding:5px 10px;border-radius:4px;background:rgba(0,0,0,.25);box-shadow:inset 0 0 0 1px rgba(126,224,138,.22)}
+.abar-equipe em{font-style:normal;font-size:8.5px;letter-spacing:.14em;color:#7ee08a;opacity:.8;margin-right:2px}
+.abar-equipe b{color:#7ee08a;font-weight:600}
+.abar-equipe i{font-style:normal;opacity:.5;margin:0 2px}
+@media (max-width:1180px){.abar-equipe{display:none}}
+
+/* le pop-up « mise à jour nécessaire » */
+.maj-voile{z-index:9999;background:rgba(10,6,4,.78);backdrop-filter:blur(3px)}
+.maj-box{width:440px;align-items:center;text-align:center;gap:14px;padding:30px 34px 22px}
+.maj-biscotte{width:110px;height:110px;animation:majBat 1.6s ease-in-out infinite}
+.maj-txt{font:500 17px/1.45 Jost,sans-serif;color:var(--ink);margin:0}
+.maj-txt b{color:#ffb23e}
+.maj-go{width:100%;justify-content:center;font-size:15px;padding:12px;animation:majBtn 1.3s ease-in-out infinite}
+.maj-tard{background:none;border:0;color:#8a7f70;font:500 11px Jost,sans-serif;cursor:pointer;text-decoration:underline;padding:2px}
+.maj-tard:hover{color:#cbbfa8}
+.maj-box .dymo{align-self:center}
+
+/* Bibliothèque : le tiroir « Étiqueté BEESKOT » */
+.etq-plus{margin:2px 0 10px}
+.etqs{display:inline-flex;gap:3px;flex-wrap:wrap;margin-left:6px}
+.etq{font:600 8.5px/1 Jost,sans-serif;font-style:normal;letter-spacing:.06em;text-transform:uppercase;padding:3px 5px;border-radius:3px;
+  background:var(--tc,#555);color:#fff6e4;text-shadow:0 1px 1px rgba(0,0,0,.5)}
+
+/* Reels : le type sur le poster, l'idée dans le panneau */
+.su-aff-type{align-self:flex-start;font:600 8.5px/1 Jost,sans-serif;letter-spacing:.12em;text-transform:uppercase;padding:3px 6px;border-radius:3px;
+  background:rgba(47,115,119,.9);color:#eaf6f4;margin-bottom:3px;text-shadow:none}
+.su-idee{display:flex;flex-direction:column;gap:6px;margin-top:6px}
+.su-types .chip{font-size:10px;padding:3px 9px}

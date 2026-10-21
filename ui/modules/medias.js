@@ -7,28 +7,27 @@
 (() => {
 // En haut, on ne choisit QUE la source : d'où viennent les fichiers.
 // Le rangement, lui, se fait uniquement avec les étiquettes, en bas.
-const RACINES = [['cloud', '☁ Médias sur le cloud'], ['discord', '🍞 Discord']];
 // les dossiers du Drive, qu'on retrouve en entrant dans « Médias sur le cloud »
 const DOSSIERS_CLOUD = [['photovideo', 'Photos / Vidéos'], ['moodboard', 'Moodboards'], ['tournage', 'Tournages'],
   ['outfits', 'Outfits'], ['scenographie', 'Scénographie'], ['lightshow', 'Light Show']];
 const M = { racine: ['cloud','discord'].includes(BK.reglage('medias.racine','cloud')) ? BK.reglage('medias.racine','cloud') : 'cloud', pile: [], fichiers: [], envoi: false, morceaux: [], tags: {}, filtre: '',
   sel: new Set(), dernier: null,
-  petit: BK.reglage('medias.petit', false), voirCaches: false };
+  taille: Math.min(5, Math.max(0, BK.reglage('medias.taille', BK.reglage('medias.petit', false) ? 1 : 2))), voirCaches: false };
+const TAILLES = [72, 100, 136, 170, 220, 290];        // largeur mini d'une vignette, du plus petit au plus grand
 const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 const DOSSIER = 'application/vnd.google-apps.folder';
 
 BK.module('medias', function (page) {
-  $('.sub', page).textContent = 'En haut : d\'où viennent les fichiers. En bas : les étiquettes pour les ranger.';
+  $('.sub', page).textContent = 'Tous les dossiers (Drive et Discord) en haut, les étiquettes pour ranger en bas.';
   $('.hdr .right', page).innerHTML = `<div><span class="eng" style="font-size:9px">Fichiers</span><span class="vfd" id="mdNb">—</span></div>`;
   $('.grid', page).innerHTML = `
     <div class="cols">
       <section class="pane vit md-vit">
         <div class="box md-barre">
-          <span class="eng md-lab">Source</span>
-          <div class="seg" id="mdRacines">${RACINES.map(([k, n]) => `<button data-r="${k}">${n}</button>`).join('')}</div>
+          <button class="md-ico" id="mdHaut" title="Remonter d'un dossier">⬆</button>
           <div class="md-fil" id="mdFil"></div>
           <label class="md-filtre"><span class="eng">🏷 Voir</span><select class="fld" id="mdFiltre"><option value="">Tous (dossier ouvert)</option></select></label>
-          <div class="chips md-vue"><button class="chip" id="mdPetit" title="Vignettes plus petites : moins de défilement">⊞ Petites</button><button class="chip" id="mdCaches" title="Les fichiers mis de côté">🙈 Masqués <span id="mdNbC"></span></button></div>
+          <div class="md-outils"><button class="md-ico" id="mdMoins" title="Vignettes plus petites">−</button><button class="md-ico" id="mdPlus2" title="Vignettes plus grandes">+</button><button class="md-ico" id="mdCaches" title="Voir les fichiers masqués">🙈<span id="mdNbC"></span></button></div>
         </div>
         <div class="box grow md-zone" id="mdZone"><div class="md-grille" id="mdGrille"></div></div>
       </section>
@@ -59,11 +58,11 @@ BK.module('medias', function (page) {
 
   async function allerRacine(r) {
     M.racine = r; BK.regler('medias.racine', r); M.filtre = ''; const sel = $('#mdFiltre'); if (sel) sel.value = '';
-    $$('#mdRacines button').forEach(b => b.classList.toggle('on', b.dataset.r === r));
     if (r === 'discord') { M.pile = []; return chargerDiscord(); }
-    if (!BK.drive.relie()) return vide('Relie d\'abord le Drive (Réglages › Drive).');
+    if (!BK.drive.relie()) { M.racine = 'cloud'; M.pile = []; M.fichiers = [{ id: 'discord', name: '🍞 Discord', mimeType: DOSSIER, badge: 'pas sur le Drive' }];
+      $('#mdFil').innerHTML = '<span class="nt">Relie le Drive (Réglages) pour voir les dossiers du cloud.</span>'; return rendre(); }
     await BK.dossiers.assurer(); if (!M.morceaux.length) await etiquettes();
-    M.pile = []; charger();                                     // cloud : on part de la liste des dossiers du Drive
+    M.pile = []; charger();                                     // on part de la liste de tous les dossiers
   }
   function vide(t) { $('#mdGrille').innerHTML = `<span class="nt md-vide">${t}</span>`; $('#mdNb').textContent = '—'; $('#mdFil').innerHTML = ''; }
 
@@ -92,7 +91,7 @@ BK.module('medias', function (page) {
     $$('#mdRub button').forEach(b => { b.classList.toggle('on', b.dataset.rub === rub); b.onclick = () => { M.rub = b.dataset.rub; BK.regler('medias.rub', M.rub); paniers(); }; });
     const compte = k => Object.keys(M.tags).filter(id => BK.etiquettes.liste(M.tags, id).includes(k)).length;
     z.innerHTML = cases()[rub].map(c => { const n = compte(c.k);
-      return `<div class="md-panier" data-pan="${esc(c.k)}">${c.ph ? `<span class="md-pan-ph" style="background-image:url(${c.ph})"></span>` : `<span class="md-pan-ph">${c.ic}</span>`}<b>${esc(c.nom)}</b>${n ? `<em>${n}</em>` : ''}</div>`; }).join('')
+      return `<div class="md-panier" data-pan="${esc(c.k)}" style="--tc:${couleurTag(c.k)}">${c.ph ? `<span class="md-pan-ph" style="background-image:url(${c.ph})"></span>` : `<span class="md-pan-ph">${c.ic}</span>`}<b>${esc(c.nom)}</b>${n ? `<em>${n}</em>` : ''}</div>`; }).join('')
       || '<span class="nt">Aucun morceau : crée d\'abord des fiches dans la Bibliothèque.</span>';
     $$('.md-panier', z).forEach(p => {
       p.ondragover = e => { if (e.dataTransfer.types.includes('text/bk-media') || e.dataTransfer.types.includes('Files')) { e.preventDefault(); e.stopPropagation(); p.classList.add('survol'); } };
@@ -121,7 +120,10 @@ BK.module('medias', function (page) {
 
   async function etiqueter(fileId, cle, forcer = true) {
     const c = nomCase(cle), f = M.fichiers.find(x => x.id === fileId);
-    if (f && f.dc) {                                                   // venu de Discord : on le range d'abord dans le Drive
+    if (f && f.dc) {                                                   // venu de Discord : exactement comme le cloud, la copie dans le Drive se fait une seule fois
+      const deja = BK.etiquettes.copieDe(f.id);
+      if (deja) { const a = await BK.etiquettes.basculer(deja, cle, forcer); M.tags = await BK.etiquettes.tous(); M.choisi = null;
+        msg(`« ${f.name} » ${a ? '→' : 'retiré de'} ${c ? c.nom : ''} 🏷`); rendre(!!M.filtre); paniers(); return; }
       if (M.envoi) return msg('Un envoi est déjà en cours');
       M.envoi = true;
       try { msg('Téléchargement de ' + f.name + '…');
@@ -129,8 +131,9 @@ BK.module('medias', function (page) {
         const blob = await r.blob(), dos = await dossierPour(cle);
         const n = await BK.drive.envoyerBlob(new File([blob], f.name, { type: blob.type || f.mimeType }), f.name, dos.id, p => msg(`Envoi dans ${dos.nom} · ${Math.round(p * 100)} %`));
         await BK.etiquettes.basculer(n.id, cle, true);
+        await BK.etiquettes.noterCopie(f.id, n.id);
         BK.dossiers.oublier(); M.tags = await BK.etiquettes.tous(); M.choisi = null;
-        msg(`« ${f.name} » → ${dos.nom} · ${c ? c.nom : ''} 🏷`); paniers(); rendre();
+        msg(`« ${f.name} » · ${c ? c.nom : ''} 🏷 (copié dans ${dos.nom})`); paniers(); rendre();
       } catch (e) { msg('Impossible : ' + (e.message || e)); }
       M.envoi = false; return;
     }
@@ -148,7 +151,8 @@ BK.module('medias', function (page) {
   }
   // ---------- le dossier « Discord » : toutes les photos et vidéos postées sur le serveur ----------
   async function chargerDiscord() {
-    $('#mdFil').innerHTML = '<span class="ex-miette">🍞 Discord · tout ce qui a été posté</span>';
+    $('#mdFil').innerHTML = '<button class="ex-miette" data-i="-1">⌂ Tous les dossiers</button><span>›</span><span class="ex-miette">🍞 Discord · tout ce qui a été posté <small class="nt">(pas sur le Drive)</small></span>';
+    const home = $('#mdFil [data-i="-1"]'); if (home) home.onclick = () => allerRacine('cloud');
     $('#mdChemin').textContent = 'Discord (pas dans le Drive)';
     $('#mdAjout').disabled = $('#mdDossier').disabled = $('#mdOuvrirDos').disabled = true;
     $('#mdMajDc').classList.remove('hidden');
@@ -170,8 +174,8 @@ BK.module('medias', function (page) {
     if (M.filtre) return parMorceau(M.filtre);
     if (!M.pile.length) return racineCloud();
     const cur = ici(); if (!cur) return;
-    $('#mdFil').innerHTML = M.pile.map((p, i) => `<button class="ex-miette" data-i="${i}">${esc(p.nom)}</button>`).join('<span>›</span>');
-    $$('#mdFil .ex-miette').forEach(b => b.onclick = () => { M.pile = M.pile.slice(0, +b.dataset.i + 1); charger(); });
+    $('#mdFil').innerHTML = '<button class="ex-miette" data-i="-1">⌂ Tous les dossiers</button><span>›</span>' + M.pile.map((p, i) => `<button class="ex-miette" data-i="${i}">${esc(p.nom)}</button>`).join('<span>›</span>');
+    $$('#mdFil .ex-miette').forEach(b => b.onclick = () => { if (+b.dataset.i < 0) return allerRacine('cloud'); M.pile = M.pile.slice(0, +b.dataset.i + 1); charger(); });
     $('#mdChemin').textContent = ['Drive BEESKOT', ...M.pile.map(p => p.nom)].join(' › ');
     $('#mdAjout').disabled = $('#mdDossier').disabled = $('#mdOuvrirDos').disabled = false;
     $('#mdMajDc').classList.add('hidden');
@@ -183,48 +187,54 @@ BK.module('medias', function (page) {
 
   // la première page du cloud : les grands dossiers du Drive, comme des dossiers
   async function racineCloud() {
-    $('#mdFil').innerHTML = '';
+    $('#mdFil').innerHTML = '<span class="ex-miette">⌂ Tous les dossiers</span>';
     $('#mdChemin').textContent = 'Drive BEESKOT';
     $('#mdAjout').disabled = $('#mdDossier').disabled = $('#mdOuvrirDos').disabled = true;
     $('#mdMajDc').classList.add('hidden');
     $('#mdGrille').innerHTML = '<span class="nt md-vide"><span class="spin"></span>Lecture du Drive…</span>';
     const l = [];
     for (const [k, n] of DOSSIERS_CLOUD) { try { const d = await BK.dossiers.get(k); if (d) l.push({ id: d.id, name: n, mimeType: DOSSIER }); } catch (e) {} }
+    l.push({ id: 'discord', name: '🍞 Discord', mimeType: DOSSIER, badge: 'pas sur le Drive' });      // Discord est un dossier comme les autres, juste pas dans le Drive
     M.fichiers = l;
-    if (!l.length) return vide('Aucun dossier trouvé. Choisis-les dans Réglages › Vos dossiers du Drive.');
     rendre();
   }
 
+  const idTags = f => (f.dc && BK.etiquettes.copieDe(f.id)) || f.id;     // pour un média Discord : sa copie dans le Drive
+  // une couleur par étiquette, toujours la même (palette rétro du logiciel)
+  const couleurTag = BK.couleurTag;
   function rendre(filtre) {
-    const masque = f => BK.etiquettes.liste(M.tags, f.id).includes('c:masque');
+    const masque = f => BK.etiquettes.liste(M.tags, idTags(f)).includes('c:masque');
     const ds = M.fichiers.filter(f => f.mimeType === DOSSIER), tous = M.fichiers.filter(f => f.mimeType !== DOSSIER);
     const fs = M.voirCaches ? tous.filter(masque) : tous.filter(f => !masque(f));
     const nbC = tous.filter(masque).length;
     $('#mdNbC').textContent = nbC ? '(' + nbC + ')' : '';
-    $('#mdPetit').classList.toggle('on', M.petit); $('#mdCaches').classList.toggle('on', M.voirCaches);
-    $('#mdGrille').classList.toggle('petit', M.petit);
-    const tag = f => { if (f.dc) return `<button class="md-tag vide" data-tag="${esc(f.id)}" title="Copier dans le Drive et étiqueter">⤓ Ranger dans le Drive</button>`;
-      const ms = BK.etiquettes.morceauxDe({ ...f, dossiers: f.dossiers || M.pile.map(p => p.nom) }, M.morceaux, M.tags), l = BK.etiquettes.liste(M.tags, f.id);
+    $('#mdCaches').classList.toggle('on', M.voirCaches);
+    const g = $('#mdGrille'); g.style.setProperty('--tuile', TAILLES[M.taille] + 'px');
+    g.classList.toggle('petit', M.taille <= 1); g.classList.toggle('mini', M.taille === 0);
+    $('#mdMoins').disabled = M.taille === 0; $('#mdPlus2').disabled = M.taille === TAILLES.length - 1;
+    const tag = f => {
+      const ms = BK.etiquettes.morceauxDe({ ...f, id: idTags(f), dossiers: f.dossiers || M.pile.map(p => p.nom) }, M.morceaux, M.tags), l = BK.etiquettes.liste(M.tags, idTags(f));
       const main = l.some(BK.etiquettes.estMorceau), noms = [...ms.map(m => m.nom), ...l.filter(k => /^[a-z]:/.test(k)).map(k => (nomCase(k) || {}).nom).filter(Boolean)];
       return `<button class="md-tag${l.length ? ' main' : noms.length ? '' : ' vide'}" data-tag="${f.id}" title="${main || l.length ? 'Étiquettes choisies à la main' : noms.length ? 'Devinée par le nom' : 'Étiqueter'}">🏷 ${esc(noms.length ? noms.join(' · ') : 'Étiqueter')}</button>`; };
     $('#mdNb').textContent = String(fs.length).padStart(2, '0');
-    $('#mdGrille').innerHTML = ds.map(d => `<button class="md-tuile md-dos" data-dos="${d.id}" data-nom="${esc(d.name)}"><span class="md-dos-ic">📁</span><span class="md-nom">${esc(d.name)}</span></button>`).join('')
-      + (filtre || M.racine === 'discord' ? '' : `<button class="md-tuile md-plus" id="mdPlus"><span>+</span><span class="nt">Ajouter ici</span></button>`)
+    $('#mdGrille').innerHTML = ds.map(d => `<button class="md-tuile md-dos${d.badge ? ' md-dos-dc' : ''}" data-dos="${d.id}" data-nom="${esc(d.name)}"><span class="md-dos-ic">${d.badge ? '💬' : '📁'}</span><span class="md-nom">${esc(d.name)}</span>${d.badge ? `<span class="md-dos-badge">${esc(d.badge)}</span>` : ''}</button>`).join('')
+      + (filtre || M.racine === 'discord' || !M.pile.length ? '' : `<button class="md-tuile md-plus" id="mdPlus"><span>+</span><span class="nt">Ajouter ici</span></button>`)
       + fs.map(f => {
         const video = /^video\//.test(f.mimeType), d = f.videoMediaMetadata && f.videoMediaMetadata.durationMillis;
-        const etqs = f.dc ? [] : (() => { const ms = BK.etiquettes.morceauxDe({ ...f, dossiers: f.dossiers || M.pile.map(p => p.nom) }, M.morceaux, M.tags), l = BK.etiquettes.liste(M.tags, f.id);
-          return [...ms.map(m => m.nom), ...l.filter(k => /^[a-z]:/.test(k)).map(k => (nomCase(k) || {}).nom).filter(Boolean)]; })();
-        const main = !f.dc && BK.etiquettes.liste(M.tags, f.id).length;
+        const lf = BK.etiquettes.liste(M.tags, idTags(f));
+        const etqs = (() => { const ms = BK.etiquettes.morceauxDe({ ...f, id: idTags(f), dossiers: f.dossiers || M.pile.map(p => p.nom) }, M.morceaux, M.tags);
+          return [...ms.map(m => ({ n: m.nom, k: m.id })), ...lf.filter(k => /^[a-z]:/.test(k)).map(k => ({ n: (nomCase(k) || {}).nom, k })).filter(x => x.n)]; })();
+        const main = lf.length;
         return `<div class="md-tuile${M.choisi === f.id ? ' choisie' : ''}" data-id="${f.id}" title="${esc(f.name)}" draggable="true">
           <div class="md-img${video ? ' video' : ''}">${f.thumbnailLink ? '<span class="spin"></span>' : `<span class="md-ext">${esc((f.name.split('.').pop() || '').toUpperCase())}</span>`}
             ${video ? `<span class="md-duree">${d ? BK.audio.temps(d / 1000).replace(/\.\d$/, '') : '▶'}</span>` : ''}
-            ${etqs.length ? `<span class="md-sur">${etqs.slice(0, 3).map(n => `<em class="${main ? 'main' : ''}">${esc(n)}</em>`).join('')}${etqs.length > 3 ? `<em>+${etqs.length - 3}</em>` : ''}</span>`
-              : f.dc ? '' : '<span class="md-sur vide"><em>sans étiquette</em></span>'}</div>
+            ${etqs.length ? `<span class="md-sur">${etqs.slice(0, 3).map(x => `<em class="${main ? 'main' : ''}" style="--tc:${couleurTag(x.k)}">${esc(x.n)}</em>`).join('')}${etqs.length > 3 ? `<em>+${etqs.length - 3}</em>` : ''}</span>`
+              : '<span class="md-sur vide"><em>sans étiquette</em></span>'}</div>
           <span class="md-nom">${esc(f.name)}</span>${tag(f)}
           <button class="md-x" data-x="${f.id}" title="Ranger dans la corbeille">✕</button></div>`;
       }).join('');
-    $$('.md-dos').forEach(b => b.onclick = () => { M.pile.push({ id: b.dataset.dos, nom: b.dataset.nom }); charger(); });
-    if (!filtre && M.racine !== 'discord') $('#mdPlus').onclick = e => menuAjout(e.currentTarget);
+    $$('.md-dos').forEach(b => b.onclick = () => { if (b.dataset.dos === 'discord') return allerRacine('discord'); M.pile.push({ id: b.dataset.dos, nom: b.dataset.nom }); charger(); });
+    if (!filtre && M.racine !== 'discord' && M.pile.length) $('#mdPlus').onclick = e => menuAjout(e.currentTarget);
     $$('.md-tag').forEach(b => b.onclick = e => { e.stopPropagation(); menuTag(b); });
     $$('.md-tuile[data-id]').forEach(t => { t.ondragstart = e => {
       const pris = M.sel.has(t.dataset.id) ? [...M.sel] : [t.dataset.id];           // on glisse toute la sélection
@@ -236,7 +246,6 @@ BK.module('medias', function (page) {
       e.preventDefault();
       if (!M.sel.has(t.dataset.id)) { M.sel.clear(); M.sel.add(t.dataset.id); M.choisi = t.dataset.id; majSel(); }
       const f = M.fichiers.find(x => x.id === t.dataset.id);
-      if (f && f.dc) return menuTag({ dataset: { tag: 'dc:' + f.id }, getBoundingClientRect: () => t.getBoundingClientRect() });
       menuTag(t, { x: e.clientX, y: e.clientY }); });
     $$('.md-tuile[data-id]').forEach(t => t.onclick = e => { if (e.target.closest('.md-x,.md-tag')) return;
       const id = t.dataset.id, ids = $$('.md-tuile[data-id]').map(x => x.dataset.id);
@@ -268,13 +277,14 @@ BK.module('medias', function (page) {
   function menuTag(b, pos) {
     $$('.md-menu').forEach(x => x.remove());
     const idB = b.dataset.tag || b.dataset.id;
-    if (String(idB).startsWith('dc:')) { M.choisi = idB; return msg('Clique une étiquette en bas (Morceaux, Tournage…) : le fichier ira dans le Drive'); }
     const id = idB, r = b.getBoundingClientRect(), menu = document.createElement('div'); menu.className = 'md-menu';
+    const dc = String(id).startsWith('dc:');
+    const lireTags = i => BK.etiquettes.liste(M.tags, (String(i).startsWith('dc:') && BK.etiquettes.copieDe(i)) || i);
     const tous = M.sel.size > 1 && M.sel.has(id) ? [...M.sel] : [id];
     const x0 = pos ? pos.x : r.left, y0 = pos ? pos.y : r.bottom + 4;
     menu.style.left = Math.min(x0, innerWidth - 230) + 'px'; menu.style.top = Math.min(y0, innerHeight - 320) + 'px';
     const rubs = cases();
-    const dessiner = () => { const l = BK.etiquettes.liste(M.tags, id);
+    const dessiner = () => { const l = lireTags(id);
       menu.innerHTML = (tous.length > 1 ? `<span class="md-menu-t" style="color:#ffb23e">${tous.length} fichiers choisis</span>` : '')
         + [['morceaux', 'Morceaux'], ['tournage', 'Tournage'], ['lumiere', 'Lumière / scène'], ['reseaux', 'Réseaux']].map(([r, t]) => `<span class="md-menu-t">${t}</span>`
         + rubs[r].map(c => `<button data-m="${esc(c.k)}"${l.includes(c.k) ? ' class="on"' : ''}>${l.includes(c.k) ? '☑' : '☐'} ${esc(c.nom)}</button>`).join('')).join('')
@@ -284,8 +294,9 @@ BK.module('medias', function (page) {
     const fermer = e => { if (!menu.contains(e.target)) { menu.remove(); document.removeEventListener('pointerdown', fermer, true); } };
     setTimeout(() => document.addEventListener('pointerdown', fermer, true));
     menu.onclick = async e => { const x = e.target.closest('[data-m]'); if (!x) return; const k = x.dataset.m;
-      if (k === '' || k === '-') { const d = await BK.etiquettes.charger(); for (const i of tous) { if (k) d.map[i] = ['-']; else delete d.map[i]; } await BK.db.ecrire('config', d); menu.remove(); }
-      else { const l = BK.etiquettes.liste(M.tags, id), mettre = !l.includes(k); for (const i of tous) await BK.etiquettes.basculer(i, k, mettre); }
+      if (k === '' || k === '-') { const d = await BK.etiquettes.charger(); for (const i of tous) { const ii = (String(i).startsWith('dc:') && BK.etiquettes.copieDe(i)) || i; if (k) d.map[ii] = ['-']; else delete d.map[ii]; } await BK.db.ecrire('config', d); menu.remove(); }
+      else { const l = lireTags(id), mettre = !l.includes(k);
+        for (const i of tous) { if (String(i).startsWith('dc:')) await etiqueter(i, k, mettre); else await BK.etiquettes.basculer(i, k, mettre); } }
       M.tags = await BK.etiquettes.tous(); msg('Étiquettes enregistrées'); if (menu.isConnected) dessiner(); rendre(!!M.filtre); paniers(); };
   }
 
@@ -314,7 +325,11 @@ BK.module('medias', function (page) {
     M.envoi = false; charger();
   }
   $('#mdMajDc').onclick = () => { M.majDiscord = true; chargerDiscord(); };
-  $('#mdPetit').onclick = () => { M.petit = !M.petit; BK.regler('medias.petit', M.petit); rendre(!!M.filtre); };
+  $('#mdHaut').onclick = () => { M.filtre = ''; $('#mdFiltre').value = '';
+    if (M.racine === 'discord' || M.pile.length <= 1) return allerRacine('cloud');     // tout en haut : la liste des dossiers
+    M.pile.pop(); charger(); };
+  const taille = d => { M.taille = Math.min(TAILLES.length - 1, Math.max(0, M.taille + d)); BK.regler('medias.taille', M.taille); rendre(!!M.filtre); };
+  $('#mdMoins').onclick = () => taille(-1); $('#mdPlus2').onclick = () => taille(1);
   $('#mdCaches').onclick = () => { M.voirCaches = !M.voirCaches; msg(M.voirCaches ? 'Les fichiers masqués · ✕ pour les remettre' : 'PRÊT'); rendre(!!M.filtre); };
   $('#mdAjout').onclick = () => $('#mdInput').click();
   // ---------- 🍞 Miette regarde les photos et propose une case ----------
@@ -421,13 +436,13 @@ BK.module('medias', function (page) {
   page.addEventListener('dragleave', e => { if (!page.contains(e.relatedTarget)) $('#mdZone').classList.remove('survol'); });
   page.addEventListener('drop', e => { e.preventDefault(); $('#mdZone').classList.remove('survol'); if (e.dataTransfer.types.includes('text/bk-media')) return; if (e.dataTransfer.files.length) envoyer(e.dataTransfer.files); });
 
-  $$('#mdRacines button').forEach(b => b.onclick = () => { M.filtre = ''; $('#mdFiltre').value = ''; allerRacine(b.dataset.r); });
   $('#mdFiltre').onchange = e => { M.filtre = e.target.value; M.filtre ? parMorceau(M.filtre) : (M.pile.length ? charger() : allerRacine(M.racine)); };
   $('#mdRelire').onclick = charger;
   $('#mdOuvrirDos').onclick = () => ici() ? BK.ouvrirLien('https://drive.google.com/drive/folders/' + ici().id) : msg('Relie d\'abord le Drive');
   BK.surOuvrir = BK.surOuvrir || {};
   BK.surOuvrir.medias = async () => { await etiquettes(); if (!M.pile.length && !M.filtre) allerRacine(M.racine); };
-  BK.ouvrirMedias = async role => { BK.ouvrir('medias'); allerRacine(role || 'photovideo'); };
-  $$('#mdRacines button').forEach(b => b.classList.toggle('on', b.dataset.r === M.racine));
+  BK.ouvrirMedias = async role => { BK.ouvrir('medias'); allerRacine('cloud'); };
+  BK.ouvrirMediasMorceau = async id => { BK.ouvrir('medias'); await etiquettes(); M.filtre = id; const sel = $('#mdFiltre'); if (sel) sel.value = id; parMorceau(id); };
+
 });
 })();

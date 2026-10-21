@@ -12,6 +12,7 @@ const ETAPES = [
   { k: 'monte',   nom: 'Monté',     ic: '🎞' },
   { k: 'publie',  nom: 'Publié',    ic: '🚀' },
 ];
+const TYPES_R = ['Reel', 'TikTok', 'Clip', 'Post', 'Story', 'Live', 'Autre'];
 const R = { l: [], morceaux: [], tournages: [], exports: [], tags: {}, fichiers: [], filtre: BK.reglage('suivi.filtre', 'encours'), ouvert: BK.reglage('suivi.ouvert', '') || null };
 const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 const date = d => d ? new Date(d.length === 10 ? d + 'T12:00' : d).toLocaleDateString('fr-CA', { day: 'numeric', month: 'short' }) : '';
@@ -68,7 +69,7 @@ BK.module('suivi', function (page) {
   // sinon (chargée après coup) une image étiquetée pour ce reel
   function imageDe(r) {
     const t = tournageDe(r), m = morceauDe(r);
-    return (t && (t.moodboard || [])[0]) || (m && m.photo) || '';
+    return r.affiche || (t && (t.moodboard || [])[0]) || (m && m.photo) || '';
   }
 
   // ---------- le POSTER vertical ----------
@@ -84,12 +85,13 @@ BK.module('suivi', function (page) {
       ${img ? '' : '<span class="su-aff-vide">🎬</span>'}
       <span class="su-aff-jauge"><i style="width:${Math.round((i + 1) / ETAPES.length * 100)}%"></i></span>
       <span class="su-aff-bas">
+        <span class="su-aff-type">${esc(r.type || 'Reel')}${r.afficheIA ? ' · 🍞 imaginé' : ''}</span>
         <span class="su-aff-t">${esc(r.titre || 'Reel')}</span>
         ${m ? `<span class="su-aff-m">${esc(m.nom)}</span>` : ''}
         <span class="su-aff-pas">${ETAPES.map((e, k) => `<i class="${k <= i ? 'faite' : ''}"></i>`).join('')}<em>${esc(ETAPES[Math.max(0, i)].nom)}</em></span>
       </span>
       ${pas ? '<span class="su-aff-son">♪</span>' : ''}
-      ${t && t.date ? `<span class="su-aff-date">${esc(date(t.date))}</span>` : ''}
+      ${r.sortie ? `<span class="su-aff-date sortie" title="Sortie prévue">🚀 ${esc(date(r.sortie))}</span>` : t && t.date ? `<span class="su-aff-date" title="Tournage">${esc(date(t.date))}</span>` : ''}
     </button>`;
   }
 
@@ -113,19 +115,28 @@ BK.module('suivi', function (page) {
               : r.passage ? `<b>${t2(r.passage.debut)} → ${t2(r.passage.fin)}</b><span class="nt">passage choisi, export à faire</span>`
               : '<span class="nt">Pas encore d\'export</span>'}
           <button class="btn xs" data-au="${r.id}">${a ? 'Refaire' : 'Choisir le passage'}</button></div>
-        <div class="su-b${t ? ' fait' : ''}"><span class="eng">🎬 Tournage</span>
-          ${t ? `<b>${esc(t.titre || 'Tournage')}</b><span class="nt">${[date(t.date), t.heure, t.lieu].filter(Boolean).map(esc).join(' · ') || 'date à fixer'}</span>`
-              : '<span class="nt">Pas de fiche de tournage</span>'}
-          <button class="btn xs" data-to="${r.id}">${t ? 'Ouvrir' : 'Créer la fiche'}</button></div>
+        <div class="su-b${md.length ? ' fait' : ''}"><span class="eng">🎥 Médias</span>
+          <b>${vid} vidéo(s) · ${ph} photo(s)</b><span class="nt">étiquetés pour ce reel</span>
+          <button class="btn xs" data-me="${r.id}">Ouvrir Médias</button></div>
         <div class="su-b${t && (t.moodboard || []).length ? ' fait' : ''}"><span class="eng">🖼 Moodboard</span>
           <b>${t ? (t.moodboard || []).length : 0} image(s)</b>
           ${tenues.length ? `<span class="nt">👕 ${esc(tenues.join(' · ')).slice(0, 70)}</span>` : '<span class="nt">tenues : rien de noté</span>'}
           <button class="btn xs" data-to="${r.id}">Voir</button></div>
-        <div class="su-b${md.length ? ' fait' : ''}"><span class="eng">🎥 Médias</span>
-          <b>${vid} vidéo(s) · ${ph} photo(s)</b><span class="nt">étiquetés pour ce reel</span>
-          <button class="btn xs" data-me="${r.id}">Ouvrir Médias</button></div>
+        <div class="su-b${t ? ' fait' : ''}"><span class="eng">🎬 Tournage</span>
+          ${t ? `<b>${esc(t.titre || 'Tournage')}</b><span class="nt">${[date(t.date), t.heure, t.lieu].filter(Boolean).map(esc).join(' · ') || 'date à fixer'}</span>`
+              : '<span class="nt">Pas de fiche de tournage</span>'}
+          <button class="btn xs" data-to="${r.id}">${t ? 'Ouvrir' : 'Créer la fiche'}</button></div>
       </div>
-      ${r.notes ? `<span class="nt su-n">${esc(r.notes)}</span>` : ''}
+      <div class="su-sortie"><span class="eng">🚀 Sortie prévue</span>
+        <input class="fld" type="date" data-sortie="${r.id}" value="${esc(r.sortie || '')}">
+        <span class="nt">${r.sortie ? (r.evenement ? '✓ dans le Calendrier' : 'pas encore dans le Calendrier') : 'choisis une date : elle ira dans le Calendrier'}</span>
+        ${r.sortie ? `<button class="btn xs" data-sortiex="${r.id}" title="Enlever la date">✕</button>` : ''}</div>
+      <div class="su-aff-edit"><span class="nt">Image du poster : ${r.affiche ? (r.afficheIA ? 'imaginée par Miette' : 'choisie à la main') : t && (t.moodboard || []).length ? 'le moodboard du tournage' : m && m.photo ? 'la photo du morceau' : 'aucune'}</span>
+        <button class="btn xs" data-affiche="${r.id}">🖼 Changer l'image</button><button class="btn xs" data-imagine="${r.id}" title="Gemini dessine une image à partir de l'idée, pour se projeter (pas besoin qu'elle soit exacte)">🍞 Imaginer l'image</button>${r.affiche ? `<button class="btn xs" data-imgx="${r.id}">↺ Automatique</button>` : ''}</div>
+      <div class="su-idee">
+        <div class="chips su-types">${TYPES_R.map(x => `<button class="chip${(r.type || 'Reel') === x ? ' on' : ''}" data-type="${r.id}|${x}">${x}</button>`).join('')}</div>
+        <input class="fld" data-idee="${r.id}" value="${esc(r.notes || '')}" placeholder="L'idée en une phrase (ex. Pierre danse seul dans le studio, lumière rouge, plan fixe)">
+      </div>
     </div>`;
   }
 
@@ -190,6 +201,63 @@ BK.module('suivi', function (page) {
       await BK.db.ecrire('reels', r);
       await noterDansTodo(r, avant, ETAPES.findIndex(e => e.k === r.statut));
       msg(ETAPES.find(e => e.k === r.statut).nom); rendre(); });
+    // la date de sortie : dans la fiche, et un rendez-vous « Publication » dans le Calendrier (créé ou déplacé)
+    const sortie = async (r, d) => {
+      r.sortie = d || '';
+      if (d) { const m = morceauDe(r);
+        const ev = { id: r.evenement || undefined, type: 'promo', titre: 'Sortie du reel : ' + (r.titre || 'Reel'), morceau: m ? m.nom : '', date: d, heure: '', lieu: '', reel: r.id };
+        const e = await BK.db.ecrire('evenements', ev); r.evenement = e.id; }
+      else if (r.evenement) { try { await BK.db.supprimer('evenements', r.evenement); } catch (e) {} delete r.evenement; }
+      await BK.db.ecrire('reels', r); BK.agendaRecharger && BK.agendaRecharger();
+      msg(d ? 'Sortie le ' + date(d) + ' · dans le Calendrier ✓' : 'Date de sortie enlevée'); rendre();
+    };
+    $$('[data-sortie]', z).forEach(i => { i.addEventListener('keydown', e => e.stopPropagation()); i.onchange = () => sortie(R.l.find(x => x.id === i.dataset.sortie), i.value); });
+    $$('[data-sortiex]', z).forEach(b => b.onclick = () => sortie(R.l.find(x => x.id === b.dataset.sortiex), ''));
+    $$('[data-type]', z).forEach(b => b.onclick = async () => { const [id, ty] = b.dataset.type.split('|'), r = R.l.find(x => x.id === id); r.type = ty; await BK.db.ecrire('reels', r); rendre(); });
+    $$('[data-idee]', z).forEach(i => { i.addEventListener('keydown', e => { e.stopPropagation(); if (e.key === 'Enter') i.blur(); });
+      i.onchange = async () => { const r = R.l.find(x => x.id === i.dataset.idee); r.notes = i.value.trim(); await BK.db.ecrire('reels', r); msg('Idée enregistrée'); }; });
+    $$('[data-imagine]', z).forEach(b => b.onclick = async () => {
+      const r = R.l.find(x => x.id === b.dataset.imagine), t = tournageDe(r), m = morceauDe(r);
+      const idee = (r.notes || (t && t.idee) || '').trim();
+      if (!idee) { const i = $(`[data-idee="${r.id}"]`, z); i && i.focus(); return msg('Écris d\'abord l\'idée en une phrase'); }
+      if (!(await BK.ia.pret())) return msg('Il faut la clé Gemini (Réglages › Miette)');
+      const tenues = t && t.tenues ? Object.entries(t.tenues).filter(([, v]) => v).map(([k, v]) => k + ' : ' + v).join(', ') : '';
+      const texte = `Image d'ambiance pour un ${r.type || 'reel'} vertical d'un groupe de musique (BEESKOT).\nIdée : ${idee}.`
+        + (m ? `\nMorceau : ${m.nom}.` : '') + (t && t.lieu ? `\nLieu : ${t.lieu}.` : '') + (tenues ? `\nTenues : ${tenues}.` : '')
+        + `\nStyle : photo de clip, cinématographique, lumière travaillée. Pas de texte ni de logo.`;
+      b.disabled = true; b.innerHTML = '<span class="spin"></span>Miette dessine…';
+      try {
+        const url = await BK.ia.image(texte);
+        const blob = await (await fetch(url)).blob(), petit = BK.ia.reduireImage ? await BK.ia.reduireImage(blob, 900) : blob;
+        r.affiche = await new Promise(ok => { const fr = new FileReader(); fr.onload = () => ok(fr.result); fr.readAsDataURL(petit); });
+        r.afficheIA = true; await BK.db.ecrire('reels', r); msg('Image imaginée ✓ (pour se projeter)'); rendre();
+      } catch (e) { msg(e.message || 'Image impossible'); b.disabled = false; b.textContent = '🍞 Imaginer l\'image'; }
+    });
+    $$('[data-imgx]', z).forEach(b => b.onclick = async () => { const r = R.l.find(x => x.id === b.dataset.imgx); delete r.affiche; delete r.afficheIA; await BK.db.ecrire('reels', r); msg('Image automatique'); rendre(); });
+    $$('[data-affiche]', z).forEach(b => b.onclick = async () => { const r = R.l.find(x => x.id === b.dataset.affiche), m = morceauDe(r);
+      const image = f => /^image\//.test(f.mimeType || '');
+      const reduire = async (blob) => { const b = BK.ia.reduireImage ? await BK.ia.reduireImage(blob, 900) : blob;      // petite, rangée dans la fiche
+        return new Promise(ok => { const fr = new FileReader(); fr.onload = () => ok(fr.result); fr.readAsDataURL(b); }); };
+      const fin = async (dataUrl) => { if (!dataUrl) return; r.affiche = dataUrl; r.afficheIA = false; await BK.db.ecrire('reels', r); msg('Image du poster enregistrée'); rendre(); };
+      if (!BK.drive.relie()) {                                    // sans Drive : une image de ce PC
+        const inp = document.createElement('input'); inp.type = 'file'; inp.accept = 'image/*';
+        inp.onchange = async () => { if (inp.files[0]) fin(await reduire(inp.files[0])); }; return inp.click(); }
+      const etiquetes = async () => { await BK.dossiers.assurer(); const [tous, tags] = await Promise.all([BK.dossiers.tousFichiers(), BK.etiquettes.tous()]);
+        const cles = [...(m ? [m.id] : []), ...(r.tournage ? ['t:' + r.tournage] : []), 'c:moodboard', 'c:tournage'];
+        return tous.filter(f => image(f) && cles.some(k => BK.etiquettes.liste(tags, f.id).includes(k))).map(f => ({ id: f.id, nom: f.name, f, vignette: () => BK.drive.vignette(f) })); };
+      const toutLeCloud = async () => { await BK.dossiers.assurer();
+        return (await BK.dossiers.tousFichiers()).filter(image).sort((a, b) => (b.modifiedTime || '').localeCompare(a.modifiedTime || '')).slice(0, 300).map(f => ({ id: f.id, nom: f.name, f, vignette: () => BK.drive.vignette(f) })); };
+      const discord = async () => (await BK.discord.mediasVite('media', {}).catch(() => []) || []).filter(x => /\.(jpe?g|png|webp)$/i.test(x.nom || '')).map(x => ({ id: 'dc:' + x.id, nom: x.nom, dc: x, apercu: x.url }));
+      const cePC = async () => [];
+      const l = await BK.choisirImages({ titre: 'Image du poster · ' + (r.titre || 'Reel'), bouton: 'Choisir cette image',
+        sources: [{ nom: '🏷 Étiquetés pour ce reel', charger: etiquetes }, { nom: '☁ Tout le cloud', charger: toutLeCloud }, { nom: '🍞 Discord', charger: discord }] });
+      if (!l || !l[0]) return;
+      const x = l[0]; msg('Chargement de l\'image…');
+      try {
+        if (x.dc) { const rr = await BK.discord.fetch(x.dc.url); if (!rr.ok) throw new Error('expiré'); return fin(await reduire(await rr.blob())); }
+        const rr = await BK.drive.api(`/files/${x.f.id}?alt=media`); return fin(await reduire(await rr.blob()));
+      } catch (e) { msg('Image illisible'); }
+    });
     $$('[data-sx]', z).forEach(b => b.onclick = async () => { const r = R.l.find(x => x.id === b.dataset.sx);
       if (!confirm(`Retirer « ${r.titre || 'ce reel'} » du suivi ?`)) return;
       R.l = R.l.filter(x => x !== r); await BK.db.supprimer('reels', r.id); msg('Retiré'); rendre(); });

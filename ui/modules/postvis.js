@@ -64,6 +64,7 @@ BK.module('postvis', function (page) {
         <div class="box"><span class="lb">Export</span></div>
       </section>
     </div>
+    <div class="box re-faits hidden" id="pvFaits" style="margin:0 0 8px"></div>
     <div class="pane abar"><span class="vfd" id="pvMsg">AJOUTE DES PHOTOS</span>
       <div class="right"><button class="btn pri" id="pvExport" disabled>Exporter les images ▶</button></div></div>`;
 
@@ -274,15 +275,19 @@ BK.module('postvis', function (page) {
   $('#pvExport').onclick = async () => {
     const b = $('#pvExport'); b.disabled = true; b.innerHTML = '<span class="spin"></span>Export…';
     try {
-      const f = F(), rr = BK.rendu.creer(f.L, f.H); rr.lut(P.lut); let dernier = null;
+      const f = F(), rr = BK.rendu.creer(f.L, f.H); rr.lut(P.lut); const faits = [];
       for (let k = 0; k < P.slides.length; k++) {
         const s = P.slides[k]; rr.dessiner(s.img, { zoom: s.zoom / 100, x: s.x, y: s.y }, (P.force ?? 100) / 100, '');
-        const blob = await new Promise(ok => rr.sortie.toBlob(ok, 'image/jpeg', 0.92));
-        dernier = await BK.enregistrerFichier(BK.chemin('Posts', P.nom), `${P.nom}_${String(k + 1).padStart(2, '0')}_${f.L}x${f.H}.jpg`, new Uint8Array(await blob.arrayBuffer()), 'image/jpeg');
+        const blob = await new Promise(ok => rr.sortie.toBlob(ok, 'image/jpeg', 0.92)), octets = new Uint8Array(await blob.arrayBuffer());
+        const nom = `${P.nom}_${String(k + 1).padStart(2, '0')}_${f.L}x${f.H}.jpg`;
+        const pth = await BK.enregistrerFichier(BK.chemin('Posts', P.nom), nom, octets, 'image/jpeg');
+        faits.push({ nom, p: pth, octets, type: 'image/jpeg', ic: '🖼' });
         msg(`Export ${k + 1}/${P.slides.length}`); await BK.audio.pause();
       }
-      if (P.legende) await BK.enregistrerFichier(BK.chemin('Posts', P.nom), `${P.nom}_legende.txt`, new TextEncoder().encode(P.legende), 'text/plain');
-      msg(dernier ? P.slides.length + ' image(s) prêtes ✓' : 'Export annulé');
+      if (P.legende) { const o = new TextEncoder().encode(P.legende), nom = `${P.nom}_legende.txt`;
+        faits.push({ nom, p: await BK.enregistrerFichier(BK.chemin('Posts', P.nom), nom, o, 'text/plain'), octets: o, type: 'text/plain', ic: '📝' }); }
+      msg(faits.some(x => x.p) ? P.slides.length + ' image(s) prêtes ✓' : 'Export annulé');
+      BK.montrerExports($('#pvFaits'), faits, { drive: { role: 'photovideo', sous: ['Posts', P.nom], titre: 'Photos/Vidéos › Posts › ' + P.nom }, msg });
     } catch (e) { console.error(e); msg('Export impossible'); }
     b.disabled = false; b.textContent = 'Exporter les images ▶';
   };

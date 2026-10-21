@@ -36,6 +36,32 @@ BK.ia = {
       return choix;
     } catch (e) { return (memo && memo.nom) || defaut; }
   },
+  // ---------- une image imaginée par Gemini (pour se projeter : pas besoin qu'elle soit exacte) ----------
+  // Renvoie une image en data:URL. Avec la clé gratuite, Google peut refuser : on le dit clairement.
+  async image(texte, { format = '9:16' } = {}) {
+    const c = await BK.ia.config(); if (!c.gemini) throw new Error('Pas de clé Gemini (Réglages › Miette)');
+    let noms = [];
+    try { const r = await (await BK.ia.fetch(`${BK.ia.BASE}/models?pageSize=200`, { headers: { 'x-goog-api-key': c.gemini } })).json();
+      noms = (r.models || []).map(m => ({ n: m.name.replace('models/', ''), g: m.supportedGenerationMethods || [] }))
+        .filter(m => m.g.includes('generateContent') && /^gemini-.*image/.test(m.n)).map(m => m.n)
+        .sort((a, b) => (/preview/.test(a) - /preview/.test(b)) || b.localeCompare(a)); } catch (e) {}
+    if (!noms.length) noms = ['gemini-2.5-flash-image', 'gemini-2.0-flash-preview-image-generation'];
+    let derniere = '';
+    for (const modele of noms) {
+      const corps = { contents: [{ role: 'user', parts: [{ text: texte + `\n\nFormat vertical ${format}. Une seule image, sans texte écrit dessus.` }] }],
+        generationConfig: { responseModalities: ['TEXT', 'IMAGE'] } };
+      const r = await BK.ia.fetch(`${BK.ia.BASE}/models/${modele}:generateContent`, { method: 'POST', headers: { 'Content-Type': 'application/json', 'x-goog-api-key': c.gemini }, body: JSON.stringify(corps) })
+        .catch(() => { throw new Error('Gemini injoignable (Internet ?)'); });
+      const j = await r.json().catch(() => ({}));
+      if (!r.ok) { derniere = (j.error && j.error.message) || String(r.status);
+        if (r.status === 429 || /quota|free tier|billing|not available/i.test(derniere)) derniere = 'La clé gratuite de Gemini ne permet pas de faire des images en ce moment (limite de Google).';
+        continue; }
+      const p = ((((j.candidates || [])[0] || {}).content || {}).parts || []).find(x => x.inlineData && /^image\//.test(x.inlineData.mimeType || ''));
+      if (p) return `data:${p.inlineData.mimeType};base64,${p.inlineData.data}`;
+      derniere = 'Gemini n\'a pas renvoyé d\'image';
+    }
+    throw new Error(derniere || 'Image impossible pour l\'instant');
+  },
   // moins de « réflexion » = réponse beaucoup plus rapide (pour les questions simples)
   reflexion(modele, peu) {
     if (!peu) return null;
