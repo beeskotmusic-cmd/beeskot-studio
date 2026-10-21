@@ -159,15 +159,41 @@ BK.synchro = {
       if (cols.length) window.dispatchEvent(new CustomEvent('bk:distant', { detail: { cols } }));
     } catch (e) { /* hors ligne : on réessaie au prochain tour */ }
   },
+  // les collections connues : on va chercher l'identifiant de leur dossier Drive une fois,
+  // sinon un changement venu d'un autre PC dans une collection jamais ouverte passe inaperçu
+  COLS: ['morceaux', 'taches', 'evenements', 'tournages', 'reels', 'depenses', 'abonnements',
+         'inventaires', 'exportsaudio', 'config', 'veille', 'propositions', 'renforts', 'ameliorations'],
+  async prevenir() {
+    if (!BK.drive || !BK.drive.relie()) return;
+    const racine = await BK.drive.racine();
+    for (const c of BK.synchro.COLS) { try { await BK.drive.dossier(c, racine); } catch (e) {} }
+  },
   demarrer() {
+    BK.synchro.prevenir();
     setInterval(BK.synchro.tour, 40e3);
     window.addEventListener('focus', () => BK.synchro.tour());
     // quand une fiche change ailleurs, l'onglet concerné se relit (sauf si on est en train d'écrire dedans)
-    const QUI = { taches: ['tachesRecharger'], propositions: ['tachesRecharger', 'budgetRecharger', 'tournagesRecharger', 'veilleurMaj'], evenements: ['agendaRecharger'],
-      depenses: ['budgetRecharger'], abonnements: ['budgetRecharger'], tournages: ['tournagesRecharger'], veille: ['agendaRecharger'], config: ['mediasRecharger'], morceaux: [] };
+    // tout ce qui est fait sur un PC se retrouve sur les autres : chaque collection dit quels onglets relire
+    const QUI = {
+      taches:       ['tachesRecharger'],
+      propositions: ['tachesRecharger', 'budgetRecharger', 'tournagesRecharger', 'veilleurMaj'],
+      evenements:   ['agendaRecharger'],
+      depenses:     ['budgetRecharger'],
+      abonnements:  ['budgetRecharger'],
+      tournages:    ['tournagesRecharger', 'suiviRecharger'],
+      reels:        ['suiviRecharger'],
+      exportsaudio: ['suiviRecharger'],
+      inventaires:  ['biblioRecharger', 'suiviRecharger'],
+      morceaux:     ['biblioRecharger', 'suiviRecharger'],
+      veille:       ['agendaRecharger'],
+      config:       ['mediasRecharger'],
+      renforts:     ['veilleurMaj'],
+      ameliorations:['veilleurMaj'],
+    };
     window.addEventListener('bk:distant', e => {
       const a = document.activeElement; if (a && (/^(INPUT|TEXTAREA)$/.test(a.tagName) || a.isContentEditable)) return;
       if (e.detail.cols.includes('config') && BK.etiquettes) BK.etiquettes.doc = null;
+      if (e.detail.cols.includes('config')) BK.partageCache = {};        // PLAN.xlsx, passages Discord… relus
       const f = new Set(e.detail.cols.flatMap(c => QUI[c] || []));
       for (const n of f) try { BK[n] && BK[n](); } catch (er) {}
       if (e.detail.cols.some(c => /veille|taches|evenements|propositions|morceaux/.test(c))) try { BK.surOuvrir && BK.surOuvrir.accueil && BK.surOuvrir.accueil(); } catch (er) {}

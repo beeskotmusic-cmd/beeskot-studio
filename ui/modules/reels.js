@@ -113,14 +113,19 @@ BK.module('reels', function (page) {
   $$('#reSrc button').forEach(b => b.onclick = () => source(b.dataset.s));
   async function remplirMorceaux() {
     const ms = (await BK.db.liste('morceaux')).sort((a, b) => a.nom.localeCompare(b.nom));
-    const sel = $('#reMorceau'), avant = sel.value;
+    const sel = $('#reMorceau'), avant = sel.value || BK.reglage('reel.morceau', '');
     sel.innerHTML = '<option value="">— choisir —</option>' + ms.map(m => `<option value="${m.id}">${esc(m.nom)}</option>`).join('');
-    sel.value = avant; R.morceaux = ms; remplirVersions();
+    sel.value = avant; if (sel.value !== avant) sel.value = ''; R.morceaux = ms; remplirVersions();
   }
   window.addEventListener('bk:change', e => { if (R.source === 'biblio' && /morceaux|inventaires/.test(e.detail.col)) remplirMorceaux(); });
-  BK.surOuvrir = BK.surOuvrir || {}; BK.surOuvrir.reels = () => { if (R.source === 'biblio') remplirMorceaux(); };
+  BK.surOuvrir = BK.surOuvrir || {}; BK.surOuvrir.reels = async () => {
+    if (R.source !== 'biblio') return;
+    await remplirMorceaux();
+    if (R.buffer || !$('#reMorceau').value || !$('#reVersion').value) return;
+    try { await chargerVersion(); } catch (e) {}                 // le morceau choisi la dernière fois revient tout seul
+  };
   async function remplirVersions() {
-    const m = (R.morceaux || []).find(x => x.id === $('#reMorceau').value), v = $('#reVersion'), avant = v.value;
+    const m = (R.morceaux || []).find(x => x.id === $('#reMorceau').value), v = $('#reVersion'), avant = v.value || BK.reglage('reel.version', '');
     if (!m) { v.innerHTML = '<option value="">—</option>'; return; }
     // l'export principal de la fiche d'abord, puis ceux de ce PC, puis ceux du Drive (CL, mix, masters…)
     // l'export ★ de la fiche vient toujours en premier : c'est lui qu'on utilise partout
@@ -152,8 +157,9 @@ BK.module('reels', function (page) {
       else { if (!BK.estExe) return msg('Disponible dans le logiciel installé'); msg('Lecture…'); await charger(new File([await BK.fichier.lireOctets(p)], p.split(/[\\/]/).pop())); }
     } catch (e) { msg('Fichier illisible'); }
   }
-  $('#reMorceau').onchange = async () => { const o = await remplirVersions(); if (o && o.length) chargerVersion(); };     // on choisit le morceau : il se charge tout seul
-  $('#reVersion').onchange = chargerVersion;
+  $('#reMorceau').onchange = async () => { BK.regler('reel.morceau', $('#reMorceau').value); BK.regler('reel.version', '');
+    const o = await remplirVersions(); if (o && o.length) chargerVersion(); };     // on choisit le morceau : il se charge tout seul
+  $('#reVersion').onchange = () => { BK.regler('reel.version', $('#reVersion').value); chargerVersion(); };
   $('#reCharger').onclick = chargerVersion;
 
   // ---------- chargement ----------
