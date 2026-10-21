@@ -69,9 +69,16 @@ BK.module('suivi', function (page) {
     const vid = md.filter(f => /^video\//.test(f.mimeType || '')).length, ph = md.length - vid;
     const i = ETAPES.findIndex(e => e.k === (r.statut || 'idee'));
     const tenues = t && t.tenues ? Object.entries(t.tenues).filter(([, v]) => v && String(v).trim()).map(([k, v]) => k + ' : ' + v) : [];
-    return `<div class="su-c" data-id="${r.id}">
-      <div class="su-tete"><b>${esc(r.titre || 'Reel')}</b>${m ? `<span class="su-m">${esc(m.nom)}</span>` : ''}
+    const ouvert = (BK.reglage('suivi.ouverts', {}))[r.id] ?? false;
+    const pas = r.passage || (a && a.duree ? { debut: a.debut || 0, fin: (a.debut || 0) + a.duree } : null);
+    const vign = (m && m.photo) || '';
+    return `<div class="su-c${ouvert ? ' ouverte' : ''}" data-id="${r.id}">
+      <div class="su-tete">
+        <button class="su-vign" data-ouv="${r.id}" title="${ouvert ? 'Replier' : 'Tout voir'}"${vign ? ` style="background-image:url(${vign})"` : ''} data-img="${(md.find(f => /^image\//.test(f.mimeType || '')) || {}).id || ''}">${vign ? '' : '🎬'}</button>
+        <button class="su-titre" data-ouv="${r.id}"><b>${esc(r.titre || 'Reel')}</b>${m ? `<span class="su-m">${esc(m.nom)}</span>` : ''}</button>
+        ${pas ? `<span class="su-lect"><button class="btn xs" data-play="${r.id}" title="Écouter le passage">▶</button><span class="mono">${t2(pas.debut)} → ${t2(pas.fin)}</span></span>` : '<span class="nt su-lect">passage à choisir</span>'}
         <div class="su-etapes">${ETAPES.map((e, k) => `<button class="su-e${k <= i ? ' ok' : ''}${k === i ? ' on' : ''}" data-st="${r.id}|${e.k}" title="${e.nom}">${e.ic}</button>`).join('')}</div>
+        <button class="btn xs" data-ouv="${r.id}" title="${ouvert ? 'Replier' : 'Tout voir'}">${ouvert ? '▾' : '▸'}</button>
         <button class="btn xs" data-sx="${r.id}" title="Retirer">✕</button></div>
       <div class="su-l">
         <div class="su-b${a ? ' fait' : ''}"><span class="eng">🎵 Audio</span>
@@ -106,8 +113,49 @@ BK.module('suivi', function (page) {
     brancher();
   }
 
+  // ---------- écouter le passage : on va chercher l'export, sinon le meilleur fichier du Drive ----------
+  const lect = new Audio(); let lectFin = 0;
+  BK.mini.suivre(lect, { page: 'suivi', titre: () => lect.titre || 'Passage du reel' });
+  lect.addEventListener('timeupdate', () => { if (lectFin && lect.currentTime >= lectFin) lect.pause(); });
+  const sources = {};
+  async function jouerPassage(r) {
+    const pas = r.passage || (() => { const a = audioDe(r); return a && a.duree ? { debut: a.debut || 0, fin: (a.debut || 0) + a.duree } : null; })();
+    const m = morceauDe(r);
+    if (!lect.paused && lect.dataset.r === r.id) { lect.pause(); return msg('Pause'); }
+    msg('Chargement…');
+    try {
+      let url = sources[r.id];
+      if (!url) {
+        const a = audioDe(r);
+        if (a && (BK.reelsExports || {})[a.id]) url = BK.reelsExports[a.id];
+        else if (a && a.chemin && BK.estExe) url = URL.createObjectURL(new Blob([await BK.fichier.lireOctets(a.chemin)], { type: 'audio/wav' }));
+        else if (m && BK.drive.relie()) {
+          await BK.dossiers.assurer();
+          const l = BK.trierStems(await BK.dossiers.duMorceau(m, R.morceaux)).filter(f => !f.groupe && /\.(wav|mp3|aiff?|flac)$/i.test(f.name) && !/tournage/i.test(f.name));
+          const rang = f => ({ cl: 0, recording: 1, ableton: 2 }[f.role] ?? 3);
+          const f = l.sort((x, y) => rang(x) - rang(y) || (y.modifiedTime || '').localeCompare(x.modifiedTime || ''))[0];
+          if (!f) return msg('Aucun export à écouter pour ' + (m ? m.nom : 'ce reel'));
+          msg('Téléchargement de ' + f.name + '…');
+          url = URL.createObjectURL(new Blob([await BK.drive.telecharger(f.id)], { type: 'audio/wav' }));
+        }
+        if (!url) return msg('Aucun son à écouter : choisis le passage dans Reels Audio');
+        sources[r.id] = url;
+      }
+      if (lect.dataset.r !== r.id) { lect.src = url; lect.dataset.r = r.id; }
+      lect.titre = (m ? m.nom + ' · ' : '') + (r.titre || 'Reel');
+      lect.currentTime = (pas && pas.debut) || 0; lectFin = pas ? pas.fin : 0;
+      await lect.play(); msg(pas ? `▶ ${t2(pas.debut)} → ${t2(pas.fin)}` : '▶ lecture');
+    } catch (e) { console.error(e); msg('Lecture impossible'); }
+  }
+
   function brancher() {
     const z = $('#suListe');
+    $$('[data-ouv]', z).forEach(b => b.onclick = () => { const o = BK.reglage('suivi.ouverts', {}); o[b.dataset.ouv] = !(o[b.dataset.ouv] ?? false); BK.regler('suivi.ouverts', o); rendre(); });
+    $$('[data-play]', z).forEach(b => b.onclick = e => { e.stopPropagation(); jouerPassage(R.l.find(x => x.id === b.dataset.play)); });
+    // la vignette : une image des médias du reel si la fiche du morceau n'en a pas
+    (async () => { for (const b of $$('.su-vign[data-img]', z)) { if (b.style.backgroundImage || !b.dataset.img) continue;
+      const f = R.fichiers.find(x => x.id === b.dataset.img); if (!f) continue;
+      try { const u = await BK.drive.vignette(f); if (u) { b.style.backgroundImage = `url(${u})`; b.textContent = ''; } } catch (e) {} } })();
     $$('[data-st]', z).forEach(b => b.onclick = async () => { const [id, k] = b.dataset.st.split('|'); const r = R.l.find(x => x.id === id);
       const avant = ETAPES.findIndex(e => e.k === (r.statut || 'idee'));
       r.statut = r.statut === k ? (ETAPES[Math.max(0, ETAPES.findIndex(e => e.k === k) - 1)] || {}).k || 'idee' : k;
