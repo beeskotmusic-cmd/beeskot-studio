@@ -7,7 +7,7 @@ const $ = (s, r = document) => r.querySelector(s);
 const $$ = (s, r = document) => [...r.querySelectorAll(s)];
 
 const BK = {
-  version: '0.9.30 bêta',
+  version: '0.9.31 bêta',
   modules: {},
   onglets: [],
   cotes: [],
@@ -135,7 +135,7 @@ const BK = {
       $('#stopLed').classList.add('on'); $('#syMaj').textContent = 'MAJ ' + m.version;
       $('#btStop').classList.add('maj'); $('#btStop').title = 'Mise à jour ' + m.version + ' disponible';
       const b = $('#stMaj'); b.classList.remove('hidden'); b.textContent = '⬇ Installer la version ' + m.version;
-    } catch (e) { /* pas d'Internet : on réessaiera au prochain démarrage */ }
+    } catch (e) { /* pas d'Internet : on réessaiera tout à l'heure */ }
   },
   async installerMaj() {
     if (!BK.majDispo) return;
@@ -178,6 +178,7 @@ const BK = {
     BK.ouvrir(BK.reglage('dernierOnglet', 'accueil'));
     setTimeout(() => BK.bienvenue && BK.bienvenue.ouvrir(), 600);      // premier lancement : le petit guide
     setTimeout(BK.verifierMaj, 3000);
+    setInterval(BK.verifierMaj, 20 * 60e3);        // le bouton se met à clignoter sans avoir à relancer
     BK.ableton && BK.ableton.surveiller();
     BK.discord && BK.discord.surveiller();                         // le Veilleur : toutes les 30 min, s'il est réglé
     setInterval(() => BK.synchro && BK.synchro(), 60000);          // partage avec les autres PC : toutes les minutes              // quelques secondes après l'ouverture, sans gêner
