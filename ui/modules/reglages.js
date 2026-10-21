@@ -65,6 +65,7 @@ BK.module('reglages', function (page) {
     { c: 'morceaux', n: 'Bibliothèque (les morceaux)' }, { c: 'taches', n: 'To-do list' },
     { c: 'evenements', n: 'Calendrier' }, { c: 'tournages', n: 'Tournages' }, { c: 'reels', n: 'Reels' },
     { c: 'depenses', n: 'Budget : dépenses' }, { c: 'abonnements', n: 'Budget : abonnements' },
+    { c: 'exportsaudio', n: 'Reels Audio : les exports' },
     { c: 'inventaires', n: 'Fichiers repérés sur les PC' }, { c: 'config', n: 'Étiquettes et réglages partagés' },
   ];
   function panneauRetour() {

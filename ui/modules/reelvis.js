@@ -274,15 +274,17 @@ BK.module('reelvis', function (page) {
   // ---------- musique ----------
   // la musique du reel : le son de la vidéo, un export de l'Assistant audio, ou le passage ouvert là-bas
   const musique = () => V.musique === 'reel' ? (BK.reelAudio && BK.reelAudio()) : V.musique === 'export' ? V.exp || null : null;
+  let EXPORTS = [];
+  async function chargerExports() { try { EXPORTS = await BK.exportsAudio.tous(); } catch (e) { EXPORTS = BK.exportsAudio.local(); } remplirExports(); }
   function remplirExports() {
-    const l = BK.reglage('reels.exports', []), m = $('#rvMorceau') && $('#rvMorceau').selectedOptions[0], nomM = m && m.value ? m.textContent : '';
+    const l = EXPORTS.length ? EXPORTS : BK.exportsAudio.local(), m = $('#rvMorceau') && $('#rvMorceau').selectedOptions[0], nomM = m && m.value ? m.textContent : '';
     const tri = [...l].sort((a, b) => (nomM ? (b.morceau === nomM) - (a.morceau === nomM) : 0) || b.t.localeCompare(a.t));
     $('#rvExp').innerHTML = (tri.length ? '<option value="">Choisis un export…</option>' : '<option value="">Aucun export : fais-en un dans l\'Assistant audio Reel</option>')
       + tri.map(e => `<option value="${e.id}"${V.exp && V.exp.id === e.id ? ' selected' : ''}>${esc(e.nom)} · ${new Date(e.t).toLocaleDateString('fr-CA', { day: 'numeric', month: 'short' })}</option>`).join('');
     return tri;
   }
   async function choisirExport(id) {
-    const e = BK.reglage('reels.exports', []).find(x => x.id === id); if (!e) { V.exp = null; return majMusique(); }
+    const e = (EXPORTS.length ? EXPORTS : BK.exportsAudio.local()).find(x => x.id === id); if (!e) { V.exp = null; return majMusique(); }
     try {
       let url = (BK.reelsExports || {})[e.id];
       if (!url && BK.estExe) url = URL.createObjectURL(new Blob([await BK.fichier.lireOctets(e.chemin)], { type: 'audio/wav' }));
@@ -301,7 +303,7 @@ BK.module('reelvis', function (page) {
     $('#rvMusTxt').textContent = V.musique === 'export' ? (V.exp ? `« ${V.exp.nom} » (${t2(V.exp.duree)}) remplace le son de la vidéo.` : '') : V.musique === 'reel' ? (a ? `Passage de « ${a.nom} » : ${t2(a.debut)} → ${t2(a.debut + a.duree)}` : 'Choisis d\'abord un passage dans l\'Assistant audio Reel.') : 'Le son d\'origine de la vidéo.';
   }
   $$('#rvMus .chip').forEach(c => c.onclick = () => { V.musique = c.dataset.m; majMusique(); });
-  BK.surOuvrir = BK.surOuvrir || {}; BK.surOuvrir.reelvis = () => { galerieSiVide(); majMusique(); remplirMorceaux(); };
+  BK.surOuvrir = BK.surOuvrir || {}; BK.surOuvrir.reelvis = () => { galerieSiVide(); chargerExports(); majMusique(); remplirMorceaux(); };
 
   // ---------- lecture ----------
   function stop() { vid.pause(); son.pause(); cancelAnimationFrame(V.lecture); V.lecture = null; $('#rvPlay').textContent = '▶ Lire';
@@ -340,6 +342,6 @@ BK.module('reelvis', function (page) {
     return out;
   }
 
-  majGabarit(); majMusique(); remplirMorceaux();
+  majGabarit(); majMusique(); remplirMorceaux(); chargerExports();
 });
 })();

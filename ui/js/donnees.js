@@ -149,6 +149,30 @@ BK.etatDrive = function () {
   const led = $('#ledDrive'); if (led) { led.className = 'led ' + (ok ? (hl ? 'amb' : 'grn') : ''); }
 };
 
+// ---------- les exports de l'Assistant Reels Audio ----------
+// Avant, cette liste ne vivait que sur le PC qui avait fait l'export : les autres PC ne la voyaient
+// pas, et la Time Machine ne pouvait pas la récupérer. Maintenant elle est aussi sur le Drive.
+BK.exportsAudio = {
+  local() { return BK.reglage('reels.exports', []); },
+  async tous() {
+    const loc = BK.exportsAudio.local();
+    if (!BK.db.drive()) return loc;
+    let dist = [];
+    try { dist = await BK.db.liste('exportsaudio'); } catch (e) { return loc; }
+    const connus = new Set(dist.map(x => x.id));
+    for (const e of loc) if (!connus.has(e.id)) {                 // exports faits avant le partage : ils montent sur le Drive
+      try { await BK.db.ecrire('exportsaudio', { ...e, pc: BK.reglage('nomPc', '') || 'ce PC' }, { sansAnnuler: true }); dist.push(e); } catch (er) {}
+    }
+    const par = {};
+    for (const e of [...dist, ...loc]) if (e && e.id) par[e.id] = { ...(par[e.id] || {}), ...e };
+    return Object.values(par).sort((a, b) => String(b.t || '').localeCompare(String(a.t || '')));
+  },
+  async ajouter(e) {
+    BK.regler('reels.exports', [e, ...BK.exportsAudio.local().filter(x => x.id !== e.id)].slice(0, 30));
+    if (BK.db.drive()) { try { await BK.db.ecrire('exportsaudio', { ...e, pc: BK.reglage('nomPc', '') || 'ce PC' }); } catch (er) {} }
+  },
+};
+
 // ---------- les fiches de départ (créées une seule fois par PC, mêmes identifiants partout) ----------
 BK.FICHES_DEPART = [
   { id: 'glamorous-sky',          nom: 'Glamorous Sky' },

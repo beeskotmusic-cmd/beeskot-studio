@@ -419,7 +419,7 @@ BK.module('reels', function (page) {
     const { m } = await morceauActuel().catch(() => ({}));
     const e = { id: Date.now().toString(36), nom, chemin, morceau: m ? m.nom : R.nom, debut: R.debut, duree: R.duree, t: new Date().toISOString() };
     BK.reelsExports[e.id] = URL.createObjectURL(new Blob([octets], { type: 'audio/wav' }));
-    BK.regler('reels.exports', [e, ...BK.reglage('reels.exports', [])].slice(0, 30));
+    await BK.exportsAudio.ajouter(e);
     if (BK.suiviEnCours) { try { const l = await BK.db.liste('reels'), r = l.find(x => x.id === BK.suiviEnCours);     // relié à la page Reels
       if (r) { r.audio = e.id; r.passage = { debut: R.debut, fin: R.debut + R.duree }; if (r.statut === 'idee') r.statut = 'audio';
         await BK.db.ecrire('reels', r); BK.suiviRecharger && BK.suiviRecharger(); } } catch (er) {} }
