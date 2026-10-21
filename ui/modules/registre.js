@@ -8,20 +8,21 @@
 // =====================================================================
 BK.onglets = [
   { id: 'accueil',  cote: 'general', titre: 'Accueil',        sous: 'Next et à faire',               couleur: 'var(--mus)',  pret: true,  defaut: true },
-  { id: 'renforts', cote: 'general', titre: 'Miette AI',      sous: 'Questions, Discord, aides',     couleur: 'var(--teal)', pret: true,  defaut: true },
+  { id: 'renforts', cote: 'general', titre: 'Miette AI',      sous: 'Questions, Discord, aides',     couleur: 'var(--olv)', pret: true,  defaut: true },
 
   { id: 'biblio',   cote: 'audio',   titre: 'Bibliothèque',   sous: 'Morceaux, exports, projets',    couleur: 'var(--org)',  pret: true , defaut: true },
   { id: 'medias',   cote: 'audio',   titre: 'Médias',         sous: 'Photos, vidéos, étiquettes',    couleur: 'var(--ox)',   pret: true , defaut: true },
 
   { id: 'suivi',    cote: 'outils',  titre: 'Reels',          sous: 'Suivi : audio, tournage, médias', couleur: 'var(--teal)', pret: true , defaut: true },
+  { id: 'mixprep',  cote: 'assist',  titre: 'Ableton Live',   sous: 'Noms, couleurs, gel, zip',      couleur: 'var(--rust)', pret: true , defaut: true },
+  { id: 'postvis',  cote: 'assist',  titre: 'Social Photo',   sous: 'Photos, carrousel Insta',       couleur: 'var(--navy)', pret: true , defaut: true },
   { id: 'tournage', cote: 'assist',  titre: 'Tournages',      sous: 'Plan, moodboard, PDF',          couleur: 'var(--navy)', pret: true, defaut: true },
   { id: 'agenda',   cote: 'outils',  titre: 'Calendrier',     sous: 'Agenda BEESKOT, promo',         couleur: 'var(--mus)',  pret: true , defaut: true },
   { id: 'taches',   cote: 'outils',  titre: 'To-do list',     sous: 'À faire',                       couleur: 'var(--crm)',  pret: true , defaut: true },
   { id: 'budget',   cote: 'outils',  titre: 'Budget',         sous: 'Dépenses, qui doit à qui',      couleur: 'var(--olv)',  pret: true , defaut: true },
+  { id: 'ecoute',   cote: 'outils',  titre: 'Écoute',         sous: 'Mix A/B et notes minutées',     couleur: 'var(--rust)', pret: true , defaut: true },
 
-  { id: 'mixprep',  cote: 'assist',  titre: 'Ableton Live',   sous: 'Noms, couleurs, gel, zip',      couleur: 'var(--rust)', pret: true , defaut: true },
   { id: 'reels',    cote: 'assist',  titre: 'Reels Audio',    sous: 'Passage, durée, vitesse',       couleur: 'var(--teal)', pret: true , defaut: true },
-  { id: 'postvis',  cote: 'assist',  titre: 'Reels Photo',    sous: 'Photos, carrousel Insta',       couleur: 'var(--navy)', pret: true , defaut: true },
   { id: 'reelvis',  cote: 'assist',  titre: 'Reels Vidéo',    sous: 'Montage, sous-titres, MP4',     couleur: 'var(--teal)', pret: true , defaut: true },
 
   { id: 'lumieres', cote: 'show',    titre: 'Lumières',       sous: 'Light Show, lampes Globe',      couleur: 'var(--olv)',  pret: true, defaut: true },

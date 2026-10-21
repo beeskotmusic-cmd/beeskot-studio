@@ -135,8 +135,120 @@ BK.discord = {
       }
       for (const p of props) { const l = nouvelles.find(x => x.id === String(p.source || '').replace(/\D/g, '')); if (l) { p.lien = p.lien || l.lien; p.date = p.date || l.t.slice(0, 10); } }
       if (props.length) await BK.discord.rangerPropositions(props);
-      return { messages: nouvelles.length, propositions: props.length };
+      let pont = {}; try { pont = await BK.discord.pont(c, progression); } catch (e) { console.warn('pont', e); }   // les messages pointés à Miette (🍞 ou « Miette, … »)
+      BK.discord.photoBot(c).catch(() => {});                       // la photo du bot = le patch de Miette (une seule fois pour tout le groupe)
+      return { messages: nouvelles.length, propositions: props.length, pointes: pont.n || 0, ranges: pont.ranges || 0 };
     } finally { BK.discord.enCours = false; }
+  },
+
+  // ---------- LE PONT DISCORD → BEESKOT STUDIO ----------
+  // Sur Discord, on POINTE un message à Miette : la réaction 🍞 dessous, ou un message qui commence par « Miette ».
+  // Miette le lit (avec le message auquel il répond), range directement l'info au bon endroit (Calendrier, To-do,
+  // fiche du morceau, Références d'un tournage, Budget), puis le bot met ✅ sous le message (ou ❓ s'il n'a rien compris).
+  // Pas de serveur : c'est fait dès qu'un PC du groupe a BEESKOT Studio ouvert.
+  RE_POINTE: /^\s*(@?miette|miat)\b[\s,:!-]*/i,
+  async reagir(salon, msg, jeton, emoji) {
+    try { await BK.discord.fetch(`${BK.discord.API}/channels/${salon}/messages/${msg}/reactions/${encodeURIComponent(emoji)}/@me`, { method: 'PUT', headers: { Authorization: 'Bot ' + jeton } }); } catch (e) {}
+  },
+  async repondre(salon, msg, jeton, texte) {                      // une réponse de Miette, juste sous le message
+    try { await BK.discord.fetch(`${BK.discord.API}/channels/${salon}/messages`, { method: 'POST', headers: { Authorization: 'Bot ' + jeton, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ content: texte, message_reference: { message_id: msg }, allowed_mentions: { parse: [] } }) }); } catch (e) {}
+  },
+  // ---------- la photo du bot Miette sur Discord ----------
+  // Une seule fois pour tout le groupe : le premier PC qui passe met le patch brodé de Miette comme photo du bot,
+  // et le note dans le Drive. Pour une nouvelle photo plus tard : changer PHOTO_BOT (ex. 'miette-v2').
+  PHOTO_BOT: 'miette-v1',
+  async photoBot(c) {
+    c = c || await BK.discord.config(); if (!c.jeton || !BK.db.drive()) return;
+    if ((await BK.partage.lire('discord.photo', '')) === BK.discord.PHOTO_BOT) return;
+    const blob = await (await fetch('look/miette-discord.png')).blob();
+    const img = await new Promise(ok => { const fr = new FileReader(); fr.onload = () => ok(fr.result); fr.readAsDataURL(blob); });
+    const r = await BK.discord.fetch(BK.discord.API + '/users/@me', { method: 'PATCH', headers: { Authorization: 'Bot ' + c.jeton, 'Content-Type': 'application/json' }, body: JSON.stringify({ avatar: img }) });
+    if (r.ok) await BK.partage.ecrire('discord.photo', BK.discord.PHOTO_BOT);         // si Discord refuse (trop de changements), on réessaiera à la prochaine ronde
+  },
+  async pont(c, progression = () => {}) {
+    if (!(await BK.ia.pret())) return {};
+    c = c || await BK.discord.config(); if (!c.jeton) return {};
+    const doc = (await BK.db.liste('config')).find(x => x.id === 'pont') || { id: 'pont', faits: [] }, faits = new Set(doc.faits || []);
+    const pointes = [];
+    for (const s of c.salons || []) {
+      let l = []; try { l = await BK.discord.api(`/channels/${s.id}/messages?limit=50`, c.jeton); } catch (e) { continue; }
+      for (const m of l) {
+        if (faits.has(m.id) || (m.author && m.author.bot && !BK.discord.texteDe(m))) continue;
+        const bisc = (m.reactions || []).some(r => r.emoji && r.emoji.name === '🍞'), dit = BK.discord.RE_POINTE.test(m.content || '');
+        if (!bisc && !dit) continue;
+        if (!bisc && Date.now() - new Date(m.timestamp).getTime() > 3 * 864e5) continue;   // « Miette, … » : seulement les messages récents (pas de vieilles questions d'avant)
+        if ((m.reactions || []).some(r => r.emoji && (r.emoji.name === '✅' || r.emoji.name === '❓') && r.me)) { faits.add(m.id); continue; }
+        const ref = m.referenced_message ? BK.discord.texteDe(m.referenced_message) : '';
+        pointes.push({ m, s, texte: BK.discord.texteDe(m).replace(BK.discord.RE_POINTE, ''), ref, qui: BK.discord.prenom(m.author, m.member && m.member.nick, c.membres) });
+      }
+      await BK.audio.pause();
+    }
+    if (!pointes.length) return { n: 0 };
+    // ---------- les QUESTIONS (« Miette ? … » ou « Miette, … ? ») : Miette répond sous le message ----------
+    const estQuestion = p => /^\s*(@?miette|miat)\s*\?/i.test(p.m.content || '') || (BK.discord.RE_POINTE.test(p.m.content || '') && /\?\s*$/.test(p.texte));
+    const questions = pointes.filter(estQuestion);
+    if (questions.length && await BK.partage.lire('discord.repond', true)) {
+      for (const q of questions) {
+        progression('Miette répond à ' + q.qui + '…');
+        let rep = ''; try { rep = await BK.discord.question(q.texte.replace(/^\?\s*/, '') + (q.ref ? `\n(À propos de ce message : « ${q.ref.slice(0, 500)} »)` : '')); } catch (e) { rep = ''; }
+        if (rep) { await BK.discord.repondre(q.s.id, q.m.id, c.jeton, '🍞 ' + String(rep).slice(0, 1900)); faits.add(q.m.id); }
+        await BK.audio.pause();
+      }
+    }
+    pointes.splice(0, pointes.length, ...pointes.filter(p => !estQuestion(p)));
+    if (!pointes.length) { doc.faits = [...faits].slice(-800); await BK.db.ecrire('config', doc, { sansAnnuler: true }).catch(() => {}); return { n: questions.length, ranges: 0, reponses: questions.length }; }
+    progression(`Miette range ${pointes.length} message(s) pointé(s)…`);
+    const [ms, tours] = await Promise.all([BK.db.liste('morceaux'), BK.db.liste('tournages')]);
+    const auj = new Date().toISOString().slice(0, 10);
+    const systeme = `Tu es Miette, l'assistante du groupe BEESKOT (Yacine, Pierre, Baptiste). Aujourd'hui : ${auj}.
+Ces messages Discord t'ont été POINTÉS exprès : le groupe veut que tu ranges leur contenu dans le logiciel. Sois précis, n'invente rien.
+Morceaux (nom exact) : ${ms.map(m => m.nom + ((m.alias || []).length ? ' (' + m.alias.join(', ') + ')' : '')).join(' ; ')}.
+Tournages : ${tours.map(t => t.titre + (t.morceau ? ' [' + t.morceau + ']' : '')).join(' ; ') || 'aucun'}.
+Réponds en JSON : {"items":[…]} avec, pour chaque info, un objet parmi :
+{"type":"evenement","quoi":"tournage|shooting|enreg|repet|mixage|sortie|promo|autre","titre":"court","date":"AAAA-MM-JJ","heure":"HH:MM ou vide","lieu":"","morceau":"nom exact ou vide","source":"id"}
+{"type":"tache","texte":"commence par un verbe","qui":"Yacine|Pierre|Baptiste|","date":"AAAA-MM-JJ ou vide","morceau":"","source":"id"}
+{"type":"bpm","morceau":"nom exact","bpm":78,"source":"id"}   {"type":"ton","morceau":"nom exact","ton":"La mineur","source":"id"}
+{"type":"sortie","morceau":"nom exact","date":"AAAA-MM-JJ","source":"id"}
+{"type":"reference","url":"lien","note":"en quelques mots","tournage":"titre exact du tournage ou vide","morceau":"nom exact ou vide","source":"id"}
+{"type":"depense","titre":"","montant":0,"payePar":"Yacine|Pierre|Baptiste","pour":["Yacine","Pierre","Baptiste"],"date":"AAAA-MM-JJ","source":"id"}
+{"type":"note","morceau":"nom exact","texte":"à retenir","source":"id"}
+Les dates relatives se calculent depuis la date du message. "source" = l'identifiant du message.
+Si le message dit OÙ ranger (calendrier, to-do / tâche, tournage / références, budget / dépense, fiche du morceau / BPM / note), respecte-le. Sinon, choisis toi-même la bonne place.`;
+    const txt = pointes.map(p => `[id ${p.m.id}] ${p.m.timestamp.slice(0, 16).replace('T', ' ')} · ${p.qui} · #${p.s.nom} : ${p.texte}${p.ref ? `\n   (en réponse à : « ${p.ref.slice(0, 600)} »)` : ''}`).join('\n');
+    let r = {}; try { r = await BK.ia.demander(txt, { systeme, json: true, temperature: 0.1, vite: true, delai: 90 }); } catch (e) { console.warn(e); return { n: pointes.length, erreur: e.message }; }
+    const items = Array.isArray(r) ? r : r.items || [], parSource = {};
+    const membre = x => ['Yacine', 'Pierre', 'Baptiste'].find(n => n.toLowerCase() === String(x || '').toLowerCase()) || '';
+    const morc = n => BK.inv.trouverMorceau(n || '', ms), TYPES_EV = ['tournage', 'shooting', 'enreg', 'repet', 'mixage', 'sortie', 'promo', 'autre'];
+    let ranges = 0;
+    for (const x of items) {
+      const src = String(x.source || '').replace(/\D/g, ''), p = pointes.find(q => q.m.id === src) || (pointes.length === 1 ? pointes[0] : null);
+      try {
+        let ok = false;
+        if (x.type === 'evenement' && /^\d{4}-\d\d-\d\d$/.test(x.date || '')) { await BK.db.ecrire('evenements', { type: TYPES_EV.includes(x.quoi) ? x.quoi : 'autre', titre: x.titre || 'Rendez-vous', morceau: (morc(x.morceau) || {}).nom || '', date: x.date, heure: x.heure || '', lieu: x.lieu || '', source: 'discord' }); ok = true; }
+        else if (x.type === 'tache' && x.texte) { await BK.db.ecrire('taches', { texte: x.texte, qui: membre(x.qui), morceau: (morc(x.morceau) || {}).nom || '', date: /^\d{4}-\d\d-\d\d$/.test(x.date || '') ? x.date : '', fait: false, ordre: Date.now(), source: 'discord' }); ok = true; }
+        else if ((x.type === 'bpm' || x.type === 'ton' || x.type === 'sortie' || x.type === 'note') && morc(x.morceau)) {
+          const m = morc(x.morceau);
+          if (x.type === 'bpm' && +x.bpm >= 50 && +x.bpm <= 220) { m.bpm = String(x.bpm); m.bpmSource = 'discord'; ok = true; }
+          if (x.type === 'ton' && x.ton) { m.ton = x.ton; m.tonSource = 'discord'; ok = true; }
+          if (x.type === 'sortie' && /^\d{4}-\d\d-\d\d$/.test(x.date || '')) { m.sortie = x.date; ok = true; }
+          if (x.type === 'note' && x.texte) { m.notes = ((m.notes ? m.notes + '\n' : '') + '🍞 ' + x.texte).slice(-4000); ok = true; }
+          if (ok) await BK.db.ecrire('morceaux', m);
+        }
+        else if (x.type === 'reference' && /^https?:\/\//.test(x.url || '')) {
+          const n = BK.inv.normaliser, t = tours.find(t => x.tournage && n(t.titre) === n(x.tournage)) || tours.find(t => x.morceau && morc(x.morceau) && t.morceau === morc(x.morceau).nom);
+          if (t && !(t.references || []).some(y => y.url === x.url)) { (t.references = t.references || []).push({ url: x.url, note: x.note || '' }); await BK.db.ecrire('tournages', t); ok = true; }
+        }
+        else if (x.type === 'depense' && +x.montant > 0) { await BK.db.ecrire('depenses', { titre: x.titre || 'Dépense', montant: +x.montant, payePar: membre(x.payePar) || (p && membre(p.qui)) || 'Yacine', pour: (x.pour || []).map(membre).filter(Boolean).length ? (x.pour || []).map(membre).filter(Boolean) : ['Yacine', 'Pierre', 'Baptiste'], date: /^\d{4}-\d\d-\d\d$/.test(x.date || '') ? x.date : auj, cat: '', source: 'discord' }); ok = true; }
+        if (ok && p) { parSource[p.m.id] = (parSource[p.m.id] || 0) + 1; ranges++; }
+      } catch (e) { console.warn(e); }
+    }
+    // la réponse sur Discord : ✅ = rangé dans BEESKOT Studio, ❓ = Miette n'a rien trouvé à ranger
+    for (const p of pointes) { await BK.discord.reagir(p.s.id, p.m.id, c.jeton, parSource[p.m.id] ? '✅' : '❓'); faits.add(p.m.id); await BK.audio.pause(); }
+    doc.faits = [...faits].slice(-800); await BK.db.ecrire('config', doc, { sansAnnuler: true });
+    for (const f of ['tachesRecharger', 'agendaRecharger', 'budgetRecharger', 'tournagesRecharger']) try { BK[f] && BK[f](); } catch (e) {}
+    BK.renfortGarder && BK.renfortGarder({ type: 'pont', q: `🍞 ${pointes.length} message(s) pointé(s) sur Discord`, r: `${ranges} info(s) rangée(s) dans BEESKOT Studio` });
+    return { n: pointes.length, ranges };
   },
 
   // ---------- Gemini : ce qui a été décidé dans ces messages ----------
@@ -181,8 +293,7 @@ Si rien n'est décidé, réponds [].`;
 
   // ---------- la consigne du résumé de la semaine (Accueil) : la même pour le bouton jaune et pour ↻ ----------
   CONSIGNE_SEMAINE: `"semaine": "ce qui s'est passé ces 7 derniers jours, 3 à 6 phrases courtes et simples : ce qu'on s'est dit, ce qui a été décidé, les dates",
- "mails": ["1 ligne par mail reçu cette semaine (ingé son, Fiverr, distributeur, salle, facture, livraison d'un mix) : qui a écrit, ce qu'il dit, et s'il faut répondre ou payer. Vide si aucun mail"],
- "avancement": ["2 à 6 lignes courtes : où on en est, ce qui a AVANCÉ cette semaine (un morceau passé au mix ou au master, un mix livré, un tournage fait ou calé, une sortie qui approche, une tâche finie) et ce qui bloque"],
+ "avancement": ["2 à 6 lignes courtes : où on en est (en comptant aussi ce que disent les mails reçus : ingé son, distributeur…), ce qui a AVANCÉ cette semaine (un morceau passé au mix ou au master, un mix livré, un tournage fait ou calé, une sortie qui approche, une tâche finie) et ce qui bloque"],
  "afaire": ["3 à 6 lignes courtes : ce qui ressort à faire, avec qui (répondre à un mail et payer une facture en font partie)"]`,
   // ce qu'on garde du résumé
   garderResume(doc, r) { return Object.assign(doc, { texte: r.semaine || '', mails: Array.isArray(r.mails) ? r.mails.filter(Boolean) : [], avancement: Array.isArray(r.avancement) ? r.avancement.filter(Boolean) : [], afaire: Array.isArray(r.afaire) ? r.afaire.filter(Boolean) : [] }); },

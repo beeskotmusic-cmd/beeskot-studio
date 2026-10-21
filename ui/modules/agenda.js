@@ -92,6 +92,9 @@ BK.module('agenda', function (page) {
     A.taches = (await BK.db.liste('taches')).filter(t => t.date && !t.fait).map(t => ({ type: 'autre', tache: true, titre: '☐ ' + t.texte + (t.qui ? ' · ' + t.qui : ''), morceau: t.morceau, qui: t.qui, debut: new Date(t.date + 'T12:00'), journee: true }));
     A.sorties = ms.filter(m => m.sortie).map(m => ({ type: 'sortie', titre: 'Sortie · ' + m.nom, morceau: m.nom, debut: new Date(m.sortie + 'T12:00'), journee: true, fiche: true }));
     const pl = (await BK.db.liste('veille')).find(d => d.id === 'planning'); A.planning = pl;
+    A.dispos = await BK.partage.lire('dispos', {});                  // { 'AAAA-MM-JJ': ['Yacine', 'Pierre'] } — partagé avec tout le groupe
+    const cfgM = (await BK.db.liste('config')).find(c => c.id === 'membres');
+    A.membres = (cfgM && cfgM.liste && cfgM.liste.length ? cfgM.liste : ['Yacine', 'Pierre', 'Baptiste']).map(m => m === 'Dari' ? 'Yacine' : m).filter(m => m && m !== 'BEESKOT');
     A.miette = (pl && pl.l || []).flatMap(e => (e.dates || []).map(d => ({ ...e, debut: new Date(d + 'T' + (e.heure || '12:00')), journee: !e.heure, miette: true, date: d })))
       .filter(e => !A.locaux.some(x => x.date === e.date && x.type === e.type) && !A.sorties.some(x => e.type === 'sortie' && jour(x.debut) === e.date));
     $('#agMorceau').innerHTML = '<option value="">—</option>' + ms.map(m => `<option>${esc(m.nom)}</option>`).join('');
@@ -122,13 +125,17 @@ BK.module('agenda', function (page) {
     for (let i = 0; i < decal; i++) h += '<div class="cal-c vide"></div>';
     for (let d = 1; d <= nb; d++) {
       const k = `${an}-${String(mo + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`, evs = parJour[k] || [];
-      h += `<div class="cal-c${k === auj ? ' auj' : ''}" data-d="${k}"><span class="cal-n">${d}</span>${evs.slice(0, 3).map(e =>
+      const dis = ((A.dispos || {})[k] || []).filter(m => (A.membres || []).includes(m)), tousD = A.membres && A.membres.length && dis.length === A.membres.length;
+      const pastilles = dis.length ? `<span class="cal-dispo${tousD ? ' tous' : ''}" title="Dispo : ${esc(dis.join(', '))}">${dis.map(m => `<i>${esc(m[0])}</i>`).join('')}</span>` : '';
+      h += `<div class="cal-c${k === auj ? ' auj' : ''}${tousD ? ' tous-dispo' : ''}${(A.sel || new Set()).has(k) ? ' sel' : ''}" data-d="${k}"><span class="cal-n">${d}</span>${pastilles}${evs.slice(0, 3).map(e =>
         `<span class="cal-ev${e.tache ? ' tache' : ''}${e.miette ? ' miette ' + (e.statut === 'valide' ? 'valide' : 'possible') : ''}${e.type === 'sortie' ? ' sortie' : ''}" style="--c:${(TYPES[e.type] || TYPES.autre).c}" title="${esc((e.miette ? '🍞 ' + (e.statut === 'valide' ? 'Décidé sur Discord' : 'Possible (pas encore confirmé)') + ' · ' : '') + (TYPES[e.type] || TYPES.autre).nom + ' · ' + (e.titre || '') + (e.pourquoi ? ' — « ' + e.pourquoi + ' »' : ''))}"${e.miette ? ` data-mi="${esc(e.cle)}"` : ''}>${e.miette && e.statut !== 'valide' ? '? ' : ''}${e.journee ? '' : e.debut.toTimeString().slice(0, 5) + ' '}${esc(e.titre || TYPES[e.type].nom)}</span>`).join('')}${evs.length > 3 ? `<span class="nt cal-plus">+${evs.length - 3}</span>` : ''}</div>`;
     }
     $('#agCal').innerHTML = h;
-    $$('.cal-c[data-d]').forEach(c => c.onclick = e => { const mi = e.target.closest('[data-mi]');
+    $$('.cal-c[data-d]').forEach(c => { c.onclick = e => { const mi = e.target.closest('[data-mi]');
       if (mi) return remplirDepuis(A.miette.find(x => x.cle === mi.dataset.mi && x.date === c.dataset.d));
-      $('#agDate').value = c.dataset.d; $('#agTitre').focus(); });
+      choisirJours(c.dataset.d, e.shiftKey);
+      $('#agDate').value = [...A.sel].sort()[0]; $('#agTitre').focus(); };
+      c.oncontextmenu = e => { e.preventDefault(); if (!A.sel || !A.sel.has(c.dataset.d)) choisirJours(c.dataset.d, e.shiftKey); menuJours(e.clientX, e.clientY); }; });
     repere();
     const venir = tous.filter(e => e.debut >= new Date(Date.now() - 36e5)).slice(0, 8);
     $('#agVenir').innerHTML = venir.length ? venir.map(e => `<div class="surv-l"><span class="nchip" style="width:5px;height:30px;border-radius:3px;background:${(TYPES[e.type] || TYPES.autre).c}"></span>
@@ -136,6 +143,38 @@ BK.module('agenda', function (page) {
       <span class="nt" style="margin:0;font-size:11px">${e.debut.toLocaleDateString('fr-CA', { weekday: 'short', day: 'numeric', month: 'short' })}${e.journee ? '' : ' · ' + e.debut.toTimeString().slice(0, 5)} · ${(TYPES[e.type] || TYPES.autre).nom}${e.local ? '' : ' · Google'}</span></div>
       ${e.local ? `<button class="btn xs" data-suppr="${e.id}" style="margin-left:auto">✕</button>` : ''}</div>`).join('') : '<span class="nt">Rien de prévu.</span>';
     $$('[data-suppr]', page).forEach(b => b.onclick = async () => { await BK.db.supprimer('evenements', b.dataset.suppr); await charger(); });
+  }
+
+  // ---------- choisir des jours : clic = un jour, Maj + clic = toute une période ----------
+  function choisirJours(d, periode) {
+    A.sel = A.sel || new Set();
+    if (periode && A.ancre) { const [a, b] = [A.ancre, d].sort(); A.sel = new Set();
+      for (let x = new Date(a + 'T12:00'); jour(x) <= b; x.setDate(x.getDate() + 1)) A.sel.add(jour(x)); }
+    else { A.sel = new Set([d]); A.ancre = d; }
+    $$('.cal-c[data-d]').forEach(c => c.classList.toggle('sel', A.sel.has(c.dataset.d)));
+    const n = A.sel.size; msg(n > 1 ? n + ' jours choisis · clic droit pour les dispos' : 'Clic droit : dispos, rendez-vous · Maj + clic : une période');
+  }
+  // ---------- le clic droit : dispos de chacun, ou un rendez-vous ----------
+  function menuJours(x, y) {
+    $$('.md-menu').forEach(m => m.remove());
+    const jours = [...A.sel].sort(), moi = BK.reglage('nomPc', ''), qui = (A.membres || []).includes(moi) ? [moi] : (A.membres || []);
+    const n = jours.length, titre = n > 1 ? `${n} jours` : new Date(jours[0] + 'T12:00').toLocaleDateString('fr-CA', { weekday: 'long', day: 'numeric', month: 'long' });
+    const menu = document.createElement('div'); menu.className = 'md-menu';
+    menu.style.left = Math.min(x, innerWidth - 230) + 'px'; menu.style.top = Math.min(y, innerHeight - 260) + 'px';
+    menu.innerHTML = `<span class="md-menu-t">${esc(titre)}</span>`
+      + qui.map(m => `<button data-dis="${esc(m)}|1">✅ ${qui.length > 1 ? esc(m) + ' dispo' : 'Je suis dispo'}</button><button data-dis="${esc(m)}|0">❌ ${qui.length > 1 ? esc(m) + ' pas dispo' : 'Pas dispo'}</button>`).join('')
+      + `<span class="md-menu-sep"></span><button data-rdv="1">＋ Ajouter un rendez-vous ${n > 1 ? 'le ' + new Date(jours[0] + 'T12:00').toLocaleDateString('fr-CA', { day: 'numeric', month: 'short' }) : 'ici'}</button>`;
+    document.body.appendChild(menu);
+    const fermer = e => { if (!menu.contains(e.target)) { menu.remove(); document.removeEventListener('pointerdown', fermer, true); } };
+    setTimeout(() => document.addEventListener('pointerdown', fermer, true));
+    menu.onclick = async e => { const b = e.target.closest('button'); if (!b) return; menu.remove(); document.removeEventListener('pointerdown', fermer, true);
+      if (b.dataset.rdv) { $('#agDate').value = jours[0]; $('#agTitre').focus(); return msg('Remplis le rendez-vous à droite, puis « + Ajouter »'); }
+      const [m, oui] = b.dataset.dis.split('|');
+      const d = await BK.partage.lire('dispos', {});                  // on relit juste avant : on n'efface pas ce que les autres viennent de cocher
+      for (const j of jours) { const l = new Set(d[j] || []); oui === '1' ? l.add(m) : l.delete(m); if (l.size) d[j] = [...l]; else delete d[j]; }
+      const auj = jour(new Date()); for (const j of Object.keys(d)) if (j < auj) delete d[j];   // les jours passés s'en vont
+      await BK.partage.ecrire('dispos', d); A.dispos = d; rendre();
+      msg(`${m} ${oui === '1' ? 'dispo' : 'pas dispo'} · ${n} jour(s)`); };
   }
 
   // ---------- ce que Miette a repéré sur Discord ----------

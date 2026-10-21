@@ -7,7 +7,7 @@ const $ = (s, r = document) => r.querySelector(s);
 const $$ = (s, r = document) => [...r.querySelectorAll(s)];
 
 const BK = {
-  version: '0.9.55 bêta',
+  version: '0.9.56 bêta',
   modules: {},
   onglets: [],
   cotes: [],
@@ -52,7 +52,7 @@ const BK = {
       if (c.titre) html += `<button class="eng cote cote-${c.id}" data-cote="${c.id}" title="Replier / déplier">${replie ? '▸' : '▾'} ${c.titre}</button>`;
       html += `<div class="cote-groupe${replie ? ' replie' : ''}" data-g="${c.id}">`;
       for (const o of liste) {
-        html += `<button class="tab${o.mini ? ' mini' : ''}${o.pret ? '' : ' bientot'}" data-p="${o.id}">
+        html += `<button class="tab${o.mini ? ' mini' : ''}${o.pret ? '' : ' bientot'}" data-p="${o.id}" title="${o.titre}">
           <span class="nchip" style="--c:${o.couleur}"></span>
           <span class="t"><span class="lab">${o.titre}</span>${o.sous && !o.mini ? `<span class="nsub">${o.sous}</span>` : ''}</span>
           <span class="led"></span></button>`;
@@ -68,6 +68,9 @@ const BK = {
       </div>`;
     nav.innerHTML = html;
     $$('.tab', nav).forEach(b => b.onclick = () => BK.ouvrir(b.dataset.p));
+    const bv = document.getElementById('btVolet');
+    if (bv && !bv.onclick) bv.onclick = () => { const e = !BK.reglage('menu.etroit', false); BK.regler('menu.etroit', e); BK.volet(e); };
+    BK.volet();
     $$('[data-cote]', nav).forEach(b => b.onclick = () => { const r = BK.reglage('menu.replie', {}); r[b.dataset.cote] = !r[b.dataset.cote]; BK.regler('menu.replie', r);
       $(`.cote-groupe[data-g="${b.dataset.cote}"]`, nav).classList.toggle('replie', r[b.dataset.cote]); b.textContent = (r[b.dataset.cote] ? '▸ ' : '▾ ') + b.textContent.replace(/^[▸▾]\s*/, ''); });
     $('#iaBascule').onclick = () => { BK.regler('ia.active', !BK.reglage('ia.active', true)); const id = ($('#nav .tab.on') || {}).dataset; BK.construireMenu(); BK.etatDrive && BK.etatDrive(); BK.ableton && BK.ableton.majLed && BK.ableton.majLed();
@@ -75,10 +78,32 @@ const BK = {
       window.dispatchEvent(new CustomEvent('bk:ia')); };
   },
 
+  // ---------- le volet de gauche : déplié (noms) ou replié (juste les traits de couleur) ----------
+  //   [ | ACCUEIL ]‹ (brun, discret)   ⇄   [ | ]› (jaune, bien visible)
+  volet(etroit) {
+    if (etroit === undefined) etroit = BK.reglage('menu.etroit', false);
+    document.body.classList.toggle('menu-etroit', !!etroit);
+    const b = document.getElementById('btVolet');
+    if (b) { b.textContent = etroit ? '›' : '‹'; b.title = etroit ? 'Déplier le menu' : 'Replier le menu (plus de place pour la page)'; }
+    setTimeout(() => window.dispatchEvent(new Event('resize')), 280);     // les aperçus se remettent à la bonne taille
+  },
+
   // ---------- pages ----------
   // Au démarrage : les cadres des onglets sont posés (léger), mais un onglet n'est CONSTRUIT qu'à sa première ouverture,
   // ou tranquillement en arrière-plan quand le PC n'a rien d'autre à faire. Démarrage plus rapide, moins de mémoire.
   // le nom de CE PC dans le bandeau (Yacine, Pierre, Baptiste, Studio) — à régler une fois dans Réglages › Ce PC
+  // ---------- petite fenêtre « Es-tu sûr ? » (Oui / Non), dans le style du logiciel ----------
+  confirmer(texte, { oui = 'Oui', non = 'Non' } = {}) {
+    return new Promise(ok => {
+      const v = document.createElement('div'); v.className = 'voile';
+      v.innerHTML = `<div class="stopbox bk-conf" role="dialog"><span class="nt bk-conf-t"></span><div class="bk-conf-b"><button class="btn sm" data-r="0"></button><button class="btn sm warm" data-r="1"></button></div></div>`;
+      v.querySelector('.bk-conf-t').textContent = texte; v.querySelector('[data-r="0"]').textContent = non; v.querySelector('[data-r="1"]').textContent = oui;
+      const fin = r => { document.removeEventListener('keydown', k, true); v.remove(); ok(r); };
+      const k = e => { if (e.key === 'Escape') { e.stopPropagation(); fin(false); } if (e.key === 'Enter') { e.stopPropagation(); fin(true); } };
+      v.onclick = e => { if (e.target === v) fin(false); const b = e.target.closest('[data-r]'); if (b) fin(b.dataset.r === '1'); };
+      document.addEventListener('keydown', k, true); document.body.appendChild(v); v.querySelector('[data-r="1"]').focus();
+    });
+  },
   majNomPc() { const n = BK.reglage('nomPc', ''), e = document.getElementById('syPc'), b = document.getElementById('syPcB'); if (!e) return;
     e.textContent = n ? n.toUpperCase() : 'QUI ?'; b && b.classList.toggle('a-regler', !n); },
   OUTILS_EDITION: ['reels', 'postvis', 'reelvis', 'mixprep'],

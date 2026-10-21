@@ -13,7 +13,7 @@ BK.miette = {
       const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
       const v = document.createElement('div'); v.className = 'voile';
       v.innerHTML = `<div class="stopbox mi-box"><button class="btn xs rt-x" data-mi="x">✕</button>
-        <span class="dymo mi-titre" style="align-self:center"><img src="look/patch-biscotte.png" alt="">${esc(titre)}</span>
+        <span class="dymo mi-titre" style="align-self:center"><img src="look/patch-miette.png" alt="">${esc(titre)}</span>
         ${items.length ? `<div class="mi-l">${items.map((x, i) => `<label class="mi-p"><input type="checkbox" data-i="${i}" checked>
             ${x.apercu ? `<span class="mi-ph" style="background-image:url('${esc(x.apercu)}')"></span>` : ''}
             <span class="mi-t"><b>${esc(x.titre)}</b>${x.sous ? `<small>${esc(x.sous)}</small>` : ''}</span></label>`).join('')}</div>
@@ -93,7 +93,7 @@ BK.miette = {
       const d = await BK.discord.config().catch(() => ({}));
       if (d.jeton && (d.salons || []).length) {
         BK.miette.etape('Miette lit Discord…');
-        try { const r = await BK.discord.ronde(() => {}, true); if (r.messages) bilan.push(r.messages + ' message(s) lus'); } catch (e) { console.warn(e); }
+        try { const r = await BK.discord.ronde(() => {}, true); if (r.messages) bilan.push(r.messages + ' message(s) lus'); if (r.pointes) bilan.push(`🍞 ${r.pointes} message(s) pointé(s) → ${r.ranges || 0} info(s) rangée(s)`); } catch (e) { console.warn(e); }
       }
       // 2) Drive : on relit la liste des fichiers
       if (BK.drive && BK.drive.relie()) { BK.miette.etape('Miette regarde le Drive…'); try { BK.dossiers.oublier(); await BK.dossiers.assurer(); await BK.dossiers.tousFichiers(); } catch (e) { console.warn(e); } }
@@ -320,7 +320,7 @@ BK.synchro = {
   // les collections connues : on va chercher l'identifiant de leur dossier Drive une fois,
   // sinon un changement venu d'un autre PC dans une collection jamais ouverte passe inaperçu
   COLS: ['morceaux', 'taches', 'evenements', 'tournages', 'reels', 'depenses', 'abonnements',
-         'inventaires', 'exportsaudio', 'config', 'veille', 'propositions', 'renforts', 'ameliorations'],
+         'inventaires', 'exportsaudio', 'config', 'veille', 'propositions', 'renforts', 'ameliorations', 'notesmix'],
   async prevenir() {
     if (!BK.drive || !BK.drive.relie()) return;
     const racine = await BK.drive.racine();
@@ -347,7 +347,8 @@ BK.synchro = {
       inventaires:  ['biblioRecharger', 'suiviRecharger'],
       morceaux:     ['biblioRecharger', 'suiviRecharger'],
       veille:       ['agendaRecharger'],
-      config:       ['mediasTags'],
+      config:       ['mediasTags', 'agendaRecharger'],
+      notesmix:     ['ecouteRecharger'],      // étiquettes, dispos du Calendrier…
       renforts:     ['veilleurMaj'],
       ameliorations:['veilleurMaj'],
     };

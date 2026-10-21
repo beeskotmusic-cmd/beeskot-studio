@@ -38,6 +38,7 @@ BK.module('reglages', function (page) {
         <div data-rgo="ableton" class="box"><span class="lb">Ableton Live</span>
           <span class="nt">Un clic : le logiciel trouve Ableton et installe le pont tout seul. Il restera juste à le choisir dans Ableton.</span>
           <div class="chips" style="margin-top:10px"><button class="chip" id="rgAbleton">Relier Ableton (automatique)</button></div></div>
+        <div data-rgo="ableton" class="box" id="rgSauv"></div>
     </section>
     <div class="pane abar"><span class="vfd" id="rgMsg">PRÊT</span></div>`;
 
@@ -55,6 +56,7 @@ BK.module('reglages', function (page) {
     BK.construireMenu(); BK.ouvrir('reglages');
     $('#rgMsg', page).textContent = (o.titre + (v ? ' AFFICHÉ' : ' CACHÉ')).toUpperCase();
   });
+  BK.sauvegardes && BK.sauvegardes.case($('#rgSauv', page));
   $('#rgMaj', page).onclick = () => BK.verifierMajBouton($('#rgMaj', page), $('#rgMajTxt', page));
   $('#rgNouveau', page).onclick = () => BK.nouveautes.montrer(BK.NOUVEAUTES.slice(0, 3));
   $('#rgTuto', page).onclick = () => BK.nouveautes.tuto();
@@ -68,7 +70,7 @@ BK.module('reglages', function (page) {
     { c: 'morceaux', n: 'Bibliothèque (les morceaux)' }, { c: 'taches', n: 'To-do list' },
     { c: 'evenements', n: 'Calendrier' }, { c: 'tournages', n: 'Tournages' }, { c: 'reels', n: 'Reels' },
     { c: 'depenses', n: 'Budget : dépenses' }, { c: 'abonnements', n: 'Budget : abonnements' },
-    { c: 'exportsaudio', n: 'Reels Audio : les exports' },
+    { c: 'exportsaudio', n: 'Reels Audio : les exports' }, { c: 'notesmix', n: 'Écoute : les notes sur les mix' },
     { c: 'inventaires', n: 'Fichiers repérés sur les PC' }, { c: 'config', n: 'Étiquettes et réglages partagés' },
   ];
   function panneauRetour() {

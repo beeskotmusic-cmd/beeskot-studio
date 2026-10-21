@@ -22,7 +22,7 @@ main>section{position:relative;padding:30px 34px 34px;border-radius:12px;
 .btn.pri{--c:#3F6B3A;color:#F6EEDB;text-shadow:0 -1px 0 rgba(0,0,0,.35)}
 .btn.warm{--c:#E0A43C}
 .btn.sm{min-height:32px;padding:0 12px;font-size:12px}
-.btn[disabled]{opacity:.6;cursor:wait}
+.btn[disabled]{opacity:.6;cursor:not-allowed}
 .chip{min-height:34px;font-size:12px;font-weight:500}
 .chip.on{--c:#C65D2A;color:#FFF3DF}
 .dec{min-height:30px;font-size:12px;font-weight:500;padding:0 10px}

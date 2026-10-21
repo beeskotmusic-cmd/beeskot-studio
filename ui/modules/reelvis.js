@@ -324,7 +324,7 @@ BK.module('reelvis', function (page) {
 
   // ---------- recadrer ----------
   const champZoom = $('#rvZoom');
-  const reglerZoom = z => { V.zoom = Math.round(Math.max(100, Math.min(400, z))); champZoom.value = (V.zoom - 100) + ' %'; dessiner(); };
+  const reglerZoom = z => { V.zoom = Math.round(Math.max(10, Math.min(400, z))); champZoom.value = (V.zoom - 100) + ' %'; dessiner(); };
   champZoom.readOnly = true; let zg = null;
   champZoom.addEventListener('pointerdown', e => { if (!champZoom.readOnly) return; e.preventDefault(); champZoom.setPointerCapture(e.pointerId); zg = { x: e.clientX, y: e.clientY, z: V.zoom }; });
   champZoom.addEventListener('pointermove', e => { if (!zg) return; reglerZoom(zg.z + (e.clientX - zg.x) - (e.clientY - zg.y)); });
@@ -334,7 +334,7 @@ BK.module('reelvis', function (page) {
   champZoom.addEventListener('blur', finSaisie);
   champZoom.addEventListener('keydown', e => { e.stopPropagation(); if (e.key === 'Enter') champZoom.blur(); });
   champZoom.addEventListener('wheel', e => { e.preventDefault(); reglerZoom(V.zoom - Math.sign(e.deltaY) * 5); }, { passive: false });
-  // cadrage comme dans Reels Photo : entière (avec bandes), remplir, centrer
+  // cadrage comme dans Social Photo : entière (avec bandes), remplir, centrer
   const zoomEntier = () => { const vw = vid.videoWidth, vh = vid.videoHeight; if (!vw) return 100; return Math.round(Math.min(1080 / vw, 1920 / vh) / Math.max(1080 / vw, 1920 / vh) * 100); };
   $('#rvEntier').onclick = () => { if (!vid.videoWidth) return; V.x = V.y = 0; V.zoom = zoomEntier(); champZoom.value = (V.zoom - 100) + ' %'; dessiner(); msg('Vidéo entière'); };
   $('#rvRemplir').onclick = () => { V.x = V.y = 0; reglerZoom(100); msg('La vidéo remplit le cadre'); };
@@ -360,7 +360,7 @@ BK.module('reelvis', function (page) {
     V.x = d0.vx + (e.clientX - d0.x) / b.width * 100; V.y = d0.vy + (e.clientY - d0.y) / b.height * 100; dessiner(); });
   ecran.addEventListener('pointerup', () => d0 = null);
 
-  // ---------- couleur : un filtre ou sa propre LUT .cube (un menu, comme dans Reels Photo) ----------
+  // ---------- couleur : un filtre ou sa propre LUT .cube (un menu, comme dans Social Photo) ----------
   async function chargerLut(f) {
     try { V.lut = BK.rendu.lireCube(await f.text()); V.lutNom = f.name; r.lut(V.lut);
       const sel = $('#rvFiltre'); let o = sel.querySelector('option[data-lut]');

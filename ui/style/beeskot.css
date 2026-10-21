@@ -1227,7 +1227,7 @@ body.dropping main>section:not(.hidden) .box.pick::after{content:none!important;
 
 /* les aides de Miette : toujours la même biscotte, pour qu'on les reconnaisse partout */
 .btn.miette-aide{--c:#f1c453;color:#2a1a0e;gap:7px;padding-left:6px}
-.btn.miette-aide::before{content:'';flex:none;width:20px;height:20px;border-radius:50%;background:url(../look/patch-biscotte.png) center/cover no-repeat;box-shadow:0 1px 2px rgba(0,0,0,.45)}
+.btn.miette-aide::before{content:'';flex:none;width:20px;height:20px;border-radius:50%;background:url(../look/patch-miette.png) center/cover no-repeat;box-shadow:0 1px 2px rgba(0,0,0,.45)}
 .btn.xs.miette-aide::before{width:16px;height:16px}
 .mi-ic{width:15px;height:15px;border-radius:50%;vertical-align:-3px}
 .mi-box{width:640px;max-width:94vw;align-items:stretch;gap:10px}
@@ -1260,3 +1260,147 @@ body.sans-miette .miette-aide, body.sans-miette .miette-seul, body.sans-miette #
 .pv-ligne.pv-regl{gap:6px;flex-wrap:wrap}
 .pv-ligne.pv-regl .rv-glisse{width:60px!important;padding:0 4px}
 .pv-ligne.pv-regl .eng{font-size:9px;color:#8a7f70}
+.md-tout{flex:none;height:26px;padding:0 12px;border:0;border-radius:6px;cursor:pointer;background:#2a1b11;color:#cbbfa8;font:700 11px Jost,sans-serif;letter-spacing:.08em;text-transform:uppercase;box-shadow:inset 0 1px 3px #000}
+.md-tout.on{background:#d9b67a;color:#2a1a0e;box-shadow:0 2px 0 #8a6a3c}
+
+/* 🎉 on fête les sorties */
+.fete-voile{overflow:hidden}
+.fete-confettis{position:fixed;inset:0;pointer-events:none}
+.fete-confettis i{position:absolute;top:-20px;width:9px;height:14px;border-radius:2px;opacity:.9;animation:feteTombe linear infinite}
+@keyframes feteTombe{to{top:105vh;transform:rotate(720deg) translateX(40px)}}
+.fete-box{position:relative;display:flex;flex-direction:column;align-items:center;gap:10px;padding:30px 44px 26px;border-radius:14px;background:linear-gradient(180deg,#3a2a1c,#1d140d);box-shadow:0 0 0 1px rgba(255,178,62,.35),0 20px 60px rgba(0,0,0,.6);animation:feteArrive .5s cubic-bezier(.2,1.4,.4,1)}
+@keyframes feteArrive{from{transform:scale(.6);opacity:0}to{transform:scale(1);opacity:1}}
+.fete-biscotte{width:84px;height:84px;border-radius:50%;animation:feteSaute 1s ease-in-out infinite alternate;box-shadow:0 6px 18px rgba(0,0,0,.5)}
+@keyframes feteSaute{from{transform:translateY(0) rotate(-8deg)}to{transform:translateY(-12px) rotate(8deg)}}
+.fete-photo{width:120px;height:120px;border-radius:10px;background:#0a0604 center/cover no-repeat;box-shadow:0 0 0 2px #ffb23e}
+.fete-nom{font:700 26px Jost,sans-serif;color:#ffb23e;letter-spacing:.02em}
+/* Médias : comme la fenêtre Médias — la rubrique sur la 1re ligne, ses étiquettes juste en dessous */
+.pane.md-ajouter{flex-direction:column!important;align-items:stretch!important;gap:4px!important}
+.md-ajouter .md-paniers{flex-wrap:wrap;overflow:visible;padding:2px 0 2px 30px}
+.md-ajouter .md-paniers.hidden{display:none}
+.md-panier.on{box-shadow:0 0 0 2px var(--tc,#ffb23e),0 0 12px rgba(255,160,40,.4)}
+
+/* Calendrier : dispos de chacun, jours choisis */
+.cal-c.sel{box-shadow:inset 0 0 0 2px #d9b67a!important;background:rgba(217,182,122,.12)}
+.cal-c.tous-dispo{background:rgba(108,154,82,.22)}
+.cal-dispo{position:absolute;top:4px;right:5px;display:flex;gap:2px}
+.cal-dispo i{font:700 8.5px/1 Jost,sans-serif;font-style:normal;width:13px;height:13px;border-radius:50%;display:flex;align-items:center;justify-content:center;background:#d9b67a;color:#2a1a0e}
+.cal-dispo.tous i{background:#7ee08a}
+
+/* Reels Audio : les paroles du passage */
+.re-par-outils{display:flex;gap:6px}
+.re-par-l{display:flex;flex-direction:column;gap:3px;margin-top:6px;max-height:190px;overflow:auto}
+.re-par{display:flex;gap:10px;align-items:baseline;text-align:left;border:0;background:rgba(239,230,210,.04);border-radius:4px;padding:5px 8px;cursor:pointer;color:var(--ink);font:500 13px/1.35 Jost,sans-serif}
+.re-par:hover{background:rgba(255,178,62,.12)}
+.re-par .mono{flex:none;width:38px;color:#ffb23e;font-size:11px}
+.re-cal{width:620px;max-width:94vw;align-items:stretch}
+.re-cal-l{max-height:52vh;overflow:auto;display:flex;flex-direction:column;gap:3px}
+.re-cal-p{display:flex;gap:10px;padding:5px 8px;border-radius:4px;color:#8a7f70;font:500 14px Jost,sans-serif}
+.re-cal-p .mono{width:44px;flex:none;font-size:11px}
+.re-cal-p.fait{color:#cbbfa8}.re-cal-p.ici{background:rgba(255,178,62,.15);color:#ffb23e;font-weight:700}
+.sv-l{display:flex;flex-direction:column;gap:2px;margin-top:8px}.sv-l .nt{margin:0;font-size:11px}
+
+/* ÉCOUTE : A (bleu) / B (rouge), notes minutées */
+.ec-vit{display:flex;flex-direction:column;gap:12px;overflow:auto}
+.ec-choix{display:grid;grid-template-columns:220px 1fr 1fr;gap:12px;align-items:end}
+.ec-choix label{display:flex;flex-direction:column;gap:5px;min-width:0}
+.ec-l{display:flex;gap:6px}.ec-l select{flex:1;min-width:0}
+.ec-pt{display:inline-block;width:9px;height:9px;border-radius:50%;margin-left:4px;vertical-align:0}
+.ec-pt.a{background:#4f9bd0}.ec-pt.b{background:#d0574f}
+.ec-onde{position:relative;height:150px;border-radius:6px;background:#0d0906;box-shadow:inset 0 0 0 1px rgba(239,230,210,.1);cursor:crosshair;overflow:hidden}
+.ec-onde canvas{position:absolute;inset:0;width:100%}
+.ec-tete{position:absolute;top:0;bottom:0;width:2px;background:#ffb23e;box-shadow:0 0 6px #ffb23e;pointer-events:none}
+.ec-selz{position:absolute;top:0;bottom:0;background:rgba(255,178,62,.18);box-shadow:inset 0 0 0 1px rgba(255,178,62,.6);pointer-events:none}
+.ec-vide{position:absolute;inset:0;display:flex;align-items:center;justify-content:center}
+.ec-marques{position:relative;height:24px;margin-top:4px}
+.ec-mq{position:absolute;height:10px;width:10px;margin-left:-5px;border-radius:50%;background:var(--pc);cursor:pointer;box-shadow:0 1px 3px rgba(0,0,0,.6)}
+.ec-mq.passage{margin-left:0;border-radius:3px;opacity:.85}
+.ec-mq.regle{opacity:.3}
+.ec-transport{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-top:6px}
+.ec-transport .btn.pri{min-height:34px;min-width:48px;padding:0 12px;font-size:15px!important}
+.ec-ab{padding:3px;gap:3px}.ec-ab button{min-height:28px;padding:0 14px}
+.ec-ab button[data-c="A"].on{background:linear-gradient(180deg,#4f9bd0,#2f6f9a)!important;color:#fff!important}
+.ec-ab button[data-c="B"].on{background:linear-gradient(180deg,#d0574f,#9a3a32)!important;color:#fff!important}
+.ec-astuce{margin:0;font-size:11px}
+.ec-recal{display:flex;align-items:center;gap:6px;margin-left:auto}.ec-recal .rv-glisse{width:80px;text-align:center}
+.ec-notes-box{display:flex;flex-direction:column;gap:8px;min-height:240px}
+.ec-form{display:flex;align-items:center;gap:8px}.ec-form .fld{flex:1}
+.ec-sur{font:700 10px Jost,sans-serif;letter-spacing:.08em;text-transform:uppercase;color:#8a7f70}
+.ec-filtres{display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+.ec-liste{display:flex;flex-direction:column;gap:6px;overflow:auto}
+.ec-n{display:grid;grid-template-columns:auto 1fr auto;gap:10px;align-items:start;padding:7px 9px;border-radius:6px;background:rgba(239,230,210,.05);border-left:4px solid var(--pc);transition:background .3s}
+.ec-n.flash{background:rgba(255,178,62,.18)}
+.ec-n.regle{opacity:.55}
+.ec-n-t{border:0;background:rgba(0,0,0,.35);color:#ffb23e;border-radius:4px;padding:4px 7px;cursor:pointer;font-size:11px;white-space:nowrap}
+.ec-n-l{display:flex;gap:8px;align-items:baseline;flex-wrap:wrap}.ec-n-l b{color:var(--pc);font:700 12px Jost,sans-serif}
+.ec-n-txt{font:500 13px/1.4 Jost,sans-serif;color:var(--ink)}
+.ec-v{font:700 9px Jost,sans-serif;padding:2px 5px;border-radius:3px;color:#fff}.ec-v.a{background:#2f6f9a}.ec-v.b{background:#9a3a32}
+.ec-rep{margin:4px 0 0 14px;padding-left:8px;border-left:2px solid var(--pc);font:400 12.5px Jost,sans-serif;color:#cbbfa8}.ec-rep b{color:var(--pc)}
+.ec-rep-f{margin:6px 0 0 14px}.ec-rep-f .fld{height:28px;font-size:12px}
+.ec-n-o{display:flex;gap:4px}
+
+/* MIETTE = TURQUOISE (le même que la barre de couleurs) : on reconnaît tout de suite ce qui vient d'elle */
+:root{--miette:var(--mi-b);--miette-clair:var(--mi-a)}
+.btn.miette-aide{background:linear-gradient(180deg,#4aa3a6,#2f7377)!important;color:#eefaf8!important;box-shadow:0 2px 0 #1c4a4d,0 3px 6px rgba(0,0,0,.35)}
+.btn.miette-aide::before{box-shadow:0 0 0 2px #1c4a4d,0 1px 2px rgba(0,0,0,.45)}
+.btn.miette-aide:hover{filter:brightness(1.08)}
+.estop.jaune img{border-radius:50%;filter:sepia(.6) hue-rotate(125deg) saturate(1.5) brightness(.95) drop-shadow(0 3px 3px rgba(0,0,0,.55));box-shadow:0 0 0 3px var(--miette),0 0 12px rgba(74,163,166,.45)}
+body.miette-scan .estop.jaune .led{background:var(--miette-clair);box-shadow:0 0 6px var(--miette-clair),0 0 12px rgba(74,163,166,.6)}
+.mi-ic{box-shadow:0 0 0 2px var(--miette);filter:sepia(.6) hue-rotate(125deg) saturate(1.5)}
+.mi-titre img{box-shadow:0 0 0 2px var(--miette);filter:sepia(.6) hue-rotate(125deg) saturate(1.5)}
+.btn.miette-aide::before{filter:sepia(.6) hue-rotate(125deg) saturate(1.5) brightness(1.1)}
+.ra-idees{background:linear-gradient(180deg,#4aa3a6,#2f7377)!important;color:#eefaf8!important}
+.ra-dem{align-items:center}
+.ra-niv-q{padding:3px;gap:3px}.ra-niv-q button{min-height:28px;padding:0 10px;font-size:11px}
+.ra-niv-q button.on{background:linear-gradient(180deg,#4aa3a6,#2f7377)!important;color:#eefaf8!important}
+/* Reels : petites vignettes et boutons Insérer */
+.su-mini{display:flex;gap:3px;margin:4px 0}.su-mini i{width:28px;height:28px;border-radius:3px;background:#0a0604 center/cover no-repeat;box-shadow:inset 0 0 0 1px rgba(239,230,210,.12)}
+.su-bb{display:flex;gap:4px;margin-top:4px}
+/* Reels : petites vignettes et boutons Insérer */
+.su-mini{display:flex;gap:3px;margin:4px 0}.su-mini i{width:28px;height:28px;border-radius:3px;background:#0a0604 center/cover no-repeat;box-shadow:inset 0 0 0 1px rgba(239,230,210,.12)}
+.su-bb{display:flex;gap:4px;margin-top:4px}
+
+/* Miette change de couleur selon sa réflexion : ⚡ rapide = vert, normal = turquoise, 🧠 intelligent = rouge */
+/* Miette en vert olive (celui du bouton Budget) : plus elle est intelligente, plus elle est claire
+   Rapide = olive foncé · Normal = olive Budget · Intelligent = olive clair (texte sombre pour bien lire) */
+:root{--mi-a:#8a8a4a;--mi-b:#6c6c38;--mi-c:#3e3e1f;--mi-teinte:0deg;--mi-lum:1;--mi-txt:#fff8f0}
+body[data-miette="rapide"]{--mi-a:#5c5024;--mi-b:#40371a;--mi-c:#211c0c;--mi-teinte:-10deg;--mi-lum:.78;--mi-txt:#f3e6c8}
+body[data-miette="puissant"]{--mi-a:#a9c08e;--mi-b:#859f74;--mi-c:#4c6346;--mi-teinte:18deg;--mi-lum:1.18;--mi-txt:#1f2a1c}
+.btn.miette-aide,.ra-idees{background:linear-gradient(180deg,var(--mi-a),var(--mi-b))!important;color:var(--mi-txt)!important;text-shadow:none!important;box-shadow:0 2px 0 var(--mi-c),0 3px 6px rgba(0,0,0,.35)}
+.btn.miette-aide::before{box-shadow:0 0 0 2px var(--mi-c),0 1px 2px rgba(0,0,0,.45);filter:brightness(var(--mi-lum)) hue-rotate(var(--mi-teinte))}
+.ra-niv-q button.on{background:linear-gradient(180deg,var(--mi-a),var(--mi-b))!important;color:var(--mi-txt)!important}
+.estop.jaune img{filter:brightness(var(--mi-lum)) hue-rotate(var(--mi-teinte)) drop-shadow(0 3px 3px rgba(0,0,0,.55));box-shadow:none}
+body.miette-scan .estop.jaune .led{background:var(--mi-a);box-shadow:0 0 6px var(--mi-a),0 0 12px var(--mi-a)}
+.mi-ic,.mi-titre img{box-shadow:0 0 0 2px var(--mi-b);filter:brightness(var(--mi-lum)) hue-rotate(var(--mi-teinte))}
+
+/* ---------- le volet de gauche qui se replie (juste les traits de couleur) ---------- */
+.side{transition:width .25s ease}
+.volet{flex:none;align-self:center;width:16px;height:74px;margin:0 -17px;z-index:3;border:0;border-radius:0 8px 8px 0;cursor:pointer;padding:0;
+  font:700 15px/1 inherit;color:#ffd48e;background:linear-gradient(90deg,#2a1d12,#4a3320);box-shadow:0 0 0 1px var(--laiton),2px 3px 6px rgba(0,0,0,.5);transition:background .2s,color .2s}
+.volet:hover{background:linear-gradient(90deg,#3a2818,#6a4828);color:#fff0c8}
+body.menu-etroit .volet{background:linear-gradient(90deg,#e8b84a,#c48f22);color:#2a1a0c;box-shadow:0 0 0 1px #7a5a1a,2px 3px 6px rgba(0,0,0,.5)}
+body.menu-etroit .volet:hover{background:linear-gradient(90deg,#f6cc62,#d9a232)}
+body.menu-etroit .side{width:50px}
+body.menu-etroit #nav{padding:12px 6px!important;align-items:center}
+body.menu-etroit #nav .cote{display:none}
+body.menu-etroit #nav .cote-groupe{width:100%}
+body.menu-etroit #nav .cote-groupe.replie .tab{display:flex!important}
+body.menu-etroit #nav .tab{justify-content:center;padding:0;min-height:38px;height:38px}
+body.menu-etroit #nav .tab .t,body.menu-etroit #nav .tab .led{display:none}
+body.menu-etroit #nav .tab .nchip{width:6px;margin:8px 0}
+body.menu-etroit #nav .tab.on .nchip{box-shadow:0 0 6px 1px rgba(255,170,60,.7)}
+body.menu-etroit .navfoot{align-items:center;padding:6px 0 0!important}
+body.menu-etroit .navfoot .eng{display:none}
+#biVues [data-v="ranger"]{margin-left:22px}
+/* Social Photo : cadrage sur 4 boutons, et Zoom · Contraste · Lumière · Saturation sur une seule ligne */
+#pvEntier{} .pv-seg:has(#pvTous){grid-template-columns:repeat(4,1fr)}
+.pv-seg button{padding:0 4px;white-space:nowrap}
+.pv-ligne.pv-regl{gap:4px!important;flex-wrap:nowrap}
+.pv-ligne.pv-regl .eng{font-size:8.5px;letter-spacing:.04em}
+.pv-ligne.pv-regl .rv-glisse{width:46px!important;padding-left:2px;padding-right:2px}
+
+/* la petite fenêtre « Es-tu sûr ? » */
+.bk-conf{width:360px;gap:18px}
+.bk-conf-t{font-size:14px!important;line-height:1.45;text-align:center;color:var(--ink)!important;margin:0}
+.bk-conf-b{display:flex;gap:10px;justify-content:center}
+.bk-conf-b .btn{min-width:110px;justify-content:center}

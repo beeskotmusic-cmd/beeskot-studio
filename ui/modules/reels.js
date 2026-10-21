@@ -73,6 +73,8 @@ BK.module('reels', function (page) {
           </div>
           <span class="nt" id="reEcouteTxt">Tu entends exactement les fichiers qui seront exportés. Barre d'espace : écoute libre du morceau.</span>
         </div>
+        <div class="box re-paroles"><div class="ligne-titre"><span class="lb">Paroles du passage</span><span class="re-par-outils" id="reParOutils" style="margin-left:auto"></span></div>
+          <div class="re-par-l" id="reParoles"><span class="nt">Choisis un morceau de la Bibliothèque : ses paroles du passage s'affichent ici.</span></div></div>
       </section>
 
       <section class="pane reg" aria-label="Réglages"><span class="ptitle">② Réglages</span>
@@ -287,8 +289,76 @@ BK.module('reels', function (page) {
 
   // ---------- afficheurs ----------
   const dureeClic = () => R.clic && R.bpm ? 8 * 60 / (R.bpm * R.v) : 0;
+  // ---------- LES PAROLES DU PASSAGE : le texte exact chanté entre le début et la fin du passage ----------
+  // Les paroles sont calées une fois sur tout le morceau (m.parolesCalees : [{ i: n° de ligne, t: secondes dans le morceau }]),
+  // à la main (Espace à chaque phrase) ou par Miette (elle écoute le morceau). Clic sur une ligne = l'écouter.
+  const morceauCourant = () => { const ms = R.morceaux || []; return R.source === 'biblio' ? ms.find(x => x.id === $('#reMorceau').value) : BK.inv.trouverMorceau(R.nom || '', ms); };
+  const lignesDe = m => BK.parolesPropres(m.paroles).split('\n').map(x => x.trim()).filter(Boolean);
+  function majParoles() {
+    const z = $('#reParoles'), o = $('#reParOutils'); if (!z) return;
+    const m = morceauCourant();
+    if (!m || !R.buffer) { o.innerHTML = ''; z.innerHTML = '<span class="nt">Choisis un morceau de la Bibliothèque : ses paroles du passage s\'affichent ici.</span>'; return; }
+    if (!m.paroles) { o.innerHTML = ''; z.innerHTML = `<span class="nt">Pas encore de paroles dans la fiche de « ${esc(m.nom)} » (Bibliothèque › Paroles).</span>`; return; }
+    const L = lignesDe(m), cal = (m.parolesCalees || []).filter(c => L[c.i] != null).sort((a, b) => a.t - b.t);
+    o.innerHTML = `<button class="btn xs" id="reParCal" title="Écoute le morceau et appuie sur Espace au début de chaque phrase">⏺ ${cal.length ? 'Recaler' : 'Caler'}</button><button class="btn xs miette-aide" id="reParMiette" title="Miette écoute le morceau et cale les paroles toute seule">Caler</button>${cal.length ? '<button class="btn xs" id="reParCop">📋 Copier</button>' : ''}`;
+    if (!cal.length) z.innerHTML = '<span class="nt">Les paroles ne sont pas encore calées sur le morceau. ⏺ Caler : appuie sur Espace au début de chaque phrase en écoutant. Ou laisse Miette le faire.</span>';
+    else {
+      const a = R.debut, b = R.debut + R.duree;
+      // une phrase compte si elle est chantée pendant le passage (elle commence avant la fin, et la suivante commence après le début)
+      const dans = cal.filter((c, k) => c.t < b && ((cal[k + 1] ? cal[k + 1].t : R.buffer.duration) > a));
+      z.innerHTML = dans.length ? dans.map(c => `<button class="re-par" data-t="${c.t}"><span class="mono">${BK.audio.temps(c.t).replace(/\.\d$/, '')}</span>${esc(L[c.i])}</button>`).join('')
+        : '<span class="nt">Pas de paroles dans ce passage (instrumental).</span>';
+      $$('.re-par', z).forEach(x => x.onclick = () => ecouterA(+x.dataset.t));
+      const cp = $('#reParCop'); if (cp) cp.onclick = async () => { try { await navigator.clipboard.writeText(dans.map(c => BK.audio.temps(c.t).replace(/\.\d$/, '') + '  ' + L[c.i]).join('\n')); msg('Paroles du passage copiées'); } catch (e) { msg('Copie impossible'); } };
+    }
+    $('#reParCal').onclick = () => calerALaMain(m);
+    $('#reParMiette').onclick = () => calerParMiette(m);
+  }
+  let parAudio = null;
+  function ecouterA(t) { if (!R.url) return; parAudio = parAudio || new Audio(); if (parAudio.src !== R.url) parAudio.src = R.url;
+    parAudio.currentTime = Math.max(0, t - 0.3); parAudio.play().catch(() => {}); clearTimeout(R._parStop); R._parStop = setTimeout(() => parAudio.pause(), 6000); }
+  // à la main : le morceau joue depuis le début, Espace au début de chaque phrase, Échap pour arrêter
+  function calerALaMain(m) {
+    const L = lignesDe(m); if (!L.length || !R.url) return;
+    const v = document.createElement('div'); v.className = 'voile'; let i = 0; const cal = [];
+    const au = new Audio(R.url);
+    v.innerHTML = `<div class="stopbox re-cal"><span class="dymo">⏺ Caler les paroles · ${esc(m.nom)}</span>
+      <span class="nt">Appuie sur <b>Espace</b> au début de chaque phrase. <b>Retour arrière</b> = annuler la dernière. <b>Échap</b> = terminer.</span>
+      <div class="re-cal-l"></div><div class="stopbox-btns"><button class="btn pri" data-c="ok">Terminer et enregistrer</button><button class="btn" data-c="x">Annuler</button></div></div>`;
+    const dessin = () => { v.querySelector('.re-cal-l').innerHTML = L.map((l, k) => `<div class="re-cal-p${k < i ? ' fait' : k === i ? ' ici' : ''}"><span class="mono">${cal[k] != null ? BK.audio.temps(cal[k]).replace(/\.\d$/, '') : '—'}</span>${esc(l)}</div>`).join('');
+      const ici = v.querySelector('.re-cal-p.ici'); ici && ici.scrollIntoView({ block: 'center' }); };
+    const fin = async garder => { document.removeEventListener('keydown', touche, true); au.pause(); v.remove();
+      if (garder && cal.length) { m.parolesCalees = cal.map((t, k) => ({ i: k, t: Math.round(t * 100) / 100 })); await BK.db.ecrire('morceaux', m); msg(cal.length + ' phrase(s) calée(s)'); majParoles(); } };
+    const touche = e => { if (e.key === ' ' || e.code === 'Space') { e.preventDefault(); e.stopPropagation(); if (i < L.length) { cal[i] = au.currentTime; i++; dessin(); } if (i >= L.length) fin(true); }
+      else if (e.key === 'Backspace') { e.preventDefault(); e.stopPropagation(); if (i > 0) { i--; cal.length = i; dessin(); } }
+      else if (e.key === 'Escape') { e.preventDefault(); fin(true); } };
+    document.addEventListener('keydown', touche, true);
+    v.onclick = e => { const b = e.target.closest('[data-c]'); if (b) fin(b.dataset.c === 'ok'); };
+    document.body.appendChild(v); dessin(); au.play().catch(() => {});
+  }
+  // par Miette : on lui fait écouter le morceau (en léger : mono, 16 kHz) avec les paroles numérotées
+  async function calerParMiette(m) {
+    const b = $('#reParMiette'); if (!b || !R.buffer) return;
+    if (!(await BK.ia.pret())) return msg('Il faut la clé Gemini et l\'AI allumée');
+    b.disabled = true; b.innerHTML = '<span class="spin"></span>Miette écoute…';
+    try {
+      const L = lignesDe(m), sr = 16000, ctx = new OfflineAudioContext(1, Math.ceil(R.buffer.duration * sr), sr);
+      const src = ctx.createBufferSource(); src.buffer = R.buffer; src.connect(ctx.destination); src.start(); const mono = await ctx.startRendering();
+      const d = mono.getChannelData(0), wav = new ArrayBuffer(44 + d.length * 2), v = new DataView(wav), ec = (o, t) => { for (let k = 0; k < t.length; k++) v.setUint8(o + k, t.charCodeAt(k)); };
+      ec(0, 'RIFF'); v.setUint32(4, 36 + d.length * 2, true); ec(8, 'WAVEfmt '); v.setUint32(16, 16, true); v.setUint16(20, 1, true); v.setUint16(22, 1, true); v.setUint32(24, sr, true); v.setUint32(28, sr * 2, true); v.setUint16(32, 2, true); v.setUint16(34, 16, true); ec(36, 'data'); v.setUint32(40, d.length * 2, true);
+      for (let k = 0; k < d.length; k++) v.setInt16(44 + k * 2, Math.max(-1, Math.min(1, d[k])) * 32767, true);
+      let bin = ''; const u = new Uint8Array(wav); for (let k = 0; k < u.length; k += 0x8000) bin += String.fromCharCode.apply(null, u.subarray(k, k + 0x8000));
+      const r = await BK.ia.demander(`Voici les paroles du morceau « ${m.nom} », une phrase par ligne, numérotées :\n${L.map((l, k) => k + ': ' + l).join('\n')}\n\nÉcoute le morceau et donne, pour chaque ligne, la seconde où elle commence à être chantée.`,
+        { systeme: 'Tu cales des paroles sur un morceau. Réponds en JSON : [{"i": numéro de ligne, "t": secondes (avec 1 décimale)}], dans l\'ordre, une entrée par ligne chantée. N\'invente pas de ligne.', json: true, temperature: 0, audio: { mime: 'audio/wav', base64: btoa(bin) }, delai: 180 });
+      const cal = (Array.isArray(r) ? r : r.lignes || []).filter(x => L[x.i] != null && +x.t >= 0 && +x.t <= R.buffer.duration).map(x => ({ i: +x.i, t: +x.t }));
+      if (!cal.length) throw new Error('Miette n\'a pas réussi à caler les paroles');
+      m.parolesCalees = cal; await BK.db.ecrire('morceaux', m); msg(cal.length + ' phrase(s) calée(s) par Miette · clique une ligne pour vérifier');
+    } catch (e) { msg(e.message || 'Calage impossible'); }
+    b.disabled = false; majParoles();
+  }
+
   function maj() {
-    majBouton();
+    majBouton(); clearTimeout(R._par); R._par = setTimeout(majParoles, 250);
     if (!R.src) $('#reEcouteT').textContent = '▶ Version pour le tournage ×' + x2(R.v);
     if (!R.buffer) return;
     const D = R.buffer.duration;

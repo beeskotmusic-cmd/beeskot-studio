@@ -3,6 +3,32 @@
 // Pour une nouvelle version : ajouter un bloc EN HAUT de la liste. Une ligne courte par point : « Onglet : ce qui change. »
 // =====================================================================
 BK.NOUVEAUTES = [
+  { v: '0.9.56', titre: '', l: [
+    ['🎧', 'Nouvel onglet Écoute : mix A/B, notes minutées pour tout le groupe.'],
+    ['🔍', 'Social Photo et Reels Vidéo : zoom possible sous 0 %.'],
+    ['📷', 'Reels Photo s\'appelle maintenant Social Photo, sous Ableton Live.'],
+    ['🎞', 'Social Photo : 10 effets en plus (fuites de lumière, Polaroid, Super 8…) et leur intensité.'],
+    ['⇅', 'Menu : Ableton Live en premier dans Assistant tools.'],
+    ['🖼', 'Social Photo : cadres d\'époque (Polaroid, pellicule, diapo…) à la taille voulue.'],
+    ['✨', 'Social Photo : menu Preset (couleur, effet, réglages et cadre d\'un coup), zoom avec les réglages.'],
+    ['🍞', 'Miette a un nouveau patch brodé, aussi en photo sur Discord.'],
+    ['🍞', 'Miette passe au vert olive : foncé en Rapide, clair en Intelligent.'],
+    ['⏺', 'Bouton du haut : le losange DARI remplace le « ? ».'],
+    ['‹', 'Menu de gauche repliable (languette au bord) : plus de place pour la page.'],
+    ['📅', 'Calendrier : les dispos de chacun (clic droit, Maj pour une période).'],
+    ['🍞', 'Discord : « Miette ? … » → elle répond sous le message.'],
+    ['🍞', 'Discord : réaction 🍞 ou « Miette, … » → rangé dans le logiciel, ✅ sur Discord.'],
+    ['🎤', 'Reels Audio : les paroles exactes du passage.'],
+    ['💾', 'Ableton : sauvegarde automatique des projets dans le Drive.'],
+    ['🧹', 'Médias : Miette fait le ménage (doublons, fichiers vides).'],
+    ['🎬', 'Reels : Moodboard puis Médias, avec « ＋ Insérer » (fenêtre Médias).'],
+    ['💡', 'Miette AI : idées de questions selon vos morceaux, tâches, tournages.'],
+    ['🧠', 'Miette AI : Rapide, Normal ou Intelligent, à côté de « Demander ».'],
+    ['🎉', 'Sorties : chaque PC fête un morceau qui sort.'],
+    ['🔎', 'Médias : « Tout » enlève le filtre, les étiquettes s\'ouvrent en dessous.'],
+    ['🏠', 'Accueil : « La semaine dernière, résumée par Miette ».'],
+    ['🖱', 'Boutons grisés : plus de souris qui tourne, et on dit pourquoi.'],
+  ] },
   { v: '0.9.55', titre: '', l: [
     ['🏷', 'Médias : une seule sorte d\'étiquettes (en couleur sur l\'image).'],
     ['🔎', 'Fenêtre Médias : « Filtrer », les choix juste en dessous.'],
@@ -80,25 +106,29 @@ BK.TUTO = [
       ['Mettre à jour le logiciel', 'Quand une version sort, une fenêtre s\'ouvre toute seule : « Installer maintenant ». Pour vérifier toi-même : bouton rouge (?) en haut → 🔍 Vérifier les mises à jour.'],
       ['Annuler une erreur', 'Ctrl + Z annule la dernière action. Pour revenir plus loin en arrière (des heures, des jours) : Réglages › Drive › ⏪ Time Machine.'] ],
     astuces: [
-      'Bouton jaune (la biscotte) : Miette relit Discord, les mails et le Drive, et prépare tous les onglets.',
-      'Un bouton jaune avec la biscotte (ex. « Trouver », « Qui porte quoi ? »), partout dans le logiciel = Miette peut t\'aider ici.',
+      'Le patch de Miette en haut (les miettes en vague) : Miette relit Discord, les mails et le Drive, et prépare tous les onglets.',
+      'Un bouton vert olive avec le petit patch de Miette (ex. « Trouver », « Qui porte quoi ? »), partout dans le logiciel = Miette peut t\'aider ici. Son vert dit comment elle réfléchit : foncé = rapide, olive = normal, clair = intelligent.',
       'Interrupteur « AI Miette » en bas du menu : coupé, toutes les aides de Miette disparaissent (ce que vous avez déjà validé reste).',
-      'Bouton rouge (?) : version, mises à jour, nouveautés, relancer, fermer.',
+      'Bouton rouge au losange DARI : version, mises à jour, nouveautés, relancer, fermer.',
       'ONLINE (en haut) : qui est connecté. EN CE MOMENT (en bas de chaque page) : ce que font les autres.',
       'Ce que tu fais arrive sur les autres PC en moins d\'une minute.',
-      'Chaque titre du menu de gauche (Audiovisuel, Organisation…) se replie d\'un clic.' ] },
+      'Chaque titre du menu de gauche (Audiovisuel, Organisation…) se replie d\'un clic.',
+      'La petite languette ‹ au bord du menu le replie : il ne reste que les traits de couleur, la page prend plus de place. La languette devient jaune : clique dessus pour redéplier. Passe la souris sur un trait pour voir le nom de l\'onglet.' ] },
   { o: 'Accueil', ic: '🏠', quoi: 'Le résumé du moment : le prochain rendez-vous, ce qui s\'est passé cette semaine (Discord et mails), la prochaine sortie et ce qu\'il reste à faire.',
     comment: [
       ['Mettre le résumé de la semaine à jour', 'Clique ↻ dans la case « Cette semaine », ou la biscotte jaune. Miette relit les messages et les mails des 7 derniers jours.'],
       ['Cocher une tâche faite', 'Dans « À faire », coche la case : elle passe dans « Déjà fait » de la To-do list.'] ],
     astuces: [
-      'Le résumé a 4 parties : ce qu\'on s\'est dit, 📬 les mails, 📈 où on en est, ce qui ressort à faire.',
+      '« La semaine dernière, résumée par Miette » : ce qu\'on s\'est dit, 📈 où on en est, ce qui ressort à faire.',
       'Prochaine release : les 2 prochains morceaux qui sortent, avec leur avancement.' ] },
   { o: 'Miette AI', ic: '🍞', quoi: 'Miette est l\'assistante du groupe. Elle lit Discord (et les mails recopiés par le bot), répond aux questions et propose des tâches, des dates et des dépenses.',
     comment: [
+      ['Choisir si Miette va vite ou réfléchit', 'À côté de « Demander » : ⚡ Rapide (quelques secondes), Normal (conseillé) ou 🧠 Intelligent (plus fin, plus lent). C\'est le même réglage pour tout le groupe.'],
+      ['Trouver une bonne question', '💡 Idées de questions ▾ : un menu qui se déroule (Le groupe, Les morceaux, Les tâches, Les tournages, Les rendez-vous). Les questions changent avec ce que vous avez : « Mother · reste avant la sortie ? », « Appeler la salle · Pierre »… Un clic la met dans la case, tu peux la modifier, puis Demander.'],
       ['Poser une question', 'Écris ta question (« quand est le tournage de Mother ? », « comment on exporte un reel ? ») → Demander. Miette répond avec les messages Discord et ce qu\'elle sait du logiciel.'],
       ['Valider ce que Miette a repéré', 'Dans « À valider » : ✓ pour accepter (ça va dans la To-do, le Calendrier ou le Budget), ✕ pour refuser.'],
       ['Signaler un problème ou une idée', 'Choisis « 🔧 Améliorer BEESKOT Studio » → écris ou 🎤 dicte ce qui ne va pas → Ranger en note. Tes mots exacts sont gardés dans le Drive tout de suite (même sans AI). Dari récupère tout avec 📋 Copier les mots exacts.'],
+      ['Envoyer une info de Discord dans le logiciel', 'Sur Discord, mets la réaction 🍞 sous un message (même celui de quelqu\'un d\'autre, ou un mail recopié), ou écris un message qui commence par « Miette, … » (ex. « Miette, tournage de Mother le 12 novembre au studio »). Dès qu\'un PC a BEESKOT Studio ouvert, Miette range l\'info au bon endroit (Calendrier, To-do, fiche du morceau, Références, Budget) et met ✅ sous le message. ❓ = elle n\'a rien trouvé à ranger.'],
       ['Choisir les salons Discord à lire', 'Réglages › Miette & Discord → coche les salons (pense au salon des mails).'] ],
     astuces: [
       '« 👁 Ce que Miette a lu » : la liste des salons et des mails qu\'elle a vraiment lus.',
@@ -113,7 +143,7 @@ BK.TUTO = [
       ['Mettre le bon BPM', 'Écris-le dans la fiche : ce que vous écrivez passe avant tout. Sinon : 🎛 Ableton (le tempo du projet), ou le bouton biscotte « Vérifier les infos des morceaux » (ce qui a été dit sur Discord).'],
       ['Copier les paroles pour le distributeur', 'Ouvre la fiche → Paroles → Copier pour le distributeur.'] ],
     astuces: [
-      'Next release, Work in progress, Sortis : glisse une fiche pour changer son statut ou son ordre.',
+      'Next release, Work in progress, Sortis : glisse une fiche pour changer son statut ou son ordre. Quand un morceau passe en Sorti, tous les PC le fêtent 🎉.',
       '🏷 Étiqueté BEESKOT : tout ce qui concerne le morceau (audio, projets, photos), rangé par type.',
       'Une couleur par étape : maquette rouge, enregistrement orange, mixage jaune, master bleu-vert, sortie bleu, promo vert.' ] },
   { o: 'Médias', ic: '🖼', quoi: 'Toutes les photos et vidéos du groupe : les dossiers du Drive, plus celles postées sur Discord. Partout dans le logiciel, on importe une photo ou une vidéo depuis une fenêtre Médias. On les range avec des étiquettes (un morceau, un tournage, Instagram…), sans jamais déplacer les fichiers.',
@@ -121,6 +151,7 @@ BK.TUTO = [
       ['Étiqueter des photos', 'Choisis les photos (clic, Ctrl+clic pour en ajouter, Maj+clic pour une suite) → clic droit → Morceaux ▸ / Tournage ▸ / Réseaux ▸ → l\'étiquette. Ou glisse-les sur une étiquette dans la barre du bas.'],
       ['Retrouver les photos d\'un morceau', 'Menu « Voir » en haut → choisis le morceau ou l\'étiquette.'],
       ['Ajouter des photos de ce PC', 'Ouvre le dossier du Drive voulu → glisse les fichiers sur la page, ou « + Choisir des fichiers ». Ils partent dans ce dossier du Drive.'],
+      ['Faire le ménage du Drive', 'Bouton biscotte « Faire le ménage » (à droite) : Miette cherche les fichiers en double (même nom, même taille) et les fichiers vides. Tu coches ce qui part : ça va dans la corbeille de BEESKOT Studio, rien n\'est effacé.'],
       ['Laisser Miette étiqueter', 'Bouton biscotte « Étiqueter les photos » (à droite) : elle regarde les photos sans étiquette et propose où les ranger.'] ],
     astuces: [
       'Médias s\'ouvre toujours sur « Tous les dossiers ». ↰ Retour revient au dossier d\'avant.',
@@ -129,7 +160,7 @@ BK.TUTO = [
   { o: 'Reels', ic: '🎬', quoi: 'Le suivi de chaque reel : un poster par reel, avec son audio, ses médias, son moodboard, son tournage et où il en est (Idée → Publié).',
     comment: [
       ['Créer un reel', 'À droite, « Nouveau reel » : choisis le morceau → + Créer le reel. Un poster apparaît.'],
-      ['Voir et régler un reel', 'Clique le poster : le panneau s\'ouvre dessous (audio, médias, moodboard, tournage). Change le nom court en haut du panneau.'],
+      ['Voir et régler un reel', 'Clique le poster : le panneau s\'ouvre dessous (audio, moodboard, médias, tournage). « ＋ Insérer » dans Moodboard ou Médias ouvre la fenêtre Médias : ce que tu choisis est rangé et étiqueté pour ce reel. Change le nom court en haut du panneau.'],
       ['Changer l\'image du poster', '🖼 sur le poster → la fenêtre Médias s\'ouvre sur le morceau → choisis l\'image. ↺ revient à l\'image automatique.'],
       ['Prévoir la date de sortie', 'Dans le panneau : Sortie prévue → la date va toute seule dans le Calendrier.'] ],
     astuces: [ 'Chaque étape cochée (Idée, Audio, Tourné, Monté, Publié) va dans la To-do de la personne.' ] },
@@ -137,6 +168,7 @@ BK.TUTO = [
     comment: [
       ['Ajouter un rendez-vous', 'Clique le jour → remplis type, titre, heure, lieu → + Ajouter. « Ajouter à Google Agenda ↗ » le met aussi dans Google.'],
       ['Garder une date repérée par Miette', 'Dans « Repéré par Miette » : ✎ remplit le formulaire → vérifie → + Ajouter. ✕ l\'ignore pour de bon.'],
+      ['Dire quand je suis dispo', 'Clic sur un jour (Maj + clic sur un autre jour = toute la période) → clic droit → ✅ Je suis dispo (ou ❌ Pas dispo). Les initiales de chacun s\'affichent sur le jour ; il devient vert quand tout le monde est dispo.'],
       ['Comprendre pourquoi une date manque', 'Regarde la ligne « 🍞 Dernière lecture » : combien de messages et de mails Miette a lus, combien de dates elle a trouvées. 0 mail = le salon des mails n\'est pas coché dans Réglages.'] ],
     astuces: [ 'Pointillés = date possible (pas encore décidée). Trait plein = décidé.', 'Bouton biscotte « Trouver les dates » (en haut) : relit Discord et les mails tout de suite, sans attendre la biscotte.' ] },
   { o: 'To-do list', ic: '✅', quoi: 'Qui fait quoi : un panier par membre, plus « BEESKOT » (tout le groupe) et « Déjà fait ».',
@@ -152,6 +184,15 @@ BK.TUTO = [
       ['Ajouter un abonnement', '↻ Chaque mois ou ↻ Chaque année : il revient tout seul. « Arrêter » pour le stopper.'],
       ['Voir qui doit rembourser qui', 'Encadré « Remboursements » : qui fait un virement à qui. ✓ Virement fait quand c\'est payé.'] ],
     astuces: [ 'Les petites sommes (moins de 0,50 $) sont ignorées.' ] },
+  { o: 'Écoute', ic: '🎧', quoi: 'Comparer deux versions d\'un mix (A en bleu, B en rouge) au même endroit, et laisser des notes minutées que tout le groupe voit, comme sur Frame.io.',
+    comment: [
+      ['Comparer deux mix', 'Choisis le morceau, puis la version A et la version B (les exports de la fiche et du Drive) → ▶ → Tab (ou les boutons A / B) pour passer de l\'une à l\'autre au même endroit, sans coupure.'],
+      ['Les deux versions ne commencent pas pareil', '« Caler tout seul » cherche le décalage. Sinon, glisse la souris sur la case « Recaler B » (en secondes).'],
+      ['Laisser une note', 'Clique sur la forme du son à l\'endroit voulu (ou cliquer-glisser pour un passage) → écris ta note → Entrée. Elle est attachée à la version que tu écoutes (A ou B), avec ta couleur.'],
+      ['Répondre ou dire que c\'est réglé', '💬 pour répondre sous une note, ○ / ✓ réglé quand c\'est fait.'],
+      ['Envoyer les retours à l\'ingé son', 'Écoute la bonne version (B en général) → 📋 Copier pour l\'ingé son → colle dans le mail ou sur Fiverr.'],
+      ['Garder la meilleure version', '★ à côté de A ou B : elle devient l\'export principal du morceau (Bibliothèque, Reels…).'] ],
+    astuces: [ 'Espace = lecture / pause. Un clic sur une note = l\'écouter à cet endroit.', 'Couleurs : Yacine jaune, Pierre vert, Baptiste violet (le nom vient de la case « PC : » en haut).' ] },
   { o: 'Tournages', ic: '🎥', quoi: 'Une fiche par tournage ou shooting : l\'idée, le moodboard, des références, le découpage plan par plan, les tenues, le matériel. On l\'imprime en PDF pour l\'équipe.',
     comment: [
       ['Créer un tournage', '+ Nouveau tournage (à droite) → titre, type (Clip, Reel, Shooting), morceau, date, lieu. 📅 Mettre au Calendrier pour la date.'],
@@ -164,21 +205,23 @@ BK.TUTO = [
   { o: 'Ableton Live', ic: '🎛', quoi: 'Prépare un projet Ableton pour l\'envoyer au mixeur : noms des pistes, couleurs, gel, puis zip daté dans le Drive.',
     comment: [
       ['Relier Ableton (une fois par PC)', 'Réglages › Ableton › Relier Ableton → dans Ableton : Préférences › Link/Tempo/MIDI › Control Surface → choisis « BEESKOT ».'],
+      ['Les sauvegardes automatiques', 'Toutes les 30 min, les projets Ableton de ce PC qui ont changé sont copiés dans le Drive (BEESKOT Studio / Sauvegardes Ableton), avec la date et l\'heure dans le nom. Seulement le fichier .als, rien n\'est effacé. Case « 💾 Sauvegardes automatiques » pour couper ou sauvegarder tout de suite.'],
       ['Préparer pour le mixage', 'Ouvre le projet dans Ableton → Lire les pistes → Trier / Couleurs par groupe / Geler automatiquement → Appliquer dans Ableton → Zipper le projet → Envoyer dans le Drive.'] ],
     astuces: [ 'Le tempo lu dans Ableton peut aller dans la fiche du morceau (🎛 dans la Bibliothèque).' ] },
   { o: 'Reels Audio', ic: '🎧', quoi: 'Coupe le bon passage d\'un morceau pour un reel, à la bonne durée, et prépare la version ralentie ou accélérée pour le tournage.',
     comment: [
       ['Faire l\'audio d\'un reel', 'Choisis le morceau (son export ★) → place le passage (glisse le bloc, ou I / O) → durée → Exporter.'],
       ['Tourner au ralenti', 'Règle la vitesse de tournage (ex. 50 %) : l\'export donne 2 fichiers, MONTAGE (vitesse normale) et TOURNAGE (à jouer pendant le tournage).'],
+      ['Voir les paroles du passage', 'Sous « Écouter » : les paroles exactes chantées pendant le passage, avec leur minutage. La 1re fois, cale les paroles du morceau : ⏺ Caler (Espace au début de chaque phrase) ou le bouton biscotte « Caler » (Miette écoute le morceau). Clic sur une ligne = l\'écouter pour vérifier. 📋 Copier.'],
       ['Reprendre un passage dit sur Discord', 'Bouton biscotte « Trouver les passages » : les timings donnés sur Discord pour ce morceau arrivent dans la liste des passages.'] ],
     astuces: [ 'Après l\'export : 📂 Ouvrir le dossier, ⇪ Upload Drive → ☁ Ouvrir le dossier du Drive.' ] },
-  { o: 'Reels Photo', ic: '📸', quoi: 'Prépare des photos ou un carrousel Instagram : format, cadrage, couleur, effet vintage, légende.',
+  { o: 'Social Photo', ic: '📸', quoi: 'Prépare des photos ou un carrousel Instagram : format, cadrage, couleur, effet vintage, légende.',
     comment: [
       ['Faire un post', '+ Ajouter des photos → la fenêtre Médias s\'ouvre (dossiers, Discord, et « Filtrer » en haut : clique une rubrique puis une étiquette en dessous pour voir ce qu\'elle contient) → choisis les photos → Ajouter au post. Puis De quoi parle le post ? ▾, le format (Story 9:16, Portrait 4:5, Carré, Paysage), règle chaque photo → Exporter les images.'],
       ['Régler une photo', 'Clique-la dans la bande → Cadrage (Entière, Remplir, Centrer), Zoom (glisse la souris sur la case), glisse l\'image dans l\'aperçu pour la déplacer.'],
-      ['Mettre une couleur ou un effet', 'Réglages : contraste, lumière, saturation (glisse la souris sur la case). Couleur : un filtre (ou « Ajouter une LUT ») + Intensité. Effet : Vintage, Grain, Poussière, Fuite de lumière, VHS, Vignettage. Ça vaut pour toutes les photos.'],
+      ['Mettre une couleur ou un effet', 'Preset : un menu de looks tout prêts (Été 70, Souvenir Polaroid, Super 8, Diapo 70, Coucher de soleil, Vieux sépia…) qui règle couleur, effet, contraste, lumière, saturation et cadre d\'un coup ; tu peux tout retoucher après. Si tu avais déjà réglé des choses à la main, le logiciel te demande avant de les remplacer. Réglages : contraste, lumière, saturation (glisse la souris sur la case). Couleur : un filtre ou ta LUT, avec son intensité. Effet : vintage, délavé années 70, Polaroid, Super 8, sépia, noir et blanc, fuites de lumière (orange, dorée, rose), pellicule brûlée, halo, grain, VHS… À côté, Intensité : de 0 % (rien) à 100 % (plein effet). L\'effet va sur toutes les photos du carrousel. Cadre : la photo posée dans un Polaroid, une vieille photo, une pellicule 35 mm, un négatif scanné ou une diapositive ; Taille : un cadre fin ou épais.'],
       ['Trouver une légende', '✨ Idées de légende : Miette en propose. Copier la légende pour la coller sur Instagram.'] ],
-    astuces: [ '↻ Même cadrage pour toutes les photos : applique le réglage de la photo choisie à tout le carrousel.' ] },
+    astuces: [ '↻ Pour toutes (à côté de Cadrage) : applique le cadrage de la photo choisie à tout le carrousel.' ] },
   { o: 'Reels Vidéo', ic: '🎞', quoi: 'Monte une vidéo verticale (1080×1920) : couper, recadrer, couleur, effet, sous-titres calés sur la musique, export MP4.',
     comment: [
       ['Importer', 'De quoi parle la vidéo ? ▾ → ＋ Importer… → la fenêtre Médias (ou Ce PC) → choisis. 1 vidéo seule : elle se charge directement. Des photos ou plusieurs fichiers : la fenêtre du montage s\'ouvre déjà remplie.'],
@@ -202,13 +245,15 @@ BK.TUTO = [
   { o: 'Questions fréquentes', ic: '❓', quoi: 'Les questions qu\'on se pose le plus souvent.',
     comment: [
       ['Je ne vois pas ce qu\'un autre a fait', 'Attends une minute (le partage se fait toutes les minutes). Sinon Réglages › Drive › ↻ Relire le Drive.'],
-      ['Je n\'ai pas eu la fenêtre de mise à jour', 'Bouton rouge (?) → 🔍 Vérifier les mises à jour. Le logiciel vérifie aussi tout seul au démarrage, puis toutes les 20 minutes.'],
+      ['Je n\'ai pas eu la fenêtre de mise à jour', 'Bouton rouge au losange DARI → 🔍 Vérifier les mises à jour. Le logiciel vérifie aussi tout seul au démarrage, puis toutes les 20 minutes.'],
       ['J\'ai effacé ou cassé quelque chose', 'Ctrl + Z tout de suite. Sinon Réglages › Drive › ⏪ Time Machine. Rien n\'est jamais vraiment effacé : ça part dans la corbeille du Drive.'],
-      ['La biscotte jaune, elle fait quoi ?', 'Miette relit Discord (et les mails), le Drive, fait le résumé de la semaine, propose des tâches, des dépenses et des tournages, place les dates au Calendrier, reprend les BPM et remplit les moodboards vides. Elle ne valide rien toute seule.'],
+      ['Le patch de Miette en haut, il fait quoi ?', 'Miette relit Discord (et les mails), le Drive, fait le résumé de la semaine, propose des tâches, des dépenses et des tournages, place les dates au Calendrier, reprend les BPM et remplit les moodboards vides. Elle ne valide rien toute seule.'],
       ['Miette ne répond pas', 'Vérifie l\'interrupteur « AI Miette activée » en bas du menu, et la clé Gemini dans Réglages › Miette & Discord. Si Gemini est occupé, réessaie dans une minute.'],
       ['Une date ou un mail n\'apparaît pas', 'Calendrier › ligne « Dernière lecture » : si 0 mail, coche le salon des mails dans Réglages › Miette & Discord, puis appuie sur la biscotte.'],
       ['Le PC rame', 'Le logiciel est fait pour ne jamais bloquer le PC : les gros exports vont plus lentement exprès. Ferme les onglets Médias / Reels Vidéo si tu ne t\'en sers pas.'],
       ['Où sont mes exports ?', 'Après chaque export : 📂 Ouvrir le dossier. Sur le Drive : ⇪ Upload Drive → ☁ Ouvrir le dossier du Drive.'],
+      ['Poser une question à Miette depuis Discord', 'Écris « Miette ? c\'est quand le tournage de Mother ? ». Dès qu\'un PC a le logiciel ouvert, Miette répond juste sous le message. Interrupteur dans Réglages › Miette & Discord.'],
+      ['Comment dire à Miette de noter quelque chose depuis Discord ?', 'Réaction 🍞 sous le message, ou un message qui commence par « Miette, ». Le ✅ apparaît sous le message quand c\'est rangé (dès qu\'un PC a le logiciel ouvert).'],
       ['Le Drive dit « non relié »', 'Réglages › Drive › Importer une carte d\'accès (demande-la à Dari).'] ] },
 ];
 

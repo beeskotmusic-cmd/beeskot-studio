@@ -33,10 +33,11 @@ BK.module('medias', function (page) {
       </section>
       <section class="pane reg" style="width:260px"><span class="ptitle">② Réglages</span>
         <div class="box"><span class="lb">Ajouter</span>
-          <span class="nt">Glisse des fichiers sur la page, ou « + » : ils vont dans le dossier ouvert.</span>
+          <span class="nt" id="mdAjoutTxt">Glisse des fichiers sur la page, ou « + » : ils vont dans le dossier ouvert.</span>
           <button class="btn sm" id="mdAjout" style="margin-top:10px">+ Choisir des fichiers…</button>
           <button class="btn sm" id="mdDossier" style="margin-top:8px">+ Nouveau dossier ici…</button>
           <button class="btn sm miette-aide" id="mdTrier" style="margin-top:8px" title="Miette regarde les photos sans étiquette et propose où les ranger">Étiqueter les photos</button>
+          <button class="btn sm miette-aide" id="mdMenage" style="margin-top:8px" title="Miette cherche les fichiers en double (même nom, même taille) et les fichiers vides. Elle propose, vous validez. Rien n'est effacé : tout va dans la corbeille de BEESKOT Studio.">Faire le ménage</button>
           <input type="file" id="mdInput" multiple hidden></div>
         <div class="box"><span class="lb">📍 Tu es ici</span>
           <span class="nt" id="mdChemin" style="color:var(--ink)">—</span>
@@ -46,7 +47,7 @@ BK.module('medias', function (page) {
       </section>
     </div>
     <div class="pane md-ajouter${BK.reglage('medias.ajPlie', false) ? ' plie' : ''}" id="mdAjouter">
-      <div class="md-aj-tete"><button class="md-aj-plier" id="mdAjPlier" title="Réduire / montrer les étiquettes">▾</button><span class="eng md-lab">Étiquettes</span><div class="seg" id="mdRub"><button data-rub="morceaux">♪ Morceaux</button><button data-rub="tournage">🎬 Tournage</button><button data-rub="lumiere">💡 Lumière</button><button data-rub="reseaux">📣 Réseaux</button></div>
+      <div class="md-aj-tete"><button class="md-aj-plier" id="mdAjPlier" title="Réduire / montrer les étiquettes">▾</button><span class="eng md-lab">Étiquettes</span><button class="md-tout" id="mdTout" title="Enlever le filtre : voir tout le dossier">Tout</button><div class="seg" id="mdRub"><button data-rub="morceaux">♪ Morceaux</button><button data-rub="tournage">🎬 Tournage</button><button data-rub="lumiere">💡 Lumière</button><button data-rub="reseaux">📣 Réseaux</button></div>
         <span class="nt md-aj-aide">Glisse les médias sur une étiquette · ou clic droit</span></div>
       <div class="md-paniers" id="mdPaniers"></div></div>
     <div class="pane abar"><span class="vfd" id="mdMsg">PRÊT</span>
@@ -54,6 +55,8 @@ BK.module('medias', function (page) {
       <span class="nt" style="margin:0 12px">Clic = choisir · <b>Ctrl+clic</b> = en ajouter · <b>Maj+clic</b> = toute une suite · puis glisse-les sur une étiquette</span>
       <div class="right"><button class="btn" id="mdRelire">↻ Relire</button></div></div>`;
   $('#mdAjPlier', page).onclick = () => { const z = $('#mdAjouter', page), p = !z.classList.contains('plie'); z.classList.toggle('plie', p); BK.regler('medias.ajPlie', p); };
+  // pourquoi les boutons « + » sont grisés : on le dit, au lieu de laisser deviner
+  const aideAjout = ok => { const t = $('#mdAjoutTxt'); if (t) t.textContent = ok ? 'Glisse des fichiers sur la page, ou « + » : ils vont dans le dossier ouvert.' : 'Ouvre d\'abord un dossier du Drive : c\'est là que les fichiers iront.'; };
   const msg = t => $('#mdMsg').textContent = String(t).toUpperCase().slice(0, 90);
   const ici = () => M.pile[M.pile.length - 1];
 
@@ -89,10 +92,15 @@ BK.module('medias', function (page) {
   const nomCase = k => Object.values(cases()).flat().find(c => c.k === k);
   function paniers() {
     const z = $('#mdPaniers'), rub = M.rub = M.rub || BK.reglage('medias.rub', 'morceaux');
-    $$('#mdRub button').forEach(b => { b.classList.toggle('on', b.dataset.rub === rub); b.onclick = () => { M.rub = b.dataset.rub; BK.regler('medias.rub', M.rub); paniers(); }; });
+    $$('#mdRub button').forEach(b => { b.classList.toggle('on', b.dataset.rub === rub); b.onclick = () => { M.rub = M.rub === b.dataset.rub ? '-' : b.dataset.rub; BK.regler('medias.rub', M.rub);   // re-cliquer la rubrique ouverte la referme
+      if (M.choix && M.filtre) { const sel = $('#mdFiltre'); sel.value = ''; sel.onchange({ target: sel }); }   // fenêtre « choisir » : changer de rubrique enlève le filtre
+      paniers(); }; });
+    const tout = $('#mdTout'); if (tout) { tout.classList.toggle('on', !M.filtre);
+      tout.onclick = () => { const sel = $('#mdFiltre'); sel.value = ''; M.filtre = ''; if (M.choix) { M.pile = []; allerRacine('cloud'); } else sel.onchange({ target: sel }); paniers(); }; }
     const compte = k => Object.keys(M.tags).filter(id => BK.etiquettes.liste(M.tags, id).includes(k)).length;
-    z.innerHTML = cases()[rub].map(c => { const n = compte(c.k);
-      return `<div class="md-panier${M.choix && M.filtre === c.k ? ' on' : ''}" data-pan="${esc(c.k)}" style="--tc:${couleurTag(c.k)}">${c.ph ? `<span class="md-pan-ph"${BK.img.bg(c.ph)}></span>` : `<span class="md-pan-ph">${c.ic}</span>`}<b>${esc(c.nom)}</b>${n ? `<em>${n}</em>` : ''}</div>`; }).join('')
+    z.classList.toggle('hidden', !cases()[rub]);                       // aucune rubrique ouverte : la 2e ligne se replie
+    z.innerHTML = (cases()[rub] || []).map(c => { const n = compte(c.k);
+      return `<div class="md-panier${M.filtre === c.k ? ' on' : ''}" data-pan="${esc(c.k)}" style="--tc:${couleurTag(c.k)}">${c.ph ? `<span class="md-pan-ph"${BK.img.bg(c.ph)}></span>` : `<span class="md-pan-ph">${c.ic}</span>`}<b>${esc(c.nom)}</b>${n ? `<em>${n}</em>` : ''}</div>`; }).join('')
       || '<span class="nt">Aucun morceau : crée d\'abord des fiches dans la Bibliothèque.</span>';
     $$('.md-panier', z).forEach(p => {
       p.ondragover = e => { if (e.dataTransfer.types.includes('text/bk-media') || e.dataTransfer.types.includes('Files')) { e.preventDefault(); e.stopPropagation(); p.classList.add('survol'); } };
@@ -157,7 +165,7 @@ BK.module('medias', function (page) {
     $('#mdFil').innerHTML = '<button class="ex-miette" data-i="-1">⌂ Tous les dossiers</button><span>›</span><span class="ex-miette">🍞 Discord · tout ce qui a été posté <small class="nt">(pas sur le Drive)</small></span>';
     const home = $('#mdFil [data-i="-1"]'); if (home) home.onclick = () => allerRacine('cloud');
     $('#mdChemin').textContent = 'Discord (pas dans le Drive)';
-    $('#mdAjout').disabled = $('#mdDossier').disabled = $('#mdOuvrirDos').disabled = true;
+    $('#mdAjout').disabled = $('#mdDossier').disabled = $('#mdOuvrirDos').disabled = true; aideAjout(false);
     $('#mdMajDc').classList.remove('hidden');
     $('#mdGrille').innerHTML = '<span class="nt md-vide"><span class="spin"></span>Ouverture…</span>';
     const pose = (l, garde) => { M.fichiers = l.map(x => ({ id: 'dc:' + x.id, name: x.nom, mimeType: x.video ? 'video/mp4' : 'image/jpeg',
@@ -187,7 +195,7 @@ BK.module('medias', function (page) {
     $('#mdFil').innerHTML = '<button class="ex-miette" data-i="-1">⌂ Tous les dossiers</button><span>›</span>' + M.pile.map((p, i) => `<button class="ex-miette" data-i="${i}">${esc(p.nom)}</button>`).join('<span>›</span>');
     $$('#mdFil .ex-miette').forEach(b => b.onclick = () => { if (+b.dataset.i < 0) return allerRacine('cloud'); M.pile = M.pile.slice(0, +b.dataset.i + 1); charger(); });
     $('#mdChemin').textContent = ['Drive BEESKOT', ...M.pile.map(p => p.nom)].join(' › ');
-    $('#mdAjout').disabled = $('#mdDossier').disabled = $('#mdOuvrirDos').disabled = false;
+    $('#mdAjout').disabled = $('#mdDossier').disabled = $('#mdOuvrirDos').disabled = false; aideAjout(true);
     $('#mdMajDc').classList.add('hidden');
     $('#mdGrille').innerHTML = '<span class="nt md-vide"><span class="spin"></span>Lecture du Drive…</span>';
     try { M.fichiers = await BK.dossiers.enfants(cur.id); if (ici() === cur) rendre(); }
@@ -204,6 +212,7 @@ BK.module('medias', function (page) {
     const pliee = aj.classList.contains('plie'), avant = { filtre: M.filtre, pile: [...M.pile], racine: M.racine };
     vit.before(p1); aj.before(p2); aj.classList.remove('plie');
     const lab = $('.md-lab', aj), labAvant = lab && lab.textContent; if (lab) lab.textContent = 'Filtrer';      // ici, une étiquette sert à filtrer
+
     M.sel.clear(); M.choisi = null;
     const v = document.createElement('div'); v.className = 'voile md-choix-voile';
     v.innerHTML = `<div class="stopbox md-choix"><button class="btn xs rt-x" data-c="x" title="Fermer">✕</button>
@@ -246,7 +255,7 @@ BK.module('medias', function (page) {
   async function racineCloud() {
     $('#mdFil').innerHTML = '<span class="ex-miette">⌂ Tous les dossiers</span>';
     $('#mdChemin').textContent = 'Drive BEESKOT';
-    $('#mdAjout').disabled = $('#mdDossier').disabled = $('#mdOuvrirDos').disabled = true;
+    $('#mdAjout').disabled = $('#mdDossier').disabled = $('#mdOuvrirDos').disabled = true; aideAjout(false);
     $('#mdMajDc').classList.add('hidden');
     $('#mdGrille').innerHTML = '<span class="nt md-vide"><span class="spin"></span>Lecture du Drive…</span>';
     const l = [];
@@ -409,6 +418,36 @@ BK.module('medias', function (page) {
   $('#mdCaches').onclick = () => { M.voirCaches = !M.voirCaches; msg(M.voirCaches ? 'Les fichiers masqués · ✕ pour les remettre' : 'PRÊT'); rendre(!!M.filtre); };
   $('#mdAjout').onclick = () => $('#mdInput').click();
   // ---------- 🍞 Miette regarde les photos et propose une case ----------
+  // ---------- LE MÉNAGE DU DRIVE : les doublons et les fichiers vides (proposés, jamais effacés) ----------
+  $('#mdMenage').onclick = async () => {
+    if (!BK.drive.relie()) return msg('Relie d\'abord le Drive');
+    const b = $('#mdMenage'); b.disabled = true; b.innerHTML = '<span class="spin"></span>Miette regarde…';
+    let items = [];
+    try {
+      BK.dossiers.oublier && BK.dossiers.oublier();
+      const [tous, carte, tags] = await Promise.all([BK.dossiers.tousFichiers(), BK.dossiers.carte(), BK.etiquettes.tous()]);
+      const racine = (BK.drive.conf() || {}).racine;
+      const media = f => /^(image|video|audio)\//.test(f.mimeType || '') || /\.(als|wav|mp3|aiff?|flac|zip|pdf)$/i.test(f.name || '');
+      // jamais les fichiers du logiciel lui-même (dossier BEESKOT Studio : fiches, sauvegardes…)
+      const aNous = f => (f.parents || []).some(p => p === racine || BK.dossiers.ancetres(p, carte).includes(racine));
+      const l = tous.filter(f => media(f) && !aNous(f));
+      const chemin = f => { const p = (f.parents || [])[0]; return p ? BK.dossiers.ancetres(p, carte).reverse().map(a => carte[a] && BK.dossiers.joli(carte[a].name)).filter(Boolean).join(' / ') : ''; };
+      const groupes = {};
+      for (const f of l) { if (!+f.size) continue; const k = String(f.name).toLowerCase() + '|' + f.size; (groupes[k] = groupes[k] || []).push(f); }
+      for (const g of Object.values(groupes)) {
+        if (g.length < 2) continue;
+        // on garde celui qui a le plus d'étiquettes (sinon le plus ancien) ; les autres sont proposés
+        g.sort((a, c) => BK.etiquettes.liste(tags, c.id).length - BK.etiquettes.liste(tags, a.id).length || String(a.modifiedTime).localeCompare(String(c.modifiedTime)));
+        for (const f of g.slice(1)) items.push({ f, titre: f.name, sous: `Doublon · ${(+f.size / 1e6).toFixed(1)} Mo · ${chemin(f) || 'Drive'} (on garde celui de « ${chemin(g[0]) || 'Drive'} »)` });
+      }
+      for (const f of l) if (f.size !== undefined && +f.size === 0) items.push({ f, titre: f.name, sous: 'Fichier vide (0 octet) · ' + (chemin(f) || 'Drive') });
+    } catch (e) { msg('Drive injoignable pour l\'instant'); }
+    b.disabled = false; b.textContent = 'Faire le ménage';
+    const ch = await BK.miette.proposer({ titre: 'Le ménage du Drive', vide: 'Rien à ranger : pas de doublon ni de fichier vide. Bravo 🍞', bouton: 'Mettre dans la corbeille de BEESKOT Studio', items });
+    if (!ch.length) return;
+    let n = 0; for (const x of ch) { try { await BK.drive.corbeille(x.f.id); n++; msg(`Rangement ${n}/${ch.length}…`); } catch (e) {} await BK.audio.pause(); }
+    BK.dossiers.oublier && BK.dossiers.oublier(); msg(n + ' fichier(s) rangé(s) dans la corbeille de BEESKOT Studio (rien n\'est effacé)'); charger();
+  };
   $('#mdTrier').onclick = async () => {
     if (!BK.drive.relie()) return msg('Relie d\'abord le Drive');
     if (!await BK.ia.pret()) return msg('Allume l\'AI et ajoute la clé Gemini (Réglages)');
@@ -523,5 +562,5 @@ BK.module('medias', function (page) {
 });
 })();
 
-// ouvrir la fenêtre « Choisir dans Médias » depuis n'importe quel onglet (Reels Photo, Reels Vidéo, Tournages…)
+// ouvrir la fenêtre « Choisir dans Médias » depuis n'importe quel onglet (Social Photo, Reels Vidéo, Tournages…)
 BK.choisirDansMedias = async o => { BK.construire('medias'); return BK._choixMedias ? BK._choixMedias(o) : []; };

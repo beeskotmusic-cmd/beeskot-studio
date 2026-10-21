@@ -64,7 +64,7 @@ BK.module('taches', function (page) {
     const bouton = `<button class="btn sm${props.length ? '' : ' pri'}" id="taLire"${!pret || !d.jeton ? ' disabled title="Il faut Miette (Discord) et la clé Gemini : Réglages"' : ''}>${T.lecture ? '<span class="spin"></span>Miette lit Discord…' : '🍞 Lire Discord et proposer des tâches'}</button>`;
     const ouvert = BK.reglage('todo.mietteOuvert', true);
     z.classList.toggle('replie', !ouvert);
-    z.innerHTML = `<div class="ligne-titre"><button class="lb ta-plier" id="taPlier" title="Ouvrir / replier">${ouvert ? '▾' : '▸'} <img class="mi-ic" src="look/patch-biscotte.png" alt=""> Miette propose (${props.length})</button>
+    z.innerHTML = `<div class="ligne-titre"><button class="lb ta-plier" id="taPlier" title="Ouvrir / replier">${ouvert ? '▾' : '▸'} <img class="mi-ic" src="look/patch-miette.png" alt=""> Miette propose (${props.length})</button>
         ${props.length > 1 ? '<button class="btn xs pri" id="taToutOk" style="margin-left:auto">✓ Tout ajouter</button>' : ''}<span style="${props.length > 1 ? '' : 'margin-left:auto'}">${bouton}</span></div>
       ${props.length ? `<div class="ta-props">${props.slice(0, 12).map(p => `<div class="ta-prop" data-p="${p.id}">
           <div class="carte-c"><span class="carte-t">${esc(p.texte)}</span><span class="carte-m">${esc([p.qui && '→ ' + p.qui, p.morceau, p.date && 'pour le ' + p.date].filter(Boolean).join(' · '))}${p.pourquoi ? ' — « ' + esc(p.pourquoi) + ' »' : ''}</span></div>

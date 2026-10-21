@@ -55,7 +55,11 @@ BK.rendu = {
   async diaporama(photos, o) { return BK.rendu.montage(photos.map(p => ({ ...p, anim: p.anim || 'zoom' })), o); },
 
   // ---------- EFFETS VINTAGE (dessinés ici, sans fichier) : par-dessus l'image, en photo comme en vidéo ----------
-  VOILES: [['', 'Aucun effet'], ['vintage', 'Vintage'], ['grain', 'Grain de film'], ['poussiere', 'Poussière et rayures'], ['lumiere', 'Fuite de lumière'], ['vhs', 'VHS'], ['vignette', 'Vignettage']],
+  VOILES: [['', 'Aucun effet'],
+    ['vintage', 'Vintage'], ['delave', 'Délavé années 70'], ['kodak', 'Pellicule couleur chaude'], ['polaroid', 'Polaroid'], ['super8', 'Super 8'],
+    ['sepia', 'Sépia ancien'], ['nb', 'Noir et blanc argentique'],
+    ['lumiere', 'Fuite de lumière orange'], ['lumiere2', 'Fuite de lumière dorée'], ['lumiere3', 'Fuite de lumière rose'], ['brulure', 'Pellicule brûlée'], ['halo', 'Halo doux'],
+    ['grain', 'Grain de film'], ['poussiere', 'Poussière et rayures'], ['vhs', 'VHS'], ['vignette', 'Vignettage']],
   _bruit: null,
   bruit() {
     if (BK.rendu._bruit) return BK.rendu._bruit;
@@ -64,8 +68,15 @@ BK.rendu = {
     x.putImageData(d, 0, 0); return BK.rendu._bruit = c;
   },
   // t : le temps (s) — en vidéo le grain et la poussière bougent ; en photo t = 0 (toujours le même dessin)
-  voile(cx, L, H, type, t = 0) {
-    if (!type) return;
+  // inten : l'intensité de l'effet (0 = rien, 1 = plein effet) — on garde l'image d'avant et on la remet par-dessus, plus ou moins transparente
+  voile(cx, L, H, type, t = 0, inten = 1) {
+    if (!type || inten <= 0) return;
+    let avant = null;
+    if (inten < 1) { avant = BK.rendu._avant || (BK.rendu._avant = document.createElement('canvas')); avant.width = L; avant.height = H; avant.getContext('2d').drawImage(cx.canvas, 0, 0); }
+    BK.rendu._voile(cx, L, H, type, t);
+    if (avant) { cx.save(); cx.globalAlpha = 1 - inten; cx.drawImage(avant, 0, 0); cx.restore(); }
+  },
+  _voile(cx, L, H, type, t = 0) {
     const s = L / 1080, f = Math.floor(t * 12), h = n => { const x = Math.sin(n * 12.9898 + 78.233) * 43758.5453; return x - Math.floor(x); };
     cx.save();
     const grain = a => { const pat = cx.createPattern(BK.rendu.bruit(), 'repeat');
@@ -88,8 +99,30 @@ BK.rendu = {
     }
     if (type === 'grain') grain(0.5);
     if (type === 'poussiere') { poussiere(28); grain(0.18); }
-    if (type === 'lumiere') { lumiere(0.6); grain(0.15); }
+    if (type === 'lumiere') { lumiere(0.85); grain(0.15); }
     if (type === 'vignette') vignette(0.7);
+    // une fuite de lumière : une tache colorée qui « brûle » un bord de l'image
+    const fuite = (x, y, r, c1, c2, a) => { cx.globalCompositeOperation = 'screen'; const g = cx.createRadialGradient(x, y, 0, x, y, r);
+      g.addColorStop(0, `rgba(${c1},${a})`); g.addColorStop(0.45, `rgba(${c2},${a * 0.5})`); g.addColorStop(1, `rgba(${c2},0)`); cx.fillStyle = g; cx.fillRect(0, 0, L, H); cx.globalCompositeOperation = 'source-over'; };
+    const teinte = (mode, c) => { cx.globalCompositeOperation = mode; cx.fillStyle = c; cx.fillRect(0, 0, L, H); cx.globalCompositeOperation = 'source-over'; };
+    if (type === 'lumiere2') { fuite(L * 1.02, H * (0.3 + 0.05 * Math.sin(t * 0.6)), H * 0.75, '255,224,140', '255,170,40', 1); fuite(L * 1.02, H * 0.3, H * 0.75, '255,224,140', '255,170,40', 0.5); fuite(0, H, H * 0.4, '255,200,110', '240,140,40', 0.5); grain(0.15); }
+    if (type === 'lumiere3') { fuite(L * 0.85, -H * 0.02, H * 0.8, '255,170,190', '235,70,120', 1); fuite(L * 0.85, -H * 0.02, H * 0.5, '255,190,200', '235,70,120', 0.5);
+      cx.globalCompositeOperation = 'screen'; const g = cx.createLinearGradient(0, 0, L, 0); g.addColorStop(0, 'rgba(255,90,140,.45)'); g.addColorStop(0.25, 'rgba(255,90,140,0)'); cx.fillStyle = g; cx.fillRect(0, 0, L, H); cx.globalCompositeOperation = 'source-over'; grain(0.15); }
+    if (type === 'brulure') {                                     // le bord de la pellicule a pris la lumière : orange vif sur un côté, presque blanc au bord
+      const g = cx.createLinearGradient(L, 0, L * 0.5, 0);
+      g.addColorStop(0, 'rgba(255,248,225,1)'); g.addColorStop(0.1, 'rgba(255,190,70,.95)'); g.addColorStop(0.3, 'rgba(240,110,30,.7)'); g.addColorStop(0.6, 'rgba(210,60,20,.3)'); g.addColorStop(1, 'rgba(200,40,10,0)');
+      cx.fillStyle = g; cx.fillRect(0, 0, L, H); cx.globalCompositeOperation = 'source-over'; fuite(0, H * 0.1, H * 0.3, '255,120,40', '200,40,10', 0.4); grain(0.25); vignette(0.35); }
+    if (type === 'halo') {                                        // les lumières bavent doucement (comme un filtre « bas » sur l'objectif)
+      const c = BK.rendu._halo || (BK.rendu._halo = document.createElement('canvas')); c.width = L; c.height = H; const x = c.getContext('2d');
+      x.filter = `blur(${Math.round(18 * s)}px) brightness(1.15)`; x.drawImage(cx.canvas, 0, 0); x.filter = 'none';
+      cx.globalCompositeOperation = 'screen'; cx.globalAlpha = 0.42; cx.drawImage(c, 0, 0); cx.globalAlpha = 1; cx.globalCompositeOperation = 'source-over'; }
+    if (type === 'delave') { teinte('screen', 'rgba(60,48,30,.6)'); teinte('multiply', 'rgba(240,226,190,.7)'); teinte('soft-light', 'rgba(120,150,110,.35)'); grain(0.2); vignette(0.25); }
+    if (type === 'kodak') { teinte('soft-light', 'rgba(255,140,60,.45)'); teinte('multiply', 'rgba(255,236,205,.5)'); teinte('screen', 'rgba(30,20,40,.35)'); grain(0.2); vignette(0.3); }
+    if (type === 'polaroid') { teinte('screen', 'rgba(55,95,95,.7)'); teinte('soft-light', 'rgba(255,215,160,.55)'); teinte('multiply', 'rgba(255,238,210,.8)'); teinte('soft-light', 'rgba(255,255,255,.2)'); grain(0.12); vignette(0.2); }
+    if (type === 'super8') { teinte('multiply', 'rgba(255,214,150,.55)'); teinte('screen', 'rgba(50,30,15,.45)');
+      fuite(L * 0.5, H * 0.5, Math.hypot(L, H) * 0.3, '255,230,180', '255,200,120', 0.12 + 0.06 * Math.sin(t * 9)); grain(0.45); poussiere(10); vignette(0.85); }
+    if (type === 'sepia') { teinte('saturation', 'rgb(128,128,128)'); teinte('color', 'rgba(150,105,60,.75)'); teinte('screen', 'rgba(40,28,15,.35)'); grain(0.3); poussiere(12); vignette(0.55); }
+    if (type === 'nb') { teinte('saturation', 'rgb(128,128,128)'); teinte('soft-light', 'rgba(0,0,0,.25)'); grain(0.45); poussiere(8); vignette(0.45); }
     if (type === 'vhs') {
       cx.globalCompositeOperation = 'soft-light'; cx.fillStyle = 'rgba(80,120,255,.35)'; cx.fillRect(0, 0, L, H); cx.globalCompositeOperation = 'source-over';
       cx.fillStyle = 'rgba(0,0,0,.16)'; const pas = Math.max(2, Math.round(4 * s)); for (let y = 0; y < H; y += pas) cx.fillRect(0, y, L, Math.max(1, pas / 2));
@@ -99,11 +132,63 @@ BK.rendu = {
     cx.restore();
   },
 
+  // ---------- CADRES : la photo posée dans un cadre d'époque (Polaroid, vieille photo, pellicule…) ----------
+  // dst : le contexte où dessiner · src : l'image finie (effets compris) · taille : 0 à 100 (épaisseur du cadre)
+  CADRES: [['', 'Aucun cadre'], ['polaroid', 'Polaroid'], ['ancienne', 'Vieille photo'], ['pellicule', 'Pellicule 35 mm'], ['negatif', 'Négatif scanné'], ['diapo', 'Diapositive']],
+  cadre(dst, src, L, H, type, taille = 40, graine = 0) {
+    if (!type) { dst.drawImage(src, 0, 0, L, H); return; }
+    const m = Math.min(L, H), b = Math.round(m * (0.025 + 0.11 * taille / 100)), h = n => { const x = Math.sin((n + graine * 31) * 12.9898 + 78.233) * 43758.5453; return x - Math.floor(x); };
+    // l'image dans la fenêtre du cadre, sans être déformée (on coupe un peu les bords si besoin)
+    const poser = (x, y, w, hh) => { const k = Math.max(w / src.width, hh / src.height), sw = w / k, sh = hh / k;
+      dst.drawImage(src, (src.width - sw) / 2, (src.height - sh) / 2, sw, sh, x, y, w, hh); };
+    const grain = (a) => { const pat = dst.createPattern(BK.rendu.bruit(), 'repeat'); dst.save(); dst.globalCompositeOperation = 'overlay'; dst.globalAlpha = a; dst.fillStyle = pat; dst.fillRect(0, 0, L, H); dst.restore(); };
+    dst.save();
+    if (type === 'polaroid') {                                   // bord crème, plus large en bas
+      dst.fillStyle = '#ece3cf'; dst.fillRect(0, 0, L, H); grain(0.12);
+      const bas = Math.round(b * 3.2); poser(b, b, L - 2 * b, H - b - bas);
+      dst.strokeStyle = 'rgba(0,0,0,.18)'; dst.lineWidth = Math.max(1, m / 500); dst.strokeRect(b, b, L - 2 * b, H - b - bas);
+    }
+    if (type === 'ancienne') {                                    // papier jauni, coins usés, petit liseré
+      const g = dst.createRadialGradient(L / 2, H / 2, m * 0.3, L / 2, H / 2, Math.hypot(L, H) * 0.6);
+      g.addColorStop(0, '#efe2c2'); g.addColorStop(1, '#c9ae7c'); dst.fillStyle = g; dst.fillRect(0, 0, L, H); grain(0.25);
+      poser(b, b, L - 2 * b, H - 2 * b);
+      dst.strokeStyle = 'rgba(255,250,235,.85)'; dst.lineWidth = Math.max(2, b * 0.08); dst.strokeRect(b - b * 0.25, b - b * 0.25, L - 2 * b + b * 0.5, H - 2 * b + b * 0.5);
+      dst.globalCompositeOperation = 'multiply'; const v = dst.createRadialGradient(L / 2, H / 2, m * 0.45, L / 2, H / 2, Math.hypot(L, H) * 0.62);
+      v.addColorStop(0, 'rgba(255,255,255,0)'); v.addColorStop(1, 'rgba(150,110,60,.55)'); dst.fillStyle = v; dst.fillRect(0, 0, L, H);
+    }
+    if (type === 'pellicule' || type === 'negatif') {           // le film noir autour (avec les perforations, ou les bords irréguliers d'un scan)
+      dst.fillStyle = '#0d0b09'; dst.fillRect(0, 0, L, H);
+      if (type === 'pellicule') {
+        const cote = Math.round(b * 1.6); poser(cote, b, L - 2 * cote, H - 2 * b);
+        const tw = cote * 0.42, th = tw * 1.35, pas = th * 1.9; dst.fillStyle = '#d9d2c2';
+        for (let y = pas * 0.3; y < H; y += pas) for (const x of [cote * 0.29, L - cote * 0.29 - tw]) { dst.beginPath(); dst.roundRect ? dst.roundRect(x, y, tw, th, tw * 0.2) : dst.rect(x, y, tw, th); dst.fill(); }
+        dst.fillStyle = 'rgba(232,140,40,.9)'; dst.font = `600 ${Math.max(8, Math.round(b * 0.42))}px monospace`; dst.textBaseline = 'middle';
+        dst.fillText('BEESKOT 400  ▸ ' + (12 + Math.floor(h(1) * 20)), cote, b / 2); dst.fillText('▸ ' + (12 + Math.floor(h(2) * 20)) + 'A', L - cote - b * 2.2, H - b / 2);
+      } else {
+        poser(b, b, L - 2 * b, H - 2 * b);
+        dst.fillStyle = '#0d0b09';                                // bords grignotés, comme un négatif mal aligné dans le scanner
+        for (let i = 0; i < 4; i++) { dst.beginPath(); const n = 22;
+          for (let k = 0; k <= n; k++) { const t = k / n, j = b * (0.06 + 0.16 * h(i * 100 + k));
+            const pt = i === 0 ? [t * L, b + j] : i === 1 ? [L - b - j, t * H] : i === 2 ? [(1 - t) * L, H - b - j] : [b + j, (1 - t) * H];
+            k ? dst.lineTo(...pt) : dst.moveTo(...pt); }
+          const coin = [[L, 0, 0, 0], [L, H, L, 0], [0, H, L, H], [0, 0, 0, H]][i]; dst.lineTo(coin[0], coin[1]); dst.lineTo(coin[2], coin[3]); dst.closePath(); dst.fill(); }
+        dst.fillStyle = 'rgba(255,245,225,.6)'; dst.font = `600 ${Math.max(8, Math.round(b * 0.35))}px monospace`; dst.textBaseline = 'middle'; dst.fillText('BEESKOT   ' + (1 + Math.floor(h(3) * 36)), b, b / 2);
+      }
+    }
+    if (type === 'diapo') {                                       // le cadre en carton d'une diapositive, fenêtre aux coins arrondis
+      dst.fillStyle = '#d8cfbd'; dst.fillRect(0, 0, L, H); grain(0.15);
+      const e = Math.round(b * 1.5), r = e * 0.35; dst.save(); dst.beginPath(); dst.roundRect ? dst.roundRect(e, e, L - 2 * e, H - 2 * e, r) : dst.rect(e, e, L - 2 * e, H - 2 * e); dst.clip(); poser(e, e, L - 2 * e, H - 2 * e); dst.restore();
+      dst.strokeStyle = 'rgba(80,60,40,.35)'; dst.lineWidth = Math.max(1, e * 0.06); dst.beginPath(); dst.roundRect ? dst.roundRect(e, e, L - 2 * e, H - 2 * e, r) : dst.rect(e, e, L - 2 * e, H - 2 * e); dst.stroke();
+      dst.fillStyle = 'rgba(60,45,30,.7)'; dst.font = `600 ${Math.max(8, Math.round(e * 0.3))}px monospace`; dst.textBaseline = 'middle'; dst.fillText('BEESKOT · ' + (1 + Math.floor(h(4) * 36)), e, e / 2);
+    }
+    dst.restore();
+  },
+
   // ---------- une case « glisse la souris » (comme Zoom et Intensité) : -100 à +100 % ----------
   champGlisse(el, { min = -100, max = 100, val = 0, pas = 5, change }) {
     el.readOnly = true; let g = null, v = val;
-    const poser = x => { v = Math.round(Math.max(min, Math.min(max, x))); el.value = (v > 0 ? '+' : '') + v + ' %'; change(v); };
-    el.value = (v > 0 ? '+' : '') + v + ' %';
+    const poser = x => { v = Math.round(Math.max(min, Math.min(max, x))); el.value = (v > 0 && min < 0 ? '+' : '') + v + ' %'; change(v); };
+    el.value = (v > 0 && min < 0 ? '+' : '') + v + ' %';
     el.addEventListener('pointerdown', e => { if (!el.readOnly) return; e.preventDefault(); el.setPointerCapture(e.pointerId); g = { x: e.clientX, y: e.clientY, v }; });
     el.addEventListener('pointermove', e => { if (g) poser(g.v + ((e.clientX - g.x) - (e.clientY - g.y)) / 2); });
     el.addEventListener('pointerup', () => { g = null; });
@@ -111,7 +196,7 @@ BK.rendu = {
     el.addEventListener('blur', () => { if (el.readOnly) return; el.readOnly = true; const x = parseFloat(el.value.replace(',', '.')); poser(isNaN(x) ? v : x); });
     el.addEventListener('keydown', e => { e.stopPropagation(); if (e.key === 'Enter') el.blur(); });
     el.addEventListener('wheel', e => { e.preventDefault(); poser(v - Math.sign(e.deltaY) * pas); }, { passive: false });
-    return { poser };
+    return { poser, regler: x => { v = x; } };
   },
 
   // ---------- lire un fichier LUT .cube ----------
@@ -176,7 +261,7 @@ BK.rendu = {
         gl.uniform1f(u.n, this.n || 2); gl.uniform1f(u.force, this.n ? force : 0);
         gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
         ctx.filter = this.css || 'none'; ctx.drawImage(cv, 0, 0); ctx.filter = 'none';
-        if (voile && voile.type) BK.rendu.voile(ctx, largeur, hauteur, voile.type, voile.t || 0);   // l'effet vintage, sous les sous-titres
+        if (voile && voile.type) BK.rendu.voile(ctx, largeur, hauteur, voile.type, voile.t || 0, voile.k ?? 1);   // l'effet vintage, sous les sous-titres
         if (sous) BK.rendu.sousTitre(ctx, sous, largeur, hauteur);
       },
     };

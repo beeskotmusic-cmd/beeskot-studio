@@ -10,7 +10,9 @@ BK.ia = {
     const c = (await BK.db.liste('config')).find(x => x.id === 'ia');
     return BK.ia.conf = c || { id: 'ia', gemini: '', modele: '' };
   },
-  async enregistrer(champs) { const c = { ...(await BK.ia.config()), ...champs }; BK.ia.conf = c; await BK.db.ecrire('config', c); return c; },
+  async enregistrer(champs) { const c = { ...(await BK.ia.config()), ...champs }; BK.ia.conf = c; BK.ia.couleur(c.niveau); await BK.db.ecrire('config', c); return c; },
+  // la couleur de Miette dit à quel point elle réfléchit : rapide = vert, normal = turquoise, intelligent = rouge
+  couleur(niveau) { document.body.dataset.miette = niveau || 'normal'; },
   active: () => BK.reglage('ia.active', true),              // l'interrupteur « AI » en bas du menu
   async pret() { return BK.ia.active() && !!(await BK.ia.config()).gemini; },
   fetch(url, o) { return (BK.T && BK.T.http ? BK.T.http.fetch : window.fetch)(url, o); },
@@ -18,7 +20,7 @@ BK.ia = {
 
   // 3 niveaux : Rapide (Flash-Lite), Normal (Flash), Puissant (Pro). Le logiciel prend tout seul
   // la version la plus récente disponible sur le compte (les noms changent avec le temps).
-  NIVEAUX: { rapide: 'Rapide', normal: 'Normal', puissant: 'Puissant' },
+  NIVEAUX: { rapide: 'Rapide', normal: 'Normal', puissant: 'Intelligent' },
   niveau() { return (BK.ia.conf && BK.ia.conf.niveau) || 'normal'; },
   async modele(niveau) {
     const c = await BK.ia.config(); niveau = niveau || c.niveau || 'normal';
@@ -147,3 +149,6 @@ BK.ia.reduireImage = async function (blob, max) {
     return await new Promise(ok => c.toBlob(ok, 'image/jpeg', 0.75));
   } catch (e) { return blob; }
 };
+
+// au démarrage : la couleur de Miette suit le niveau choisi (partagé avec tout le groupe)
+setTimeout(async () => { try { BK.ia.couleur((await BK.ia.config()).niveau); } catch (e) {} }, 2000);

@@ -57,17 +57,24 @@ BK.module('renforts', function (page) {
           <input class="fld" id="raJeton" type="password" placeholder="colle le code du bot ici" autocomplete="off" style="margin-top:8px">
           <div class="chips" style="margin-top:8px"><button class="chip" id="raSalonsB">Enregistrer et chercher les salons</button></div>
           <div class="ra-salons" id="raSalons"></div></div>
+        <div class="box"><span class="lb">Miette sur Discord</span>
+          <span class="nt">🍞 sous un message, ou « Miette, … » : Miette range l'info dans le logiciel (✅). « Miette ? … » : elle répond à la question, sous le message.</span>
+          <div class="chips" style="margin-top:8px"><button class="chip" id="raRepond">Miette répond aux questions</button></div></div>
         <div class="box"><span class="lb">À savoir</span><span class="nt">Avec la clé gratuite, Google peut se servir des messages envoyés pour améliorer Gemini. N'y mettez rien de secret.</span></div>
 `;
   document.body.appendChild(reg); reg.classList.add('hidden');
+  // l'interrupteur « Miette répond aux questions sur Discord » (pour tout le groupe)
+  (async () => { const b = reg.querySelector('#raRepond'); let on = await BK.partage.lire('discord.repond', true);
+    const maj = () => { b.classList.toggle('on', on); b.textContent = on ? '✓ Miette répond aux questions' : 'Miette ne répond pas (coupé)'; };
+    maj(); b.onclick = async () => { on = !on; maj(); await BK.partage.ecrire('discord.repond', on); }; })();
   function placerReglages() { const cible = $('#p-reglages #rgCorps'); if (cible && reg.parentElement !== cible) { reg.dataset.rgo = 'miette'; cible.appendChild(reg); BK.reglagesOnglet && BK.reglagesOnglet(); } }
   setTimeout(placerReglages, 0); setTimeout(placerReglages, 1500);
   $('#raVersReglages').onclick = e => { e.preventDefault(); placerReglages(); BK.ouvrir('reglages'); BK.reglagesOnglet && BK.reglagesOnglet('miette'); };
 
-  const NIV_TXT = { rapide: 'Rapide : répond en quelques secondes, un peu moins fin.', normal: 'Normal : le bon équilibre (conseillé).', puissant: 'Puissant : plus intelligent mais plus lent, et la version gratuite en permet peu par jour.' };
+  const NIV_TXT = { rapide: 'Rapide : répond en quelques secondes, un peu moins fin.', normal: 'Normal : le bon équilibre (conseillé).', puissant: 'Intelligent : plus fin mais plus lent, et la version gratuite en permet peu par jour.' };
   async function majEtat() {
     BK.ia.conf = null; const c = await BK.ia.config();
-    $$('#raNiveau .chip').forEach(b => b.classList.toggle('on', b.dataset.niv === (c.niveau || 'normal')));
+    $$('#raNiveau .chip, #raNivQ button').forEach(b => b.classList.toggle('on', b.dataset.niv === (c.niveau || 'normal')));
     $('#raNivTxt').textContent = NIV_TXT[c.niveau || 'normal'] + ((c.modeles || {})[c.niveau || 'normal'] ? ' (' + c.modeles[c.niveau || 'normal'].nom + ')' : '');
     $('#raGem').textContent = !BK.ia.active() ? 'COUPÉE' : c.gemini ? 'PRÊT' : 'SANS CLÉ';
     $('#raCle').placeholder = c.gemini ? '•••••••• (clé enregistrée)' : 'colle la clé ici';
@@ -184,11 +191,36 @@ BK.module('renforts', function (page) {
     $('#raVolet').innerHTML = `
       <div class="box"><span class="lb">Ta question</span>
         <textarea class="fld" id="raQ" rows="3" placeholder="ex. On a validé quel jour pour le tournage de Mother ?"></textarea>
-        <div class="chips" style="margin-top:8px">${['Quel est le dernier export de chaque morceau ?', 'On a validé quel jour pour le prochain tournage ?', 'Qu\'est-ce qui reste à faire avant la sortie ?', 'Qu\'est-ce qu\'on s\'est dit cette semaine ?']
-          .map(q => `<button class="chip ra-ex">${q}</button>`).join('')}</div>
-        <div class="chips" style="margin-top:10px"><button class="btn pri" id="raDemQ">Demander</button></div></div>
+        <div class="chips" style="margin-top:8px"><button class="btn sm ra-idees" id="raIdees" title="Des questions prêtes, selon vos morceaux, vos tâches et vos tournages">💡 Idées de questions ▾</button>
+          ${['Qu\'est-ce qu\'on s\'est dit cette semaine ?', 'Qu\'est-ce qui reste à faire avant la prochaine sortie ?'].map(q => `<button class="chip ra-ex">${q}</button>`).join('')}</div>
+        <div class="chips ra-dem" style="margin-top:10px"><button class="btn pri" id="raDemQ">Demander</button>
+          <span class="eng" style="margin-left:auto">Miette</span><div class="seg ra-niv-q" id="raNivQ">${Object.entries(BK.ia.NIVEAUX).map(([k, n]) => `<button data-niv="${k}" title="${k === 'rapide' ? 'Répond en quelques secondes' : k === 'normal' ? 'Le bon équilibre (conseillé)' : 'Plus fin, mais plus lent'}">${k === 'rapide' ? '⚡ ' : k === 'puissant' ? '🧠 ' : ''}${n}</button>`).join('')}</div></div></div>
       <div class="box grow"><span class="lb">Réponse</span><div class="ra-rep" id="raRep"><span class="nt">Miette cherche dans le journal Discord et dans le logiciel (fiches, tâches, calendrier).</span></div></div>`;
     $$('.ra-ex').forEach(b => b.onclick = () => { $('#raQ').value = b.textContent; });
+    // le niveau de Miette, juste à côté de « Demander » (le même que dans Réglages)
+    (async () => { const c = await BK.ia.config(); $$('#raNivQ button').forEach(b => b.classList.toggle('on', b.dataset.niv === (c.niveau || 'normal'))); })();
+    $$('#raNivQ button').forEach(b => b.onclick = async () => { await BK.ia.enregistrer({ niveau: b.dataset.niv }); $$('#raNivQ button').forEach(x => x.classList.toggle('on', x === b));
+      msg('Miette : ' + BK.ia.NIVEAUX[b.dataset.niv]); BK.ia.modele(b.dataset.niv).catch(() => {}); majEtat(); });
+    // 💡 des questions prêtes, qui changent avec ce que vous avez (morceaux, tâches, tournages, rendez-vous)
+    $('#raIdees').onclick = async e => {
+      const r = e.currentTarget.getBoundingClientRect();
+      const [ms, ts, tours, evs] = await Promise.all(['morceaux', 'taches', 'tournages', 'evenements'].map(c => BK.db.liste(c).catch(() => [])));
+      const auj = new Date().toISOString().slice(0, 10), q = (k, nom) => ({ k, nom });
+      const etape = m => m.statut === 'sorti' ? 'sorti' : (BK.etapes[Math.min(m.fait || 0, 5)] || {}).nom || '';
+      const parMorceau = ms.filter(m => m.statut !== 'sorti').sort((a, b) => (a.sortie || '9').localeCompare(b.sortie || '9') || a.nom.localeCompare(b.nom)).flatMap(m => {
+        const l = [];
+        if (m.sortie || m.statut === 'prochaine') l.push(q(`Qu'est-ce qui reste à faire avant la sortie de ${m.nom} ?`, `${m.nom} · reste avant la sortie ?`));
+        else l.push(q(`Où en est ${m.nom} (${etape(m)}) et quelle est la prochaine étape ?`, `${m.nom} · où on en est ?`));
+        if (/mix|master/i.test(etape(m))) l.push(q(`Quels retours on a faits sur le dernier mix de ${m.nom}, et qu'est-ce qui reste à corriger ?`, `${m.nom} · retours sur le mix ?`));
+        return l; });
+      const taches = ts.filter(t => !t.fait).slice(0, 12).map(t => q(`Où en est la tâche « ${t.texte} »${t.qui ? ' (' + t.qui + ')' : ''} ? Qu'est-ce qui a été dit dessus ?`, t.texte.slice(0, 40) + (t.qui ? ' · ' + t.qui : '')));
+      const tournages = tours.filter(t => !t.date || t.date >= auj).slice(0, 10).map(t => q(`Qu'est-ce qui est prévu pour « ${t.titre} » (date, lieu, tenues, matériel) et qu'est-ce qui manque ?`, t.titre));
+      const rdv = evs.filter(e => (e.date || '') >= auj).sort((a, b) => a.date.localeCompare(b.date)).slice(0, 8).map(e => q(`Qu'est-ce qu'il faut préparer pour « ${e.titre} » le ${e.date} ?`, `${e.titre} · ${e.date.slice(5).split('-').reverse().join('/')}`));
+      const groupe = [q('Qu\'est-ce qu\'on s\'est dit cette semaine ?', 'Cette semaine'), q('Quel est le dernier export de chaque morceau ?', 'Derniers exports'), q('Qu\'est-ce qui n\'a pas encore été décidé (dates, choix en attente) ?', 'Ce qui reste à décider'), q('Qui doit faire quoi en ce moment ?', 'Qui fait quoi')];
+      const groupes = [{ nom: '🍞 Le groupe', l: groupe }, { nom: '♪ Les morceaux', l: parMorceau }, { nom: '✅ Les tâches', l: taches }, { nom: '🎬 Les tournages', l: tournages }, { nom: '📅 Les rendez-vous', l: rdv }].filter(g => g.l.length)
+        .map(g => ({ nom: g.nom, l: g.l.map(x => ({ k: x.k, nom: x.nom, couleur: 'var(--miette, #2f7377)' })) }));
+      BK.menuCascade({ x: r.left, y: r.bottom + 4 }, groupes, k => { $('#raQ').value = k; $('#raQ').focus(); });
+    };
     $('#raQ').addEventListener('keydown', e => { e.stopPropagation(); if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); $('#raDemQ').click(); } });
     $('#raDemQ').onclick = async (e, forcer) => {
       const q = $('#raQ').value.trim(); if (!q) return;

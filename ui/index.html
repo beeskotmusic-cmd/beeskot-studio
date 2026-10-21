@@ -16,8 +16,8 @@
   <header class="top">
     <img class="patch" src="look/logo-beeskot-studio.png" alt="DARI · BEESKOT Studio">
     <div class="sys" aria-label="État">
-      <button class="estop jaune" id="btMiette" title="Miette relit tout : Discord, Drive, et prépare tous les onglets"><img src="look/patch-biscotte.png" alt=""><span class="led" id="mietteLed"></span></button>
-      <button class="estop" id="btStop" title="Relancer, fermer, version"><img src="look/patch-b.png" alt=""><span class="led" id="stopLed"></span></button>
+      <button class="estop jaune" id="btMiette" title="Miette relit tout : Discord, Drive, et prépare tous les onglets"><img src="look/patch-miette.png" alt=""><span class="led" id="mietteLed"></span></button>
+      <button class="estop" id="btStop" title="Relancer, fermer, version"><img src="look/patch-dari.png" alt=""><span class="led" id="stopLed"></span></button>
       <div class="sysgrid">
         <span class="vfd" title="Ce que BEESKOT Studio utilise sur cet ordinateur"><b>CHARGE</b> <span id="syCpu">—</span><em id="syRam">·</em></span>
         <span class="vfd"><b>DRIVE</b> <span id="syDrive">—</span><em id="syDriveD">·</em></span>
@@ -33,6 +33,7 @@
     <div class="side">
       <nav id="nav" aria-label="Sections"><!-- rempli par js/coeur.js à partir de modules/registre.js --></nav>
     </div>
+    <button class="volet" id="btVolet" title="Replier le menu">‹</button>
     <main class="mainc" id="pages"><!-- une <section> par module --></main>
   </div>
   <div class="mini-lect hidden" id="bkMini"></div>
@@ -81,6 +82,8 @@
 <script src="js/miette.js"></script>
 <script src="js/bienvenue.js"></script>
 <script src="js/nouveautes.js"></script>
+<script src="js/fete.js"></script>
+<script src="js/sauvegardes.js"></script>
 <script src="js/lib/mp4-muxer.js"></script>
 <script src="js/rendu.js"></script>
 <script src="js/minilecteur.js"></script>
@@ -95,6 +98,7 @@
 <script src="modules/agenda.js"></script>
 <script src="modules/taches.js"></script>
 <script src="modules/budget.js"></script>
+<script src="modules/ecoute.js"></script>
 <script src="modules/medias.js"></script>
 <script src="modules/suivi.js"></script>
 <script src="modules/tournage.js"></script>

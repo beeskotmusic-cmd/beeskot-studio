@@ -5,6 +5,23 @@
 //   export : une image JPG par photo, prête à publier (1080 px de large)
 // =====================================================================
 (() => {
+// les presets : un nom → un filtre couleur (et son intensité), un effet (et son intensité), contraste / lumière / saturation, un cadre (et sa taille)
+// Pour en ajouter un : une ligne de plus ici. Les noms de filtres et d'effets sont ceux des menus (BK.filtres, BK.rendu.VOILES).
+const PRESETS = [
+  { nom: 'Été 70',             filtre: 'Vintage 70s',   force: 80,  voile: 'kodak',     voileK: 60, regl: { contraste: 5, lumiere: 5, saturation: 10 },  cadre: 'ancienne',  cadreT: 30 },
+  { nom: 'Souvenir Polaroid',  filtre: 'Délavé',        force: 60,  voile: 'polaroid',  voileK: 80, regl: { contraste: -10, lumiere: 5, saturation: -10 }, cadre: 'polaroid', cadreT: 40 },
+  { nom: 'Super 8 chaud',      filtre: 'Chaud',         force: 70,  voile: 'super8',    voileK: 70, regl: { contraste: 10 },                              cadre: 'pellicule', cadreT: 30 },
+  { nom: 'Diapo 70',           filtre: 'Vintage 70s',   force: 70,  voile: 'kodak',     voileK: 50, regl: { saturation: 10 },                             cadre: 'diapo',     cadreT: 40 },
+  { nom: 'Coucher de soleil',  filtre: 'Chaud',         force: 100, voile: 'lumiere2',  voileK: 70, regl: { contraste: 5, lumiere: 5, saturation: 15 },  cadre: 'polaroid',  cadreT: 20 },
+  { nom: 'Rose néon',          filtre: 'Froid',         force: 40,  voile: 'lumiere3',  voileK: 70, regl: { contraste: 10, saturation: 10 },               cadre: '',          cadreT: 40 },
+  { nom: 'Pellicule brûlée',   filtre: 'Pellicule',     force: 80,  voile: 'brulure',   voileK: 70, regl: { contraste: 5 },                               cadre: 'pellicule', cadreT: 35 },
+  { nom: 'Rêve doux',          filtre: 'Délavé',        force: 50,  voile: 'halo',      voileK: 70, regl: { lumiere: 10, saturation: -15 },               cadre: 'polaroid',  cadreT: 25 },
+  { nom: 'Ciné teal & orange', filtre: 'Teal & orange', force: 90,  voile: 'grain',     voileK: 40, regl: { contraste: 10 },                              cadre: 'negatif',   cadreT: 20 },
+  { nom: 'Cassette VHS',       filtre: 'Pop',           force: 50,  voile: 'vhs',       voileK: 70, regl: { saturation: -10 },                            cadre: '',          cadreT: 40 },
+  { nom: 'Vieux sépia',        filtre: '',              force: 100, voile: 'sepia',     voileK: 90, regl: { contraste: -5, lumiere: 5 },                  cadre: 'ancienne',  cadreT: 50 },
+  { nom: 'Argentique N&B',     filtre: 'N&B contrasté', force: 100, voile: 'nb',        voileK: 60, regl: { contraste: 10 },                              cadre: 'negatif',   cadreT: 30 },
+  { nom: 'Tout enlever',       filtre: '',              force: 100, voile: '',          voileK: 100, regl: {},                                            cadre: '',          cadreT: 40 },
+];
 const FORMATS = {
   story:    { nom: 'Story 9:16',   L: 1080, H: 1920 },
   portrait: { nom: 'Portrait 4:5', L: 1080, H: 1350 },
@@ -31,30 +48,32 @@ BK.module('postvis', function (page) {
             <div class="pv-legende"><b>beeskot</b> <span id="pvLegAff">La légende du post…</span></div>
           </div></div>
           <div class="rv-cote">
-            <div class="box"><div class="ligne-titre"><span class="lb">① Les photos (ordre du carrousel)</span>
+            <div class="box"><div class="ligne-titre"><span class="lb">Les photos (ordre du carrousel)</span>
                 <span class="nt" style="margin:0 0 0 auto">Clique une photo pour la régler · ‹ › pour l'ordre</span>
                 <button class="btn sm pri" id="pvAjout" style="flex:none">+ Ajouter des photos</button><input type="file" id="pvInput" accept="image/*" multiple hidden></div>
               <div class="pv-bande" id="pvBande"></div></div>
-            <div class="box"><div class="ligne-titre"><span class="lb">② De quoi parle le post ?</span>
+            <div class="box"><div class="ligne-titre"><span class="lb">De quoi parle le post ?</span>
                 <button class="btn sm pv-sujet-b" id="pvSujetB" style="margin-left:auto">Choisir ▾</button><input type="hidden" id="pvSujet" value=""></div></div>
-            <div class="box"><span class="lb">③ Recadrer et couleur</span>
+            <div class="box"><span class="lb">Recadrer et couleur</span>
               <div class="pv-tab">
                 <span class="eng">Cadrage</span>
-                <div class="pv-seg"><button id="pvEntier" title="Voir toute la photo, avec des bandes noires">⤢ Entière</button><button id="pvRemplir" title="La photo remplit le cadre, les bords sont coupés">⤡ Remplir</button><button id="pvCentre" title="Remettre au centre, sans zoom">⊙ Centrer</button></div>
+                <div class="pv-seg"><button id="pvEntier" title="Voir toute la photo, avec des bandes noires">⤢ Entière</button><button id="pvRemplir" title="La photo remplit le cadre, les bords sont coupés">⤡ Remplir</button><button id="pvCentre" title="Remettre au centre, sans zoom">⊙ Centrer</button><button id="pvTous" title="Applique le cadrage de cette photo à toutes les photos du carrousel">↻ Pour toutes</button></div>
+                <span class="eng">Preset</span>
+                <div class="pv-ligne"><select class="fld" id="pvPreset" title="Couleur, effet et réglages d'un coup (tu peux tout retoucher après)"><option value="">Choisir un preset…</option>${PRESETS.map((x, i) => `<option value="${i}">${x.nom}</option>`).join('')}</select></div>
                 <span class="eng">Réglages</span>
-                <div class="pv-ligne pv-regl"><span class="eng">Contraste</span><input class="fld rv-glisse" id="pvCon" title="Clic maintenu et glisse la souris (ou double-clic pour taper)"><span class="eng">Lumière</span><input class="fld rv-glisse" id="pvLum" title="Clic maintenu et glisse la souris (ou double-clic pour taper)"><span class="eng">Saturation</span><input class="fld rv-glisse" id="pvSat" title="Clic maintenu et glisse la souris (ou double-clic pour taper)"></div>
-                <span class="eng">Zoom</span>
-                <div class="pv-ligne"><input class="fld rv-glisse" id="pvZoom" value="0 %" title="Clic maintenu et glisse la souris (ou double-clic pour taper)"><span class="nt">glisse l'image dans l'aperçu pour la déplacer</span></div>
+                <div class="pv-ligne pv-regl"><span class="eng">Zoom</span><input class="fld rv-glisse" id="pvZoom" value="0 %" title="Clic maintenu et glisse la souris (ou double-clic pour taper) · glisse l'image dans l'aperçu pour la déplacer"><span class="eng">Contraste</span><input class="fld rv-glisse" id="pvCon" title="Clic maintenu et glisse la souris (ou double-clic pour taper)"><span class="eng">Lumière</span><input class="fld rv-glisse" id="pvLum" title="Clic maintenu et glisse la souris (ou double-clic pour taper)"><span class="eng">Saturation</span><input class="fld rv-glisse" id="pvSat" title="Clic maintenu et glisse la souris (ou double-clic pour taper)"></div>
                 <span class="eng">Couleur</span>
                 <div class="pv-ligne"><select class="fld" id="pvFiltre">${['', ...BK.filtres.map(f => f.nom)].map(n => `<option value="${n}">${n || 'Aucun filtre'}</option>`).join('')}<option value="__lut">＋ Ajouter une LUT (.cube)…</option></select>
                   <span class="eng" style="margin-left:6px">Intensité</span><input class="fld rv-glisse pv-force" id="pvForce" value="100 %" title="Clic maintenu et glisse la souris (ou double-clic pour taper)"></div>
                 <span class="eng">Effet</span>
-                <div class="pv-ligne"><select class="fld" id="pvVoile">${BK.rendu.VOILES.map(([k, n]) => `<option value="${k}">${n}</option>`).join('')}</select></div>
-                <span></span>
-                <div class="pv-ligne"><button class="pv-lien" id="pvTous" title="Applique le cadrage de cette photo à toutes les photos du carrousel">↻ Même cadrage pour toutes les photos</button></div>
+                <div class="pv-ligne"><select class="fld" id="pvVoile">${BK.rendu.VOILES.map(([k, n]) => `<option value="${k}">${n}</option>`).join('')}</select>
+                  <span class="eng" style="margin-left:6px">Intensité</span><input class="fld rv-glisse pv-force" id="pvVoileK" value="100 %" title="Clic maintenu et glisse la souris (ou double-clic pour taper)"></div>
+                <span class="eng">Cadre</span>
+                <div class="pv-ligne"><select class="fld" id="pvCadre">${BK.rendu.CADRES.map(([k, n]) => `<option value="${k}">${n}</option>`).join('')}</select>
+                  <span class="eng" style="margin-left:6px">Taille</span><input class="fld rv-glisse pv-force" id="pvCadreT" value="40 %" title="Clic maintenu et glisse la souris (ou double-clic pour taper)"></div>
               </div>
               <input type="file" id="pvLutIn" accept=".cube" hidden></div>
-            <div class="box pv-leg-box"><span class="lb">④ Légende</span>
+            <div class="box pv-leg-box"><span class="lb">Légende</span>
               <textarea class="fld" id="pvLeg" rows="3" placeholder="Le texte du post, les hashtags…"></textarea>
               <div class="pv-idees-l"><select class="fld" id="pvMorceau"><option value="">Morceau (pour l'AI)…</option></select><input class="fld" id="pvIdee" placeholder="ce que montre le post (facultatif)"></div>
               <div class="chips" style="margin-top:8px"><button class="chip" id="pvRenfort">✨ Idées de légende</button><button class="chip" id="pvCopier">Copier la légende</button></div>
@@ -62,7 +81,7 @@ BK.module('postvis', function (page) {
           </div>
         </div>
       </section>
-      <section class="pane reg"><span class="ptitle">② Réglages</span>
+      <section class="pane reg"><span class="ptitle">Réglages</span>
         <div class="box"><span class="lb">Format</span>
           <div class="chips" style="margin-top:10px" id="pvFmt">${Object.entries(FORMATS).map(([k, f]) => `<button class="chip" data-f="${k}">${f.nom}</button>`).join('')}</div>
           <span class="nt">Instagram : <b>Portrait 4:5</b> prend le plus de place dans le fil. Toutes les photos d'un carrousel ont le même format.</span></div>
@@ -100,7 +119,7 @@ BK.module('postvis', function (page) {
   function dessiner() {
     const s = S(); $('#pvVide').classList.toggle('hidden', !!s);
     if (!s) { c2.clearRect(0, 0, cv.width, cv.height); return; }
-    r.dessiner(s.img, { zoom: s.zoom / 100, x: s.x, y: s.y }, (P.force ?? 100) / 100, '', P.voile ? { type: P.voile, t: 0 } : null); c2.drawImage(r.sortie, 0, 0);
+    r.dessiner(s.img, { zoom: s.zoom / 100, x: s.x, y: s.y }, (P.force ?? 100) / 100, '', P.voile ? { type: P.voile, t: 0, k: (P.voileK ?? 100) / 100 } : null); BK.rendu.cadre(c2, r.sortie, cv.width, cv.height, P.cadre || '', P.cadreT ?? 40, P.i);
     $('#pvZoom').value = (s.zoom - 100) + ' %';
   }
   function majTout() {
@@ -132,7 +151,7 @@ BK.module('postvis', function (page) {
       img.src = url;
     }
   }
-  // ---------- ② le sujet : un menu qui se déroule (Morceaux ▸, Tournages ▸…) ----------
+  // ---------- le sujet : un menu qui se déroule (Morceaux ▸, Tournages ▸…) ----------
   (async () => { const g = await BK.etiquettes.sujets(); P.groupes = g; P.sujets = g.flatMap(x => x.l); })();
   const sujet = () => (P.sujets || []).find(c => c.k === $('#pvSujet').value);
   const changerSujet = k => { $('#pvSujet').value = k || ''; const c = sujet(); galerie();
@@ -143,7 +162,7 @@ BK.module('postvis', function (page) {
     const r = e.currentTarget.getBoundingClientRect();
     BK.menuCascade({ x: r.left, y: r.bottom + 4 }, P.groupes.map(g => ({ nom: g.groupe, l: g.l })), k => changerSujet(k), { actuel: $('#pvSujet').value, aucun: '— Aucun sujet' }); };
   const telecharger = async f => new File([await (await BK.drive.api(`/files/${f.id}?alt=media`)).blob()], f.name, { type: f.mimeType || 'image/jpeg' });
-  // ---------- ① « + Ajouter des photos » : la fenêtre Médias (dossiers, Discord, étiquettes) ----------
+  // ---------- « + Ajouter des photos » : la fenêtre Médias (dossiers, Discord, étiquettes) ----------
   async function ajouterChoisis(l) {
     msg('Chargement des photos…'); const fs = [];
     for (const x of l) { try {
@@ -178,7 +197,7 @@ BK.module('postvis', function (page) {
   ecran.addEventListener('pointermove', e => { if (!d0) return; const s = S(), b = ecran.getBoundingClientRect(); s.x = d0.sx + (e.clientX - d0.x) / b.width * 100; s.y = d0.sy + (e.clientY - d0.y) / b.height * 100; dessiner(); });
   ecran.addEventListener('pointerup', () => d0 = null);
   const champ = $('#pvZoom'); champ.readOnly = true; let zg = null;
-  const zoom = z => { const s = S(); if (!s) return; s.zoom = Math.round(Math.max(100, Math.min(400, z))); dessiner(); };
+  const zoom = z => { const s = S(); if (!s) return; s.zoom = Math.round(Math.max(10, Math.min(400, z))); dessiner(); };
   champ.addEventListener('pointerdown', e => { if (!champ.readOnly || !S()) return; e.preventDefault(); champ.setPointerCapture(e.pointerId); zg = { x: e.clientX, y: e.clientY, z: S().zoom }; });
   champ.addEventListener('pointermove', e => { if (zg) zoom(zg.z + (e.clientX - zg.x) - (e.clientY - zg.y)); });
   champ.addEventListener('pointerup', () => { zg = null; });
@@ -189,7 +208,7 @@ BK.module('postvis', function (page) {
   champ.addEventListener('wheel', e => { if (!S()) return; e.preventDefault(); zoom(S().zoom - Math.sign(e.deltaY) * 5); }, { passive: false });
   // ---------- intensité du filtre (0 à 100 %) : glisser la souris sur la case, ou double-clic pour taper ----------
   const fc = $('#pvForce'); fc.readOnly = true; let fg = null; P.force = P.force ?? 100;
-  const force = v => { P.force = Math.round(Math.max(0, Math.min(100, v))); fc.value = P.force + ' %'; dessiner(); };
+  const force = v => { P.force = Math.round(Math.max(0, Math.min(100, v))); if (!P.enPreset) P.edite = true; fc.value = P.force + ' %'; dessiner(); };
   fc.addEventListener('pointerdown', e => { if (!fc.readOnly) return; e.preventDefault(); fc.setPointerCapture(e.pointerId); fg = { x: e.clientX, y: e.clientY, v: P.force }; });
   fc.addEventListener('pointermove', e => { if (fg) force(fg.v + ((e.clientX - fg.x) - (e.clientY - fg.y)) / 2); });
   fc.addEventListener('pointerup', () => { fg = null; });
@@ -213,16 +232,36 @@ BK.module('postvis', function (page) {
   }
   // contraste, lumière, saturation (pour toutes les photos, comme la couleur)
   P.regl = P.regl || { contraste: 0, lumiere: 0, saturation: 0 };
+  const champsRegl = {};
   [['#pvCon', 'contraste'], ['#pvLum', 'lumiere'], ['#pvSat', 'saturation']].forEach(([id, k]) =>
-    BK.rendu.champGlisse($(id), { val: P.regl[k], change: v => { P.regl[k] = v; r && r.reglages(P.regl); dessiner(); } }));
-  $('#pvVoile').onchange = e => { P.voile = e.target.value; dessiner(); msg(P.voile ? 'Effet : ' + e.target.selectedOptions[0].textContent + ' (toutes les photos)' : 'Sans effet'); };
+    champsRegl[k] = BK.rendu.champGlisse($(id), { val: P.regl[k], change: v => { P.regl[k] = v; marquer(); r && r.reglages(P.regl); dessiner(); } }));
+  // l'intensité de l'effet : de 0 (rien) à 100 % (plein effet)
+  const champVoileK = BK.rendu.champGlisse($('#pvVoileK'), { min: 0, max: 100, val: 100, pas: 5, change: v => { P.voileK = v; marquer(); dessiner(); } });
+  $('#pvVoileK').value = '100 %';
+  // le cadre d'époque et sa taille (toutes les photos)
+  const champCadreT = BK.rendu.champGlisse($('#pvCadreT'), { min: 0, max: 100, val: 40, pas: 5, change: v => { P.cadreT = v; marquer(); dessiner(); } });
+  $('#pvCadre').onchange = e => { P.cadre = e.target.value; marquer(); dessiner(); msg(P.cadre ? 'Cadre : ' + e.target.selectedOptions[0].textContent + ' (toutes les photos)' : 'Sans cadre'); };
+  $('#pvVoile').onchange = e => { P.voile = e.target.value; marquer(); dessiner(); msg(P.voile ? 'Effet : ' + e.target.selectedOptions[0].textContent + ' (toutes les photos)' : 'Sans effet'); };
+  // ---------- PRESETS : couleur + effet + réglages d'un coup (tout reste retouchable ensuite) ----------
+  P.edite = false;                                                // vrai dès qu'on touche à un réglage à la main
+  const marquer = () => { if (!P.enPreset) P.edite = true; };
+  $('#pvPreset').onchange = async e => { const x = PRESETS[+e.target.value]; e.target.value = ''; if (!x) return;
+    if (P.edite && !(await BK.confirmer('Cela annulera tes réglages précédents (couleur, effet, cadre, contraste, lumière, saturation). Es-tu sûr ?'))) return;
+    P.enPreset = true;
+    const fl = $('#pvFiltre'); fl.value = x.filtre || ''; fl.onchange({ target: fl });
+    force(x.force ?? 100);
+    $('#pvVoile').value = x.voile || ''; P.voile = x.voile || ''; champVoileK.poser(x.voileK ?? 100);
+    for (const k of ['contraste', 'lumiere', 'saturation']) champsRegl[k].poser((x.regl || {})[k] || 0);
+    $('#pvCadre').value = x.cadre || ''; P.cadre = x.cadre || ''; champCadreT.poser(x.cadreT ?? 40);
+    P.enPreset = false; P.edite = false;
+    dessiner(); msg('Preset : ' + x.nom + ' (toutes les photos)'); };
   $('#pvLutIn').onchange = e => e.target.files[0] && chargerLut(e.target.files[0]);
   // filtres prêts à l'emploi (un clic) — ou sa propre LUT .cube
   let filtreAvant = '';
   $('#pvFiltre').onchange = e => { const n = e.target.value;
     if (n === '__lut') { e.target.value = filtreAvant; return $('#pvLutIn').click(); }      // « Ajouter une LUT » : on choisit le fichier
     if (n === '__lutok') return;
-    filtreAvant = n; P.lut = n ? BK.rendu.filtre(n) : null; P.lutNom = n; r && r.lut(P.lut); dessiner(); msg(n ? 'Filtre : ' + n : 'Sans filtre'); };
+    filtreAvant = n; marquer(); P.lut = n ? BK.rendu.filtre(n) : null; P.lutNom = n; r && r.lut(P.lut); dessiner(); msg(n ? 'Filtre : ' + n : 'Sans filtre'); };
 
   // ---------- format, légende, nom ----------
   $$('#pvFmt .chip').forEach(c => c.onclick = () => { P.format = c.dataset.f; BK.regler('pv.format', P.format); moteur();
@@ -263,8 +302,10 @@ BK.module('postvis', function (page) {
     try {
       const f = F(), rr = BK.rendu.creer(f.L, f.H); rr.lut(P.lut); rr.reglages(P.regl); const faits = [];
       for (let k = 0; k < P.slides.length; k++) {
-        const s = P.slides[k]; rr.dessiner(s.img, { zoom: s.zoom / 100, x: s.x, y: s.y }, (P.force ?? 100) / 100, '', P.voile ? { type: P.voile, t: k * 0.37 } : null);   // l'effet vintage : un peu différent sur chaque photo
-        const blob = await new Promise(ok => rr.sortie.toBlob(ok, 'image/jpeg', 0.92)), octets = new Uint8Array(await blob.arrayBuffer());
+        const s = P.slides[k]; rr.dessiner(s.img, { zoom: s.zoom / 100, x: s.x, y: s.y }, (P.force ?? 100) / 100, '', P.voile ? { type: P.voile, t: k * 0.37, k: (P.voileK ?? 100) / 100 } : null);   // l'effet vintage : un peu différent sur chaque photo
+        const fin = document.createElement('canvas'); fin.width = f.L; fin.height = f.H;          // la photo dans son cadre (s'il y en a un)
+        BK.rendu.cadre(fin.getContext('2d'), rr.sortie, f.L, f.H, P.cadre || '', P.cadreT ?? 40, k);
+        const blob = await new Promise(ok => fin.toBlob(ok, 'image/jpeg', 0.92)), octets = new Uint8Array(await blob.arrayBuffer());
         const nom = `${P.nom}_${String(k + 1).padStart(2, '0')}_${f.L}x${f.H}.jpg`;
         const pth = await BK.enregistrerFichier(BK.chemin('Posts', P.nom), nom, octets, 'image/jpeg');
         faits.push({ nom, p: pth, octets, type: 'image/jpeg', ic: '🖼' });

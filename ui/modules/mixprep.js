@@ -1,10 +1,10 @@
 // =====================================================================
 // PRÉPA MIXAGE — en 5 étapes, sur le projet ouvert dans Ableton :
-//   ① Ableton   (rechercher, installer le pont, vérifier le lien)
-//   ② Renommer  (DRMS_ / PERC_ / VOX_ / INSTR_ + couleurs, après ton OK)
-//   ③ Trier     (automatique si Ableton le permet, sinon guidé pas à pas)
-//   ④ Geler     (automatique si Ableton le permet, sinon guidé + vérifié)
-//   ⑤ Zip       (dossier du projet → zip daté ; envoi Drive avec la 0.3.0)
+//   Ableton   (rechercher, installer le pont, vérifier le lien)
+//   Renommer  (DRMS_ / PERC_ / VOX_ / INSTR_ + couleurs, après ton OK)
+//   Trier     (automatique si Ableton le permet, sinon guidé pas à pas)
+//   Geler     (automatique si Ableton le permet, sinon guidé + vérifié)
+//   Zip       (dossier du projet → zip daté ; envoi Drive avec la 0.3.0)
 // Rien n'est jamais supprimé. Le logiciel ne prend jamais la souris.
 // =====================================================================
 (() => {
@@ -45,12 +45,13 @@ function ordreIdeal(pistes) {
 }
 
 BK.module('mixprep', function (page) {
+  setTimeout(() => { const z = document.getElementById('mpSauv'); if (z) BK.sauvegardes.case(z); }, 0);
   $('.sub', page).textContent = 'Préparer le projet Ableton pour l\'envoyer au mixeur';
   $('.hdr .right', page).innerHTML = `<div><span class="eng" style="font-size:9px">Ableton</span><span class="vfd" id="mpEtatH">—</span></div>
     <div><span class="eng" style="font-size:9px">Tempo</span><span class="vfd" id="mpTempoH">—</span></div>`;
   $('.grid', page).innerHTML = `
     <div class="seg mp-etapes" id="mpEtapes">
-      <button data-e="1">① Ableton</button><button data-e="2">② Renommer</button><button data-e="3">③ Trier</button><button data-e="4">④ Geler</button><button data-e="5">⑤ Zip + envoi</button></div>
+      <button data-e="1">Ableton</button><button data-e="2">Renommer</button><button data-e="3">Trier</button><button data-e="4">Geler</button><button data-e="5">Zip + envoi</button></div>
     <div class="cols">
       <section class="pane vit" id="mpVit"></section>
       <section class="pane reg"><span class="ptitle">Réglages</span>
@@ -60,6 +61,7 @@ BK.module('mixprep', function (page) {
           <input class="fld" id="mpModele" style="margin-top:8px" value="${esc(M.modele)}">
           <span class="nt">Mots magiques : {PREFIXE} {MORCEAU} {PISTE} {BPM}</span>
           <div class="chips" style="margin-top:8px"><button class="chip on" id="mpCoul">Couleurs par groupe</button></div></div>
+        <div class="box" id="mpSauv"></div>
         <div class="box"><span class="lb">Clic</span>
           <div class="chips" style="margin-top:8px"><button class="chip" id="mpClic" disabled title="Arrive bientôt">＋ Ajouter un clic au projet</button></div>
           <span class="nt">Arrive bientôt.</span></div>
@@ -89,7 +91,7 @@ BK.module('mixprep', function (page) {
     if (on) M.suivi = setInterval(async () => { if (page.classList.contains('hidden')) return; try { await lire(true); rendre(); } catch (e) {} }, 2000);
   }
 
-  // ---------- ① Ableton ----------
+  // ---------- Ableton ----------
   async function etape1() {
     const lignes = [
       { id: 'exe',   txt: 'Logiciel installé (pas l\'aperçu)', ok: BK.estExe },
@@ -103,7 +105,7 @@ BK.module('mixprep', function (page) {
       const ul = await BK.ableton.dossierUserLibrary(true); lignes[2].ok = !!ul;
       lignes[3].ok = !!ul && await BK.ableton.pontAJour(ul);
     }
-    vit.innerHTML = `<span class="ptitle">① Ableton</span>
+    vit.innerHTML = `<span class="ptitle">Ableton</span>
       <div class="box"><div class="ligne-titre"><span class="lb">Vérification</span><button class="btn sm pri" id="mpRech" style="margin-left:auto">Rechercher Ableton</button></div>
         <div class="surv">${lignes.map(l => `<div class="surv-l"><span class="led ${l.ok ? 'grn' : l.ok === false ? 'red' : ''}"></span><span class="nt" style="margin:0;flex:1;font-size:14px">${l.txt}</span>
           ${!l.ok && l.act && BK.estExe ? `<button class="btn xs" data-a="${l.id}">${l.act}</button>` : ''}</div>`).join('')}</div></div>
@@ -118,9 +120,9 @@ BK.module('mixprep', function (page) {
     if (BK.ableton.relie && !M.cap) { await detecter(); etape1(); }
   }
 
-  // ---------- ② Renommer ----------
+  // ---------- Renommer ----------
   function etape2() {
-    vit.innerHTML = `<span class="ptitle">② Renommer</span>
+    vit.innerHTML = `<span class="ptitle">Renommer</span>
       <div class="box pick"><div><span class="lb">Pistes : avant → après</span><span class="nt" id="mpCompte">Ouvre ton projet dans Ableton, puis « Lire les pistes ».</span></div>
         <button class="btn sm" id="mpLire">Lire les pistes</button><button class="btn sm pri" id="mpAppliquer" ${M.pistes.length ? '' : 'disabled'}>Appliquer dans Ableton</button></div>
       <div class="box grow"><div class="mp-table" id="mpTable">${M.pistes.length ? table() : '<span class="nt">Aucune piste lue pour l\'instant.</span>'}</div></div>`;
@@ -143,14 +145,14 @@ BK.module('mixprep', function (page) {
         <span class="mp-gel">${p.gelee ? '❄' : p.gelable ? '·' : ''}</span></div>`).join('');
   }
 
-  // ---------- ③ Trier ----------
+  // ---------- Trier ----------
   function etape3() {
     const actuel = M.pistes.filter(p => !p.dossier), ideal = ordreIdeal(M.pistes);
     let k = 0; while (k < ideal.length && actuel[k] && actuel[k].i === ideal[k].i) k++;
     const fini = M.pistes.length && k >= ideal.length, auto = M.cap && M.cap.deplacer && M.cap.deplacer.length;
-    const consigne = !M.pistes.length ? 'Lis d\'abord les pistes (étape ②).' : fini ? '✅ Les pistes sont dans le bon ordre.'
+    const consigne = !M.pistes.length ? 'Lis d\'abord les pistes (étape « Renommer »).' : fini ? '✅ Les pistes sont dans le bon ordre.'
       : k === 0 ? `Glisse « <b>${esc(ideal[0].nom)}</b> » tout en haut.` : `Glisse « <b>${esc(ideal[k].nom)}</b> » juste sous « <b>${esc(ideal[k - 1].nom)}</b> ».`;
-    vit.innerHTML = `<span class="ptitle">③ Trier</span>
+    vit.innerHTML = `<span class="ptitle">Trier</span>
       <div class="box next"><div class="ligne-titre"><span class="lb">${auto ? 'Tri automatique' : 'Tri guidé'}</span>
         <span class="vfd" style="margin-left:auto">${Math.min(k, ideal.length)} / ${ideal.length} BIEN PLACÉES</span></div>
         <span class="nt mp-consigne">${consigne}</span>
@@ -163,22 +165,22 @@ BK.module('mixprep', function (page) {
       catch (e) { msg(e.message); } };
   }
 
-  // ---------- ④ Geler ----------
+  // ---------- Geler ----------
   function etape4() {
     const l = M.pistes.filter(p => p.gelable && !p.dossier), reste = l.filter(p => !p.gelee), auto = M.cap && M.cap.geler && M.cap.geler.length;
-    vit.innerHTML = `<span class="ptitle">④ Geler</span>
+    vit.innerHTML = `<span class="ptitle">Geler</span>
       <div class="box next"><div class="ligne-titre"><span class="lb">${auto ? 'Gel automatique' : 'Gel guidé'}</span>
         <span class="vfd" style="margin-left:auto">${l.length - reste.length} / ${l.length} GELÉES</span></div>
-        <span class="nt mp-consigne">${!M.pistes.length ? 'Lis d\'abord les pistes (étape ②).' : !reste.length ? '✅ Toutes les pistes sont gelées.' : auto ? 'Clique pour geler les pistes restantes.' : 'Dans Ableton : sélectionne les pistes ci-dessous, clic droit › <b>Geler les pistes</b>. Je coche au fur et à mesure.'}</span>
+        <span class="nt mp-consigne">${!M.pistes.length ? 'Lis d\'abord les pistes (étape « Renommer »).' : !reste.length ? '✅ Toutes les pistes sont gelées.' : auto ? 'Clique pour geler les pistes restantes.' : 'Dans Ableton : sélectionne les pistes ci-dessous, clic droit › <b>Geler les pistes</b>. Je coche au fur et à mesure.'}</span>
         ${auto && reste.length ? '<button class="btn pri" id="mpGelAuto" style="margin-top:10px">Geler automatiquement</button>' : ''}</div>
       <div class="box grow"><div class="mp-ordre">${l.map(p => `<div class="mp-o${p.gelee ? ' ok' : ''}"><span>${p.gelee ? '❄' : '·'}</span><span>${esc(p.nom)}</span>${p.gelee ? '<span style="margin-left:auto">✓</span>' : ''}</div>`).join('')}</div></div>`;
     const b = $('#mpGelAuto'); if (b) b.onclick = async () => { try { for (const p of reste) await BK.ableton.req({ cmd: 'geler', i: p.i }); msg('Pistes gelées'); } catch (e) { msg(e.message); } };
   }
 
-  // ---------- ⑤ Zip + envoi ----------
+  // ---------- Zip + envoi ----------
   function etape5() {
     const l = M.pistes.filter(p => p.gelable && !p.dossier), gel = l.filter(p => p.gelee).length;
-    vit.innerHTML = `<span class="ptitle">⑤ Zip + envoi</span>
+    vit.innerHTML = `<span class="ptitle">Zip + envoi</span>
       <div class="box"><span class="lb">Avant de zipper</span>
         <div class="mp-check"><span class="led ${l.length && gel === l.length ? 'grn' : 'amb'}"></span><span class="nt" style="margin:0">Pistes gelées : ${gel} / ${l.length}</span></div>
         <div class="mp-check"><button class="ta-case${M.rassemble ? ' on' : ''}" id="mpRass">${M.rassemble ? '✓' : ''}</button><span class="nt" style="margin:0">J'ai fait <b>Fichier › Rassembler et sauvegarder</b> dans Ableton</span></div></div>

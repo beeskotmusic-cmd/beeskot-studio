@@ -122,13 +122,15 @@ BK.module('suivi', function (page) {
               : r.passage ? `<b>${t2(r.passage.debut)} → ${t2(r.passage.fin)}</b><span class="nt">passage choisi, export à faire</span>`
               : '<span class="nt">Pas encore d\'export</span>'}
           <button class="btn xs" data-au="${r.id}">${a ? 'Refaire' : 'Choisir le passage'}</button></div>
-        <div class="su-b${md.length ? ' fait' : ''}"><span class="eng">🎥 Médias</span>
-          <b>${vid} vidéo(s) · ${ph} photo(s)</b><span class="nt">étiquetés pour ce reel</span>
-          <button class="btn xs" data-me="${r.id}">Ouvrir Médias</button></div>
         <div class="su-b${t && (t.moodboard || []).length ? ' fait' : ''}"><span class="eng">🖼 Moodboard</span>
           <b>${t ? (t.moodboard || []).length : 0} image(s)</b>
-          ${tenues.length ? `<span class="nt">👕 ${esc(tenues.join(' · ')).slice(0, 70)}</span>` : '<span class="nt">tenues : rien de noté</span>'}
-          <button class="btn xs" data-to="${r.id}">Voir</button></div>
+          ${t && (t.moodboard || []).length ? `<span class="su-mini">${t.moodboard.slice(0, 6).map(u => `<i${BK.img.bg(u)}></i>`).join('')}</span>` : ''}
+          ${tenues.length ? `<span class="nt">👕 ${esc(tenues.join(' · ')).slice(0, 70)}</span>` : ''}
+          <span class="su-bb"><button class="btn xs" data-moodins="${r.id}" title="Choisir des images dans Médias pour le moodboard">＋ Insérer</button>${t ? `<button class="btn xs" data-to="${r.id}">Voir</button>` : ''}</span></div>
+        <div class="su-b${md.length ? ' fait' : ''}"><span class="eng">🎥 Médias</span>
+          <b>${vid} vidéo(s) · ${ph} photo(s)</b>
+          ${md.length ? `<span class="su-mini">${md.slice(0, 6).map(f => `<i${BK.img.bg(BK.img.ref(f.id))}></i>`).join('')}</span>` : '<span class="nt">étiquetés pour ce reel</span>'}
+          <span class="su-bb"><button class="btn xs" data-medins="${r.id}" title="Choisir des photos ou vidéos dans Médias : elles sont étiquetées pour ce reel">＋ Insérer</button></span></div>
         <div class="su-b${t ? ' fait' : ''}"><span class="eng">🎬 Tournage</span>
           ${t ? `<b>${esc(t.titre || 'Tournage')}</b><span class="nt">${[date(t.date), t.heure, t.lieu].filter(Boolean).map(esc).join(' · ') || 'date à fixer'}</span>`
               : '<span class="nt">Pas de fiche de tournage</span>'}
@@ -245,8 +247,24 @@ BK.module('suivi', function (page) {
         t = await BK.db.ecrire('tournages', { titre: r.titre || 'Tournage', type: 'Reel', morceau: m ? m.nom : '', date: '', heure: '', lieu: '', idee: '', moodboard: [], plans: [], tenues: {}, materiel: '', notes: '' });
         r.tournage = t.id; await BK.db.ecrire('reels', r); R.tournages.push(t); msg('Fiche de tournage créée'); }
       BK.tournageOuvrir ? BK.tournageOuvrir(t.id) : BK.ouvrir('tournage'); });
-    $$('[data-me]', z).forEach(b => b.onclick = () => { const r = R.l.find(x => x.id === b.dataset.me), m = morceauDe(r);
-      BK.ouvrirMedias && BK.ouvrirMedias(); if (m) setTimeout(() => { const s = document.getElementById('mdFiltre'); if (s) { s.value = m.id; s.onchange({ target: s }); } }, 400); });
+    // ＋ Insérer : la fenêtre Médias (jamais l'onglet Médias) ; ce qu'on choisit est étiqueté pour ce reel
+    const assurerTournage = async r => { let t = tournageDe(r); if (t) return t; const m = morceauDe(r);
+      t = await BK.db.ecrire('tournages', { titre: r.nom || r.titre || 'Tournage', type: 'Reel', morceau: m ? m.nom : '', date: '', heure: '', lieu: '', idee: '', moodboard: [], plans: [], tenues: {}, materiel: '', notes: '' });
+      r.tournage = t.id; await BK.db.ecrire('reels', r); R.tournages.push(t); return t; };
+    $$('[data-moodins]', z).forEach(b => b.onclick = async e => { e.stopPropagation(); const r = R.l.find(x => x.id === b.dataset.moodins);
+      if (!BK.drive.relie()) return msg('Relie d\'abord le Drive');
+      const l = await BK.choisirDansMedias({ titre: 'Moodboard · ' + nomCourt(r), bouton: 'Ajouter au moodboard', type: 'image', sujet: 'c:moodboard' }); if (!l || !l.length) return;
+      const t = await assurerTournage(r); t.moodboard = t.moodboard || []; msg('Ajout au moodboard…');
+      for (const x of l) { try { const d = await BK.img.depuisChoix(x, 'moodboard'); if (d.ref && !t.moodboard.includes(d.ref)) t.moodboard.push(d.ref);
+        if (d.id) for (const k of ['t:' + t.id, 'c:moodboard', 'c:tournage']) await BK.etiquettes.basculer(d.id, k, true); } catch (er) { console.warn(er); } await BK.audio.pause(); }
+      await BK.db.ecrire('tournages', t); msg(l.length + ' image(s) dans le moodboard'); rendre(); });
+    $$('[data-medins]', z).forEach(b => b.onclick = async e => { e.stopPropagation(); const r = R.l.find(x => x.id === b.dataset.medins), m = morceauDe(r);
+      if (!BK.drive.relie()) return msg('Relie d\'abord le Drive');
+      const l = await BK.choisirDansMedias({ titre: 'Médias · ' + nomCourt(r), bouton: 'Ajouter au reel', type: 'tous', sujet: m ? m.id : '' }); if (!l || !l.length) return;
+      msg('Étiquetage…'); const cles = [...(m ? [m.id] : []), ...(r.tournage ? ['t:' + r.tournage] : []), 'c:reel'];
+      for (const x of l) { try { const d = await BK.img.depuisChoix(x, 'photovideo'); if (d.id) for (const k of cles) await BK.etiquettes.basculer(d.id, k, true); } catch (er) { console.warn(er); } await BK.audio.pause(); }
+      R.tags = await BK.etiquettes.tous(); try { BK.dossiers.oublier && BK.dossiers.oublier(); R.fichiers = await BK.dossiers.tousFichiers(); } catch (er) {}
+      msg(l.length + ' média(s) étiqueté(s) pour ce reel'); rendre(); });
   }
 
   // ---------- le lien avec la To-do list : ce qui est fait part dans le panier de la personne ----------
