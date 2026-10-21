@@ -55,7 +55,7 @@ BK.db = {
     try {
       const out = await BK.drive.liste(col);
       for (const a of BK.reglage('db.attente', [])) if (a.col === col) { if (a.suppr) delete out[a.id]; else out[a.fiche.id] = a.fiche; }   // pas encore envoyés
-      BK.db.cache[col] = out; BK.db.enLigne = true;
+      BK.db.cache[col] = out; BK.db.enLigne = true; BK.db.lu[col] = true;
     } catch (e) {
       BK.db.enLigne = false;                                         // hors ligne : dernière copie connue
       const c = (BK.drive.cacheDe ? BK.drive.cacheDe(col).c : BK.reglage('drive.cache.' + col, {})), out = {};
@@ -70,8 +70,16 @@ BK.db = {
   },
 
   photo: {},
-  async ecrire(col, fiche, { sansAnnuler = false } = {}) {
+  lu: {},                                                            // les collections bien lues dans le Drive depuis l'ouverture
+  async ecrire(col, fiche, { sansAnnuler = false, graine = false } = {}) {
     fiche.id = fiche.id || BK.db.nouvelId();
+    if (!graine && fiche.graine) delete fiche.graine;                 // une fiche de départ qu'on modifie devient une vraie fiche du groupe
+    // PROTECTION : les réglages partagés (étiquettes, dossiers, résumé…) sont un seul gros fichier pour tout le groupe.
+    // Si on n'a pas réussi à les lire dans le Drive, on ne les écrit pas : on écraserait le travail des autres avec une version vide.
+    if (BK.db.drive() && (col === 'config' || col === 'veille') && !/^ici-/.test(fiche.id) && !BK.db.lu[col]) {
+      await BK.db.liste(col).catch(() => {});
+      if (!BK.db.lu[col]) { BK.toast && BK.toast('Drive injoignable : rien n\'a été enregistré, réessaie dans un instant'); throw new Error('Drive injoignable : rien n\'a été écrasé'); }
+    }
     if (!sansAnnuler) BK.annuler.noter(col, fiche.id, 'ecrire', fiche);
     (BK.db.photo[col] = BK.db.photo[col] || {})[fiche.id] = JSON.stringify(fiche);
     fiche.maj = new Date().toISOString();
@@ -97,7 +105,12 @@ BK.db = {
   async viderAttente() {
     const l = BK.reglage('db.attente', []); if (!l.length || !BK.db.drive()) return;
     const reste = [];
-    for (const a of l) { try { a.suppr ? await BK.drive.supprimer(a.col, a.id) : await BK.drive.ecrire(a.col, a.fiche); } catch (e) { reste.push(a); } }
+    for (const a of l) { try {
+      if (a.suppr) { await BK.drive.supprimer(a.col, a.id); continue; }
+      // PROTECTION : si quelqu'un a modifié cette fiche dans le Drive APRÈS nous, on ne l'écrase pas
+      const dist = (await BK.drive.liste(a.col).catch(() => ({})))[a.fiche.id];
+      if (dist && (dist.maj || '') > (a.fiche.maj || '')) continue;
+      await BK.drive.ecrire(a.col, a.fiche); } catch (e) { reste.push(a); } }
     BK.regler('db.attente', reste); BK.db.enLigne = !reste.length;
   },
 
@@ -235,7 +248,7 @@ BK.FICHES_DEPART = [
 BK.semer = async function () {
   if (BK.reglage('seme.v1', false)) return;
   const deja = new Set((await BK.db.liste('morceaux')).map(m => m.id));
-  for (const f of BK.FICHES_DEPART) if (!deja.has(f.id)) await BK.db.ecrire('morceaux', { ...f, statut: 'chantier', fait: 0, graine: true });
+  for (const f of BK.FICHES_DEPART) if (!deja.has(f.id)) await BK.db.ecrire('morceaux', { ...f, statut: 'chantier', fait: 0, graine: true }, { graine: true, sansAnnuler: true });
   BK.regler('seme.v1', true);
 };
 // le budget de départ : le loyer du studio (chaque mois) et les factures déjà payées
@@ -260,7 +273,7 @@ BK.semerAlias = async function () {
   for (const m of await BK.db.liste('morceaux')) {
     const a = BK.ALIAS_DEPART[m.id]; if (!a) continue;
     const l = new Set((m.alias || []).map(x => x.toUpperCase())), manque = a.filter(x => !l.has(x));
-    if (manque.length) { m.alias = [...(m.alias || []), ...manque]; await BK.db.ecrire('morceaux', m); }
+    if (manque.length) { m.alias = [...(m.alias || []), ...manque]; await BK.db.ecrire('morceaux', m, { graine: !!m.graine, sansAnnuler: true }); }
   }
   BK.regler('alias.v1', true);
 };

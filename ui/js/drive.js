@@ -119,7 +119,8 @@ BK.drive = {
         BK.drive.ids[col][f.name] = f.id;
         const c = cache[f.id];
         if (c && c.t === f.modifiedTime) { out[c.fiche.id] = c.fiche; continue; }      // déjà à jour : on ne retélécharge pas
-        try { const fiche = await (await BK.drive.api(`/files/${f.id}?alt=media`)).json(); out[fiche.id] = fiche; cache[f.id] = { t: f.modifiedTime, fiche }; memo.sale = true; } catch (e) {}
+        try { const fiche = await (await BK.drive.api(`/files/${f.id}?alt=media`)).json(); out[fiche.id] = fiche; cache[f.id] = { t: f.modifiedTime, fiche }; memo.sale = true; }
+        catch (e) { if (c) out[c.fiche.id] = c.fiche; else throw e; }   // une fiche illisible : jamais une liste « à trous » (on croirait qu'elle n'existe pas, et on l'écraserait)
       }
       page = r.nextPageToken || '';
     } while (page);
@@ -132,6 +133,7 @@ BK.drive = {
     const dos = await BK.drive.dossier(col, await BK.drive.racine()), nom = fiche.id + '.json', corps = JSON.stringify(fiche, null, 1);
     let id = (BK.drive.ids[col] || {})[nom];
     if (!id) { const l = await (await BK.drive.api('/files?' + new URLSearchParams({ q: `name=${BK.drive.q(nom)} and ${BK.drive.q(dos)} in parents and trashed=false`, fields: 'files(id)' }))).json(); id = l.files && l.files[0] && l.files[0].id; }
+    if (id && fiche.graine) return;                                    // PROTECTION : une fiche de départ n'écrase JAMAIS une fiche qui existe déjà dans le Drive
     if (id) await BK.drive.api(`https://www.googleapis.com/upload/drive/v3/files/${id}?uploadType=media`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: corps });
     else {
       const b = 'bk' + Date.now(), multi = `--${b}\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n${JSON.stringify({ name: nom, parents: [dos] })}\r\n--${b}\r\nContent-Type: application/json\r\n\r\n${corps}\r\n--${b}--`;
@@ -160,9 +162,10 @@ BK.drive = {
       const loc = BK.reglage('db.' + col, {}); if (!Object.keys(loc).length) continue;
       const dist = await BK.drive.liste(col);
       for (const f of Object.values(loc)) {
-        if (dist[f.id] && f.graine) continue;                     // fiche de départ : elle n'écrase jamais le travail du groupe
-        if (dist[f.id] && !dist[f.id].graine && (f.maj || '') <= (dist[f.id].maj || '')) continue;
-        if (!dist[f.id] || (f.maj || '') > (dist[f.id].maj || '')) await BK.drive.ecrire(col, f);
+        // PROTECTION (nouveau PC qui se relie) : le Drive du groupe gagne toujours.
+        // On envoie seulement ce qui n'existe pas encore dans le Drive, et jamais les fiches de départ.
+        if (f.graine || dist[f.id]) continue;
+        await BK.drive.ecrire(col, f);
       }
       BK.regler('db.envoye.' + col, true);
     }

@@ -52,7 +52,7 @@ BK.module('agenda', function (page) {
         <div class="ligne-titre">
           <button class="btn sm" id="agPrec">◀</button><span class="vfd" id="agMois" style="font-size:15px;min-width:200px;text-align:center">—</span><button class="btn sm" id="agSuiv">▶</button>
           <button class="btn sm" id="agAuj">Aujourd'hui</button>
-          <div class="chips" style="margin-left:auto"><button class="chip" id="agPromo">Planning de promo seulement</button><button class="btn xs miette-aide" id="agMiette" title="Miette relit Discord et les mails, et place les dates dont vous parlez">Miette trouve les dates</button></div>
+          <div class="chips" style="margin-left:auto"><button class="chip" id="agPromo">Planning de promo seulement</button><button class="btn xs miette-aide" id="agMiette" title="Miette relit Discord et les mails, et place les dates dont vous parlez">Trouver les dates</button></div>
         </div>
         <div class="cal" id="agCal"></div>
       </section>
@@ -158,7 +158,7 @@ BK.module('agenda', function (page) {
   }
   $('#agMiette').onclick = async () => { const b = $('#agMiette'); b.disabled = true; b.innerHTML = '<span class="spin"></span>Miette lit Discord…';
     try { const d = await BK.discord.planning(); msg((d.l || []).length + ' date(s) repérée(s)'); } catch (e) { msg(e.message); }
-    b.disabled = false; b.textContent = 'Miette trouve les dates'; await charger(); };
+    b.disabled = false; b.textContent = 'Trouver les dates'; await charger(); };
   const lireForm = () => ({ type: $('#agType').value, titre: $('#agTitre').value.trim() || TYPES[$('#agType').value].nom, morceau: $('#agMorceau').value,
     date: $('#agDate').value, heure: $('#agHeure').value, lieu: $('#agLieu').value.trim() });
   $('#agAjout').onclick = async () => { const f = lireForm(); if (!f.date) return msg('Choisis une date'); await BK.db.ecrire('evenements', f); $('#agTitre').value = ''; msg('Rendez-vous ajouté'); await charger(); };

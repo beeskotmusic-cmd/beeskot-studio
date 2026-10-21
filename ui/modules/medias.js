@@ -36,7 +36,7 @@ BK.module('medias', function (page) {
           <span class="nt">Glisse des fichiers sur la page, ou « + » : ils vont dans le dossier ouvert.</span>
           <button class="btn sm" id="mdAjout" style="margin-top:10px">+ Choisir des fichiers…</button>
           <button class="btn sm" id="mdDossier" style="margin-top:8px">+ Nouveau dossier ici…</button>
-          <button class="btn sm miette-aide" id="mdTrier" style="margin-top:8px" title="Miette regarde les photos sans étiquette et propose où les ranger">Miette étiquette les photos</button>
+          <button class="btn sm miette-aide" id="mdTrier" style="margin-top:8px" title="Miette regarde les photos sans étiquette et propose où les ranger">Étiqueter les photos</button>
           <input type="file" id="mdInput" multiple hidden></div>
         <div class="box"><span class="lb">📍 Tu es ici</span>
           <span class="nt" id="mdChemin" style="color:var(--ink)">—</span>
@@ -203,6 +203,7 @@ BK.module('medias', function (page) {
     const vit = $('.md-vit', page), aj = $('#mdAjouter', page), p1 = document.createComment('md-vit'), p2 = document.createComment('md-aj');
     const pliee = aj.classList.contains('plie'), avant = { filtre: M.filtre, pile: [...M.pile], racine: M.racine };
     vit.before(p1); aj.before(p2); aj.classList.remove('plie');
+    const lab = $('.md-lab', aj), labAvant = lab && lab.textContent; if (lab) lab.textContent = 'Filtrer';      // ici, une étiquette sert à filtrer
     M.sel.clear(); M.choisi = null;
     const v = document.createElement('div'); v.className = 'voile md-choix-voile';
     v.innerHTML = `<div class="stopbox md-choix"><button class="btn xs rt-x" data-c="x" title="Fermer">✕</button>
@@ -214,7 +215,7 @@ BK.module('medias', function (page) {
     document.body.appendChild(v); v.querySelector('.md-choix').classList.add('md-choix');
     const choisis = () => [...M.sel].map(id => M.vus && M.vus[id]).filter(Boolean)
       .map(f => ({ id: f.id, nom: f.name, mime: f.mimeType, apercu: M.vign[f.id] || '', ...(f.dc ? { dc: f.dc } : { f }) }));
-    const fin = l => { M.choix = null; p1.replaceWith(vit); p2.replaceWith(aj); aj.classList.toggle('plie', pliee); v.remove();
+    const fin = l => { if (!M.choix) return; vit.removeEventListener('dblclick', dbl, true); document.removeEventListener('keydown', k, true); M.choix = null; if (lab) lab.textContent = labAvant; p1.replaceWith(vit); p2.replaceWith(aj); aj.classList.toggle('plie', pliee); v.remove();
       M.sel.clear(); M.choisi = null; M.filtre = avant.filtre; M.pile = avant.pile; M.racine = avant.racine;
       const sel = $('#mdFiltre'); if (sel) sel.value = M.filtre || ''; paniers(); charger(); ok(l); };
     M.choix = { type, maj: () => { const n = choisis().length, b = v.querySelector('[data-c="ok"]'); b.disabled = !n; b.textContent = n ? `${bouton} (${n}) ▶` : bouton;
@@ -225,9 +226,9 @@ BK.module('medias', function (page) {
       if (b.dataset.c === 'retirer') return fin([{ retirer: true }]);
       if (b.dataset.c === 'pc') v.querySelector('input[type=file]').click(); });
     v.querySelector('input[type=file]').onchange = e => { const l = [...e.target.files].map(f => ({ id: 'pc:' + f.name, nom: f.name, mime: f.type, apercu: '', fichier: f })); if (l.length) fin(l); };
-    vit.addEventListener('dblclick', function dbl(e) { if (!M.choix) return vit.removeEventListener('dblclick', dbl, true);
-      const t = e.target.closest('.md-tuile[data-id]'); if (!t) return; e.stopPropagation(); e.preventDefault(); M.sel.add(t.dataset.id); fin(choisis()); }, true);
-    const k = e => { if (e.key === 'Escape' && M.choix) { document.removeEventListener('keydown', k, true); fin([]); } }; document.addEventListener('keydown', k, true);
+    const dbl = e => { const t = e.target.closest('.md-tuile[data-id]'); if (!t) return; e.stopPropagation(); e.preventDefault(); M.sel.add(t.dataset.id); fin(choisis()); };
+    const k = e => { if (e.key === 'Escape') fin([]); };
+    vit.addEventListener('dblclick', dbl, true); document.addEventListener('keydown', k, true);
     paniers();
     (async () => { try { if (!M.morceaux.length) await etiquettes(); } catch (e) {}
       if (sujet) { const sel = $('#mdFiltre'); sel.value = sujet; if (sel.value === sujet) { sel.onchange({ target: sel }); return paniers(); } }
@@ -288,12 +289,15 @@ BK.module('medias', function (page) {
             ${video ? `<span class="md-duree">${d ? BK.audio.temps(d / 1000).replace(/\.\d$/, '') : '▶'}</span>` : ''}
             ${etqs.length ? `<span class="md-sur">${etqs.slice(0, 3).map(x => `<em class="${main ? 'main' : ''}" style="--tc:${couleurTag(x.k)}">${esc(x.n)}</em>`).join('')}${etqs.length > 3 ? `<em>+${etqs.length - 3}</em>` : ''}</span>`
               : '<span class="md-sur vide"><em>sans étiquette</em></span>'}</div>
-          <span class="md-nom">${esc(f.name)}</span>${tag(f)}
+          <span class="md-nom">${esc(f.name)}</span>
           <button class="md-x" data-x="${f.id}" title="Ranger dans la corbeille">✕</button></div>`;
       }).join('');
     $$('.md-dos').forEach(b => b.onclick = () => { if (b.dataset.dos === 'discord') return allerRacine('discord'); M.pile.push({ id: b.dataset.dos, nom: b.dataset.nom }); charger(); });
     if (!filtre && M.racine !== 'discord' && M.pile.length) $('#mdPlus').onclick = e => menuAjout(e.currentTarget);
-    $$('.md-tag').forEach(b => b.onclick = e => { e.stopPropagation(); menuTag(b); });
+    // les étiquettes en couleur sur l'image : un clic dessus = le menu des étiquettes (comme le clic droit)
+    $$('.md-tuile[data-id] .md-sur').forEach(b => b.onclick = e => { if (M.choix) return; e.stopPropagation(); const t = b.closest('.md-tuile');
+      if (!M.sel.has(t.dataset.id)) { M.sel.clear(); M.sel.add(t.dataset.id); M.choisi = t.dataset.id; majSel(); }
+      const r = b.getBoundingClientRect(); menuTag(t, { x: r.left, y: r.bottom + 4 }); });
     $$('.md-tuile[data-id]').forEach(t => { t.ondragstart = e => {
       const pris = M.sel.has(t.dataset.id) ? [...M.sel] : [t.dataset.id];           // on glisse toute la sélection
       e.dataTransfer.setData('text/bk-media', pris.join(',')); e.dataTransfer.effectAllowed = 'link'; $('#mdPaniers').classList.add('actif');
@@ -305,7 +309,7 @@ BK.module('medias', function (page) {
       if (!M.sel.has(t.dataset.id)) { M.sel.clear(); M.sel.add(t.dataset.id); M.choisi = t.dataset.id; majSel(); }
       const f = M.fichiers.find(x => x.id === t.dataset.id);
       menuTag(t, { x: e.clientX, y: e.clientY }); });
-    $$('.md-tuile[data-id]').forEach(t => t.onclick = e => { if (e.target.closest('.md-x,.md-tag')) return;
+    $$('.md-tuile[data-id]').forEach(t => t.onclick = e => { if (e.target.closest('.md-x,.md-tag') || (!M.choix && e.target.closest('.md-sur'))) return;
       const id = t.dataset.id, ids = $$('.md-tuile[data-id]').map(x => x.dataset.id);
       if (e.shiftKey && M.dernier) {                                   // Maj : toute la plage
         const a = ids.indexOf(M.dernier), b = ids.indexOf(id);
@@ -417,7 +421,7 @@ BK.module('medias', function (page) {
     let props = [];
     try { props = await BK.trierMedias(l, { avancement: (k, n) => msg(`Miette regarde ${k}/${n} photo(s)…`) }); }
     catch (e) { msg(e.message); }
-    b.disabled = false; b.textContent = 'Miette étiquette les photos';
+    b.disabled = false; b.textContent = 'Étiqueter les photos';
     if (!props.length) return msg('Rien à ranger : tout est déjà étiqueté');
     montrerPropositions(props);
   };

@@ -99,6 +99,21 @@ BK.rendu = {
     cx.restore();
   },
 
+  // ---------- une case « glisse la souris » (comme Zoom et Intensité) : -100 à +100 % ----------
+  champGlisse(el, { min = -100, max = 100, val = 0, pas = 5, change }) {
+    el.readOnly = true; let g = null, v = val;
+    const poser = x => { v = Math.round(Math.max(min, Math.min(max, x))); el.value = (v > 0 ? '+' : '') + v + ' %'; change(v); };
+    el.value = (v > 0 ? '+' : '') + v + ' %';
+    el.addEventListener('pointerdown', e => { if (!el.readOnly) return; e.preventDefault(); el.setPointerCapture(e.pointerId); g = { x: e.clientX, y: e.clientY, v }; });
+    el.addEventListener('pointermove', e => { if (g) poser(g.v + ((e.clientX - g.x) - (e.clientY - g.y)) / 2); });
+    el.addEventListener('pointerup', () => { g = null; });
+    el.addEventListener('dblclick', () => { el.readOnly = false; el.value = v; el.select(); });
+    el.addEventListener('blur', () => { if (el.readOnly) return; el.readOnly = true; const x = parseFloat(el.value.replace(',', '.')); poser(isNaN(x) ? v : x); });
+    el.addEventListener('keydown', e => { e.stopPropagation(); if (e.key === 'Enter') el.blur(); });
+    el.addEventListener('wheel', e => { e.preventDefault(); poser(v - Math.sign(e.deltaY) * pas); }, { passive: false });
+    return { poser };
+  },
+
   // ---------- lire un fichier LUT .cube ----------
   lireCube(txt) {
     let n = 0; const v = [];
@@ -142,6 +157,10 @@ BK.rendu = {
     const ctx = sortie.getContext('2d');
     return {
       sortie,
+      css: 'none',
+      // contraste, lumière, saturation : en %, 0 = rien ne change (de -100 à +100)
+      reglages(r = {}) { const c = 1 + (r.contraste || 0) / 100, l = 1 + (r.lumiere || 0) / 100, sa = 1 + (r.saturation || 0) / 100;
+        this.css = (c === 1 && l === 1 && sa === 1) ? 'none' : `contrast(${c}) brightness(${l}) saturate(${sa})`; },
       lut(l) { gl.activeTexture(gl.TEXTURE1); gl.bindTexture(gl.TEXTURE_2D, tLut);
         if (l) gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, l.n * l.n, l.n, 0, gl.RGBA, gl.UNSIGNED_BYTE, l.px); this.n = l ? l.n : 0; },
       // video : élément <video> ; cadre : { zoom (1 = remplit), x, y (en % du cadre) } ; sous : texte à afficher ; style des sous-titres
@@ -156,7 +175,7 @@ BK.rendu = {
         gl.uniform4f(u.cad, cx - w / 2, 1 - (cy + h / 2), w, h);
         gl.uniform1f(u.n, this.n || 2); gl.uniform1f(u.force, this.n ? force : 0);
         gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
-        ctx.drawImage(cv, 0, 0);
+        ctx.filter = this.css || 'none'; ctx.drawImage(cv, 0, 0); ctx.filter = 'none';
         if (voile && voile.type) BK.rendu.voile(ctx, largeur, hauteur, voile.type, voile.t || 0);   // l'effet vintage, sous les sous-titres
         if (sous) BK.rendu.sousTitre(ctx, sous, largeur, hauteur);
       },
@@ -178,9 +197,9 @@ BK.rendu = {
   texteA(sous, t) { let x = ''; for (const s of sous || []) if (s.t <= t) x = s.texte; else break; return x; },
 
   // ---------- EXPORT MP4 (encodeur intégré à Windows, assemblage en local) ----------
-  async exporter({ video, debut, fin, cadre, force, lut, sous, voile, audio, progression }) {
+  async exporter({ video, debut, fin, cadre, force, lut, sous, voile, reglages, audio, progression }) {
     if (!window.VideoEncoder) throw new Error('Cet ordinateur ne sait pas encoder la vidéo');
-    const L = 1080, H = 1920, fps = 30, r = BK.rendu.creer(L, H); r.lut(lut);
+    const L = 1080, H = 1920, fps = 30, r = BK.rendu.creer(L, H); r.lut(lut); r.reglages(reglages);
     if (audio && !(window.AudioEncoder && (await AudioEncoder.isConfigSupported({ codec: 'mp4a.40.2', sampleRate: audio.sampleRate, numberOfChannels: audio.numberOfChannels, bitrate: 192000 })).supported)) audio = null;   // pas d'encodeur AAC : vidéo sans son
     // H.264 (le format standard des réseaux) ; secours : VP9 si l'ordinateur n'a pas d'encodeur H.264
     let codec = 'avc1.640028', mux = 'avc';

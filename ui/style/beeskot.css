@@ -1250,3 +1250,13 @@ body.dropping main>section:not(.hidden) .box.pick::after{content:none!important;
 body.sans-miette .miette-aide, body.sans-miette .miette-seul, body.sans-miette #btMiette{display:none!important}
 .ra-brut{font:400 12px/1.45 Jost,sans-serif;color:#cbbfa8;padding:6px 8px;border-left:2px solid #ffb23e;background:rgba(255,178,62,.06);border-radius:0 4px 4px 0;white-space:pre-wrap}
 .ra-brut b{color:#ffb23e;font-weight:600}
+/* Médias : les étiquettes sur l'image se cliquent (= menu des étiquettes) ; l'ancien bouton jaune sous le nom a disparu */
+.md-tuile .md-sur{pointer-events:auto;cursor:pointer}
+.md-tuile .md-sur:hover em{filter:brightness(1.15)}
+/* fenêtre Médias : « Filtrer » sur une ligne, les étiquettes de la rubrique juste en dessous */
+.md-choix-c .pane.md-ajouter{flex-direction:column!important;align-items:stretch!important;gap:6px!important}
+.md-choix-c .md-ajouter .md-paniers{flex-wrap:wrap;overflow:visible;padding:2px 0 2px 30px}
+.md-choix-c .md-ajouter .md-lab{color:#ffb23e}
+.pv-ligne.pv-regl{gap:6px;flex-wrap:wrap}
+.pv-ligne.pv-regl .rv-glisse{width:60px!important;padding:0 4px}
+.pv-ligne.pv-regl .eng{font-size:9px;color:#8a7f70}

@@ -25,7 +25,7 @@ BK.module('biblio', function (page) {
       <section class="pane reg" aria-label="Réglages"><span class="ptitle">② Réglages</span>
         <div class="box"><span class="lb">🍞 Vérifier avec Miette</span>
           <span class="nt">Miette relit Discord : les BPM et tonalités que vous avez écrits passent devant ce qui a été deviné.</span>
-          <button class="btn sm miette-aide" id="biVerif" style="margin-top:10px">Miette vérifie les infos des morceaux</button></div>
+          <button class="btn sm miette-aide" id="biVerif" style="margin-top:10px">Vérifier les infos des morceaux</button></div>
         <div class="box"><span class="lb">Nouveau morceau</span>
           <input class="fld" id="biNom" style="margin-top:10px" placeholder="nom du morceau">
           <div class="chips" style="margin-top:10px"><button class="chip" id="biAjout">+ Créer la fiche</button></div></div>
@@ -47,7 +47,7 @@ BK.module('biblio', function (page) {
     const b = $('#biVerif'); b.disabled = true; b.innerHTML = '<span class="spin"></span>Miette relit Discord…';
     let l = [];
     try { l = await BK.miette.infosDiscord(); } catch (e) { msg('Impossible : ' + (e.message || e)); }
-    b.disabled = false; b.textContent = 'Miette vérifie les infos des morceaux';
+    b.disabled = false; b.textContent = 'Vérifier les infos des morceaux';
     const src = { nous: 'écrit dans la fiche', ableton: 'lu dans Ableton', detecte: 'deviné', discord: 'déjà repris de Discord' };
     const diff = [];
     for (const o of l) for (const [k, nom] of [['bpm', 'BPM'], ['ton', 'Tonalité']]) {

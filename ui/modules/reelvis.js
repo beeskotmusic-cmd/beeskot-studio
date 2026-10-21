@@ -37,13 +37,13 @@ BK.module('reelvis', function (page) {
           <div class="rv-tel"><div class="rv-ecran" id="rvEcran">
             <canvas id="rvCanvas" width="540" height="960"></canvas>
             <video id="rvVideo" playsinline preload="auto" hidden></video>
-            <div class="rv-vide" id="rvVide"><span class="dymo">Glisse une vidéo ici</span><span class="nt">MP4, MOV… depuis ce PC · ou :</span><div class="gd" id="rvGal"><button class="btn sm pri" id="rvGalB">🖼 Choisir dans Médias…</button></div></div>
+            <div class="rv-vide" id="rvVide"><span class="dymo">Glisse tes vidéos ou photos ici</span><span class="nt">depuis ce PC · ou :</span><div class="gd" id="rvGal"><button class="btn sm pri" id="rvGalB">＋ Importer…</button></div></div>
             <div class="rv-zones" id="rvZones"></div><div id="rvCalque"></div>
           </div></div>
           <div class="rv-cote">
             <div class="box"><div class="ligne-titre"><span class="lb">① La vidéo</span></div>
               <div class="rv-charge"><button class="btn sm rv-sujet-b" id="rvSujetB" title="De quoi parle la vidéo ?">De quoi parle la vidéo ? ▾</button><select class="fld hidden" id="rvMorceau"><option value="">—</option></select>
-                <button class="btn sm pri" id="rvTag">🏷 Une vidéo de Médias…</button><button class="btn sm" id="rvPick">💻 Ce PC…</button><button class="btn sm warm" id="rvPhotos" title="Mettre bout à bout des photos et des vidéos (avec une musique)">🖼 Photos et vidéos…</button><input type="file" id="rvInput" accept="video/*" hidden></div></div>
+                <button class="btn sm pri" id="rvTag" title="Photos et vidéos : depuis Médias (dossiers, Discord, étiquettes) ou ce PC">＋ Importer…</button><input type="file" id="rvInput" accept="image/*,video/*" multiple hidden></div></div>
             <div class="box"><div class="ligne-titre"><span class="lb">② Couper la vidéo</span>
                 <span class="nt" style="margin:0 0 0 auto">Glisse le bloc · tire ses bords · <b>I</b> / <b>O</b> = début / fin à la tête de lecture</span></div>
               <div class="onde rv-bande" id="rvBande">
@@ -62,6 +62,8 @@ BK.module('reelvis', function (page) {
               <div class="pv-tab">
                 <span class="eng">Cadrage</span>
                 <div class="pv-seg"><button id="rvEntier" title="Voir toute la vidéo, avec des bandes">⤢ Entière</button><button id="rvRemplir" title="La vidéo remplit le cadre, les bords sont coupés">⤡ Remplir</button><button id="rvCentre" title="Remettre au centre, sans zoom">⊙ Centrer</button></div>
+                <span class="eng">Réglages</span>
+                <div class="pv-ligne pv-regl"><span class="eng">Contraste</span><input class="fld rv-glisse" id="rvCon" title="Clic maintenu et glisse la souris (ou double-clic pour taper)"><span class="eng">Lumière</span><input class="fld rv-glisse" id="rvLum" title="Clic maintenu et glisse la souris (ou double-clic pour taper)"><span class="eng">Saturation</span><input class="fld rv-glisse" id="rvSat" title="Clic maintenu et glisse la souris (ou double-clic pour taper)"></div>
                 <span class="eng">Zoom</span>
                 <div class="pv-ligne"><input class="fld rv-glisse" id="rvZoom" value="0 %" title="Clic maintenu et glisse la souris (ou double-clic pour taper)"><span class="nt">glisse l'image dans le téléphone pour la déplacer</span></div>
                 <span class="eng">Couleur</span>
@@ -128,14 +130,14 @@ BK.module('reelvis', function (page) {
   };
   vid.onseeked = () => { if (!V.lecture) dessiner(); };
   vid.onerror = () => msg('Vidéo illisible (essaie un MP4)');
-  $('#rvPick').onclick = () => $('#rvInput').click();
 
   // ---------- PHOTOS ET VIDÉOS → UNE VIDÉO ----------
   // On choisit des photos et des vidéos (ce PC, Médias, Discord), une durée et une animation pour chacune,
   // une transition et un effet. On importe : ça donne une vraie vidéo 9:16, et tout marche ensuite comme pour une vidéo
   // (couper, couleur, sous-titres, musique, export). Le son des vidéos n'est pas gardé : la musique se choisit à droite.
   const ANIMS = [['zoom', '↗ Zoom avant'], ['recul', '↙ Zoom arrière'], ['glisse', '↔ Glisser'], ['fixe', '■ Fixe']];
-  $('#rvPhotos').onclick = () => {
+  // pre : des fichiers déjà choisis (fenêtre Médias ou ce PC), à mettre tout de suite dans le montage
+  const ouvrirMontage = (pre = []) => {
     const D = { l: [], transition: BK.reglage('rv.transition', 'fondu'), voile: '' };   // l : { nom, video?, apercu, charger: () => Blob, duree, max, anim }
     const v = document.createElement('div'); v.className = 'voile';
     const dureeMus = () => { const a = musique(); return a ? a.duree : 0; };
@@ -230,6 +232,7 @@ BK.module('reelvis', function (page) {
         urls.forEach(u => URL.revokeObjectURL(u));
       }
     });
+    for (const x of pre) ajouter(x);
     document.body.appendChild(v); dessinerD();
   };
   async function depuisDrive(f) { msg('Téléchargement de ' + f.name + '…');
@@ -250,20 +253,31 @@ BK.module('reelvis', function (page) {
   $('#rvSujetB').onclick = e => { if (!V.groupes) return; const r = e.currentTarget.getBoundingClientRect(), sel = $('#rvMorceau');
     BK.menuCascade({ x: r.left, y: r.bottom + 4 }, V.groupes.map(x => ({ nom: x.groupe, l: x.l })), k => { sel.value = k; sel.dispatchEvent(new Event('change')); }, { actuel: sel.value, aucun: '— Aucun sujet' }); };
   const sujetV = () => (V.sujets || []).find(x => x.k === $('#rvMorceau').value);
-  // une vidéo de Médias : la fenêtre Médias (dossiers, Discord, étiquettes), ouverte sur le sujet choisi
+  // ---------- ＋ IMPORTER : une seule porte (fenêtre Médias, ou ce PC) ----------
+  // 1 vidéo → elle se charge directement ; des photos ou plusieurs fichiers → la fenêtre du montage, déjà remplie
+  const estVid = (nom, mime) => /^video\//.test(mime || '') || /\.(mp4|mov|m4v|webm)$/i.test(nom || '');
+  const versMontage = x => ({ nom: x.nom, type: x.mime || (x.dc && x.dc.video ? 'video/mp4' : ''), apercu: x.apercu || (x.fichier && /^image\//.test(x.fichier.type) ? URL.createObjectURL(x.fichier) : ''),
+    charger: async () => x.fichier ? x.fichier : x.dc ? (await BK.discord.fetch(x.dc.url)).blob() : new Blob([await BK.drive.telecharger(x.f.id)], { type: x.f.mimeType }) });
+  async function importer(l) {
+    if (!l || !l.length) return;
+    const x = l[0];
+    if (l.length === 1 && estVid(x.nom, x.mime || (x.fichier && x.fichier.type))) {
+      if (x.fichier) return charger(x.fichier);
+      if (x.dc) { msg('Téléchargement depuis Discord…'); try { const r = await BK.discord.fetch(x.dc.url); charger(new File([await r.blob()], x.nom, { type: x.mime || 'video/mp4' })); } catch (e) { msg('Vidéo expirée sur Discord'); } return; }
+      return depuisDrive(x.f);
+    }
+    ouvrirMontage(l.map(versMontage));
+  }
+  const dePC = fs => [...fs].map(f => ({ nom: f.name, mime: f.type, fichier: f }));
   $('#rvTag').onclick = async () => {
     if (!BK.drive.relie()) return $('#rvInput').click();
-    const l = await BK.choisirDansMedias({ titre: 'Une vidéo pour le reel', bouton: 'Charger la vidéo', type: 'video', sujet: $('#rvMorceau').value });
-    const x = l && l[0]; if (!x) return;
-    if (x.fichier) return charger(x.fichier);
-    if (x.dc) { msg('Téléchargement depuis Discord…'); try { const r = await BK.discord.fetch(x.dc.url); charger(new File([await r.blob()], x.nom, { type: x.mime || 'video/mp4' })); } catch (e) { msg('Vidéo expirée sur Discord'); } return; }
-    depuisDrive(x.f);
+    importer(await BK.choisirDansMedias({ titre: 'Photos et vidéos pour le reel', bouton: 'Importer', type: 'tous', sujet: $('#rvMorceau').value }));
   };
-  $('#rvInput').onchange = e => charger(e.target.files[0]);
+  $('#rvInput').onchange = e => { importer(dePC(e.target.files)); e.target.value = ''; };
   page.addEventListener('dragover', e => { e.preventDefault(); ecran.classList.add('survol'); });
   page.addEventListener('dragleave', e => { if (e.target === page) ecran.classList.remove('survol'); });
-  page.addEventListener('drop', e => { e.preventDefault(); ecran.classList.remove('survol'); const f = e.dataTransfer.files[0]; if (!f) return;
-    if ( /\.cube$/i.test(f.name)) return chargerLut(f); charger(f); });
+  page.addEventListener('drop', e => { e.preventDefault(); ecran.classList.remove('survol'); const fs = [...e.dataTransfer.files]; if (!fs.length) return;
+    const cube = fs.find(f => /\.cube$/i.test(f.name)); if (cube) return chargerLut(cube); importer(dePC(fs)); });
 
   // ---------- couper : une bande d'images avec un bloc, comme l'Assistant audio ----------
   const bande = $('#rvBande'), bloc = $('#rvBloc'), tete = $('#rvTete');
@@ -335,6 +349,10 @@ BK.module('reelvis', function (page) {
   fc.addEventListener('blur', () => { if (fc.readOnly) return; fc.readOnly = true; const v = parseFloat(fc.value.replace(',', '.')); force(isNaN(v) ? V.force : v); });
   fc.addEventListener('keydown', e => { e.stopPropagation(); if (e.key === 'Enter') fc.blur(); });
   fc.addEventListener('wheel', e => { e.preventDefault(); force(V.force - Math.sign(e.deltaY) * 5); }, { passive: false });
+  // contraste, lumière, saturation
+  V.regl = { contraste: 0, lumiere: 0, saturation: 0 };
+  [['#rvCon', 'contraste'], ['#rvLum', 'lumiere'], ['#rvSat', 'saturation']].forEach(([id, k]) =>
+    BK.rendu.champGlisse($(id), { val: 0, change: v => { V.regl[k] = v; r.reglages(V.regl); dessiner(); } }));
   $('#rvVoile').onchange = e => { V.voile = e.target.value; dessiner(); msg(V.voile ? 'Effet : ' + e.target.selectedOptions[0].textContent : 'Sans effet'); };
   let d0 = null;
   ecran.addEventListener('pointerdown', e => { if (!vid.videoWidth) return; d0 = { x: e.clientX, y: e.clientY, vx: V.x, vy: V.y }; ecran.setPointerCapture(e.pointerId); });
@@ -458,7 +476,7 @@ BK.module('reelvis', function (page) {
       let audio = null, fin = V.fin;
       if (a) { fin = Math.min(V.fin, V.debut + a.duree); const buf = await BK.audio.decoder(new Uint8Array(await (await fetch(a.url)).arrayBuffer())); audio = tranche(buf, a.debut, fin - V.debut); }
       else { try { const buf = await BK.audio.decoder(new Uint8Array(await V.fichier.arrayBuffer())); audio = tranche(buf, V.debut, fin - V.debut); } catch (e) { audio = null; } }
-      const mp4 = await BK.rendu.exporter({ video: vid, debut: V.debut, fin, cadre: cadre(), force: V.force / 100, lut: V.lut, sous: V.sousOn ? V.sous : [], voile: V.voile || '', audio,
+      const mp4 = await BK.rendu.exporter({ video: vid, debut: V.debut, fin, cadre: cadre(), force: V.force / 100, lut: V.lut, sous: V.sousOn ? V.sous : [], voile: V.voile || '', reglages: V.regl, audio,
         progression: p => msg('Export… ' + Math.round(p * 100) + ' %') });
       const p = await BK.enregistrerFichier(BK.chemin('Reels', V.nom), `${V.nom}_REEL_${Math.round(fin - V.debut)}s_${GABARITS[V.gabarit] ? 'VERTICAL' : ''}.mp4`, mp4, 'video/mp4');
       msg(p ? 'MP4 prêt ✓' : 'Export annulé');

@@ -41,6 +41,8 @@ BK.module('postvis', function (page) {
               <div class="pv-tab">
                 <span class="eng">Cadrage</span>
                 <div class="pv-seg"><button id="pvEntier" title="Voir toute la photo, avec des bandes noires">⤢ Entière</button><button id="pvRemplir" title="La photo remplit le cadre, les bords sont coupés">⤡ Remplir</button><button id="pvCentre" title="Remettre au centre, sans zoom">⊙ Centrer</button></div>
+                <span class="eng">Réglages</span>
+                <div class="pv-ligne pv-regl"><span class="eng">Contraste</span><input class="fld rv-glisse" id="pvCon" title="Clic maintenu et glisse la souris (ou double-clic pour taper)"><span class="eng">Lumière</span><input class="fld rv-glisse" id="pvLum" title="Clic maintenu et glisse la souris (ou double-clic pour taper)"><span class="eng">Saturation</span><input class="fld rv-glisse" id="pvSat" title="Clic maintenu et glisse la souris (ou double-clic pour taper)"></div>
                 <span class="eng">Zoom</span>
                 <div class="pv-ligne"><input class="fld rv-glisse" id="pvZoom" value="0 %" title="Clic maintenu et glisse la souris (ou double-clic pour taper)"><span class="nt">glisse l'image dans l'aperçu pour la déplacer</span></div>
                 <span class="eng">Couleur</span>
@@ -79,7 +81,7 @@ BK.module('postvis', function (page) {
 
   function moteur() {
     const f = F(), k = 0.5; cv.width = Math.round(f.L * k); cv.height = Math.round(f.H * k);
-    r = BK.rendu.creer(cv.width, cv.height); r.lut(P.lut);
+    r = BK.rendu.creer(cv.width, cv.height); r.lut(P.lut); r.reglages(P.regl);
     ecran.style.aspectRatio = `${f.L} / ${f.H}`;
     ecran.style.maxWidth = Math.round(520 * f.L / f.H) + 'px';     // sinon la hauteur est bridée à 520 px et la photo s'allonge (story 9:16)
     $('#pvFmtH').textContent = f.nom.split(' ').pop(); $$('#pvFmt .chip').forEach(c => c.classList.toggle('on', c.dataset.f === P.format));
@@ -209,6 +211,10 @@ BK.module('postvis', function (page) {
       dessiner(); msg('LUT appliquée à toutes les photos'); }
     catch (e) { msg(e.message); $('#pvFiltre').value = ''; }
   }
+  // contraste, lumière, saturation (pour toutes les photos, comme la couleur)
+  P.regl = P.regl || { contraste: 0, lumiere: 0, saturation: 0 };
+  [['#pvCon', 'contraste'], ['#pvLum', 'lumiere'], ['#pvSat', 'saturation']].forEach(([id, k]) =>
+    BK.rendu.champGlisse($(id), { val: P.regl[k], change: v => { P.regl[k] = v; r && r.reglages(P.regl); dessiner(); } }));
   $('#pvVoile').onchange = e => { P.voile = e.target.value; dessiner(); msg(P.voile ? 'Effet : ' + e.target.selectedOptions[0].textContent + ' (toutes les photos)' : 'Sans effet'); };
   $('#pvLutIn').onchange = e => e.target.files[0] && chargerLut(e.target.files[0]);
   // filtres prêts à l'emploi (un clic) — ou sa propre LUT .cube
@@ -255,7 +261,7 @@ BK.module('postvis', function (page) {
   $('#pvExport').onclick = async () => {
     const b = $('#pvExport'); b.disabled = true; b.innerHTML = '<span class="spin"></span>Export…';
     try {
-      const f = F(), rr = BK.rendu.creer(f.L, f.H); rr.lut(P.lut); const faits = [];
+      const f = F(), rr = BK.rendu.creer(f.L, f.H); rr.lut(P.lut); rr.reglages(P.regl); const faits = [];
       for (let k = 0; k < P.slides.length; k++) {
         const s = P.slides[k]; rr.dessiner(s.img, { zoom: s.zoom / 100, x: s.x, y: s.y }, (P.force ?? 100) / 100, '', P.voile ? { type: P.voile, t: k * 0.37 } : null);   // l'effet vintage : un peu différent sur chaque photo
         const blob = await new Promise(ok => rr.sortie.toBlob(ok, 'image/jpeg', 0.92)), octets = new Uint8Array(await blob.arrayBuffer());
