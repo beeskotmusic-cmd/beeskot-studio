@@ -21,7 +21,7 @@ BK.bienvenue = {
         txt: 'Tout le travail du groupe est rangé dans le Drive BEESKOT : chaque PC voit les mêmes fiches, tâches, dépenses… et Miette, la bot Discord, arrive avec.<br><br>Yacine t\'a envoyé une <b>carte d\'accès</b> (un petit fichier <span class="mono">BEESKOT-carte-acces.json</span>). Clique ci-dessous et choisis-la : <b>aucun code, aucun mot de passe à taper</b>.',
         bouton: 'Importer la carte d\'accès…',
         fait: () => BK.drive && BK.drive.relie(),
-        action: async () => { if (await BK.drive.importerCarte()) { await BK.synchro(); return 'Drive relié ✓'; } return null; } },
+        action: async () => { if (await BK.drive.importerCarte()) { try { await BK.pousser(); } catch (e) {} return 'Drive relié ✓'; } return null; } },
       { id: 'ableton', titre: 'Ableton Live (si ce PC l\'a)', ic: '🎛',
         txt: 'Le logiciel peut préparer les projets pour le mixage (renommer, colorer, geler, zipper). Pour ça, il installe un petit « pont » dans Ableton.<br><br>Clique, puis dans Ableton : <b>Options › Réglages › Link, Tempo & MIDI</b>, et choisis <b>A BEESKOT</b> dans une ligne <i>Control Surface</i> libre.',
         bouton: 'Installer le pont Ableton',

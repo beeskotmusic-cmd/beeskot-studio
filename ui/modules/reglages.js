@@ -64,10 +64,10 @@ BK.module('reglages', function (page) {
       const a = b.dataset.d;
       try {
         if (a === 'client') { if (await BK.drive.importerClient()) rmsg('Fichier client importé'); }
-        if (a === 'connecter') { rmsg('Autorise BEESKOT Studio dans la page Google…'); await BK.drive.connecter(); rmsg('Drive relié'); BK.synchro(); }
-        if (a === 'importer') { if (await BK.drive.importerCarte()) { rmsg('Drive relié avec la carte'); BK.synchro(); } }
+        if (a === 'connecter') { rmsg('Autorise BEESKOT Studio dans la page Google…'); await BK.drive.connecter(); rmsg('Drive relié'); BK.pousser(); }
+        if (a === 'importer') { if (await BK.drive.importerCarte()) { rmsg('Drive relié avec la carte'); BK.pousser(); } }
         if (a === 'carte') { const p = await BK.drive.exporterCarte(); if (p) { rmsg('Carte enregistrée sur le Bureau'); BK.drive.derniereCarte = p; } }
-        if (a === 'sync') { rmsg('Lecture du Drive…'); await BK.synchro(); rmsg('Drive relu'); }
+        if (a === 'sync') { rmsg('Lecture du Drive…'); await BK.pousser(); rmsg('Drive relu'); }
         if (a === 'off') { if (confirm('Déconnecter ce PC du Drive BEESKOT ? (rien n\'est effacé)')) { BK.drive.deconnecter(); rmsg('Déconnecté'); } }
       } catch (e) { console.error(e); rmsg('Problème : ' + (e.message || e)); }
       zoneDrive(); BK.etatDrive();

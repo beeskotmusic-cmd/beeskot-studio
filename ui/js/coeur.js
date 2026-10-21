@@ -7,7 +7,7 @@ const $ = (s, r = document) => r.querySelector(s);
 const $$ = (s, r = document) => [...r.querySelectorAll(s)];
 
 const BK = {
-  version: '0.9.38 bêta',
+  version: '0.9.39 bêta',
   modules: {},
   onglets: [],
   cotes: [],
@@ -181,7 +181,7 @@ const BK = {
     setInterval(BK.verifierMaj, 20 * 60e3);        // le bouton se met à clignoter sans avoir à relancer
     BK.ableton && BK.ableton.surveiller();
     BK.discord && BK.discord.surveiller();                         // le Veilleur : toutes les 30 min, s'il est réglé
-    setInterval(() => BK.synchro && BK.synchro(), 60000);          // partage avec les autres PC : toutes les minutes              // quelques secondes après l'ouverture, sans gêner
+    setInterval(() => BK.pousser && BK.pousser(), 60000);          // partage avec les autres PC : toutes les minutes              // quelques secondes après l'ouverture, sans gêner
   },
 
   // ---------- boutons rotatifs (repris tel quel de Dari Audio Live) ----------

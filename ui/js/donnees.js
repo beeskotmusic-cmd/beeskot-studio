@@ -104,7 +104,8 @@ BK.db = {
 };
 
 // ---------- toutes les minutes : envoyer ce qui attend, relire le Drive, rafraîchir l'onglet ouvert ----------
-BK.synchro = async function () {
+// (le nom BK.synchro est pris par le veilleur de miette.js : ne pas le réutiliser ici)
+BK.pousser = async function () {
   if (!BK.db.drive()) return;
   await BK.db.viderAttente();
   const ouvert = BK.reglage('dernierOnglet', 'accueil');
