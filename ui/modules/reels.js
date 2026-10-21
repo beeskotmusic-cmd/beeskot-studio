@@ -169,7 +169,7 @@ BK.module('reels', function (page) {
     if (R.clicBpmManuel || !R.buffer) return;
     const ms = R.morceaux || await BK.db.liste('morceaux'), m = R.source === 'biblio' ? ms.find(x => x.id === $('#reMorceau').value) : BK.inv.trouverMorceau(R.nom, ms);
     // priorité : ce que vous avez écrit dans la fiche, puis ce qu'Ableton a dit, puis seulement la détection
-    const src = { nous: 'écrit par vous', ableton: 'Ableton', detecte: 'deviné' };
+    const src = { nous: 'écrit par vous', discord: 'dit sur Discord', ableton: 'Ableton', detecte: 'deviné' };
     if (m && m.bpm) { R.bpm = parseFloat(String(m.bpm).replace(',', '.')) || 0; $('#reBpm').value = m.bpm; $('#reBpmLien').textContent = '🔗 ' + m.nom + ' · ' + (src[m.bpmSource] || 'deviné'); majClic(); return; }
     try { const a = await BK.audio.analyser(R.buffer); R.bpm = a.bpm; $('#reBpm').value = a.bpm; $('#reBpmLien').textContent = m ? '🔗 ' + m.nom + ' · deviné (à vérifier)' : '(deviné)';
       if (m && !m.bpm) { m.bpm = String(a.bpm); m.bpmSource = 'detecte'; if (!m.ton) m.ton = a.ton; if (!m.duree) m.duree = a.duree; await BK.db.ecrire('morceaux', m); }

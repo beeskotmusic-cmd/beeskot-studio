@@ -23,6 +23,9 @@ BK.module('biblio', function (page) {
         <div id="biListe" class="bi-liste"></div>
       </section>
       <section class="pane reg" aria-label="Réglages"><span class="ptitle">② Réglages</span>
+        <div class="box"><span class="lb">🍞 Vérifier avec Miette</span>
+          <span class="nt">Miette relit Discord : les BPM et tonalités que vous avez écrits passent devant ce qui a été deviné.</span>
+          <button class="btn sm pri" id="biVerif" style="margin-top:10px">🍞 Vérifier les infos des morceaux</button></div>
         <div class="box"><span class="lb">Nouveau morceau</span>
           <input class="fld" id="biNom" style="margin-top:10px" placeholder="nom du morceau">
           <div class="chips" style="margin-top:10px"><button class="chip" id="biAjout">+ Créer la fiche</button></div></div>
@@ -38,6 +41,37 @@ BK.module('biblio', function (page) {
       <div class="right"><button class="btn pri" id="biScan">Scanner ce PC ▶</button></div></div>`;
 
   const msg = t => $('#biMsg').textContent = String(t).toUpperCase();
+
+  // ---------- 🍞 vérifier les infos (BPM, tonalité) avec ce qui a été dit sur Discord ----------
+  $('#biVerif').onclick = async () => {
+    const b = $('#biVerif'); b.disabled = true; b.innerHTML = '<span class="spin"></span>Miette relit Discord…';
+    let l = [];
+    try { l = await BK.miette.infosDiscord(); } catch (e) { msg('Impossible : ' + (e.message || e)); }
+    b.disabled = false; b.textContent = '🍞 Vérifier les infos des morceaux';
+    const src = { nous: 'écrit dans la fiche', ableton: 'lu dans Ableton', detecte: 'deviné', discord: 'déjà repris de Discord' };
+    const diff = [];
+    for (const o of l) for (const [k, nom] of [['bpm', 'BPM'], ['ton', 'Tonalité']]) {
+      if (!o[k] || String(o.m[k] || '') === o[k].v) continue;
+      diff.push({ o, k, nom, avant: o.m[k] || '—', apres: o[k].v, d: k === 'bpm' ? o.m.bpmSource : o.m.tonSource, l: o[k].l });
+    }
+    if (!diff.length) return msg(l.length ? 'Tout est déjà juste ✓' : 'Rien trouvé sur Discord (BPM, tonalité)');
+    const v = document.createElement('div'); v.className = 'voile';
+    v.innerHTML = `<div class="stopbox" style="width:640px;align-items:stretch">
+      <span class="screw tl"></span><span class="screw tr"></span><span class="screw bl"></span><span class="screw br"></span>
+      <span class="dymo" style="align-self:center">🍞 Ce que vous avez dit sur Discord</span>
+      <div class="verif-l">${diff.map((x, i) => `<label class="verif"><input type="checkbox" data-v="${i}"${x.d === 'nous' ? '' : ' checked'}>
+        <span><b>${esc(x.o.m.nom)}</b> · ${x.nom} : <s>${esc(x.avant)}</s> <span class="nt" style="margin:0">(${src[x.d] || 'deviné'})</span> → <b class="verif-n">${esc(x.apres)}</b>
+        <span class="nt" style="margin:2px 0 0;display:block">« ${esc(String(x.l.txt || '').slice(0, 120))} »${x.l.qui ? ' — ' + esc(x.l.qui) : ''}${x.l.t ? ', ' + esc(String(x.l.t).slice(0, 10)) : ''}</span></span></label>`).join('')}</div>
+      <span class="nt">Décoché : ce que vous aviez écrit vous-mêmes dans la fiche. Coche si Discord a raison.</span>
+      <div class="stopbox-btns"><button class="btn pri" id="vfOk">Mettre à jour les fiches</button><button class="btn" id="vfNon">Annuler</button></div></div>`;
+    document.body.appendChild(v);
+    v.querySelector('#vfNon').onclick = () => v.remove();
+    v.querySelector('#vfOk').onclick = async () => {
+      const choisis = [...v.querySelectorAll('[data-v]:checked')].map(c => diff[+c.dataset.v]); v.remove();
+      for (const x of choisis) { const m = x.o.m; m[x.k] = x.apres; if (x.k === 'bpm') m.bpmSource = 'discord'; else m.tonSource = 'discord'; await sauver(m); }
+      msg(choisis.length + ' info(s) mise(s) à jour depuis Discord'); rendre();
+    };
+  };
 
   // ---------- chargement ----------
   window.addEventListener('bk:annule', () => charger());
@@ -254,7 +288,7 @@ BK.module('biblio', function (page) {
           <div class="chips" style="margin-top:8px"><button class="chip" data-act="plein">Plein écran</button><button class="chip" data-act="copier">Copier pour le distributeur</button><button class="chip" data-act="paroles" title="Ouvre la recherche dans ton navigateur : copie-colle les paroles ici">🔎 Chercher les paroles</button></div>`)}
         ${t('infos', 'Infos', [m.bpm && m.bpm + ' BPM', m.ton, m.duree, m.sortie && 'sortie ' + m.sortie].filter(Boolean).join(' · ') || '—', () => `
           <div class="infos">
-            <label><span class="eng">BPM <small class="nt" style="margin:0">${m.bpm ? ({ nous: '· écrit par vous', ableton: '· lu dans Ableton', detecte: '· deviné (à vérifier)' })[m.bpmSource || 'detecte'] : ''}</small></span>
+            <label><span class="eng">BPM <small class="nt" style="margin:0">${m.bpm ? ({ nous: '· écrit par vous', discord: '· dit sur Discord', ableton: '· lu dans Ableton', detecte: '· deviné (à vérifier)' })[m.bpmSource || 'detecte'] : ''}</small></span>
               <span class="bpm-ligne"><input class="fld" data-champ="bpm" value="${esc(m.bpm || '')}"><button class="btn xs" data-act="bpmAbleton" title="Lit le tempo du projet ouvert dans Ableton (pont BEESKOT)">🎛 Ableton</button></span></label>
             <label><span class="eng">Tonalité</span><input class="fld" data-champ="ton" value="${esc(m.ton || '')}" placeholder="ex. Mi mineur"></label>
             <label><span class="eng">Durée</span><input class="fld" data-champ="duree" value="${esc(m.duree || '')}" placeholder="3:45"></label>
@@ -444,7 +478,7 @@ BK.module('biblio', function (page) {
         if (a === 'bpmAbleton') {
           if (!BK.ableton.relie) return msg('Ableton n\'est pas relié (ouvre Ableton avec le projet du morceau)');
           try { const r = await BK.ableton.req({ cmd: 'ping' }); const t = Math.round((r.tempo || 0) * 100) / 100; if (!t) return msg('Ableton ne donne pas de tempo');
-            if (m.bpmSource === 'nous' && m.bpm && !confirm(`Vous aviez écrit ${m.bpm} BPM. Remplacer par ${t} lu dans Ableton ?`)) return;
+            if ((m.bpmSource === 'nous' || m.bpmSource === 'discord') && m.bpm && String(m.bpm) !== String(t) && !confirm(`Vous aviez dit ${m.bpm} BPM. Remplacer par ${t} lu dans Ableton ?`)) return;
             m.bpm = String(t); m.bpmSource = 'ableton'; await sauver(m); msg(`${t} BPM lu dans Ableton`); rendre(); }
           catch (e) { msg('Ableton ne répond pas : ' + (e.message || e)); } }
         if (a === 'plein') BK.pleinEcran(m.nom, m.paroles);

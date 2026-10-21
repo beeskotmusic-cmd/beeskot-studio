@@ -34,6 +34,8 @@ BK.miette = {
       // 3) une seule grande lecture par l'AI
       if (await BK.ia.pret()) { BK.miette.etape('Miette réfléchit à tout ce qui a été dit…'); const n = await BK.miette.grandeLecture(); bilan.push(...n); }
       else bilan.push('pas de clé Gemini : seulement Discord et Drive relus');
+      // 3 bis) les BPM et tonalités dits sur Discord vont dans les fiches (sauf ce que vous avez écrit dans la fiche)
+      try { const n = await BK.miette.appliquerInfos(await BK.miette.infosDiscord({ avecMiette: false })); if (n) bilan.push(n + ' tempo(s) / tonalité(s) repris de Discord'); } catch (e) { console.warn(e); }
       // 4) les moodboards du Drive dans les fiches de tournage vides
       if (BK.drive && BK.drive.relie()) { BK.miette.etape('Miette range les moodboards…'); try { const n = await BK.miette.moodboards(); if (n) bilan.push(n + ' moodboard(s) rempli(s)'); } catch (e) { console.warn(e); } }
       // 5) chaque onglet se met à jour
@@ -43,6 +45,57 @@ BK.miette = {
       BK.miette.fin('Miette a tout relu' + (bilan.length ? ' · ' + bilan.join(' · ') : ''));
     } catch (e) { console.error(e); BK.miette.fin('Miette n\'a pas pu tout lire : ' + e.message); }
     BK.miette.enCours = false; document.body.classList.remove('miette-scan');
+  },
+
+  // ---------- les infos des morceaux dites sur Discord (BPM, tonalité) ----------
+  // 1) lecture directe des messages : « Mother 78 BPM », « moon blue en 75bpm », « tempo de Mother : 78 »
+  // 2) puis Miette (Gemini) pour les phrases moins évidentes
+  // Ce qui est écrit sur Discord, c'est vous : ça passe devant Ableton et la détection.
+  async infosDiscord({ avecMiette = true } = {}) {
+    const [ms, j] = await Promise.all([BK.db.liste('morceaux'), BK.discord.journal(12).catch(() => [])]);
+    const norm = t => BK.inv.normaliser(t).replace(/\s+/g, ' ');
+    const cles = ms.map(m => ({ m, k: [m.nom, ...(m.alias || [])].map(norm).filter(x => x.length >= 3) }));
+    const out = {};                                                     // id du morceau → { bpm, ton, ligne }
+    const noter = (m, champ, val, l) => { const o = out[m.id] = out[m.id] || { m };
+      if (!o[champ] || (l.t || '') >= (o[champ].l.t || '')) o[champ] = { v: val, l }; };        // le plus récent gagne
+    for (const l of j) {
+      const brut = String(l.txt || ''); if (!/bpm|tempo|tonalit|\b[a-g](#|b)?\s*(m|min|maj|mineur|majeur)\b/i.test(brut)) continue;
+      const t = norm(brut);
+      const cites = cles.filter(c => c.k.some(k => t.includes(k))).map(c => c.m);
+      // les BPM : un nombre collé à « bpm », ou après « tempo »
+      const bpms = [...brut.matchAll(/(\d{2,3}(?:[.,]\d)?)\s*bpm|bpm\s*[:=]?\s*(\d{2,3}(?:[.,]\d)?)|tempo\s*(?:de\s+[^:\d]{0,30})?[:=]?\s*(\d{2,3}(?:[.,]\d)?)/gi)]
+        .map(x => parseFloat((x[1] || x[2] || x[3]).replace(',', '.'))).filter(v => v >= 50 && v <= 220);
+      if (cites.length === 1 && bpms.length) noter(cites[0], 'bpm', String(bpms[bpms.length - 1]), l);
+      else if (cites.length > 1 && bpms.length) {                       // plusieurs morceaux dans le message : on associe chaque nombre au nom le plus proche avant lui
+        for (const x of brut.matchAll(/(\d{2,3}(?:[.,]\d)?)\s*bpm/gi)) {
+          const avant = norm(brut.slice(0, x.index)); let best = null, pos = -1;
+          for (const c of cites) for (const k of cles.find(y => y.m === c).k) { const i = avant.lastIndexOf(k); if (i > pos) { pos = i; best = c; } }
+          const v = parseFloat(x[1].replace(',', '.')); if (best && v >= 50 && v <= 220) noter(best, 'bpm', String(v), l);
+        } }
+    }
+    // Miette : les tonalités et ce que la lecture directe n'a pas su attribuer
+    if (avecMiette && await BK.ia.pret()) {
+      const lignes = j.filter(l => /bpm|tempo|tonalit|mineur|majeur|\bkey\b/i.test(l.txt || '')).slice(-200);
+      if (lignes.length) { try {
+        const r = await BK.ia.demander(`Morceaux : ${ms.map(m => m.nom + ((m.alias || []).length ? ' (' + m.alias.join(', ') + ')' : '')).join(' ; ')}.\n\nMessages :\n${BK.discord.texte(lignes)}\n\n`
+          + 'Pour chaque morceau dont le TEMPO (BPM) ou la TONALITÉ est dit dans ces messages, donne la dernière valeur dite. Réponds en JSON : [{"morceau":"nom exact","bpm":"78 ou vide","ton":"ex. Mi mineur ou vide","source":"l\'identifiant (msg …)"}]. N\'invente rien. Si rien, [].',
+          { json: true, temperature: 0.1, vite: true, delai: 60 });
+        for (const x of Array.isArray(r) ? r : []) { const m = BK.inv.trouverMorceau(x.morceau || '', ms); if (!m) continue;
+          const l = j.find(y => String(x.source || '').includes(y.id)) || { t: '', txt: '(lu par Miette)', qui: '' };
+          if (x.bpm && !(out[m.id] && out[m.id].bpm)) { const v = parseFloat(String(x.bpm).replace(',', '.')); if (v >= 50 && v <= 220) noter(m, 'bpm', String(v), l); }
+          if (x.ton) noter(m, 'ton', String(x.ton), l); }
+      } catch (e) { console.warn(e); } }
+    }
+    return Object.values(out);
+  },
+  // applique sans demander quand la fiche n'a qu'une valeur devinée ou lue dans Ableton
+  async appliquerInfos(l, { tout = false } = {}) {
+    let n = 0;
+    for (const o of l) { const m = o.m; let change = false;
+      if (o.bpm && m.bpm !== o.bpm.v && (tout || m.bpmSource !== 'nous')) { m.bpm = o.bpm.v; m.bpmSource = 'discord'; change = true; }
+      if (o.ton && m.ton !== o.ton.v && (tout || !m.tonSource || m.tonSource !== 'nous')) { m.ton = o.ton.v; m.tonSource = 'discord'; change = true; }
+      if (change) { await BK.db.ecrire('morceaux', m, { sansAnnuler: !tout }); n++; } }
+    return n;
   },
 
   async grandeLecture() {

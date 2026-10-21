@@ -7,7 +7,7 @@ const $ = (s, r = document) => r.querySelector(s);
 const $$ = (s, r = document) => [...r.querySelectorAll(s)];
 
 const BK = {
-  version: '0.9.49 bêta',
+  version: '0.9.50 bêta',
   modules: {},
   onglets: [],
   cotes: [],
@@ -153,16 +153,24 @@ const BK = {
       <button class="maj-tard" id="majTard">Plus tard (10 min) — je finis ce que je fais</button></div>`;
     document.body.appendChild(v);
     v.querySelector('#majGo').onclick = async () => {
-      const b = v.querySelector('#majGo'); b.disabled = true; b.innerHTML = '<span class="spin"></span>Téléchargement…'; v.querySelector('#majTard').remove();
-      try { await BK.majDispo.downloadAndInstall(); await BK.T.process.relaunch(); }
+      const b = v.querySelector('#majGo'); b.disabled = true; b.innerHTML = '<span class="spin"></span>Recherche de la dernière version…'; v.querySelector('#majTard').remove();
+      try { const d = await BK.derniereMaj(); b.innerHTML = '<span class="spin"></span>Téléchargement de la ' + d.version + '…';
+        await d.downloadAndInstall(); await BK.T.process.relaunch(); }
       catch (e) { b.disabled = false; b.textContent = 'Échec : réessayer'; }
     };
     v.querySelector('#majTard').onclick = () => { BK.regler('maj.plusTard', Date.now() + 10 * 60e3); v.remove(); setTimeout(() => BK.popupMaj(m), 10 * 60e3 + 500); };
   },
+  // la version trouvée il y a 20 min n'est peut-être plus la dernière : on redemande juste avant d'installer,
+  // pour sauter directement à la plus récente (jamais plusieurs mises à jour d'affilée)
+  async derniereMaj() {
+    try { const m = await BK.T.updater.check(); if (m) BK.majDispo = m; } catch (e) {}
+    return BK.majDispo;
+  },
   async installerMaj() {
     if (!BK.majDispo) return;
-    const b = $('#stMaj'); b.disabled = true; b.classList.remove('clignote'); b.innerHTML = '<span class="spin"></span>Téléchargement…';
-    try { await BK.majDispo.downloadAndInstall(); await BK.T.process.relaunch(); }
+    const b = $('#stMaj'); b.disabled = true; b.classList.remove('clignote'); b.innerHTML = '<span class="spin"></span>Recherche de la dernière version…';
+    try { const m = await BK.derniereMaj(); b.innerHTML = '<span class="spin"></span>Téléchargement de la ' + m.version + '…';
+      await m.downloadAndInstall(); await BK.T.process.relaunch(); }
     catch (e) { b.disabled = false; b.textContent = 'Échec : réessayer'; }
   },
 
@@ -204,6 +212,8 @@ const BK = {
     BK.ouvrir(BK.reglage('dernierOnglet', 'accueil'));
     setTimeout(() => BK.bienvenue && BK.bienvenue.ouvrir(), 600);      // premier lancement : le petit guide
     setTimeout(BK.verifierMaj, 3000);
+    BK.nouveautes && BK.nouveautes.verifier();                  // juste après une mise à jour : « Quoi de neuf ? »
+    const nv = document.getElementById('stNouveau'); if (nv) nv.onclick = () => { document.getElementById('stopVoile').classList.add('hidden'); BK.nouveautes.montrer(); };
     setInterval(BK.verifierMaj, 20 * 60e3);        // le bouton se met à clignoter sans avoir à relancer
     BK.ableton && BK.ableton.surveiller();
     BK.discord && BK.discord.surveiller();                         // le Veilleur : toutes les 30 min, s'il est réglé

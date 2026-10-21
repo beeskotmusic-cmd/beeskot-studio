@@ -39,15 +39,18 @@ BK.module('postvis', function (page) {
               <div class="pv-tagstrip" id="pvTagStrip"></div>
               <div class="chips" style="margin-top:8px"><button class="btn sm pri" id="pvAjout">+ Ajouter des photos</button><input type="file" id="pvInput" accept="image/*" multiple hidden></div></div>
             <div class="box"><span class="lb">③ Recadrer et couleur</span>
-              <span class="nt">Fais glisser l'image dans l'aperçu pour la déplacer.</span>
-              <div class="rv-reglages"><span class="eng">Zoom</span><input class="fld rv-glisse" id="pvZoom" value="0 %" title="Clic maintenu et glisse la souris (ou double-clic pour taper)">
-                <button class="chip" id="pvEntier" title="Voir toute la photo, avec des bandes noires, au lieu de la recadrer">⤢ Photo entière</button>
-                <button class="chip" id="pvRemplir" title="La photo remplit tout le cadre : les bords sont coupés">⤡ Remplir le cadre</button>
-                <button class="chip" id="pvCentre">Recentrer</button><button class="chip" id="pvTous">Même cadrage pour toutes</button></div>
-              <span class="eng" style="margin-top:6px">Filtre</span><div class="chips filtres" id="pvFiltres">${['Aucun', ...BK.filtres.map(f => f.nom)].map((n, i) => `<button class="chip${i ? '' : ' on'}" data-fi="${i ? n : ''}">${n}</button>`).join('')}</div>
-              <div class="rv-reglages"><span class="eng">Intensité</span><input class="fld rv-glisse" id="pvForce" value="100 %" title="Clic maintenu et glisse la souris (ou double-clic pour taper)"></div>
-              <div class="chips"><button class="chip" id="pvLutB">Ma LUT (.cube)…</button><button class="chip hidden" id="pvLutX">Sans LUT</button></div>
-              <input type="file" id="pvLutIn" accept=".cube" hidden><span class="nt" id="pvLutNom"></span></div>
+              <div class="pv-tab">
+                <span class="eng">Cadrage</span>
+                <div class="pv-seg"><button id="pvEntier" title="Voir toute la photo, avec des bandes noires">⤢ Entière</button><button id="pvRemplir" title="La photo remplit le cadre, les bords sont coupés">⤡ Remplir</button><button id="pvCentre" title="Remettre au centre, sans zoom">⊙ Centrer</button></div>
+                <span class="eng">Zoom</span>
+                <div class="pv-ligne"><input class="fld rv-glisse" id="pvZoom" value="0 %" title="Clic maintenu et glisse la souris (ou double-clic pour taper)"><span class="nt">glisse l'image dans l'aperçu pour la déplacer</span></div>
+                <span class="eng">Couleur</span>
+                <div class="pv-ligne"><select class="fld" id="pvFiltre">${['', ...BK.filtres.map(f => f.nom)].map(n => `<option value="${n}">${n || 'Aucun filtre'}</option>`).join('')}<option value="__lut">＋ Ajouter une LUT (.cube)…</option></select>
+                  <span class="eng" style="margin-left:6px">Intensité</span><input class="fld rv-glisse pv-force" id="pvForce" value="100 %" title="Clic maintenu et glisse la souris (ou double-clic pour taper)"></div>
+                <span></span>
+                <div class="pv-ligne"><button class="pv-lien" id="pvTous" title="Applique le cadrage de cette photo à toutes les photos du carrousel">↻ Même cadrage pour toutes les photos</button></div>
+              </div>
+              <input type="file" id="pvLutIn" accept=".cube" hidden></div>
             <div class="box pv-leg-box"><span class="lb">④ Légende</span>
               <textarea class="fld" id="pvLeg" rows="3" placeholder="Le texte du post, les hashtags…"></textarea>
               <div class="pv-idees-l"><select class="fld" id="pvMorceau"><option value="">Morceau (pour l'AI)…</option></select><input class="fld" id="pvIdee" placeholder="ce que montre le post (facultatif)"></div>
@@ -227,16 +230,20 @@ BK.module('postvis', function (page) {
 
   // ---------- couleur : LUT ----------
   async function chargerLut(f) {
-    try { P.lut = BK.rendu.lireCube(await f.text()); P.lutNom = f.name; r.lut(P.lut); $('#pvLutNom').textContent = 'LUT : ' + f.name; $('#pvLutX').classList.remove('hidden'); $$('#pvFiltres .chip').forEach(x => x.classList.remove('on')); dessiner(); msg('LUT appliquée à toutes les photos'); }
-    catch (e) { msg(e.message); }
+    try { P.lut = BK.rendu.lireCube(await f.text()); P.lutNom = f.name; r.lut(P.lut);
+      const sel = $('#pvFiltre'); let o = sel.querySelector('option[data-lut]');
+      if (!o) { o = document.createElement('option'); o.dataset.lut = '1'; sel.insertBefore(o, sel.querySelector('option[value="__lut"]')); }
+      o.value = '__lutok'; o.textContent = '🎨 LUT : ' + f.name; sel.value = '__lutok';
+      dessiner(); msg('LUT appliquée à toutes les photos'); }
+    catch (e) { msg(e.message); $('#pvFiltre').value = ''; }
   }
-  $('#pvLutB').onclick = () => $('#pvLutIn').click();
   $('#pvLutIn').onchange = e => e.target.files[0] && chargerLut(e.target.files[0]);
   // filtres prêts à l'emploi (un clic) — ou sa propre LUT .cube
-  $$('#pvFiltres .chip').forEach(c => c.onclick = () => { const n = c.dataset.fi;
-    P.lut = n ? BK.rendu.filtre(n) : null; P.lutNom = n; r && r.lut(P.lut); $$('#pvFiltres .chip').forEach(x => x.classList.toggle('on', x === c));
-    $('#pvLutNom').textContent = ''; $('#pvLutX').classList.add('hidden'); dessiner(); msg(n ? 'Filtre : ' + n : 'Sans filtre'); });
-  $('#pvLutX').onclick = () => { P.lut = null; r.lut(null); $('#pvLutNom').textContent = ''; $('#pvLutX').classList.add('hidden'); dessiner(); };
+  let filtreAvant = '';
+  $('#pvFiltre').onchange = e => { const n = e.target.value;
+    if (n === '__lut') { e.target.value = filtreAvant; return $('#pvLutIn').click(); }      // « Ajouter une LUT » : on choisit le fichier
+    if (n === '__lutok') return;
+    filtreAvant = n; P.lut = n ? BK.rendu.filtre(n) : null; P.lutNom = n; r && r.lut(P.lut); dessiner(); msg(n ? 'Filtre : ' + n : 'Sans filtre'); };
 
   // ---------- format, légende, nom ----------
   $$('#pvFmt .chip').forEach(c => c.onclick = () => { P.format = c.dataset.f; BK.regler('pv.format', P.format); moteur();

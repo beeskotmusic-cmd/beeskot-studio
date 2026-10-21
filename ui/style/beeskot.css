@@ -1020,3 +1020,83 @@ body.dropping main>section:not(.hidden) .box.pick::after{content:none!important;
   background:rgba(47,115,119,.9);color:#eaf6f4;margin-bottom:3px;text-shadow:none}
 .su-idee{display:flex;flex-direction:column;gap:6px;margin-top:6px}
 .su-types .chip{font-size:10px;padding:3px 9px}
+.verif-l{display:flex;flex-direction:column;gap:6px;max-height:50vh;overflow:auto}
+.verif{display:flex;gap:10px;align-items:flex-start;padding:8px 10px;border-radius:5px;background:rgba(0,0,0,.25);cursor:pointer;font-size:12.5px}
+.verif input{margin-top:3px}.verif s{opacity:.55}.verif-n{color:#7ee08a}
+
+/* Médias : la barre du haut tient sur UNE petite ligne */
+.box.md-barre{flex-direction:row!important;flex-wrap:nowrap!important;align-items:center!important;gap:8px!important;padding:5px 8px!important;min-height:0}
+.md-barre .md-fil{flex:1 1 auto;min-width:0;width:auto!important;flex-wrap:nowrap;overflow:hidden;white-space:nowrap;font-size:11.5px}
+.md-barre .md-fil .ex-miette{padding:2px 6px;font-size:11px}
+.md-barre .md-filtre{flex:none;flex-direction:row!important;align-items:center;gap:5px;margin:0}
+.md-barre .md-filtre .eng{font-size:8.5px}
+.md-barre .md-filtre select{min-width:0;width:170px;height:24px;padding:0 8px;font-size:11px}
+.md-barre .md-outils{flex:none;margin-left:4px}
+.md-barre .md-ico{width:22px;height:22px;font-size:12px}
+.md-barre .md-filtre select.fld{height:24px!important;min-height:0!important;padding:0 26px 0 8px!important;line-height:22px!important;font-size:11px!important}
+
+/* Reels Photo : recadrer et couleur, en petit tableau aligné */
+.pv-tab{display:grid;grid-template-columns:70px 1fr;gap:9px 12px;align-items:center;margin-top:10px}
+.pv-tab > .eng{font-size:9.5px;color:#8a7f70}
+.pv-ligne{display:flex;align-items:center;gap:8px;min-width:0}
+.pv-ligne .nt{margin:0;font-size:10.5px}
+.pv-ligne select.fld{flex:1;min-width:0;height:30px}
+.pv-ligne .rv-glisse{width:76px;flex:none;text-align:center}
+.pv-seg{display:grid;grid-template-columns:repeat(3,1fr);border-radius:5px;overflow:hidden;box-shadow:inset 0 0 0 1px rgba(239,230,210,.16)}
+.pv-seg button{height:30px;border:0;background:rgba(0,0,0,.3);color:#cbbfa8;font:600 10px Jost,sans-serif;letter-spacing:.08em;text-transform:uppercase;cursor:pointer}
+.pv-seg button + button{border-left:1px solid rgba(239,230,210,.12)}
+.pv-seg button:hover{background:rgba(255,178,62,.16);color:#ffb23e}
+.pv-lien{background:none;border:0;padding:0;color:#8a7f70;font:500 11px Jost,sans-serif;cursor:pointer;text-decoration:underline}
+.pv-lien:hover{color:#ffb23e}
+
+/* Tournages : les tenues en photos */
+.to-tenue2{display:grid;grid-template-columns:70px 1fr;gap:4px 10px;align-items:start;padding:8px 0;border-top:1px solid rgba(239,230,210,.08)}
+.to-tenue2:first-of-type{border-top:0}
+.to-tenue2 > .eng{padding-top:6px}
+.to-tenue-ph{display:flex;flex-wrap:wrap;gap:6px}
+.to-tph{position:relative;width:62px;height:82px;border-radius:5px;background:#0a0604 center/cover no-repeat;box-shadow:inset 0 0 0 1px rgba(239,230,210,.14)}
+.to-tph .md-x{top:2px;right:2px}
+.to-tph-plus{border:1px dashed rgba(239,230,210,.25);background:rgba(0,0,0,.2);color:#cbbfa8;cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;font-size:18px;gap:2px}
+.to-tph-plus small{font-size:9px;letter-spacing:.08em;text-transform:uppercase}
+.to-tph-plus:hover{border-color:#ffb23e;color:#ffb23e}
+.to-tenue-txt{grid-column:2;height:28px;font-size:11.5px}
+.tn-props{display:grid;grid-template-columns:80px 1fr;gap:10px;max-height:56vh;overflow:auto;align-items:start}
+.tn-l{display:flex;flex-wrap:wrap;gap:8px}
+.tn-p{display:flex;flex-direction:column;gap:3px;width:96px;cursor:pointer;position:relative}
+.tn-p input{position:absolute;top:4px;left:4px}
+.tn-p span{width:96px;height:126px;border-radius:5px;background:#0a0604 center/cover no-repeat}
+.tn-p small{font-size:9.5px;color:#9b9183;line-height:1.2}
+/* un encadré replié garde TOUJOURS son titre visible (sinon on ne peut plus le rouvrir) */
+.box.replie > .box-tete{display:flex!important}
+.box.replie > .lb.box-tete{display:inline-flex!important}
+
+/* Médias : menu d'étiquettes en cascade */
+.md-menu{width:200px;max-height:none;overflow:visible}
+.md-grp{position:static}
+.md-grp-b{width:100%;display:flex!important;align-items:center;gap:6px}
+.md-grp-b em{font-style:normal;font-size:10px;color:#241a0c;background:#ffb23e;border-radius:8px;padding:1px 6px}
+.md-fl{margin-left:auto;color:#8a7f70;font-size:10px}
+.md-grp.ouvert > .md-grp-b{background:rgba(255,178,62,.15);color:#ffb23e}
+.md-sub{display:none;position:fixed;z-index:10000;width:230px;max-height:360px;overflow:auto;flex-direction:column;padding:6px;border-radius:6px;
+  background:#1d150f;box-shadow:0 0 0 1px rgba(239,230,210,.14),0 10px 24px rgba(0,0,0,.6)}
+.md-grp.ouvert > .md-sub{display:flex}
+.md-sub button{display:flex;align-items:center;gap:7px}
+.md-sub button i{width:8px;height:8px;border-radius:2px;flex:none}
+.md-menu-sep{display:block;height:1px;margin:5px 4px;background:rgba(239,230,210,.12)}
+
+/* Reels : changer l'image directement sur le poster (au survol) ; le type en petit menu */
+.su-aff-outils{position:absolute;top:30px;right:8px;z-index:3;display:flex;flex-direction:column;gap:4px;opacity:0;transition:opacity .15s}
+.su-aff:hover .su-aff-outils,.su-aff.on .su-aff-outils{opacity:1}
+.su-aff-o{width:26px;height:26px;border-radius:50%;display:grid;place-items:center;font-size:12px;cursor:pointer;
+  background:rgba(0,0,0,.72);box-shadow:inset 0 0 0 1px rgba(239,230,210,.25)}
+.su-aff-o:hover{box-shadow:inset 0 0 0 1px #ffb23e;background:rgba(40,25,10,.9)}
+.su-type{width:auto;height:26px;padding:0 24px 0 8px;font-size:11px;flex:none}
+
+/* « Quoi de neuf ? » après une mise à jour */
+.nv-box{width:520px;align-items:stretch;gap:12px;padding:28px 30px 22px}
+.nv-l{display:flex;flex-direction:column;gap:7px;max-height:56vh;overflow:auto;padding-right:4px}
+.nv-v{display:flex;align-items:center;gap:10px;margin:4px 0 2px}
+.nv-v b{font:600 13px Jost,sans-serif;color:#ffb23e;letter-spacing:.04em}
+.nv-i{display:grid;grid-template-columns:26px 1fr;gap:8px;align-items:start;padding:7px 9px;border-radius:5px;background:rgba(0,0,0,.25)}
+.nv-i span{font-size:16px;line-height:1.2}
+.nv-i p{margin:0;font:400 12.5px/1.45 Jost,sans-serif;color:var(--ink)}

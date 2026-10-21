@@ -127,8 +127,11 @@ BK.module('tournage', function (page) {
             <td class="to-btns"><button class="btn xs" data-haut="${i}" title="Monter">↑</button><button class="btn xs" data-px="${i}" title="Retirer">✕</button></td></tr>`).join('')}</tbody></table>
         <button class="btn xs" id="toPlan" style="margin-top:8px">+ Ajouter un plan</button></div>
       <div class="deux-box">
-        <div class="box"><span class="lb">Tenues</span>
-          ${T.membres.map(m => `<label class="to-tenue"><span class="eng">${esc(m)}</span><input class="fld" data-tenue="${esc(m)}" value="${esc(t.tenues[m])}" placeholder="ex. chemise noire, jean brut"></label>`).join('')}</div>
+        <div class="box"><div class="ligne-titre"><span class="lb">Tenues</span><button class="btn xs" id="toTenuesMiette" style="margin-left:auto" title="Miette cherche sur Discord les photos de tenues, et qui les porte">🍞 Qui porte quoi ?</button></div>
+          ${T.membres.map(m => `<div class="to-tenue2"><span class="eng">${esc(m)}</span>
+            <div class="to-tenue-ph">${((t.tenuesPhotos || {})[m] || []).map((u, i) => `<div class="to-tph" style="background-image:url(${u})"><button class="md-x" data-tpx="${esc(m)}|${i}">✕</button></div>`).join('')}
+              <button class="to-tph to-tph-plus" data-tph="${esc(m)}" title="Une photo de Médias, du cloud ou de Discord">＋<small>Photo</small></button></div>
+            <input class="fld to-tenue-txt" data-tenue="${esc(m)}" value="${esc(t.tenues[m])}" placeholder="en quelques mots (facultatif) : chemise noire, jean brut"></div>`).join('')}</div>
         <div class="box"><span class="lb">Matériel et notes</span>
           <textarea class="fld" data-c="materiel" rows="3" placeholder="ex. 2 caméras, trépied, lampes Globe en rouge, machine à fumée">${esc(t.materiel)}</textarea>
           <textarea class="fld" data-c="notes" rows="3" placeholder="Notes pour l'équipe…" style="margin-top:8px">${esc(t.notes)}</textarea>
@@ -145,6 +148,65 @@ BK.module('tournage', function (page) {
     const z = $('#toFiche');
     $$('[data-c]', z).forEach(c => c.oninput = c.onchange = () => { t[c.dataset.c] = c.value; sauver(t, /titre|date|morceau/.test(c.dataset.c)); });
     $$('[data-tenue]', z).forEach(c => c.oninput = () => { t.tenues[c.dataset.tenue] = c.value; sauver(t); });
+    // ---------- tenues : des photos (Médias, cloud, Discord), rangées dans la fiche et étiquetées « Tenues » + ce tournage ----------
+    const image = f => /^image\//.test(f.mimeType || '');
+    const enImage = async (x, role) => {                     // x : { f } (Drive) ou { dc } (Discord) → image réduite pour la fiche, et étiquettes
+      let f = x.f, u;
+      if (x.dc) { const r = await BK.discord.fetch(x.dc.url); if (!r.ok) throw new Error('expiré sur Discord'); const blob = await r.blob();
+        const dos = await BK.dossiers.get(role); if (dos) f = await BK.drive.envoyerBlob(new File([blob], x.nom, { type: blob.type || 'image/jpeg' }), x.nom, dos.id, () => {});
+        u = await enDataUrl(URL.createObjectURL(blob)); }
+      else { const v = await BK.drive.vignette(f); u = v ? await enDataUrl(v) : null; }
+      if (f && f.id) for (const k of ['c:outfits', 't:' + t.id]) await BK.etiquettes.basculer(f.id, k, true);
+      return u; };
+    const sourcesTenue = qui => [
+      { nom: '👕 Tenues (Médias)', charger: async () => { await BK.dossiers.assurer(); const [tous, tags, carte] = await Promise.all([BK.dossiers.tousFichiers(), BK.etiquettes.tous(), BK.dossiers.carte()]);
+          return tous.filter(f => image(f) && (BK.etiquettes.liste(tags, f.id).includes('c:outfits') || ((f.parents || [])[0] && BK.dossiers.ancetres(f.parents[0], carte).some(a => /outfit|tenue/i.test(carte[a].name)))))
+            .map(f => ({ id: f.id, nom: f.name, f, vignette: () => BK.drive.vignette(f) })); } },
+      { nom: '🍞 Discord' + (qui ? ' (' + qui + ' d\'abord)' : ''), charger: async () => { const l = (await BK.discord.mediasVite('media', {}).catch(() => []) || []).filter(x => !x.video && /\.(jpe?g|png|webp)$/i.test(x.nom || ''));
+          l.sort((a, b) => ((b.qui === qui) - (a.qui === qui)) || String(b.t || '').localeCompare(String(a.t || '')));
+          return l.map(x => ({ id: 'dc:' + x.id, nom: x.nom, dc: x, apercu: x.apercu || x.url, info: [x.qui, x.salon && '#' + x.salon].filter(Boolean).join(' · ') })); } },
+      { nom: '☁ Tout le cloud', charger: async () => { await BK.dossiers.assurer();
+          return (await BK.dossiers.tousFichiers()).filter(image).sort((a, b) => (b.modifiedTime || '').localeCompare(a.modifiedTime || '')).slice(0, 300).map(f => ({ id: f.id, nom: f.name, f, vignette: () => BK.drive.vignette(f) })); } },
+    ];
+    $$('[data-tph]', z).forEach(b => b.onclick = async () => {
+      if (!BK.drive.relie()) return msg('Relie d\'abord le Drive');
+      const qui = b.dataset.tph, l = await BK.choisirImages({ titre: 'Tenue de ' + qui, bouton: 'Ajouter', sources: sourcesTenue(qui) });
+      if (!l || !l.length) return;
+      msg('Ajout des photos…'); t.tenuesPhotos = t.tenuesPhotos || {}; t.tenuesPhotos[qui] = t.tenuesPhotos[qui] || [];
+      for (const x of l) { try { const u = await enImage(x, 'outfits'); if (u) t.tenuesPhotos[qui].push(u); } catch (e) { console.warn(e); } await BK.audio.pause(); }
+      await BK.db.ecrire('tournages', t); msg(l.length + ' photo(s) pour ' + qui); rendreFiche(); });
+    $$('[data-tpx]', z).forEach(b => b.onclick = async () => { const [qui, i] = b.dataset.tpx.split('|'); t.tenuesPhotos[qui].splice(+i, 1); await BK.db.ecrire('tournages', t); rendreFiche(); });
+    // Miette : sur Discord, les photos de tenues (salon « outfit », ou un message qui parle de tenue) et qui les a postées
+    $('#toTenuesMiette').onclick = async () => {
+      const b = $('#toTenuesMiette'); b.disabled = true; b.innerHTML = '<span class="spin"></span>Miette cherche…';
+      let l = []; try { l = await BK.discord.mediasVite('media', {}) || []; } catch (e) {}
+      b.disabled = false; b.textContent = '🍞 Qui porte quoi ?';
+      const RE = /tenue|outfit|fringue|look|porte|portera|habit|veste|chemise|pantalon|jean|robe|chaussure|sneaker|costume/i;
+      const deja = new Set(Object.values(t.tenuesPhotos || {}).flat());
+      const props = [];
+      for (const x of l) { if (x.video || !/\.(jpe?g|png|webp)$/i.test(x.nom || '')) continue;
+        if (!(/outfit|tenue|look|style/i.test(x.salon || '') || RE.test(x.texte || ''))) continue;
+        // à qui : un prénom cité dans le message, sinon celui qui a posté
+        const cite = T.membres.find(m => new RegExp('\\b' + m + '\\b', 'i').test(x.texte || ''));
+        const qui = cite || T.membres.find(m => m.toLowerCase() === String(x.qui || '').toLowerCase());
+        if (qui) props.push({ qui, x }); }
+      if (!props.length) return msg('Miette n\'a pas trouvé de photo de tenue sur Discord');
+      const v = document.createElement('div'); v.className = 'voile';
+      v.innerHTML = `<div class="stopbox" style="width:720px;align-items:stretch">
+        <span class="screw tl"></span><span class="screw tr"></span><span class="screw bl"></span><span class="screw br"></span>
+        <span class="dymo" style="align-self:center">🍞 Les tenues vues sur Discord</span>
+        <div class="tn-props">${T.membres.map(m => { const l = props.filter(p => p.qui === m); return l.length ? `<span class="eng">${esc(m)}</span><div class="tn-l">${l.map((p, i) => `<label class="tn-p" title="${esc(p.x.texte || p.x.nom)}"><input type="checkbox" data-tn="${props.indexOf(p)}" checked><span style="background-image:url(${esc(p.x.apercu || p.x.url)})"></span><small>${esc((p.x.texte || '').slice(0, 40))}</small></label>`).join('')}</div>` : ''; }).join('')}</div>
+        <span class="nt">Décoche ce qui n'est pas une tenue pour ce tournage.</span>
+        <div class="stopbox-btns"><button class="btn pri" id="tnOk">Ajouter aux tenues</button><button class="btn" id="tnNon">Annuler</button></div></div>`;
+      document.body.appendChild(v);
+      v.querySelector('#tnNon').onclick = () => v.remove();
+      v.querySelector('#tnOk').onclick = async () => {
+        const ch = [...v.querySelectorAll('[data-tn]:checked')].map(c => props[+c.dataset.tn]); v.remove();
+        t.tenuesPhotos = t.tenuesPhotos || {}; let n = 0;
+        for (const p of ch) { try { const u = await enImage({ dc: p.x, nom: p.x.nom }, 'outfits'); if (u && !deja.has(u)) { (t.tenuesPhotos[p.qui] = t.tenuesPhotos[p.qui] || []).push(u); n++; } } catch (e) { console.warn(e); }
+          msg(`Ajout ${n}/${ch.length}…`); await BK.audio.pause(); }
+        await BK.db.ecrire('tournages', t); msg(n + ' photo(s) de tenue ajoutée(s)'); rendreFiche(); };
+    };
     $$('.to-plans tr[data-i]', z).forEach(tr => $$('[data-p]', tr).forEach(c => c.oninput = c.onchange = () => { t.plans[+tr.dataset.i][c.dataset.p] = c.value; sauver(t); }));
     $('#toPlan').onclick = () => { t.plans.push({ cadrage: '', action: '', duree: '', notes: '' }); sauver(t); rendreFiche(); const l = $$('.to-plans [data-p="action"]'); l.length && l[l.length - 1].focus(); };
     $$('[data-px]', z).forEach(b => b.onclick = () => { t.plans.splice(+b.dataset.px, 1); sauver(t); rendreFiche(); });
@@ -326,7 +388,7 @@ BK.module('tournage', function (page) {
       <div class="imp-infos"><p><b>Quand</b> ${esc(dateFr(t.date)) || 'à fixer'}${t.heure ? ' à ' + esc(t.heure) : ''}</p><p><b>Où</b> ${esc(t.lieu || '—')}</p>${t.idee ? `<p><b>L'idée</b> ${esc(t.idee)}</p>` : ''}</div>
       ${t.moodboard.length ? `<h2>Moodboard</h2><div class="imp-mood">${t.moodboard.map(u => `<img src="${u}">`).join('')}</div>` : ''}
       ${t.plans.length ? `<h2>Découpage</h2><table><tr><th>#</th><th>Cadrage</th><th>Ce qu'on voit</th><th>Durée</th><th>Notes</th></tr>${t.plans.map((p, i) => `<tr><td>${i + 1}</td><td>${esc(p.cadrage)}</td><td>${esc(p.action)}</td><td>${esc(p.duree)}</td><td>${esc(p.notes)}</td></tr>`).join('')}</table>` : ''}
-      ${Object.values(t.tenues).some(Boolean) ? `<h2>Tenues</h2><table>${T.membres.filter(m => t.tenues[m]).map(m => `<tr><td class="imp-nom">${esc(m)}</td><td>${esc(t.tenues[m])}</td></tr>`).join('')}</table>` : ''}
+      ${Object.values(t.tenues).some(Boolean) || Object.values(t.tenuesPhotos || {}).some(l => l && l.length) ? `<h2>Tenues</h2><table>${T.membres.filter(m => t.tenues[m] || ((t.tenuesPhotos || {})[m] || []).length).map(m => `<tr><td class="imp-nom">${esc(m)}</td><td>${((t.tenuesPhotos || {})[m] || []).map(u => `<img src="${u}" style="height:110px;margin:0 6px 6px 0;border-radius:4px">`).join('')}${t.tenues[m] ? '<br>' + esc(t.tenues[m]) : ''}</td></tr>`).join('')}</table>` : ''}
       ${t.materiel ? `<h2>Matériel</h2><p class="imp-txt">${esc(t.materiel)}</p>` : ''}
       ${t.notes ? `<h2>Notes</h2><p class="imp-txt">${esc(t.notes)}</p>` : ''}`;
     document.body.appendChild(d); document.body.classList.add('imprime');

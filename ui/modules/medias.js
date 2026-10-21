@@ -26,7 +26,7 @@ BK.module('medias', function (page) {
         <div class="box md-barre">
           <button class="md-ico" id="mdHaut" title="Remonter d'un dossier">⬆</button>
           <div class="md-fil" id="mdFil"></div>
-          <label class="md-filtre"><span class="eng">🏷 Voir</span><select class="fld" id="mdFiltre"><option value="">Tous (dossier ouvert)</option></select></label>
+          <label class="md-filtre"><span class="eng">🏷 Voir</span><select class="fld" id="mdFiltre"><option value="">Tout le dossier</option></select></label>
           <div class="md-outils"><button class="md-ico" id="mdMoins" title="Vignettes plus petites">−</button><button class="md-ico" id="mdPlus2" title="Vignettes plus grandes">+</button><button class="md-ico" id="mdCaches" title="Voir les fichiers masqués">🙈<span id="mdNbC"></span></button></div>
         </div>
         <div class="box grow md-zone" id="mdZone"><div class="md-grille" id="mdGrille"></div></div>
@@ -70,7 +70,7 @@ BK.module('medias', function (page) {
     M.morceaux = (await BK.db.liste('morceaux')).sort((a, b) => a.nom.localeCompare(b.nom)); M.tags = await BK.etiquettes.tous();
     M.tournages = (await BK.db.liste('tournages')).sort((a, b) => (b.date || b.maj || '').localeCompare(a.date || a.maj || ''));
     const sel = $('#mdFiltre'), v = sel.value, rubs = cases();
-    sel.innerHTML = '<option value="">Tous (dossier ouvert)</option>' + [['morceaux', 'Morceaux'], ['tournage', 'Tournage'], ['lumiere', 'Lumière / scène'], ['reseaux', 'Réseaux']]
+    sel.innerHTML = '<option value="">Tout le dossier</option>' + [['morceaux', 'Morceaux'], ['tournage', 'Tournage'], ['lumiere', 'Lumière / scène'], ['reseaux', 'Réseaux']]
       .map(([r, t]) => `<optgroup label="${t}">${rubs[r].map(c => `<option value="${c.k}">${esc(c.nom)}</option>`).join('')}</optgroup>`).join(''); sel.value = v;
     paniers();
   }
@@ -282,13 +282,26 @@ BK.module('medias', function (page) {
     const lireTags = i => BK.etiquettes.liste(M.tags, (String(i).startsWith('dc:') && BK.etiquettes.copieDe(i)) || i);
     const tous = M.sel.size > 1 && M.sel.has(id) ? [...M.sel] : [id];
     const x0 = pos ? pos.x : r.left, y0 = pos ? pos.y : r.bottom + 4;
-    menu.style.left = Math.min(x0, innerWidth - 230) + 'px'; menu.style.top = Math.min(y0, innerHeight - 320) + 'px';
+    menu.style.left = Math.min(x0, innerWidth - 230) + 'px'; menu.style.top = Math.min(y0, innerHeight - 200) + 'px';
     const rubs = cases();
+    // un menu en cascade, comme Windows : les rubriques, et chacune s'ouvre à droite au survol (ou au clic)
+    let ouverte = null;
+    const GROUPES = [['morceaux', '♪ Morceaux'], ['tournage', '🎬 Tournage'], ['lumiere', '💡 Lumière / scène'], ['reseaux', '📣 Réseaux']];
     const dessiner = () => { const l = lireTags(id);
       menu.innerHTML = (tous.length > 1 ? `<span class="md-menu-t" style="color:#ffb23e">${tous.length} fichiers choisis</span>` : '')
-        + [['morceaux', 'Morceaux'], ['tournage', 'Tournage'], ['lumiere', 'Lumière / scène'], ['reseaux', 'Réseaux']].map(([r, t]) => `<span class="md-menu-t">${t}</span>`
-        + rubs[r].map(c => `<button data-m="${esc(c.k)}"${l.includes(c.k) ? ' class="on"' : ''}>${l.includes(c.k) ? '☑' : '☐'} ${esc(c.nom)}</button>`).join('')).join('')
-        + `<span class="md-menu-t"></span><button data-m="-"${l.includes('-') ? ' class="on"' : ''}>— Aucun morceau</button>${l.length ? '<button data-m="">↺ Tout enlever (deviner par le nom)</button>' : ''}`; };
+        + GROUPES.map(([r, t]) => { const n = rubs[r].filter(c => l.includes(c.k)).length;
+          return `<div class="md-grp${ouverte === r ? ' ouvert' : ''}" data-grp="${r}"><button class="md-grp-b">${t}${n ? ` <em>${n}</em>` : ''}<span class="md-fl">▸</span></button>
+            <div class="md-sub">${rubs[r].length ? rubs[r].map(c => `<button data-m="${esc(c.k)}"${l.includes(c.k) ? ' class="on"' : ''}><i style="background:${BK.couleurTag(c.k)}"></i>${l.includes(c.k) ? '☑' : '☐'} ${esc(c.nom)}</button>`).join('') : '<span class="nt" style="padding:6px 10px">Rien ici</span>'}</div></div>`; }).join('')
+        + `<span class="md-menu-sep"></span><button data-m="-"${l.includes('-') ? ' class="on"' : ''}>— Aucun morceau</button>${l.length ? '<button data-m="">↺ Tout enlever</button>' : ''}`;
+      // le sous-menu s'ouvre à droite (ou à gauche s'il n'y a pas la place)
+      menu.querySelectorAll('.md-grp').forEach(g => {
+        const ouvrir = () => { ouverte = g.dataset.grp; menu.querySelectorAll('.md-grp').forEach(x => x.classList.toggle('ouvert', x === g));
+          const sub = g.querySelector('.md-sub'), r = g.getBoundingClientRect(), droite = r.right + 230 < innerWidth;
+          sub.style.left = (droite ? r.right + 2 : r.left - 232) + 'px';
+          sub.style.top = Math.max(8, Math.min(r.top - 6, innerHeight - Math.min(sub.scrollHeight, 360) - 8)) + 'px'; };
+        g.addEventListener('mouseenter', ouvrir); g.querySelector('.md-grp-b').onclick = e => { e.stopPropagation(); ouvrir(); };
+      });
+      if (ouverte) { const g = menu.querySelector(`[data-grp="${ouverte}"]`); g && g.dispatchEvent(new Event('mouseenter')); } };
     dessiner();
     document.body.appendChild(menu);
     const fermer = e => { if (!menu.contains(e.target)) { menu.remove(); document.removeEventListener('pointerdown', fermer, true); } };

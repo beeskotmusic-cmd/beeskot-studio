@@ -85,12 +85,13 @@ BK.module('suivi', function (page) {
       ${img ? '' : '<span class="su-aff-vide">🎬</span>'}
       <span class="su-aff-jauge"><i style="width:${Math.round((i + 1) / ETAPES.length * 100)}%"></i></span>
       <span class="su-aff-bas">
-        <span class="su-aff-type">${esc(r.type || 'Reel')}${r.afficheIA ? ' · 🍞 imaginé' : ''}</span>
+        <span class="su-aff-type">${esc(r.type || 'Reel')}</span>
         <span class="su-aff-t">${esc(r.titre || 'Reel')}</span>
         ${m ? `<span class="su-aff-m">${esc(m.nom)}</span>` : ''}
         <span class="su-aff-pas">${ETAPES.map((e, k) => `<i class="${k <= i ? 'faite' : ''}"></i>`).join('')}<em>${esc(ETAPES[Math.max(0, i)].nom)}</em></span>
       </span>
       ${pas ? '<span class="su-aff-son">♪</span>' : ''}
+      <span class="su-aff-outils"><span class="su-aff-o" data-affiche="${r.id}" title="Changer l'image">🖼</span>${r.affiche ? `<span class="su-aff-o" data-imgx="${r.id}" title="Revenir à l'image automatique (moodboard)">↺</span>` : ''}</span>
       ${r.sortie ? `<span class="su-aff-date sortie" title="Sortie prévue">🚀 ${esc(date(r.sortie))}</span>` : t && t.date ? `<span class="su-aff-date" title="Tournage">${esc(date(t.date))}</span>` : ''}
     </button>`;
   }
@@ -105,6 +106,7 @@ BK.module('suivi', function (page) {
     return `<div class="su-c ouverte" data-id="${r.id}">
       <div class="su-tete">
         <button class="su-titre" data-ouv="${r.id}"><b>${esc(r.titre || 'Reel')}</b>${m ? `<span class="su-m">${esc(m.nom)}</span>` : ''}</button>
+        <select class="fld su-type" data-type="${r.id}" title="C'est quoi ?">${TYPES_R.map(x => `<option${(r.type || 'Reel') === x ? ' selected' : ''}>${x}</option>`).join('')}</select>
         ${pas ? `<span class="su-lect"><button class="btn xs" data-play="${r.id}" title="Écouter le passage">▶</button><span class="mono">${t2(pas.debut)} → ${t2(pas.fin)}</span></span>` : '<span class="nt su-lect">passage à choisir</span>'}
         <div class="su-etapes">${ETAPES.map((e, k) => `<button class="su-e${k <= i ? ' ok' : ''}${k === i ? ' on' : ''}" data-st="${r.id}|${e.k}" title="${e.nom}">${e.ic}</button>`).join('')}</div>
         <button class="btn xs" data-ouv="${r.id}" title="Replier">▾ Fermer</button>
@@ -131,12 +133,7 @@ BK.module('suivi', function (page) {
         <input class="fld" type="date" data-sortie="${r.id}" value="${esc(r.sortie || '')}">
         <span class="nt">${r.sortie ? (r.evenement ? '✓ dans le Calendrier' : 'pas encore dans le Calendrier') : 'choisis une date : elle ira dans le Calendrier'}</span>
         ${r.sortie ? `<button class="btn xs" data-sortiex="${r.id}" title="Enlever la date">✕</button>` : ''}</div>
-      <div class="su-aff-edit"><span class="nt">Image du poster : ${r.affiche ? (r.afficheIA ? 'imaginée par Miette' : 'choisie à la main') : t && (t.moodboard || []).length ? 'le moodboard du tournage' : m && m.photo ? 'la photo du morceau' : 'aucune'}</span>
-        <button class="btn xs" data-affiche="${r.id}">🖼 Changer l'image</button><button class="btn xs" data-imagine="${r.id}" title="Gemini dessine une image à partir de l'idée, pour se projeter (pas besoin qu'elle soit exacte)">🍞 Imaginer l'image</button>${r.affiche ? `<button class="btn xs" data-imgx="${r.id}">↺ Automatique</button>` : ''}</div>
-      <div class="su-idee">
-        <div class="chips su-types">${TYPES_R.map(x => `<button class="chip${(r.type || 'Reel') === x ? ' on' : ''}" data-type="${r.id}|${x}">${x}</button>`).join('')}</div>
-        <input class="fld" data-idee="${r.id}" value="${esc(r.notes || '')}" placeholder="L'idée en une phrase (ex. Pierre danse seul dans le studio, lumière rouge, plan fixe)">
-      </div>
+
     </div>`;
   }
 
@@ -213,28 +210,9 @@ BK.module('suivi', function (page) {
     };
     $$('[data-sortie]', z).forEach(i => { i.addEventListener('keydown', e => e.stopPropagation()); i.onchange = () => sortie(R.l.find(x => x.id === i.dataset.sortie), i.value); });
     $$('[data-sortiex]', z).forEach(b => b.onclick = () => sortie(R.l.find(x => x.id === b.dataset.sortiex), ''));
-    $$('[data-type]', z).forEach(b => b.onclick = async () => { const [id, ty] = b.dataset.type.split('|'), r = R.l.find(x => x.id === id); r.type = ty; await BK.db.ecrire('reels', r); rendre(); });
-    $$('[data-idee]', z).forEach(i => { i.addEventListener('keydown', e => { e.stopPropagation(); if (e.key === 'Enter') i.blur(); });
-      i.onchange = async () => { const r = R.l.find(x => x.id === i.dataset.idee); r.notes = i.value.trim(); await BK.db.ecrire('reels', r); msg('Idée enregistrée'); }; });
-    $$('[data-imagine]', z).forEach(b => b.onclick = async () => {
-      const r = R.l.find(x => x.id === b.dataset.imagine), t = tournageDe(r), m = morceauDe(r);
-      const idee = (r.notes || (t && t.idee) || '').trim();
-      if (!idee) { const i = $(`[data-idee="${r.id}"]`, z); i && i.focus(); return msg('Écris d\'abord l\'idée en une phrase'); }
-      if (!(await BK.ia.pret())) return msg('Il faut la clé Gemini (Réglages › Miette)');
-      const tenues = t && t.tenues ? Object.entries(t.tenues).filter(([, v]) => v).map(([k, v]) => k + ' : ' + v).join(', ') : '';
-      const texte = `Image d'ambiance pour un ${r.type || 'reel'} vertical d'un groupe de musique (BEESKOT).\nIdée : ${idee}.`
-        + (m ? `\nMorceau : ${m.nom}.` : '') + (t && t.lieu ? `\nLieu : ${t.lieu}.` : '') + (tenues ? `\nTenues : ${tenues}.` : '')
-        + `\nStyle : photo de clip, cinématographique, lumière travaillée. Pas de texte ni de logo.`;
-      b.disabled = true; b.innerHTML = '<span class="spin"></span>Miette dessine…';
-      try {
-        const url = await BK.ia.image(texte);
-        const blob = await (await fetch(url)).blob(), petit = BK.ia.reduireImage ? await BK.ia.reduireImage(blob, 900) : blob;
-        r.affiche = await new Promise(ok => { const fr = new FileReader(); fr.onload = () => ok(fr.result); fr.readAsDataURL(petit); });
-        r.afficheIA = true; await BK.db.ecrire('reels', r); msg('Image imaginée ✓ (pour se projeter)'); rendre();
-      } catch (e) { msg(e.message || 'Image impossible'); b.disabled = false; b.textContent = '🍞 Imaginer l\'image'; }
-    });
-    $$('[data-imgx]', z).forEach(b => b.onclick = async () => { const r = R.l.find(x => x.id === b.dataset.imgx); delete r.affiche; delete r.afficheIA; await BK.db.ecrire('reels', r); msg('Image automatique'); rendre(); });
-    $$('[data-affiche]', z).forEach(b => b.onclick = async () => { const r = R.l.find(x => x.id === b.dataset.affiche), m = morceauDe(r);
+    $$('[data-type]', z).forEach(sel => { sel.onclick = e => e.stopPropagation(); sel.onchange = async () => { const r = R.l.find(x => x.id === sel.dataset.type); r.type = sel.value; await BK.db.ecrire('reels', r); msg('Type : ' + r.type); rendre(); }; });
+    $$('[data-imgx]', z).forEach(b => b.onclick = async e => { e.stopPropagation(); const r = R.l.find(x => x.id === b.dataset.imgx); delete r.affiche; delete r.afficheIA; await BK.db.ecrire('reels', r); msg('Image automatique'); rendre(); });
+    $$('[data-affiche]', z).forEach(b => b.onclick = async e => { e.stopPropagation(); const r = R.l.find(x => x.id === b.dataset.affiche), m = morceauDe(r);
       const image = f => /^image\//.test(f.mimeType || '');
       const reduire = async (blob) => { const b = BK.ia.reduireImage ? await BK.ia.reduireImage(blob, 900) : blob;      // petite, rangée dans la fiche
         return new Promise(ok => { const fr = new FileReader(); fr.onload = () => ok(fr.result); fr.readAsDataURL(b); }); };
