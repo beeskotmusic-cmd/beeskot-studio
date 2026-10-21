@@ -3,6 +3,22 @@
 // Pour une nouvelle version : ajouter un bloc EN HAUT de la liste. Une ligne courte par point : « Onglet : ce qui change. »
 // =====================================================================
 BK.NOUVEAUTES = [
+  { v: '0.9.52', titre: '', l: [
+    ['⚡', 'Démarrage : le logiciel s\'ouvre plus vite.'],
+    ['🟢', 'Bandeau : ONLINE se met à jour quand on ouvre ou ferme le logiciel.'],
+    ['☁', 'Photos : lues depuis le Drive, plus recopiées dans les fiches.'],
+    ['🪶', 'Réglages : « Alléger les fiches » range les vieilles photos dans le Drive.'],
+    ['🏷', 'Médias : barre des étiquettes fine, repliable avec ▾.'],
+    ['📂', 'Médias : s\'ouvre toujours sur « Tous les dossiers ».'],
+    ['🗂', 'Réglages : rangés en onglets.'],
+    ['🎞', 'Reels Vidéo : photos et vidéos mélangées, une durée par fichier.'],
+    ['✨', 'Reels Vidéo : animations, transitions et effets vintage.'],
+    ['🎨', 'Reels Vidéo : cadrage et couleur comme dans Reels Photo.'],
+    ['📼', 'Reels Photo : effets vintage (grain, poussière, VHS…).'],
+    ['🟢', 'Bandeau : le nom du PC (Yacine, Studio…) au lieu de « Ce PC ».'],
+    ['📅', 'Calendrier : les dates de Miette ne s\'effacent plus, et on voit ce qu\'elle a lu.'],
+    ['🍞', 'Accueil : résumé de la semaine avec les mails et où on en est.'],
+  ] },
   { v: '0.9.51', titre: '', l: [
     ['🎨', 'Bibliothèque : une couleur par étape.'],
     ['📖', 'Réglages : tuto de tout le logiciel.'],
@@ -92,14 +108,17 @@ BK.TUTO = [
     'Après l\'export : 📂 Ouvrir le dossier, ⇪ Upload Drive.' ] },
   { o: 'Reels Photo', ic: '📸', l: [
     'Ajoute des photos, choisis le format (story 9:16 par défaut, 4:5, carré, paysage).',
-    'Cadrage : Entière, Remplir, Centrer. Couleur : un filtre ou ta LUT.',
+    'Cadrage : Entière, Remplir, Centrer. Couleur : un filtre ou ta LUT. Effet : vintage, grain, VHS…',
     'Exporter : 📂 Ouvrir le dossier, ⇪ Upload Drive.' ] },
   { o: 'Reels Vidéo', ic: '🎞', l: [
     'Une vidéo verticale avec la musique d\'un export Reels Audio (ou de ce PC), et des sous-titres.',
-    '🖼 Des photos… : choisis des photos et leur durée (ou cale-les sur la musique), ça fabrique la vidéo.' ] },
+    '🖼 Photos et vidéos… : mélange-les, une durée et une animation par fichier, une transition, un effet vintage, puis « Importer ».',
+    'Cadrage (Entière, Remplir, Centrer), Couleur + Intensité, Effet : comme dans Reels Photo.' ] },
   { o: 'Réglages', ic: '⚙', l: [
+    'En onglets : Aide, Ce PC, Onglets, Miette & Discord, Drive, Ableton.',
     'Qui utilise ce PC, taille de l\'interface, onglets affichés.',
     'Drive : carte d\'accès pour les autres PC, ⏪ Time Machine pour revenir en arrière.',
+    'Drive : 🪶 Alléger les fiches range les vieilles photos dans le Drive (une seule fois suffit).',
     'Miette : la clé Gemini et les salons Discord à lire.' ] },
 ];
 

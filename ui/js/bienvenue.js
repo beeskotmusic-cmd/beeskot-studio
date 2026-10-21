@@ -34,7 +34,7 @@ BK.bienvenue = {
         bouton: 'Ouvrir les réglages de Miette',
         option: true,
         fait: () => false,
-        action: async () => { BK.bienvenue.fermer(); BK.ouvrir('reglages'); setTimeout(() => { const z = document.getElementById('raReglages'); z && z.scrollIntoView({ behavior: 'smooth' }); }, 300); return null; } }]),
+        action: async () => { BK.bienvenue.fermer(); BK.ouvrir('reglages'); BK.reglagesOnglet && BK.reglagesOnglet('miette'); return null; } }]),
       { id: 'fin', titre: 'C\'est prêt !', ic: '✓',
         txt: 'Quelques repères :<br><br>• Le <b>bouton jaune</b> (la biscotte) en haut : Miette relit Discord et le Drive, et remplit tous les onglets.<br>• Le <b>menu de gauche</b> : chaque titre (Audio, Organisation…) se replie d\'un clic.<br>• Tout ce que tu fais arrive sur les autres PC tout seul.<br>• <b>Ctrl + Z</b> annule la dernière action.<br><br>Ce guide ne reviendra plus. Pour le revoir : <b>Réglages › Revoir le guide</b>.',
         fait: () => true, action: null },
@@ -74,7 +74,7 @@ BK.bienvenue = {
       <span class="nt bv-num">Étape ${BK.bienvenue.i + 1} sur ${n}</span>`;
     const champ = e.champ && v.querySelector('#' + e.champ.id);
     if (champ) { champ.addEventListener('keydown', ev => { ev.stopPropagation(); if (ev.key === 'Enter') v.querySelector('[data-bv="suiv"]').click(); });
-      champ.oninput = () => { BK.regler('nomPc', champ.value.trim()); const s = document.getElementById('syPc'); if (s) s.textContent = (champ.value.trim() || 'CE PC').toUpperCase(); }; setTimeout(() => champ.focus(), 100); }
+      champ.oninput = () => { BK.regler('nomPc', champ.value.trim()); BK.majNomPc && BK.majNomPc(); }; setTimeout(() => champ.focus(), 100); }
     const act = v.querySelector('.bv-act');
     if (act) act.onclick = async () => { act.disabled = true; const t = act.textContent; act.innerHTML = '<span class="spin"></span>…';
       try { const r = await e.action(); await BK.bienvenue.dessiner(r || 'Pas fait pour l\'instant'); } catch (er) { act.disabled = false; act.textContent = t; await BK.bienvenue.dessiner('Problème : ' + (er.message || er)); } };

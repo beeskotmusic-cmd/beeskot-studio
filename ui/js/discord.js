@@ -175,6 +175,14 @@ Si rien n'est décidé, réponds [].`;
     return BK.ia.demander(`${await BK.ia.contexte()}\n\nMessages Discord utiles (du plus ancien au plus récent) :\n${BK.discord.texte(choisis) || '(aucun message lu pour l\'instant)'}\n\nQuestion : ${q}`, { systeme, temperature: 0.2, vite: true, delai: 60 });
   },
 
+  // ---------- la consigne du résumé de la semaine (Accueil) : la même pour le bouton jaune et pour ↻ ----------
+  CONSIGNE_SEMAINE: `"semaine": "ce qui s'est passé ces 7 derniers jours, 3 à 6 phrases courtes et simples : ce qu'on s'est dit, ce qui a été décidé, les dates",
+ "mails": ["1 ligne par mail reçu cette semaine (ingé son, Fiverr, distributeur, salle, facture, livraison d'un mix) : qui a écrit, ce qu'il dit, et s'il faut répondre ou payer. Vide si aucun mail"],
+ "avancement": ["2 à 6 lignes courtes : où on en est, ce qui a AVANCÉ cette semaine (un morceau passé au mix ou au master, un mix livré, un tournage fait ou calé, une sortie qui approche, une tâche finie) et ce qui bloque"],
+ "afaire": ["3 à 6 lignes courtes : ce qui ressort à faire, avec qui (répondre à un mail et payer une facture en font partie)"]`,
+  // ce qu'on garde du résumé
+  garderResume(doc, r) { return Object.assign(doc, { texte: r.semaine || '', mails: Array.isArray(r.mails) ? r.mails.filter(Boolean) : [], avancement: Array.isArray(r.avancement) ? r.avancement.filter(Boolean) : [], afaire: Array.isArray(r.afaire) ? r.afaire.filter(Boolean) : [] }); },
+
   // ---------- le résumé de la semaine (pour l'Accueil), refait quand il y a du neuf, au plus une fois par heure ----------
   async resume(force = false) {
     if (!(await BK.ia.pret())) return null;
@@ -187,11 +195,11 @@ Si rien n'est décidé, réponds [].`;
     try {
       const systeme = 'Tu es l\'assistant du groupe BEESKOT. Écris en français simple, comme un message à un ami. Pas de titre, pas de blabla.';
       const r = await BK.ia.demander(`${await BK.ia.contexte()}\n\nMessages Discord des 7 derniers jours :\n${BK.discord.texte(recents.slice(-600))}\n\n`
-        + 'Réponds en JSON : {"semaine": "ce qu\'on s\'est dit cette semaine, en 3 à 6 phrases courtes (décisions, dates, nouveautés). Cite aussi les MAILS reçus (ingé son, Fiverr, distributeur, factures, livraison d\'un mix) : qui a écrit et ce qu\'il dit.", "afaire": ["les choses à faire qui ressortent, 3 à 6 lignes courtes, avec qui si on le sait (répondre à un mail et payer une facture en font partie)"]}',
+        + 'Réponds en JSON : {' + BK.discord.CONSIGNE_SEMAINE + '}',
         { systeme, json: true, temperature: 0.3, vite: true, delai: 90 });
-      Object.assign(doc, { texte: r.semaine || '', afaire: Array.isArray(r.afaire) ? r.afaire : [], dernier, t: Date.now(), nb: recents.length });
+      BK.discord.garderResume(doc, r); Object.assign(doc, { dernier, t: Date.now(), nb: recents.length });
       await BK.db.ecrire('veille', doc);
-      BK.regler('accueil.resume', { id: 'resume', texte: doc.texte, afaire: doc.afaire, t: doc.t });          // gardé sur ce PC : s'affiche tout de suite
+      BK.regler('accueil.resume', { ...doc });          // gardé sur ce PC : s'affiche tout de suite
       BK.renfortGarder && BK.renfortGarder({ type: 'resume', q: 'Cette semaine sur Discord (' + new Date().toLocaleDateString('fr-CA', { day: 'numeric', month: 'short' }) + ')', r: doc.texte + ((doc.afaire || []).length ? '\n\nÀ faire :\n• ' + doc.afaire.join('\n• ') : '') });
       return doc;
     } finally { BK.discord.resumeEnCours = false; window.dispatchEvent(new CustomEvent('bk:resume')); }
@@ -287,6 +295,17 @@ Si rien n'est décidé, réponds [].`;
   },
 
   // ---------- PLANNING : les dates dont on a parlé (validées ou juste possibles) → le Calendrier ----------
+  // les dates trouvées s'AJOUTENT à celles d'avant (une lecture qui en trouve moins n'efface plus rien) ;
+  // une date passée ou « ✕ ignorée » s'en va
+  rangerPlanning(doc, trouvees, auj) {
+    const ign = new Set(doc.ignores || []), sujet = e => [e.type, BK.inv.normaliser(e.morceau || ''), BK.inv.normaliser(e.titre || '')].join('|');
+    const neuves = trouvees.filter(e => e.dates.some(d => /^\d{4}-\d\d-\d\d$/.test(d) && d >= auj))
+      .map(e => ({ ...e, dates: e.dates.filter(d => /^\d{4}-\d\d-\d\d$/.test(d) && d >= auj), cle: [e.type, e.morceau, e.titre, e.dates.join('+')].join('|') })).filter(e => !ign.has(e.cle));
+    const vus = new Set(neuves.map(sujet));
+    const anciennes = (doc.l || []).filter(e => !vus.has(sujet(e)) && !ign.has(e.cle) && (e.dates || []).some(d => d >= auj));
+    doc.l = [...neuves, ...anciennes];
+    return doc;
+  },
   async planning() {
     if (!(await BK.ia.pret())) throw new Error('Il faut la clé Gemini et l\'AI allumée');
     const j = await BK.discord.journal(3), depuis = new Date(Date.now() - 45 * 864e5).toISOString(), recents = j.filter(l => l.t >= depuis);
@@ -302,9 +321,12 @@ Les dates relatives se calculent depuis la date du message. Ne garde que les dat
 Réponds en JSON : un tableau de {"type":"tournage|shooting|enreg|repet|mixage|sortie|promo|autre","titre":"court","morceau":"nom exact ou vide","dates":["AAAA-MM-JJ"],"heure":"HH:MM ou vide","lieu":"","statut":"valide|possible","pourquoi":"1 phrase qui cite ce qui a été dit","source":"l'identifiant (msg …)"}.
 Morceaux : ${ms.map(m => m.nom + ((m.alias || []).length ? ' (' + m.alias.join(', ') + ')' : '')).join(', ')}.`;
     const r = await BK.ia.demander(`Messages Discord des 45 derniers jours :\n${BK.discord.texte(recents.slice(-800))}`, { systeme, json: true, temperature: 0.1, vite: true, delai: 90 });
-    const ignores = new Set(doc.ignores || []);
-    doc.l = (Array.isArray(r) ? r : []).filter(e => e && Array.isArray(e.dates) && e.dates.some(d => /^\d{4}-\d\d-\d\d$/.test(d) && d >= auj))
-      .map(e => ({ ...e, cle: [e.type, e.morceau, e.titre, e.dates.join('+')].join('|') })).filter(e => !ignores.has(e.cle));
+    const brut = (Array.isArray(r) ? r : Array.isArray(r && r.dates) ? r.dates : Array.isArray(r && r.planning) ? r.planning : []).filter(e => e && Array.isArray(e.dates));
+    BK.discord.rangerPlanning(doc, brut, auj);
+    // ce que Miette a lu : pour comprendre quand une date n'apparaît pas
+    const mails = recents.filter(l => /^🤖/.test(l.qui || ''));
+    doc.lu = { messages: recents.length, mails: mails.length, de: (recents[0] || {}).t || '', a: (recents[recents.length - 1] || {}).t || '', trouvees: brut.length,
+      passees: brut.filter(e => !e.dates.some(d => d >= auj)).length, t: Date.now() };
     doc.t = Date.now(); await BK.db.ecrire('veille', doc);
     BK.agendaRecharger && BK.agendaRecharger();
     return doc;

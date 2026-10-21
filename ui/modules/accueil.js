@@ -69,7 +69,7 @@ BK.module('accueil', function (page) {
           <div class="box ac-resume" id="acResume"></div>
           ${d.release.length ? `<div class="box ac-rel"><span class="lb">Prochaine release</span>
             <div class="ac-rel-l">${d.release.slice(0, 2).map(m => `<button class="ac-rel-m" data-va="biblio" title="Ouvrir la Bibliothèque">
-              <span class="ac-rel-p${m.photo ? '' : ' vide'}"${m.photo ? ` style="background-image:url(${esc(m.photo)})"` : ''}>${m.photo ? '' : '♪'}</span>
+              <span class="ac-rel-p${m.photo ? '' : ' vide'}"${BK.img.bg(m.photo)}>${m.photo ? '' : '♪'}</span>
               <span class="ac-rel-n">${esc(m.nom)}</span><span class="vfd ac-rel-pc">${Math.round(BK.pourcent(m))} %</span></button>`).join('')}</div></div>` : ''}
           <div class="box grow"><div class="ligne-titre"><span class="lb">À faire</span><button class="btn xs" data-va="taches" style="margin-left:auto">Ouvrir la To-do list</button></div>
             <div class="af-liste">${d.afaire.length ? d.afaire.map(x => `<div class="af-l${x.date && x.date < d.auj ? ' retard' : ''}">
@@ -103,10 +103,10 @@ BK.module('accueil', function (page) {
   function afficherResume(doc, { pret = true, enCours = false, regle = true } = {}) {
     const z = $('#acResume', page); if (!z) return;
     if (!regle && !(doc && doc.texte)) { z.innerHTML = `<span class="lb">🍞 Cette semaine</span><span class="nt">Règle Miette (Réglages) pour voir ici le résumé de ce que vous vous êtes dit sur Discord.</span>`; return; }
-    z.innerHTML = `<div class="ligne-titre"><span class="lb">🍞 Cette semaine, sur Discord</span>
+    z.innerHTML = `<div class="ligne-titre"><span class="lb">🍞 Cette semaine : Discord et mails</span>
         <span class="nt" style="margin:0 0 0 auto">${enCours ? '<span class="spin"></span>AI en cours de lecture…' : doc && doc.t ? 'mis à jour ' + new Date(doc.t).toLocaleString('fr-CA', { weekday: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : ''}</span>
         ${pret && !enCours ? '<button class="btn xs" id="acResumeMaj" title="Refaire le résumé maintenant">↻</button>' : ''}</div>
-      ${doc && doc.texte ? `<p class="ac-texte">${esc(doc.texte)}</p>${(doc.afaire || []).length ? `<span class="eng" style="font-size:9px">Ce qui ressort à faire</span><ul class="ac-afaire">${doc.afaire.map(x => `<li>${esc(x)}</li>`).join('')}</ul>` : ''}`
+      ${doc && doc.texte ? `<p class="ac-texte">${esc(doc.texte)}</p>${(doc.mails || []).length ? `<span class="eng" style="font-size:9px">📬 Les mails</span><ul class="ac-afaire">${doc.mails.map(x => `<li>${esc(x)}</li>`).join('')}</ul>` : ''}${(doc.avancement || []).length ? `<span class="eng" style="font-size:9px">📈 Où on en est</span><ul class="ac-afaire">${doc.avancement.map(x => `<li>${esc(x)}</li>`).join('')}</ul>` : ''}${(doc.afaire || []).length ? `<span class="eng" style="font-size:9px">Ce qui ressort à faire</span><ul class="ac-afaire">${doc.afaire.map(x => `<li>${esc(x)}</li>`).join('')}</ul>` : ''}`
         : `<span class="nt">${!pret ? 'Ajoute la clé Gemini (Réglages) et allume l\'interrupteur AI pour avoir le résumé.' : enCours ? 'Miette lit les messages de la semaine…' : 'Pas encore de résumé : clique ↻ (ou attends la prochaine lecture de Miette).'}</span>`}`;
     const b = $('#acResumeMaj', z); if (b) b.onclick = async () => { b.disabled = true;
       try { await BK.discord.ronde(() => {}, true).catch(() => {}); await BK.discord.resume(true); } catch (e) { z.insertAdjacentHTML('beforeend', `<span class="nt">${esc(e.message)}</span>`); } resume(); };

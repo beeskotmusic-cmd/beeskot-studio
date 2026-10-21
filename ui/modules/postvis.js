@@ -47,6 +47,8 @@ BK.module('postvis', function (page) {
                 <span class="eng">Couleur</span>
                 <div class="pv-ligne"><select class="fld" id="pvFiltre">${['', ...BK.filtres.map(f => f.nom)].map(n => `<option value="${n}">${n || 'Aucun filtre'}</option>`).join('')}<option value="__lut">＋ Ajouter une LUT (.cube)…</option></select>
                   <span class="eng" style="margin-left:6px">Intensité</span><input class="fld rv-glisse pv-force" id="pvForce" value="100 %" title="Clic maintenu et glisse la souris (ou double-clic pour taper)"></div>
+                <span class="eng">Effet</span>
+                <div class="pv-ligne"><select class="fld" id="pvVoile">${BK.rendu.VOILES.map(([k, n]) => `<option value="${k}">${n}</option>`).join('')}</select></div>
                 <span></span>
                 <div class="pv-ligne"><button class="pv-lien" id="pvTous" title="Applique le cadrage de cette photo à toutes les photos du carrousel">↻ Même cadrage pour toutes les photos</button></div>
               </div>
@@ -97,7 +99,7 @@ BK.module('postvis', function (page) {
   function dessiner() {
     const s = S(); $('#pvVide').classList.toggle('hidden', !!s);
     if (!s) { c2.clearRect(0, 0, cv.width, cv.height); return; }
-    r.dessiner(s.img, { zoom: s.zoom / 100, x: s.x, y: s.y }, (P.force ?? 100) / 100, ''); c2.drawImage(r.sortie, 0, 0);
+    r.dessiner(s.img, { zoom: s.zoom / 100, x: s.x, y: s.y }, (P.force ?? 100) / 100, '', P.voile ? { type: P.voile, t: 0 } : null); c2.drawImage(r.sortie, 0, 0);
     $('#pvZoom').value = (s.zoom - 100) + ' %';
   }
   function majTout() {
@@ -237,6 +239,7 @@ BK.module('postvis', function (page) {
       dessiner(); msg('LUT appliquée à toutes les photos'); }
     catch (e) { msg(e.message); $('#pvFiltre').value = ''; }
   }
+  $('#pvVoile').onchange = e => { P.voile = e.target.value; dessiner(); msg(P.voile ? 'Effet : ' + e.target.selectedOptions[0].textContent + ' (toutes les photos)' : 'Sans effet'); };
   $('#pvLutIn').onchange = e => e.target.files[0] && chargerLut(e.target.files[0]);
   // filtres prêts à l'emploi (un clic) — ou sa propre LUT .cube
   let filtreAvant = '';
@@ -284,7 +287,7 @@ BK.module('postvis', function (page) {
     try {
       const f = F(), rr = BK.rendu.creer(f.L, f.H); rr.lut(P.lut); const faits = [];
       for (let k = 0; k < P.slides.length; k++) {
-        const s = P.slides[k]; rr.dessiner(s.img, { zoom: s.zoom / 100, x: s.x, y: s.y }, (P.force ?? 100) / 100, '');
+        const s = P.slides[k]; rr.dessiner(s.img, { zoom: s.zoom / 100, x: s.x, y: s.y }, (P.force ?? 100) / 100, '', P.voile ? { type: P.voile, t: k * 0.37 } : null);   // l'effet vintage : un peu différent sur chaque photo
         const blob = await new Promise(ok => rr.sortie.toBlob(ok, 'image/jpeg', 0.92)), octets = new Uint8Array(await blob.arrayBuffer());
         const nom = `${P.nom}_${String(k + 1).padStart(2, '0')}_${f.L}x${f.H}.jpg`;
         const pth = await BK.enregistrerFichier(BK.chemin('Posts', P.nom), nom, octets, 'image/jpeg');

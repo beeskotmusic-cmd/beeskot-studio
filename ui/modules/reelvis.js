@@ -43,7 +43,7 @@ BK.module('reelvis', function (page) {
           <div class="rv-cote">
             <div class="box"><div class="ligne-titre"><span class="lb">① La vidéo</span></div>
               <div class="rv-charge"><select class="fld" id="rvMorceau"><option value="">Choisis : un morceau, un tournage, un live…</option></select>
-                <button class="btn sm pri" id="rvTag">🏷 Les vidéos de Médias</button><button class="btn sm" id="rvPick">💻 Ce PC…</button><button class="btn sm" id="rvDrive">☁ Drive…</button><button class="btn sm warm" id="rvPhotos" title="Fabriquer une vidéo à partir de photos (et d'une musique)">🖼 Des photos…</button><input type="file" id="rvInput" accept="video/*" hidden></div></div>
+                <button class="btn sm pri" id="rvTag">🏷 Les vidéos de Médias</button><button class="btn sm" id="rvPick">💻 Ce PC…</button><button class="btn sm" id="rvDrive">☁ Drive…</button><button class="btn sm warm" id="rvPhotos" title="Mettre bout à bout des photos et des vidéos (avec une musique)">🖼 Photos et vidéos…</button><input type="file" id="rvInput" accept="video/*" hidden></div></div>
             <div class="box"><div class="ligne-titre"><span class="lb">② Couper la vidéo</span>
                 <span class="nt" style="margin:0 0 0 auto">Glisse le bloc · tire ses bords · <b>I</b> / <b>O</b> = début / fin à la tête de lecture</span></div>
               <div class="onde rv-bande" id="rvBande">
@@ -59,14 +59,19 @@ BK.module('reelvis', function (page) {
                 <div class="compteurs-btn"><button class="btn sm" id="rvI" title="Début ici (touche I)">I</button><button class="btn sm" id="rvO" title="Fin ici (touche O)">O</button></div>
               </div></div>
             <div class="box"><span class="lb">③ Recadrer et couleur</span>
-              <span class="nt">Fais glisser l'image dans le téléphone pour la déplacer.</span>
-              <div class="rv-reglages">
-                <span class="eng">Zoom</span><input class="fld rv-glisse" id="rvZoom" value="0 %" title="Clic maintenu et glisse la souris (ou double-clic pour taper)">
-                <button class="chip" id="rvCentre">Recentrer</button></div>
-              <span class="eng" style="margin-top:6px">Filtre</span><div class="chips filtres" id="rvFiltres">${['Aucun', ...BK.filtres.map(f => f.nom)].map((n, i) => `<button class="chip${i ? '' : ' on'}" data-fi="${i ? n : ''}">${n}</button>`).join('')}</div>
-              <div class="chips"><button class="chip" id="rvLutB">Ma LUT (.cube)…</button><button class="chip hidden" id="rvLutX">Sans LUT</button></div>
-              <input type="file" id="rvLutIn" accept=".cube" hidden><span class="nt" id="rvLutNom"></span></div>
-            <div class="box grow"><div class="ligne-titre"><span class="lb">④ Sous-titres</span>
+              <div class="pv-tab">
+                <span class="eng">Cadrage</span>
+                <div class="pv-seg"><button id="rvEntier" title="Voir toute la vidéo, avec des bandes">⤢ Entière</button><button id="rvRemplir" title="La vidéo remplit le cadre, les bords sont coupés">⤡ Remplir</button><button id="rvCentre" title="Remettre au centre, sans zoom">⊙ Centrer</button></div>
+                <span class="eng">Zoom</span>
+                <div class="pv-ligne"><input class="fld rv-glisse" id="rvZoom" value="0 %" title="Clic maintenu et glisse la souris (ou double-clic pour taper)"><span class="nt">glisse l'image dans le téléphone pour la déplacer</span></div>
+                <span class="eng">Couleur</span>
+                <div class="pv-ligne"><select class="fld" id="rvFiltre">${['', ...BK.filtres.map(f => f.nom)].map(n => `<option value="${n}">${n || 'Aucun filtre'}</option>`).join('')}<option value="__lut">＋ Ajouter une LUT (.cube)…</option></select>
+                  <span class="eng" style="margin-left:6px">Intensité</span><input class="fld rv-glisse pv-force" id="rvForce" value="100 %" title="Clic maintenu et glisse la souris (ou double-clic pour taper)"></div>
+                <span class="eng">Effet</span>
+                <div class="pv-ligne"><select class="fld" id="rvVoile">${BK.rendu.VOILES.map(([k, n]) => `<option value="${k}">${n}</option>`).join('')}</select></div>
+              </div>
+              <input type="file" id="rvLutIn" accept=".cube" hidden></div>
+            <div class="box rv-sous-box"><div class="ligne-titre"><span class="lb">④ Sous-titres</span>
                 <button class="chip on" id="rvSousOn" style="margin-left:auto">Afficher</button></div>
               <div class="rv-sous-src"><select class="fld" id="rvSousM"><option value="">Paroles d'un morceau…</option></select><button class="btn xs" id="rvSousColler">Coller du texte…</button></div>
               <button class="btn sm warm" id="rvCaler" disabled>⏺ Caler en écoutant (Espace à chaque phrase)</button>
@@ -96,7 +101,7 @@ BK.module('reelvis', function (page) {
   const r = BK.rendu.creer(540, 960);
   const cadre = () => ({ zoom: V.zoom / 100, x: V.x, y: V.y });
   const tReel = () => vid.currentTime - V.debut;                    // temps depuis le début du reel
-  function dessiner() { if (!vid.videoWidth) return; r.dessiner(vid, cadre(), V.force / 100, V.sousOn ? BK.rendu.texteA(V.sous, tReel()) : ''); cx2.drawImage(r.sortie, 0, 0); }
+  function dessiner() { if (!vid.videoWidth) return; r.dessiner(vid, cadre(), V.force / 100, V.sousOn ? BK.rendu.texteA(V.sous, tReel()) : '', V.voile ? { type: V.voile, t: vid.currentTime || 0 } : null); cx2.drawImage(r.sortie, 0, 0); }
 
   // ---------- gabarit ----------
   function majGabarit() {
@@ -125,32 +130,61 @@ BK.module('reelvis', function (page) {
   vid.onerror = () => msg('Vidéo illisible (essaie un MP4)');
   $('#rvPick').onclick = () => $('#rvInput').click();
 
-  // ---------- DES PHOTOS → UNE VIDÉO ----------
-  // On choisit des photos (ce PC, Médias, Discord), une durée par photo (ou calée sur la musique),
-  // et on fabrique une vraie vidéo 9:16 : ensuite tout marche comme pour une vidéo (couper, couleur, sous-titres, musique, export).
+  // ---------- PHOTOS ET VIDÉOS → UNE VIDÉO ----------
+  // On choisit des photos et des vidéos (ce PC, Médias, Discord), une durée et une animation pour chacune,
+  // une transition et un effet. On importe : ça donne une vraie vidéo 9:16, et tout marche ensuite comme pour une vidéo
+  // (couper, couleur, sous-titres, musique, export). Le son des vidéos n'est pas gardé : la musique se choisit à droite.
+  const ANIMS = [['zoom', '↗ Zoom avant'], ['recul', '↙ Zoom arrière'], ['glisse', '↔ Glisser'], ['fixe', '■ Fixe']];
   $('#rvPhotos').onclick = () => {
-    const D = { l: [] };                                      // { nom, charger: () => Blob, apercu }
+    const D = { l: [], transition: BK.reglage('rv.transition', 'fondu'), voile: '' };   // l : { nom, video?, apercu, charger: () => Blob, duree, max, anim }
     const v = document.createElement('div'); v.className = 'voile';
     const dureeMus = () => { const a = musique(); return a ? a.duree : 0; };
+    const total = () => D.l.reduce((t, x) => t + (+x.duree || 0), 0);
+    const estVideo = (nom, type) => /^video\//.test(type || '') || /\.(mp4|mov|m4v|webm)$/i.test(nom || '');
+    // une vidéo : on lit sa durée (et on fabrique une petite image d'aperçu si on n'en a pas)
+    const lireVideo = async x => { try { const blob = await x.charger(); x.blob = blob; const u = URL.createObjectURL(blob), el = document.createElement('video');
+        el.muted = true; el.preload = 'auto'; el.src = u; await new Promise((ok, ko) => { el.onloadeddata = ok; el.onerror = ko; });
+        x.max = el.duration || 5; x.duree = Math.min(x.duree || 5, Math.round(x.max * 10) / 10);
+        if (!x.apercu) { el.currentTime = Math.min(0.5, x.max / 2); await new Promise(ok => { el.onseeked = ok; setTimeout(ok, 1500); });
+          const c = document.createElement('canvas'); c.width = 120; c.height = Math.round(120 * el.videoHeight / el.videoWidth) || 200; c.getContext('2d').drawImage(el, 0, 0, c.width, c.height); x.apercu = c.toDataURL('image/jpeg', 0.7); }
+        URL.revokeObjectURL(u); } catch (e) { x.erreur = true; } dessinerD(); };
+    const ajouter = x => { x.video = estVideo(x.nom, x.type); x.duree = x.video ? 5 : (D.dureePhoto || 2.5); x.anim = x.video ? 'fixe' : 'zoom'; D.l.push(x); if (x.video) lireVideo(x); };
     const dessinerD = () => {
-      const m = dureeMus();
-      v.innerHTML = `<div class="stopbox" style="width:680px;align-items:stretch">
+      const m = dureeMus(), photos = D.l.filter(x => !x.video).length;
+      v.innerHTML = `<div class="stopbox" style="width:760px;align-items:stretch">
         <span class="screw tl"></span><span class="screw tr"></span><span class="screw bl"></span><span class="screw br"></span>
         <button class="btn xs rt-x" data-d="x">✕</button>
-        <span class="dymo" style="align-self:center">🖼 Une vidéo avec des photos</span>
-        <div class="dp-l">${D.l.map((x, i) => `<div class="dp-p" style="background-image:url(${esc(x.apercu || '')})"><b>${i + 1}</b>
-            <span class="dp-o"><button data-g="${i}" title="Avant">◀</button><button data-dr="${i}" title="Après">▶</button><button data-x="${i}" title="Enlever">✕</button></span></div>`).join('')}
-          <button class="dp-p dp-plus" data-d="pc">＋<small>Ce PC</small></button><button class="dp-p dp-plus" data-d="medias">🏷<small>Médias / Discord</small></button></div>
-        <div class="dp-reg"><span class="eng">Chaque photo</span><input class="fld" id="dpDuree" type="number" min="0.5" max="20" step="0.5" value="${D.duree || 2.5}"><span class="nt" style="margin:0">secondes</span>
-          ${m && D.l.length ? `<button class="btn xs" data-d="caler">♪ Caler sur la musique (${t2(m)})</button>` : ''}
-          <span class="nt" style="margin:0 0 0 auto">Total : <b id="dpTotal">${t2(D.l.length * (D.duree || 2.5))}</b></span></div>
-        <span class="nt">Les photos sont montrées entières, sur un fond flou. Choisis la musique dans « Musique » à droite (un export Reels Audio, ou une musique de ce PC).</span>
-        <div class="stopbox-btns"><button class="btn pri" data-d="ok"${D.l.length ? '' : ' disabled'}>Fabriquer la vidéo ▶</button><button class="btn" data-d="x">Annuler</button></div>
-        <input type="file" accept="image/*" multiple hidden id="dpIn"></div>`;
-      const du = v.querySelector('#dpDuree'); du.addEventListener('keydown', e => e.stopPropagation());
-      du.oninput = du.onchange = () => { D.duree = Math.max(0.5, Math.min(20, parseFloat(du.value) || 2.5));       // on ne redessine pas : juste le total
-        const t = v.querySelector('#dpTotal'); if (t) t.textContent = t2(D.l.length * D.duree); };
-      v.querySelector('#dpIn').onchange = e => { for (const f of e.target.files) D.l.push({ nom: f.name, apercu: URL.createObjectURL(f), charger: async () => f }); dessinerD(); };
+        <span class="dymo" style="align-self:center">🖼 Photos et vidéos</span>
+        <div class="mt-l">${D.l.map((x, i) => `<div class="mt-r">
+            <span class="mt-ph"${x.apercu ? ` style="background-image:url('${esc(x.apercu)}')"` : ''}><b>${i + 1}</b>${x.video ? '<i>▶</i>' : ''}</span>
+            <span class="mt-nom" title="${esc(x.nom)}">${esc(x.nom)}${x.erreur ? ' <em>(illisible)</em>' : ''}</span>
+            <label class="mt-d"><input class="fld" type="number" min="0.5" max="${x.video ? x.max || 60 : 30}" step="0.5" value="${x.duree}" data-du="${i}"><span>s</span></label>
+            <select class="fld mt-a" data-an="${i}">${ANIMS.map(([k, n]) => `<option value="${k}"${x.anim === k ? ' selected' : ''}>${n}</option>`).join('')}</select>
+            <span class="mt-o"><button data-g="${i}" title="Avant">▲</button><button data-dr="${i}" title="Après">▼</button><button data-x="${i}" title="Enlever">✕</button></span></div>`).join('')
+          || '<span class="nt" style="padding:14px;text-align:center">Ajoute des photos ou des vidéos : de ce PC, ou de Médias / Discord.</span>'}</div>
+        <div class="chips"><button class="btn sm" data-d="pc">💻 Ce PC…</button><button class="btn sm" data-d="medias">🏷 Médias / Discord…</button></div>
+        <div class="pv-tab mt-tab">
+          <span class="eng">Photos</span>
+          <div class="pv-ligne"><span class="nt">toutes à</span><input class="fld rv-glisse" id="dpDuree" type="number" min="0.5" max="30" step="0.5" value="${D.dureePhoto || 2.5}"><span class="nt">s</span>
+            ${m && photos ? `<button class="btn xs" data-d="caler">♪ Caler sur la musique (${t2(m)})</button>` : ''}</div>
+          <span class="eng">Transition</span>
+          <div class="pv-ligne"><select class="fld" id="dpTrans"><option value="coupe">Coupe sèche</option><option value="fondu">Fondu enchaîné</option><option value="noir">Fondu au noir</option></select></div>
+          <span class="eng">Effet</span>
+          <div class="pv-ligne"><select class="fld" id="dpVoile">${BK.rendu.VOILES.map(([k, n]) => `<option value="${k}">${n}</option>`).join('')}</select></div>
+        </div>
+        <span class="nt">Total : <b id="dpTotal">${t2(total())}</b> · les photos sont montrées entières sur un fond flou · le son des vidéos n'est pas gardé : choisis la musique dans « Musique » à droite.</span>
+        <div class="stopbox-btns"><button class="btn pri" data-d="ok"${D.l.length ? '' : ' disabled'}>Importer ces fichiers ▶</button><button class="btn" data-d="x">Annuler</button></div>
+        <input type="file" accept="image/*,video/*" multiple hidden id="dpIn"></div>`;
+      v.querySelector('#dpTrans').value = D.transition; v.querySelector('#dpVoile').value = D.voile;
+      v.querySelector('#dpTrans').onchange = e => { D.transition = e.target.value; BK.regler('rv.transition', D.transition); };
+      v.querySelector('#dpVoile').onchange = e => { D.voile = e.target.value; };
+      const majTotal = () => { const t = v.querySelector('#dpTotal'); if (t) t.textContent = t2(total()); };
+      v.querySelectorAll('input').forEach(c => c.addEventListener('keydown', e => e.stopPropagation()));
+      v.querySelectorAll('[data-du]').forEach(c => c.oninput = () => { const x = D.l[+c.dataset.du]; x.duree = Math.max(0.5, Math.min(x.video ? x.max || 60 : 30, parseFloat(c.value) || 0.5)); majTotal(); });
+      v.querySelectorAll('[data-an]').forEach(c => c.onchange = () => { D.l[+c.dataset.an].anim = c.value; });
+      const du = v.querySelector('#dpDuree');
+      du.onchange = () => { D.dureePhoto = Math.max(0.5, Math.min(30, parseFloat(du.value) || 2.5)); D.l.forEach(x => { if (!x.video) x.duree = D.dureePhoto; }); dessinerD(); };
+      v.querySelector('#dpIn').onchange = e => { for (const f of e.target.files) ajouter({ nom: f.name, type: f.type, apercu: /^image\//.test(f.type) ? URL.createObjectURL(f) : '', charger: async () => f }); dessinerD(); };
     };
     v.addEventListener('click', async e => {
       const b = e.target.closest('[data-d],[data-g],[data-dr],[data-x]'); if (!b) return;
@@ -160,35 +194,48 @@ BK.module('reelvis', function (page) {
       const a = b.dataset.d;
       if (a === 'x') return v.remove();
       if (a === 'pc') return v.querySelector('#dpIn').click();
-      if (a === 'caler') { D.duree = Math.round(dureeMus() / D.l.length * 10) / 10; return dessinerD(); }
+      if (a === 'caler') {                                         // la musique moins les vidéos, partagée entre les photos
+        const reste = dureeMus() - D.l.filter(x => x.video).reduce((t, x) => t + x.duree, 0), ph = D.l.filter(x => !x.video);
+        if (reste <= ph.length * 0.5) return msg('Les vidéos prennent déjà toute la musique');
+        D.dureePhoto = Math.round(reste / ph.length * 10) / 10; ph.forEach(x => x.duree = D.dureePhoto); return dessinerD(); }
       if (a === 'medias') {
         if (!BK.drive.relie()) return msg('Relie d\'abord le Drive');
-        const image = f => /^image\//.test(f.mimeType || '');
+        const ok = f => /^(image|video)\//.test(f.mimeType || '');
         v.style.display = 'none';
-        const l = await BK.choisirImages({ titre: 'Photos pour la vidéo', bouton: 'Ajouter', sources: [
+        const l = await BK.choisirImages({ titre: 'Photos et vidéos', bouton: 'Ajouter', sources: [
           { nom: '🏷 Étiquetées (Médias)', charger: async () => { await BK.dossiers.assurer(); const [tous, tags] = await Promise.all([BK.dossiers.tousFichiers(), BK.etiquettes.tous()]);
-              return tous.filter(f => image(f) && BK.etiquettes.liste(tags, f.id).length).map(f => ({ id: f.id, nom: f.name, f, vignette: () => BK.drive.vignette(f) })); } },
-          { nom: '🍞 Discord', charger: async () => ((await BK.discord.mediasVite('media', {}).catch(() => [])) || []).filter(x => !x.video && /\.(jpe?g|png|webp)$/i.test(x.nom || '')).map(x => ({ id: 'dc:' + x.id, nom: x.nom, dc: x, apercu: x.apercu || x.url })) },
-          { nom: '☁ Tout le cloud', charger: async () => { await BK.dossiers.assurer(); return (await BK.dossiers.tousFichiers()).filter(image).sort((a, b) => (b.modifiedTime || '').localeCompare(a.modifiedTime || '')).slice(0, 300).map(f => ({ id: f.id, nom: f.name, f, vignette: () => BK.drive.vignette(f) })); } } ] });
+              return tous.filter(f => ok(f) && BK.etiquettes.liste(tags, f.id).length).map(f => ({ id: f.id, nom: f.name, f, vignette: () => BK.drive.vignette(f) })); } },
+          { nom: '🍞 Discord', charger: async () => ((await BK.discord.mediasVite('media', {}).catch(() => [])) || []).filter(x => x.video || /\.(jpe?g|png|webp)$/i.test(x.nom || '')).map(x => ({ id: 'dc:' + x.id, nom: x.nom, dc: x, apercu: x.apercu || (x.video ? '' : x.url) })) },
+          { nom: '☁ Tout le cloud', charger: async () => { await BK.dossiers.assurer(); return (await BK.dossiers.tousFichiers()).filter(ok).sort((a, b) => (b.modifiedTime || '').localeCompare(a.modifiedTime || '')).slice(0, 300).map(f => ({ id: f.id, nom: f.name, f, vignette: () => BK.drive.vignette(f) })); } } ] });
         v.style.display = '';
         for (const x of l || []) {
           const ap = x.apercu || (x.f ? await BK.drive.vignette(x.f).catch(() => '') : '');
-          D.l.push({ nom: x.nom, apercu: ap, charger: async () => x.dc ? (await BK.discord.fetch(x.dc.url)).blob() : (await BK.drive.api(`/files/${x.f.id}?alt=media`)).blob() });
+          ajouter({ nom: x.nom, type: x.f ? x.f.mimeType : (x.dc && x.dc.video ? 'video/mp4' : ''), apercu: ap,
+            charger: async () => x.dc ? (await BK.discord.fetch(x.dc.url)).blob() : new Blob([await BK.drive.telecharger(x.f.id)], { type: x.f.mimeType }) });
         }
         return dessinerD();
       }
       if (a === 'ok') {
-        const ok = v.querySelector('[data-d="ok"]'); ok.disabled = true; ok.innerHTML = '<span class="spin"></span>Préparation des photos…';
+        const ok = v.querySelector('[data-d="ok"]'); ok.disabled = true; ok.innerHTML = '<span class="spin"></span>Préparation…';
+        const urls = [];
         try {
-          const photos = [];
-          for (const [i, x] of D.l.entries()) { ok.innerHTML = `<span class="spin"></span>Photo ${i + 1}/${D.l.length}…`;
-            const blob = await x.charger(); const img = await createImageBitmap(blob);
-            const k = Math.min(1, 2160 / Math.max(img.width, img.height));              // pas plus grand qu'il ne faut : léger pour le PC
-            photos.push({ img: k < 1 ? await createImageBitmap(blob, { resizeWidth: Math.round(img.width * k), resizeHeight: Math.round(img.height * k), resizeQuality: 'high' }) : img, duree: D.duree || 2.5 }); }
-          const mp4 = await BK.rendu.diaporama(photos, { progression: p => ok.innerHTML = `<span class="spin"></span>Fabrication… ${Math.round(p * 100)} %` });
-          const f = new File([mp4], 'Diaporama_' + new Date().toISOString().slice(0, 10) + '.mp4', { type: 'video/mp4' });
-          v.remove(); charger(f); if (musique()) $('#rvMusTxt').textContent += ' · calée sur les photos';
-        } catch (er) { console.error(er); ok.disabled = false; ok.textContent = 'Fabriquer la vidéo ▶'; msg('Impossible : ' + (er.message || er)); }
+          const morceaux = [];
+          for (const [i, x] of D.l.entries()) { ok.innerHTML = `<span class="spin"></span>Fichier ${i + 1}/${D.l.length}…`;
+            const blob = x.blob || await x.charger();
+            if (x.video) {
+              const u = URL.createObjectURL(blob), el = document.createElement('video'); urls.push(u);
+              el.muted = true; el.preload = 'auto'; el.src = u; await new Promise((res, ko) => { el.onloadeddata = res; el.onerror = () => ko(new Error(x.nom + ' illisible')); });
+              morceaux.push({ video: el, debut: 0, duree: Math.min(x.duree, el.duration || x.duree), anim: x.anim });
+            } else {
+              const img = await createImageBitmap(blob), k = Math.min(1, 2160 / Math.max(img.width, img.height));      // pas plus grand qu'il ne faut : léger pour le PC
+              morceaux.push({ img: k < 1 ? await createImageBitmap(blob, { resizeWidth: Math.round(img.width * k), resizeHeight: Math.round(img.height * k), resizeQuality: 'high' }) : img, duree: x.duree, anim: x.anim });
+            }
+          }
+          const mp4 = await BK.rendu.montage(morceaux, { transition: D.transition, voile: D.voile, progression: p => ok.innerHTML = `<span class="spin"></span>Import… ${Math.round(p * 100)} %` });
+          const f = new File([mp4], 'Montage_' + new Date().toISOString().slice(0, 10) + '.mp4', { type: 'video/mp4' });
+          v.remove(); charger(f); if (musique()) $('#rvMusTxt').textContent += ' · calée sur le montage';
+        } catch (er) { console.error(er); ok.disabled = false; ok.textContent = 'Importer ces fichiers ▶'; msg('Impossible : ' + (er.message || er)); }
+        urls.forEach(u => URL.revokeObjectURL(u));
       }
     });
     document.body.appendChild(v); dessinerD();
@@ -284,25 +331,43 @@ BK.module('reelvis', function (page) {
   champZoom.addEventListener('blur', finSaisie);
   champZoom.addEventListener('keydown', e => { e.stopPropagation(); if (e.key === 'Enter') champZoom.blur(); });
   champZoom.addEventListener('wheel', e => { e.preventDefault(); reglerZoom(V.zoom - Math.sign(e.deltaY) * 5); }, { passive: false });
-  $('#rvCentre').onclick = () => { V.x = V.y = 0; dessiner(); };
+  // cadrage comme dans Reels Photo : entière (avec bandes), remplir, centrer
+  const zoomEntier = () => { const vw = vid.videoWidth, vh = vid.videoHeight; if (!vw) return 100; return Math.round(Math.min(1080 / vw, 1920 / vh) / Math.max(1080 / vw, 1920 / vh) * 100); };
+  $('#rvEntier').onclick = () => { if (!vid.videoWidth) return; V.x = V.y = 0; V.zoom = zoomEntier(); champZoom.value = (V.zoom - 100) + ' %'; dessiner(); msg('Vidéo entière'); };
+  $('#rvRemplir').onclick = () => { V.x = V.y = 0; reglerZoom(100); msg('La vidéo remplit le cadre'); };
+  $('#rvCentre').onclick = () => { V.x = V.y = 0; reglerZoom(100); };
+  // intensité du filtre (0 à 100 %) : glisser la souris sur la case, ou double-clic pour taper
+  const fc = $('#rvForce'); fc.readOnly = true; let fg = null;
+  const force = v => { V.force = Math.round(Math.max(0, Math.min(100, v))); fc.value = V.force + ' %'; dessiner(); };
+  fc.addEventListener('pointerdown', e => { if (!fc.readOnly) return; e.preventDefault(); fc.setPointerCapture(e.pointerId); fg = { x: e.clientX, y: e.clientY, v: V.force }; });
+  fc.addEventListener('pointermove', e => { if (fg) force(fg.v + ((e.clientX - fg.x) - (e.clientY - fg.y)) / 2); });
+  fc.addEventListener('pointerup', () => { fg = null; });
+  fc.addEventListener('dblclick', () => { fc.readOnly = false; fc.value = V.force; fc.select(); });
+  fc.addEventListener('blur', () => { if (fc.readOnly) return; fc.readOnly = true; const v = parseFloat(fc.value.replace(',', '.')); force(isNaN(v) ? V.force : v); });
+  fc.addEventListener('keydown', e => { e.stopPropagation(); if (e.key === 'Enter') fc.blur(); });
+  fc.addEventListener('wheel', e => { e.preventDefault(); force(V.force - Math.sign(e.deltaY) * 5); }, { passive: false });
+  $('#rvVoile').onchange = e => { V.voile = e.target.value; dessiner(); msg(V.voile ? 'Effet : ' + e.target.selectedOptions[0].textContent : 'Sans effet'); };
   let d0 = null;
   ecran.addEventListener('pointerdown', e => { if (!vid.videoWidth) return; d0 = { x: e.clientX, y: e.clientY, vx: V.x, vy: V.y }; ecran.setPointerCapture(e.pointerId); });
   ecran.addEventListener('pointermove', e => { if (!d0) return; const b = ecran.getBoundingClientRect();
     V.x = d0.vx + (e.clientX - d0.x) / b.width * 100; V.y = d0.vy + (e.clientY - d0.y) / b.height * 100; dessiner(); });
   ecran.addEventListener('pointerup', () => d0 = null);
 
-  // ---------- couleur : LUT ----------
+  // ---------- couleur : un filtre ou sa propre LUT .cube (un menu, comme dans Reels Photo) ----------
   async function chargerLut(f) {
-    try { V.lut = BK.rendu.lireCube(await f.text()); V.lutNom = f.name; r.lut(V.lut); $('#rvLutNom').textContent = 'LUT : ' + f.name; $('#rvLutX').classList.remove('hidden'); $$('#rvFiltres .chip').forEach(x => x.classList.remove('on')); dessiner(); msg('LUT appliquée'); }
-    catch (e) { msg(e.message); }
+    try { V.lut = BK.rendu.lireCube(await f.text()); V.lutNom = f.name; r.lut(V.lut);
+      const sel = $('#rvFiltre'); let o = sel.querySelector('option[data-lut]');
+      if (!o) { o = document.createElement('option'); o.dataset.lut = '1'; sel.insertBefore(o, sel.querySelector('option[value="__lut"]')); }
+      o.value = '__lutok'; o.textContent = '🎨 LUT : ' + f.name; sel.value = '__lutok'; filtreAvant = '__lutok';
+      dessiner(); msg('LUT appliquée'); }
+    catch (e) { msg(e.message); $('#rvFiltre').value = ''; }
   }
-  $('#rvLutB').onclick = () => $('#rvLutIn').click();
-  $('#rvLutIn').onchange = e => e.target.files[0] && chargerLut(e.target.files[0]);
-  // filtres prêts à l'emploi (un clic) — ou sa propre LUT .cube
-  $$('#rvFiltres .chip').forEach(c => c.onclick = () => { const n = c.dataset.fi;
-    V.lut = n ? BK.rendu.filtre(n) : null; V.lutNom = n; r.lut(V.lut); $$('#rvFiltres .chip').forEach(x => x.classList.toggle('on', x === c));
-    $('#rvLutNom').textContent = ''; $('#rvLutX').classList.add('hidden'); dessiner(); msg(n ? 'Filtre : ' + n : 'Sans filtre'); });
-  $('#rvLutX').onclick = () => { V.lut = null; r.lut(null); $('#rvLutNom').textContent = ''; $('#rvLutX').classList.add('hidden'); dessiner(); };
+  $('#rvLutIn').onchange = e => { e.target.files[0] && chargerLut(e.target.files[0]); e.target.value = ''; };
+  let filtreAvant = '';
+  $('#rvFiltre').onchange = e => { const n = e.target.value;
+    if (n === '__lut') { e.target.value = filtreAvant; return $('#rvLutIn').click(); }
+    if (n === '__lutok') return;
+    filtreAvant = n; V.lut = n ? BK.rendu.filtre(n) : null; V.lutNom = n; r.lut(V.lut); dessiner(); msg(n ? 'Filtre : ' + n : 'Sans filtre'); };
 
   // ---------- sous-titres ----------
   async function remplirMorceaux() {
@@ -404,7 +469,7 @@ BK.module('reelvis', function (page) {
       let audio = null, fin = V.fin;
       if (a) { fin = Math.min(V.fin, V.debut + a.duree); const buf = await BK.audio.decoder(new Uint8Array(await (await fetch(a.url)).arrayBuffer())); audio = tranche(buf, a.debut, fin - V.debut); }
       else { try { const buf = await BK.audio.decoder(new Uint8Array(await V.fichier.arrayBuffer())); audio = tranche(buf, V.debut, fin - V.debut); } catch (e) { audio = null; } }
-      const mp4 = await BK.rendu.exporter({ video: vid, debut: V.debut, fin, cadre: cadre(), force: V.force / 100, lut: V.lut, sous: V.sousOn ? V.sous : [], audio,
+      const mp4 = await BK.rendu.exporter({ video: vid, debut: V.debut, fin, cadre: cadre(), force: V.force / 100, lut: V.lut, sous: V.sousOn ? V.sous : [], voile: V.voile || '', audio,
         progression: p => msg('Export… ' + Math.round(p * 100) + ' %') });
       const p = await BK.enregistrerFichier(BK.chemin('Reels', V.nom), `${V.nom}_REEL_${Math.round(fin - V.debut)}s_${GABARITS[V.gabarit] ? 'VERTICAL' : ''}.mp4`, mp4, 'video/mp4');
       msg(p ? 'MP4 prêt ✓' : 'Export annulé');

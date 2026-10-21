@@ -84,7 +84,7 @@ BK.module('suivi', function (page) {
     const img = imageDe(r);
     const pas = r.passage || (a && a.duree ? { debut: a.debut || 0, fin: (a.debut || 0) + a.duree } : null);
     return `<button class="su-aff${choisi ? ' on' : ''}" data-ouv="${r.id}" data-id="${r.id}"
-        ${img ? ` style="background-image:url(${img})"` : ''} data-img="${(md.find(f => /^image\//.test(f.mimeType || '')) || {}).id || ''}"
+        ${BK.img.bg(img)} data-mdimg="${(md.find(f => /^image\//.test(f.mimeType || '')) || {}).id || ''}"
         title="${esc(r.titre || 'Reel')}">
       ${img ? '' : '<span class="su-aff-vide">🎬</span>'}
       <span class="su-aff-jauge"><i style="width:${Math.round((i + 1) / ETAPES.length * 100)}%"></i></span>
@@ -194,8 +194,8 @@ BK.module('suivi', function (page) {
       if (R.ouvert) setTimeout(() => { const c = $('.su-c', z); c && c.scrollIntoView({ behavior: 'smooth', block: 'nearest' }); }, 60); });
     $$('[data-play]', z).forEach(b => b.onclick = e => { e.stopPropagation(); jouerPassage(R.l.find(x => x.id === b.dataset.play)); });
     // la vignette : une image des médias du reel si la fiche du morceau n'en a pas
-    (async () => { for (const b of $$('.su-aff[data-img]', z)) { if (b.style.backgroundImage || !b.dataset.img) continue;
-      const f = R.fichiers.find(x => x.id === b.dataset.img); if (!f) continue;
+    (async () => { for (const b of $$('.su-aff[data-mdimg]', z)) { if (b.style.backgroundImage || b.dataset.img || b.classList.contains('img-charge') || !b.dataset.mdimg) continue;
+      const f = R.fichiers.find(x => x.id === b.dataset.mdimg); if (!f) continue;
       try { const u = await BK.drive.vignette(f); if (u) { b.style.backgroundImage = `url(${u})`; const v = b.querySelector('.su-aff-vide'); v && v.remove(); } } catch (e) {} } })();
     $$('[data-st]', z).forEach(b => b.onclick = async () => { const [id, k] = b.dataset.st.split('|'); const r = R.l.find(x => x.id === id);
       const avant = ETAPES.findIndex(e => e.k === (r.statut || 'idee'));
@@ -223,7 +223,7 @@ BK.module('suivi', function (page) {
       const image = f => /^image\//.test(f.mimeType || '');
       const reduire = async (blob) => { const b = BK.ia.reduireImage ? await BK.ia.reduireImage(blob, 900) : blob;      // petite, rangée dans la fiche
         return new Promise(ok => { const fr = new FileReader(); fr.onload = () => ok(fr.result); fr.readAsDataURL(b); }); };
-      const fin = async (dataUrl) => { if (!dataUrl) return; r.affiche = dataUrl; r.afficheIA = false; await BK.db.ecrire('reels', r); msg('Image du poster enregistrée'); rendre(); };
+      const fin = async (v) => { if (!v) return; r.affiche = v; r.afficheIA = false; await BK.db.ecrire('reels', r); msg('Image du poster enregistrée'); rendre(); };
       if (!BK.drive.relie()) {                                    // sans Drive : une image de ce PC
         const inp = document.createElement('input'); inp.type = 'file'; inp.accept = 'image/*';
         inp.onchange = async () => { if (inp.files[0]) fin(await reduire(inp.files[0])); }; return inp.click(); }
@@ -239,8 +239,8 @@ BK.module('suivi', function (page) {
       if (!l || !l[0]) return;
       const x = l[0]; msg('Chargement de l\'image…');
       try {
-        if (x.dc) { const rr = await BK.discord.fetch(x.dc.url); if (!rr.ok) throw new Error('expiré'); return fin(await reduire(await rr.blob())); }
-        const rr = await BK.drive.api(`/files/${x.f.id}?alt=media`); return fin(await reduire(await rr.blob()));
+        if (x.dc) return fin((await BK.img.depuisDiscord(x.dc, x.nom, 'photovideo')).ref);              // de Discord : rangé d'abord dans le Drive
+        return fin(BK.img.ref(x.f.id));                                                                       // déjà dans le Drive : on garde juste son adresse
       } catch (e) { msg('Image illisible'); }
     });
     $$('[data-sx]', z).forEach(b => b.onclick = async () => { const r = R.l.find(x => x.id === b.dataset.sx);

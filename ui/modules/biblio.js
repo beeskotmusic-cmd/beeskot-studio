@@ -255,7 +255,7 @@ BK.module('biblio', function (page) {
       return `<div class="tiroir${o ? ' ouvert' : ''}" data-t="${id}"><button class="tiroir-tete"><span class="fleche">${o ? '▾' : '▸'}</span><span class="lb">${titre}</span><span class="nt tiroir-resume">${resume}</span></button>${o ? `<div class="tiroir-corps">${corps()}</div>` : ''}</div>`; };
     return `<article class="fiche${ouvert ? ' ouverte' : ''}" data-id="${m.id}" style="--av:${BK.couleurAvance(m)}">
       <div class="fiche-haut">
-        <button class="fiche-photo${m.photo ? '' : ' vide'}" data-act="photo" title="Choisir la photo du morceau" ${m.photo ? `style="background-image:url(${m.photo})"` : ''}>${m.photo ? '' : '🖼'}</button>
+        <button class="fiche-photo${m.photo ? '' : ' vide'}" data-act="photo" title="Choisir la photo du morceau" ${BK.img.bg(m.photo)}>${m.photo ? '' : '🖼'}</button>
         <div class="fiche-droite">
           <button class="fiche-tete">
             <span class="fiche-nom">${esc(m.nom)}</span>
@@ -333,13 +333,7 @@ BK.module('biblio', function (page) {
         <select class="fld f-sel"><option value="">relier à…</option>${opts}</select><button class="btn xs" data-act="creer">+ Fiche</button></div>`).join('');
   }
 
-  // ---------- la photo du morceau (petite, rangée dans la fiche) ----------
-  function reduire(blob, max = 320) {
-    return new Promise((ok, ko) => { const im = new Image(), u = URL.createObjectURL(blob);
-      im.onload = () => { const k = Math.min(1, max / Math.max(im.width, im.height)), c = document.createElement('canvas'); c.width = Math.round(im.width * k); c.height = Math.round(im.height * k);
-        c.getContext('2d').drawImage(im, 0, 0, c.width, c.height); URL.revokeObjectURL(u); ok(c.toDataURL('image/jpeg', 0.82)); };
-      im.onerror = () => { URL.revokeObjectURL(u); ko(new Error('Image illisible')); }; im.src = u; });
-  }
+  // ---------- la photo du morceau (la fiche garde son adresse sur le Drive) ----------
   function photo(m) {
     const v = document.createElement('div'); v.className = 'voile';
     v.innerHTML = `<div class="stopbox" style="width:560px"><span class="dymo">Photo de ${esc(m.nom)}</span>
@@ -368,15 +362,17 @@ BK.module('biblio', function (page) {
     if (BK.drive.relie()) { bandeau(m.id);
       $$('#phSrc .chip', v).forEach(c => c.onclick = () => { $$('#phSrc .chip', v).forEach(x => x.classList.toggle('on', x === c)); bandeau(c.dataset.src); }); }
     v.onclick = async e => { const t = e.target.closest('[data-ph]');
-      if (t) { msg('Chargement de la photo…'); try { const r = await BK.drive.api(`/files/${t.dataset.ph}?alt=media`); return fin(await reduire(await r.blob())); } catch (er) { msg('Image illisible'); return; } }
+      if (t) return fin(BK.img.ref(t.dataset.ph));                       // déjà dans le Drive : la fiche garde juste son adresse
       const b = e.target.closest('[data-p]'); if (!b) return;
       if (b.dataset.p === 'annuler') return fin(undefined);
       if (b.dataset.p === 'x') return fin('');
       if (b.dataset.p === 'pc') return $('input', v).click();
       if (b.dataset.p === 'drive') { v.style.display = 'none'; const l = await BK.explorerDrive({ titre: 'Photo de ' + m.nom, mode: 'image', depart: 'photovideo' });
         if (!l || !l[0]) return fin(undefined);
-        try { const r = await BK.drive.api(`/files/${l[0].id}?alt=media`); fin(await reduire(await r.blob())); } catch (e) { msg('Image illisible'); fin(undefined); } } };
-    $('input', v).onchange = async e => { const f = e.target.files[0]; if (!f) return; try { fin(await reduire(f)); } catch (er) { msg(er.message); fin(undefined); } };
+        return fin(BK.img.ref(l[0].id)); } };
+    $('input', v).onchange = async e => { const f = e.target.files[0]; if (!f) return;            // de ce PC : rangée dans le Drive (Photos / Vidéos)
+      try { msg('Envoi de la photo dans le Drive…'); const d = await BK.img.versDrive(f, (m.nom || 'morceau') + ' - photo.' + ((f.name.split('.').pop() || 'jpg')), 'photovideo'); fin(d.ref || d); }
+      catch (er) { msg(er.message); fin(undefined); } };
   }
 
   // ---------- choisir un export : sur ce PC ou dans le Drive (un seul bouton, un petit menu) ----------

@@ -10,15 +10,6 @@ const TYPES = ['Clip', 'Reel', 'Shooting photo', 'Live', 'Autre'];
 const CADRAGES = ['Plan large', 'Plan moyen', 'Plan américain', 'Gros plan', 'Très gros plan', 'Plan d\'ensemble', 'Insert', 'Plongée', 'Contre-plongée', 'Travelling'];
 const dateFr = d => d ? new Date(d + 'T12:00').toLocaleDateString('fr-CA', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }) : '';
 
-// réduire une image (moodboard) : légère, rangée directement dans la fiche
-function reduire(f, max = 520) {
-  return new Promise((ok, ko) => { const im = new Image(), u = URL.createObjectURL(f);
-    im.onload = () => { const k = Math.min(1, max / Math.max(im.width, im.height)), c = document.createElement('canvas');
-      c.width = Math.round(im.width * k); c.height = Math.round(im.height * k); c.getContext('2d').drawImage(im, 0, 0, c.width, c.height);
-      URL.revokeObjectURL(u); ok(c.toDataURL('image/jpeg', 0.78)); };
-    im.onerror = () => { URL.revokeObjectURL(u); ko(new Error('Image illisible')); }; im.src = u; });
-}
-
 const iconeLien = u => /instagram\./i.test(u) ? '📸' : /tiktok\./i.test(u) ? '🎵' : /youtu\.?be/i.test(u) ? '▶' : /pinterest\./i.test(u) ? '📌' : '🔗';
 const nomLien = u => { try { const x = new URL(u); return x.hostname.replace(/^www\./, '') + (x.pathname.length > 1 ? x.pathname.slice(0, 28) : ''); } catch (e) { return u.slice(0, 40); } };
 
@@ -87,7 +78,7 @@ BK.module('tournage', function (page) {
     const ouvert = (BK.reglage('tournage.ouvert', {}))[t.id] ?? true;
     const quand = t.date ? new Date(t.date + 'T12:00').toLocaleDateString('fr-CA', { weekday: 'long', day: 'numeric', month: 'long' }) : 'date à fixer';
     z.innerHTML = `
-      <button class="to-affiche${img ? '' : ' sans'}${ouvert ? ' ouverte' : ''}" id="toAffiche" style="${img ? `background-image:url(${img})` : ''}">
+      <button class="to-affiche${img ? '' : ' sans'}${ouvert ? ' ouverte' : ''}" id="toAffiche"${BK.img.bg(img)}>
         <span class="to-af-voile"></span>
         <span class="to-af-txt">
           <span class="eng">${esc(t.type || 'Tournage')}${t.morceau ? ' · projet ' + esc(t.morceau) : ''}</span>
@@ -108,7 +99,7 @@ BK.module('tournage', function (page) {
           <label class="large"><span class="eng">L'idée en une phrase</span><input class="fld" data-c="idee" value="${esc(t.idee)}" placeholder="ex. ambiance VHS, lumière rouge, plans serrés sur les mains"></label>
         </div></div>
       <div class="box"><div class="ligne-titre"><span class="lb">Moodboard</span><span class="nt" style="margin:0 0 0 auto">Glisse des images ici (captures, photos, Pinterest…)</span></div>
-        <div class="to-mood" id="toMood">${t.moodboard.map((u, i) => `<div class="to-img" style="background-image:url(${u})"><button class="md-x" data-mx="${i}">✕</button></div>`).join('')}
+        <div class="to-mood" id="toMood">${t.moodboard.map((u, i) => `<div class="to-img"${BK.img.bg(u)}><button class="md-x" data-mx="${i}">✕</button></div>`).join('')}
           <button class="to-img to-plus to-plus-tag" id="toMoodTag" title="Les médias étiquetés, tout le cloud, ou Discord">＋<small>Ajouter des images</small></button><button class="to-img to-plus" id="toMoodPlus" title="Images de ce PC">💻<small>Ce PC</small></button></div>
         ${(t.moodboardDocs || []).length ? `<div class="to-docs">${t.moodboardDocs.map((d, i) => `<span class="to-doc"><a href="#" data-url="${esc(d.url)}">📄 ${esc(d.nom)}</a><button class="md-x" data-dx="${i}">✕</button></span>`).join('')}</div>` : ''}
         ${t.moodboardAuto ? '<span class="nt">🍞 Rempli par Miette depuis le dossier moodboard du Drive.</span>' : ''}
@@ -129,7 +120,7 @@ BK.module('tournage', function (page) {
       <div class="deux-box">
         <div class="box"><div class="ligne-titre"><span class="lb">Tenues</span><button class="btn xs" id="toTenuesMiette" style="margin-left:auto" title="Miette cherche sur Discord les photos de tenues, et qui les porte">🍞 Qui porte quoi ?</button></div>
           ${T.membres.map(m => `<div class="to-tenue2"><span class="eng">${esc(m)}</span>
-            <div class="to-tenue-ph">${((t.tenuesPhotos || {})[m] || []).map((u, i) => `<div class="to-tph" style="background-image:url(${u})"><button class="md-x" data-tpx="${esc(m)}|${i}">✕</button></div>`).join('')}
+            <div class="to-tenue-ph">${((t.tenuesPhotos || {})[m] || []).map((u, i) => `<div class="to-tph"${BK.img.bg(u)}><button class="md-x" data-tpx="${esc(m)}|${i}">✕</button></div>`).join('')}
               <button class="to-tph to-tph-plus" data-tph="${esc(m)}" title="Une photo de Médias, du cloud ou de Discord">＋<small>Photo</small></button></div>
             <input class="fld to-tenue-txt" data-tenue="${esc(m)}" value="${esc(t.tenues[m])}" placeholder="en quelques mots (facultatif) : chemise noire, jean brut"></div>`).join('')}</div>
         <div class="box"><span class="lb">Matériel et notes</span>
@@ -150,13 +141,10 @@ BK.module('tournage', function (page) {
     $$('[data-tenue]', z).forEach(c => c.oninput = () => { t.tenues[c.dataset.tenue] = c.value; sauver(t); });
     // ---------- tenues : des photos (Médias, cloud, Discord), rangées dans la fiche et étiquetées « Tenues » + ce tournage ----------
     const image = f => /^image\//.test(f.mimeType || '');
-    const enImage = async (x, role) => {                     // x : { f } (Drive) ou { dc } (Discord) → image réduite pour la fiche, et étiquettes
-      let f = x.f, u;
-      if (x.dc) { const r = await BK.discord.fetch(x.dc.url); if (!r.ok) throw new Error('expiré sur Discord'); const blob = await r.blob();
-        const dos = await BK.dossiers.get(role); if (dos) f = await BK.drive.envoyerBlob(new File([blob], x.nom, { type: blob.type || 'image/jpeg' }), x.nom, dos.id, () => {});
-        u = await enDataUrl(URL.createObjectURL(blob)); }
-      else { const v = await BK.drive.vignette(f); u = v ? await enDataUrl(v) : null; }
-      if (f && f.id) for (const k of ['c:outfits', 't:' + t.id]) await BK.etiquettes.basculer(f.id, k, true);
+    const enImage = async (x, role) => {                     // x : { f } (Drive) ou { dc } (Discord) → l'adresse de l'image sur le Drive, et étiquettes
+      let id = x.f && x.f.id, u = id ? BK.img.ref(id) : '';
+      if (x.dc) { const d = await BK.img.depuisDiscord(x.dc, x.nom, role); id = d.id; u = d.ref; }
+      if (id) for (const k of ['c:outfits', 't:' + t.id]) await BK.etiquettes.basculer(id, k, true);
       return u; };
     const sourcesTenue = qui => [
       { nom: '👕 Tenues (Médias)', charger: async () => { await BK.dossiers.assurer(); const [tous, tags, carte] = await Promise.all([BK.dossiers.tousFichiers(), BK.etiquettes.tous(), BK.dossiers.carte()]);
@@ -258,18 +246,12 @@ BK.module('tournage', function (page) {
       if (!l || !l.length) return;
       msg('Ajout des images…');
       const tagsMood = ['t:' + t.id, 'c:moodboard', 'c:tournage'];
-      let dosMood = null;
       for (const x of l) {
         try {
-          let f = x.f;
-          if (x.dc) {                                        // venu de Discord : on le range d'abord dans le Drive (dossier moodboard)
-            const r = await BK.discord.fetch(x.dc.url); if (!r.ok) throw new Error('expiré sur Discord');
-            const blob = await r.blob();
-            dosMood = dosMood || await BK.dossiers.get('moodboard');
-            if (dosMood) f = await BK.drive.envoyerBlob(new File([blob], x.nom, { type: blob.type || 'image/jpeg' }), x.nom, dosMood.id, () => {});
-            t.moodboard.push(await enDataUrl(URL.createObjectURL(blob)));
-          } else { const u = await BK.drive.vignette(f); if (u) t.moodboard.push(await enDataUrl(u)); }
-          if (f && f.id) for (const k of tagsMood) await BK.etiquettes.basculer(f.id, k, true);   // étiqueté tournage + moodboard, tout seul
+          let id = x.f && x.f.id, u = id ? BK.img.ref(id) : '';
+          if (x.dc) { const d = await BK.img.depuisDiscord(x.dc, x.nom, 'moodboard'); id = d.id; u = d.ref; }   // venu de Discord : rangé d'abord dans le Drive (moodboard)
+          if (u && !t.moodboard.includes(u)) t.moodboard.push(u);                 // la fiche garde juste l'adresse de l'image
+          if (id) for (const k of tagsMood) await BK.etiquettes.basculer(id, k, true);   // étiqueté tournage + moodboard, tout seul
         } catch (e) { console.warn(e); }
         await BK.audio.pause();
       }
@@ -291,7 +273,6 @@ BK.module('tournage', function (page) {
     $$('input,textarea', z).forEach(c => c.addEventListener('keydown', e => e.stopPropagation()));
   }
 
-  async function enDataUrl(u) { const b = await (await fetch(u)).blob(); return reduire(new File([b], 'i.jpg', { type: b.type || 'image/jpeg' })); }
 
   // ---------- un plan du PLAN.xlsx → l'Assistant audio Reel (morceau + passage) ----------
   function passage(txt) {
@@ -360,7 +341,8 @@ BK.module('tournage', function (page) {
     const fs = [...fichiers].filter(f => /^image\//.test(f.type)); if (!fs.length) return msg('Seulement des images');
     if (t.moodboard.length + fs.length > 24) return msg('24 images maximum par moodboard');
     msg('Ajout des images…');
-    for (const f of fs) { try { t.moodboard.push(await reduire(f)); } catch (e) {} await BK.audio.pause(); }
+    for (const f of fs) { try { const d = await BK.img.versDrive(f, f.name, 'moodboard'); t.moodboard.push(d.ref || d);   // rangée dans le dossier moodboard du Drive
+        if (d.id) for (const k of ['t:' + t.id, 'c:moodboard', 'c:tournage']) await BK.etiquettes.basculer(d.id, k, true); } catch (e) { console.warn(e); } await BK.audio.pause(); }
     await BK.db.ecrire('tournages', t); msg('Moodboard enregistré'); rendreFiche();
   }
   page.addEventListener('dragover', e => { if (T.courant) e.preventDefault(); });
@@ -386,15 +368,15 @@ BK.module('tournage', function (page) {
     const d = document.createElement('div'); d.id = 'impression';
     d.innerHTML = `<div class="imp-tete"><div><h1>${esc(t.titre || 'Tournage')}</h1><p>${esc(t.type || '')}${t.morceau ? ' · ' + esc(t.morceau) : ''}</p></div><div class="imp-logo">BEESKOT</div></div>
       <div class="imp-infos"><p><b>Quand</b> ${esc(dateFr(t.date)) || 'à fixer'}${t.heure ? ' à ' + esc(t.heure) : ''}</p><p><b>Où</b> ${esc(t.lieu || '—')}</p>${t.idee ? `<p><b>L'idée</b> ${esc(t.idee)}</p>` : ''}</div>
-      ${t.moodboard.length ? `<h2>Moodboard</h2><div class="imp-mood">${t.moodboard.map(u => `<img src="${u}">`).join('')}</div>` : ''}
+      ${t.moodboard.length ? `<h2>Moodboard</h2><div class="imp-mood">${t.moodboard.map(u => `<img${BK.img.src(u)}>`).join('')}</div>` : ''}
       ${t.plans.length ? `<h2>Découpage</h2><table><tr><th>#</th><th>Cadrage</th><th>Ce qu'on voit</th><th>Durée</th><th>Notes</th></tr>${t.plans.map((p, i) => `<tr><td>${i + 1}</td><td>${esc(p.cadrage)}</td><td>${esc(p.action)}</td><td>${esc(p.duree)}</td><td>${esc(p.notes)}</td></tr>`).join('')}</table>` : ''}
-      ${Object.values(t.tenues).some(Boolean) || Object.values(t.tenuesPhotos || {}).some(l => l && l.length) ? `<h2>Tenues</h2><table>${T.membres.filter(m => t.tenues[m] || ((t.tenuesPhotos || {})[m] || []).length).map(m => `<tr><td class="imp-nom">${esc(m)}</td><td>${((t.tenuesPhotos || {})[m] || []).map(u => `<img src="${u}" style="height:110px;margin:0 6px 6px 0;border-radius:4px">`).join('')}${t.tenues[m] ? '<br>' + esc(t.tenues[m]) : ''}</td></tr>`).join('')}</table>` : ''}
+      ${Object.values(t.tenues).some(Boolean) || Object.values(t.tenuesPhotos || {}).some(l => l && l.length) ? `<h2>Tenues</h2><table>${T.membres.filter(m => t.tenues[m] || ((t.tenuesPhotos || {})[m] || []).length).map(m => `<tr><td class="imp-nom">${esc(m)}</td><td>${((t.tenuesPhotos || {})[m] || []).map(u => `<img${BK.img.src(u)} style="height:110px;margin:0 6px 6px 0;border-radius:4px">`).join('')}${t.tenues[m] ? '<br>' + esc(t.tenues[m]) : ''}</td></tr>`).join('')}</table>` : ''}
       ${t.materiel ? `<h2>Matériel</h2><p class="imp-txt">${esc(t.materiel)}</p>` : ''}
       ${t.notes ? `<h2>Notes</h2><p class="imp-txt">${esc(t.notes)}</p>` : ''}`;
     document.body.appendChild(d); document.body.classList.add('imprime');
     const fin = () => { document.body.classList.remove('imprime'); d.remove(); window.removeEventListener('afterprint', fin); };
     window.addEventListener('afterprint', fin);
-    setTimeout(() => window.print(), 300);
+    BK.img.toutes(d).then(() => setTimeout(() => window.print(), 200));          // les images du Drive d'abord
     msg('Choisis « Enregistrer au format PDF » ou ton imprimante');
   };
 

@@ -10,7 +10,7 @@
 // les dossiers du Drive, qu'on retrouve en entrant dans « Médias sur le cloud »
 const DOSSIERS_CLOUD = [['photovideo', 'Photos / Vidéos'], ['moodboard', 'Moodboards'], ['tournage', 'Tournages'],
   ['outfits', 'Outfits'], ['scenographie', 'Scénographie'], ['lightshow', 'Light Show']];
-const M = { racine: ['cloud','discord'].includes(BK.reglage('medias.racine','cloud')) ? BK.reglage('medias.racine','cloud') : 'cloud', pile: [], fichiers: [], envoi: false, morceaux: [], tags: {}, filtre: '',
+const M = { racine: 'cloud', pile: [], fichiers: [], envoi: false, morceaux: [], tags: {}, filtre: '',
   sel: new Set(), dernier: null, vign: {}, dc: null,
   taille: Math.min(5, Math.max(0, BK.reglage('medias.taille', BK.reglage('medias.petit', false) ? 1 : 2))), voirCaches: false };
 const TAILLES = [72, 100, 136, 170, 220, 290];        // largeur mini d'une vignette, du plus petit au plus grand
@@ -36,7 +36,7 @@ BK.module('medias', function (page) {
           <span class="nt">Glisse des fichiers sur la page, ou « + » : ils vont dans le dossier ouvert.</span>
           <button class="btn sm" id="mdAjout" style="margin-top:10px">+ Choisir des fichiers…</button>
           <button class="btn sm" id="mdDossier" style="margin-top:8px">+ Nouveau dossier ici…</button>
-          <button class="btn sm pri" id="mdTrier" style="margin-top:8px" title="Miette regarde les photos sans étiquette et propose où les ranger">🍞 Trier avec Miette</button>
+          <button class="btn sm pri" id="mdTrier" style="margin-top:8px" title="Miette regarde les photos sans étiquette et propose où les ranger">🍞 Étiqueter avec Miette</button>
           <input type="file" id="mdInput" multiple hidden></div>
         <div class="box"><span class="lb">📍 Tu es ici</span>
           <span class="nt" id="mdChemin" style="color:var(--ink)">—</span>
@@ -45,14 +45,15 @@ BK.module('medias', function (page) {
         <div class="box"><span class="lb">Rien n'est effacé</span></div>
       </section>
     </div>
-    <div class="pane md-ajouter"><span class="ptitle">Ajouter à</span>
-      <div class="md-aj-tete"><span class="eng md-lab">Étiquettes</span><div class="seg" id="mdRub"><button data-rub="morceaux">♪ Morceaux</button><button data-rub="tournage">🎬 Tournage</button><button data-rub="lumiere">💡 Lumière / scène</button><button data-rub="reseaux">📣 Réseaux</button></div>
-        <span class="nt">C\'est <b>ici</b> qu\'on range : glisse un ou plusieurs médias sur une étiquette (ou clique-les, puis l\'étiquette). Un fichier peut porter plusieurs étiquettes.</span></div>
+    <div class="pane md-ajouter${BK.reglage('medias.ajPlie', false) ? ' plie' : ''}" id="mdAjouter">
+      <div class="md-aj-tete"><button class="md-aj-plier" id="mdAjPlier" title="Réduire / montrer les étiquettes">▾</button><span class="eng md-lab">Étiquettes</span><div class="seg" id="mdRub"><button data-rub="morceaux">♪ Morceaux</button><button data-rub="tournage">🎬 Tournage</button><button data-rub="lumiere">💡 Lumière</button><button data-rub="reseaux">📣 Réseaux</button></div>
+        <span class="nt md-aj-aide">Glisse les médias sur une étiquette · ou clic droit</span></div>
       <div class="md-paniers" id="mdPaniers"></div></div>
     <div class="pane abar"><span class="vfd" id="mdMsg">PRÊT</span>
       <span class="vfd hidden" id="mdSelN" style="margin-left:10px;color:#ffb23e"></span>
       <span class="nt" style="margin:0 12px">Clic = choisir · <b>Ctrl+clic</b> = en ajouter · <b>Maj+clic</b> = toute une suite · puis glisse-les sur une étiquette</span>
       <div class="right"><button class="btn" id="mdRelire">↻ Relire</button></div></div>`;
+  $('#mdAjPlier', page).onclick = () => { const z = $('#mdAjouter', page), p = !z.classList.contains('plie'); z.classList.toggle('plie', p); BK.regler('medias.ajPlie', p); };
   const msg = t => $('#mdMsg').textContent = String(t).toUpperCase().slice(0, 90);
   const ici = () => M.pile[M.pile.length - 1];
 
@@ -91,7 +92,7 @@ BK.module('medias', function (page) {
     $$('#mdRub button').forEach(b => { b.classList.toggle('on', b.dataset.rub === rub); b.onclick = () => { M.rub = b.dataset.rub; BK.regler('medias.rub', M.rub); paniers(); }; });
     const compte = k => Object.keys(M.tags).filter(id => BK.etiquettes.liste(M.tags, id).includes(k)).length;
     z.innerHTML = cases()[rub].map(c => { const n = compte(c.k);
-      return `<div class="md-panier" data-pan="${esc(c.k)}" style="--tc:${couleurTag(c.k)}">${c.ph ? `<span class="md-pan-ph" style="background-image:url(${c.ph})"></span>` : `<span class="md-pan-ph">${c.ic}</span>`}<b>${esc(c.nom)}</b>${n ? `<em>${n}</em>` : ''}</div>`; }).join('')
+      return `<div class="md-panier" data-pan="${esc(c.k)}" style="--tc:${couleurTag(c.k)}">${c.ph ? `<span class="md-pan-ph"${BK.img.bg(c.ph)}></span>` : `<span class="md-pan-ph">${c.ic}</span>`}<b>${esc(c.nom)}</b>${n ? `<em>${n}</em>` : ''}</div>`; }).join('')
       || '<span class="nt">Aucun morceau : crée d\'abord des fiches dans la Bibliothèque.</span>';
     $$('.md-panier', z).forEach(p => {
       p.ondragover = e => { if (e.dataTransfer.types.includes('text/bk-media') || e.dataTransfer.types.includes('Files')) { e.preventDefault(); e.stopPropagation(); p.classList.add('survol'); } };
@@ -373,7 +374,7 @@ BK.module('medias', function (page) {
     let props = [];
     try { props = await BK.trierMedias(l, { avancement: (k, n) => msg(`Miette regarde ${k}/${n} photo(s)…`) }); }
     catch (e) { msg(e.message); }
-    b.disabled = false; b.textContent = '🍞 Trier avec Miette';
+    b.disabled = false; b.textContent = '🍞 Étiqueter avec Miette';
     if (!props.length) return msg('Rien à ranger : tout est déjà étiqueté');
     montrerPropositions(props);
   };

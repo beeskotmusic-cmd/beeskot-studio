@@ -60,9 +60,9 @@ BK.module('renforts', function (page) {
         <div class="box"><span class="lb">À savoir</span><span class="nt">Avec la clé gratuite, Google peut se servir des messages envoyés pour améliorer Gemini. N'y mettez rien de secret.</span></div>
 `;
   document.body.appendChild(reg); reg.classList.add('hidden');
-  function placerReglages() { const cible = $('#p-reglages .pane.reg'); if (cible && reg.parentElement !== cible) { cible.appendChild(reg); reg.classList.remove('hidden'); } }
+  function placerReglages() { const cible = $('#p-reglages #rgCorps'); if (cible && reg.parentElement !== cible) { reg.dataset.rgo = 'miette'; cible.appendChild(reg); BK.reglagesOnglet && BK.reglagesOnglet(); } }
   setTimeout(placerReglages, 0); setTimeout(placerReglages, 1500);
-  $('#raVersReglages').onclick = e => { e.preventDefault(); placerReglages(); BK.ouvrir('reglages'); setTimeout(() => reg.scrollIntoView({ behavior: 'smooth' }), 100); };
+  $('#raVersReglages').onclick = e => { e.preventDefault(); placerReglages(); BK.ouvrir('reglages'); BK.reglagesOnglet && BK.reglagesOnglet('miette'); };
 
   const NIV_TXT = { rapide: 'Rapide : répond en quelques secondes, un peu moins fin.', normal: 'Normal : le bon équilibre (conseillé).', puissant: 'Puissant : plus intelligent mais plus lent, et la version gratuite en permet peu par jour.' };
   async function majEtat() {

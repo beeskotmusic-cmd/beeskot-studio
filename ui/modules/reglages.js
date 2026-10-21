@@ -5,9 +5,23 @@ BK.module('reglages', function (page) {
   $('.sub', page).textContent = 'Ce qui est réglé ici ne concerne que cet ordinateur';
   const choix = BK.onglets.filter(o => !o.fixe);
   $('.grid', page).innerHTML = `
-    <div class="cols">
-      <section class="pane vit"><span class="ptitle">① Onglets de ce PC</span>
-        <div class="box"><span class="lb">Onglets affichés</span>
+    <div class="rg-tabs" id="rgTabs"><button data-rgt="aide">🍞 Aide</button><button data-rgt="pc">💻 Ce PC</button><button data-rgt="onglets">🗂 Onglets</button><button data-rgt="miette">🍞 Miette & Discord</button><button data-rgt="drive">☁ Drive</button><button data-rgt="ableton">🎛 Ableton</button></div>
+    <section class="pane rg-corps" id="rgCorps">
+        <div data-rgo="aide" class="box"><span class="lb">Aide</span>
+          <div class="chips" style="margin-top:8px"><button class="btn sm pri" id="rgNouveau">✨ Quoi de neuf ?</button><button class="btn sm" id="rgTuto">📖 Tuto : tout le logiciel</button></div>
+          <button class="btn sm" id="rgGuide" style="margin-top:8px;align-self:flex-start">🍞 Revoir le guide de démarrage</button></div>
+        <div data-rgo="aide" class="box"><span class="lb">Version du logiciel</span>
+          <span class="vfd" style="margin-top:6px;align-self:flex-start">${String(BK.version || '').replace(/[<>&]/g, '')}</span>
+          <button class="btn sm" id="rgMaj" style="margin-top:8px">⬇ Chercher une mise à jour</button>
+          <span class="nt" id="rgMajTxt">Le logiciel regarde tout seul au démarrage, puis toutes les 20 minutes.</span></div>
+        <div data-rgo="pc" class="box"><span class="lb">Qui utilise cet ordinateur ?</span>
+          <span class="nt">Ton prénom (Yacine, Pierre, Baptiste) ou « Studio ». C'est à ce nom que partent les tâches que tu coches et les reels que tu fais avancer.</span>
+          <input class="fld" id="rgNom" style="margin-top:10px" maxlength="16" placeholder="ton prénom, ou Studio" value="${BK.reglage('nomPc', '')}">
+          <div class="chips" style="margin-top:8px" id="rgNoms">${['Yacine', 'Pierre', 'Baptiste', 'Studio'].map(n => `<button class="chip${BK.reglage('nomPc', '') === n ? ' on' : ''}" data-nom="${n}">${n}</button>`).join('')}</div></div>
+        <div data-rgo="pc" class="box"><span class="lb">Taille de l'interface</span>
+          <div class="knobs" style="justify-content:center"><div class="kb">
+            <input id="rgZoom" type="range" min="80" max="130" step="5" value="${BK.reglage('zoom', 100)}" class="knobify" data-ticks="80,,,,,130" data-fmt="{} %"><span class="lb">Zoom</span></div></div></div>
+        <div data-rgo="onglets" class="box"><span class="lb">Onglets affichés</span>
           <span class="nt">Allume seulement ce qui sert sur cet ordinateur (ex. Lumières : au studio et chez Pierre).</span>
           <div class="interrupteurs">${choix.map(o => `
             <button class="inter${BK.ongletVisible(o) ? ' on' : ''}" data-id="${o.id}">
@@ -16,33 +30,24 @@ BK.module('reglages', function (page) {
               <span class="t"><span class="lab">${o.titre}</span><span class="nsub">${(c => c.titre || c.nom)(BK.cotes.find(c => c.id === o.cote))}${o.pret ? '' : ' · bientôt'}</span></span>
             </button>`).join('')}
           </div></div>
-        <div class="box grow rg-dos"><div class="ligne-titre"><span class="lb">Vos dossiers du Drive</span>
+        <div data-rgo="drive" class="box"><span class="lb">Drive BEESKOT</span><div id="rgDriveZone"></div></div>
+        <div data-rgo="drive" class="box grow rg-dos"><div class="ligne-titre"><span class="lb">Vos dossiers du Drive</span>
             <button class="btn xs" id="rgDetecter" style="margin-left:auto">↻ Chercher à nouveau</button><button class="btn xs" id="rgPlan">Copier le plan du Drive</button></div>
           <span class="nt">Le logiciel lit ces dossiers (il ne déplace et ne renomme rien). « Changer… » si un dossier n'est pas le bon. Pour tout le groupe.</span>
           <div class="rg-dos-liste" id="rgDos"></div></div>
-      </section>
-      <section class="pane reg"><span class="ptitle">② Ce PC</span>
-        <div class="box"><span class="lb">Aide</span>
-          <div class="chips" style="margin-top:8px"><button class="btn sm pri" id="rgNouveau">✨ Quoi de neuf ?</button><button class="btn sm" id="rgTuto">📖 Tuto : tout le logiciel</button></div>
-          <button class="btn sm" id="rgGuide" style="margin-top:8px;align-self:flex-start">🍞 Revoir le guide de démarrage</button></div>
-        <div class="box"><span class="lb">Version du logiciel</span>
-          <span class="vfd" style="margin-top:6px;align-self:flex-start">${String(BK.version || '').replace(/[<>&]/g, '')}</span>
-          <button class="btn sm" id="rgMaj" style="margin-top:8px">⬇ Chercher une mise à jour</button>
-          <span class="nt" id="rgMajTxt">Le logiciel regarde tout seul au démarrage, puis toutes les 20 minutes.</span></div>
-        <div class="box"><span class="lb">Qui utilise cet ordinateur ?</span>
-          <span class="nt">Ton prénom (Yacine, Pierre, Baptiste) ou « Studio ». C'est à ce nom que partent les tâches que tu coches et les reels que tu fais avancer.</span>
-          <input class="fld" id="rgNom" style="margin-top:10px" maxlength="16" placeholder="ton prénom, ou Studio" value="${BK.reglage('nomPc', '')}"></div>
-        <div class="box"><span class="lb">Taille de l'interface</span>
-          <div class="knobs" style="justify-content:center"><div class="kb">
-            <input id="rgZoom" type="range" min="80" max="130" step="5" value="${BK.reglage('zoom', 100)}" class="knobify" data-ticks="80,,,,,130" data-fmt="{} %"><span class="lb">Zoom</span></div></div></div>
-        <div class="box"><span class="lb">Ableton Live</span>
+        <div data-rgo="ableton" class="box"><span class="lb">Ableton Live</span>
           <span class="nt">Un clic : le logiciel trouve Ableton et installe le pont tout seul. Il restera juste à le choisir dans Ableton.</span>
           <div class="chips" style="margin-top:10px"><button class="chip" id="rgAbleton">Relier Ableton (automatique)</button></div></div>
-        <div class="box"><span class="lb">Drive BEESKOT</span><div id="rgDriveZone"></div></div>
-      </section>
-    </div>
+    </section>
     <div class="pane abar"><span class="vfd" id="rgMsg">PRÊT</span></div>`;
 
+  // ---------- les onglets de Réglages : un seul groupe à la fois ----------
+  const RG = ['aide', 'pc', 'onglets', 'miette', 'drive', 'ableton'];
+  const montrerRg = BK.reglagesOnglet = (k = BK.reglage('reglages.onglet', 'aide')) => { if (!RG.includes(k)) k = 'aide'; BK.regler('reglages.onglet', k);
+    $$('#rgTabs button', page).forEach(b => b.classList.toggle('on', b.dataset.rgt === k));
+    $$('#rgCorps > [data-rgo]', page).forEach(x => x.classList.toggle('hidden', x.dataset.rgo !== k)); };
+  $$('#rgTabs button', page).forEach(b => b.onclick = () => montrerRg(b.dataset.rgt));
+  montrerRg();
   $$('.inter', page).forEach(b => b.onclick = () => {
     const o = BK.onglets.find(x => x.id === b.dataset.id), v = !BK.ongletVisible(o);
     BK.regler('visible.' + o.id, v);
@@ -62,7 +67,10 @@ BK.module('reglages', function (page) {
   $('#rgNouveau', page).onclick = () => BK.nouveautes.montrer(BK.NOUVEAUTES.slice(0, 3));
   $('#rgTuto', page).onclick = () => BK.nouveautes.tuto();
   $('#rgGuide', page).onclick = () => BK.bienvenue.ouvrir(true);
-  $('#rgNom', page).onchange = e => { BK.regler('nomPc', e.target.value.trim()); $('#syPc').textContent = (e.target.value.trim() || 'CE PC').toUpperCase(); };
+  const nomPc = n => { BK.regler('nomPc', n); $('#rgNom', page).value = n; BK.majNomPc(); $$('#rgNoms .chip', page).forEach(c => c.classList.toggle('on', c.dataset.nom === n));
+    BK.presence && BK.presence.maj(true); $('#rgMsg', page).textContent = n ? 'CET ORDINATEUR : ' + n.toUpperCase() : 'PRÊT'; };
+  $('#rgNom', page).onchange = e => nomPc(e.target.value.trim());
+  $$('#rgNoms .chip', page).forEach(c => c.onclick = () => nomPc(c.dataset.nom));
   // ---------- TIME MACHINE : remettre des fiches comme elles étaient avant une heure donnée ----------
   const COLS_RETOUR = [
     { c: 'morceaux', n: 'Bibliothèque (les morceaux)' }, { c: 'taches', n: 'To-do list' },
@@ -115,7 +123,7 @@ BK.module('reglages', function (page) {
     const c = BK.drive.conf(), z = $('#rgDriveZone', page);
     if (!BK.estExe) { z.innerHTML = '<span class="nt">Disponible dans le logiciel installé.</span>'; return; }
     if (BK.drive.relie()) z.innerHTML = `<span class="nt">✅ Relié. Les fiches sont partagées avec tous les PC (dossier « BEESKOT Studio » du Drive).</span>
-      <div class="chips" style="margin-top:10px"><button class="btn sm pri" data-d="carte">🎫 Fabriquer la carte d'accès</button><button class="chip" data-d="sync">↻ Relire le Drive</button><button class="chip" data-d="retour">⏪ Time Machine</button><button class="chip" data-d="off">Déconnecter</button></div>
+      <div class="chips" style="margin-top:10px"><button class="btn sm pri" data-d="carte">🎫 Fabriquer la carte d'accès</button><button class="chip" data-d="sync">↻ Relire le Drive</button><button class="chip" data-d="retour">⏪ Time Machine</button><button class="chip" data-d="alleger" title="Les vieilles photos recopiées dans les fiches sont rangées dans le Drive : les fiches deviennent légères">🪶 Alléger les fiches</button><button class="chip" data-d="off">Déconnecter</button></div>
       <span class="nt">La carte d'accès relie les autres PC du groupe en un clic : le Drive <b>et</b> les codes de Miette. Elle se range sur ton Bureau. Ne l'envoie qu'aux membres (message privé).</span>`;
     else z.innerHTML = `<span class="nt"><b>Chez Yacine (1 fois)</b> : importe le fichier client Google, puis connecte-toi.<br><b>Autres PC</b> : importe la carte d'accès.</span>
       <div class="chips" style="margin-top:10px">
@@ -131,6 +139,14 @@ BK.module('reglages', function (page) {
         if (a === 'carte') { const p = await BK.drive.exporterCarte(); if (p) { rmsg('Carte enregistrée sur le Bureau'); BK.drive.derniereCarte = p; } }
         if (a === 'sync') { rmsg('Lecture du Drive…'); await BK.pousser(); rmsg('Drive relu'); }
         if (a === 'retour') { panneauRetour(); return; }
+        if (a === 'alleger') {
+          rmsg('Je compte les photos…');
+          const [ms, rs, ts] = await Promise.all(['morceaux', 'reels', 'tournages'].map(c => BK.db.liste(c)));
+          const n = BK.img.combienDeCopies(ms, rs, ts);
+          if (!n) { rmsg('Déjà léger : toutes les photos sont lues depuis le Drive'); return; }
+          if (!confirm(`${n} photo(s) sont recopiées dans les fiches.\n\nOn les range dans le Drive (dossier « BEESKOT Studio / Images des fiches ») et les fiches gardent juste leur adresse.\nUne sauvegarde est faite avant. Rien n'est effacé.\n\nOn y va ?`)) { rmsg('Rien changé'); return; }
+          const k = await BK.img.alleger((p, nom) => rmsg(`Rangement des photos… ${Math.round(p * 100)} %`));
+          rmsg(`✓ ${k} photo(s) rangée(s) dans le Drive · fiches allégées`); return; }
         if (a === 'off') { if (confirm('Déconnecter ce PC du Drive BEESKOT ? (rien n\'est effacé)')) { BK.drive.deconnecter(); rmsg('Déconnecté'); } }
       } catch (e) { console.error(e); rmsg('Problème : ' + (e.message || e)); }
       zoneDrive(); BK.etatDrive();

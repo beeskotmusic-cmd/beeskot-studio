@@ -105,20 +105,18 @@ BK.miette = {
     const auj = new Date().toISOString().slice(0, 10), semaine = new Date(Date.now() - 7 * 864e5).toISOString();
     const systeme = `Tu es Miette, l'assistante du groupe de musique BEESKOT (prononcé « Biscotte »). Aujourd'hui : ${auj}.
 Membres : Yacine (Yaya, Dari, pseudo « sneakers »), Pierre (« pierrec1. »), Baptiste (Bat, « drumbli.scott »). « BEESKOT » = tout le groupe.
-Morceaux (nom exact, puis surnoms) : ${ms.map(m => m.nom + ((m.alias || []).length ? ' (' + m.alias.join(', ') + ')' : '')).join(' ; ')}.
+Morceaux (nom exact, puis surnoms, puis où il en est) : ${ms.map(m => m.nom + ((m.alias || []).length ? ' (' + m.alias.join(', ') + ')' : '') + ' [' + (m.statut === 'sorti' ? 'sorti' : BK.etapes[Math.min(m.fait || 0, 5)].nom) + (m.sortie ? ', sortie ' + m.sortie : '') + ']').join(' ; ')}.
 Tu lis leurs messages Discord (français familier) et tu PRÉPARES leur organisation dans le logiciel. Sois concret et complet, n'invente rien.
 Un bot recopie aussi les MAILS reçus par le groupe (ingé son sur Fiverr, distributeur, salles, factures) : ce sont des infos réelles, cite-les dans le résumé, et tires-en des tâches, des dates et des dépenses comme pour le reste.
 Réponds en JSON, un seul objet :
 {
- "semaine": "ce qu'on s'est dit ces 7 derniers jours, 3 à 6 phrases courtes et simples",
- "afaire": ["3 à 6 lignes courtes : ce qui ressort à faire, avec qui"],
+ ${BK.discord.CONSIGNE_SEMAINE},
  "taches": [{"texte":"action concrète qui commence par un verbe","qui":"Yacine|Pierre|Baptiste|BEESKOT|","morceau":"","date":"AAAA-MM-JJ ou vide","source":"msg …","pourquoi":"phrase citée"}],
- "planning": [{"type":"tournage|shooting|enreg|repet|mixage|sortie|promo|autre","titre":"","morceau":"","dates":["AAAA-MM-JJ"],"heure":"","lieu":"","statut":"valide|possible","source":"msg …","pourquoi":""}],
  "passages": [{"morceau":"nom exact","debut":"m:ss","fin":"m:ss","note":"à quoi il sert","source":"msg …"}],
  "depenses": [{"titre":"","montant":0,"payePar":"Yacine|Pierre|Baptiste","pour":["Yacine","Pierre","Baptiste"],"date":"AAAA-MM-JJ","source":"msg …","pourquoi":""}],
  "tournages": [{"titre":"","type":"Clip|Reel|Shooting photo","morceau":"","date":"AAAA-MM-JJ ou vide","heure":"","lieu":"","idee":"l'idée en une phrase","tenues":"","materiel":"","source":"msg …","pourquoi":""}]
 }
-Règles : "taches" = ce que quelqu'un doit faire et qui n'est pas déjà fait ni déjà dans la liste existante. "planning" = toutes les dates à venir (décidées = valide, proposées ou hésitantes = possible ; plusieurs jours possibles = plusieurs dates). "passages" = les timings d'un morceau donnés pour un reel ou un tournage (pas les heures de rendez-vous). "depenses" = un paiement réel dit dans les messages (qui a payé, combien), pas déjà dans la liste. "tournages" = les tournages ou shootings prévus qui n'ont pas encore de fiche. Tableaux vides si rien.`;
+Règles : "taches" = ce que quelqu'un doit faire et qui n'est pas déjà fait ni déjà dans la liste existante. "passages" = les timings d'un morceau donnés pour un reel ou un tournage (pas les heures de rendez-vous). "depenses" = un paiement réel dit dans les messages (qui a payé, combien), pas déjà dans la liste. "tournages" = les tournages ou shootings prévus qui n'ont pas encore de fiche. Tableaux vides si rien.`;
     const existe = [
       'Tâches déjà dans la liste : ' + (ts.map(t => t.texte + (t.fait ? ' (fait)' : '')).slice(-120).join(' ; ') || 'aucune'),
       'Rendez-vous déjà au calendrier : ' + (evs.map(e => `${e.date} ${e.titre}`).join(' ; ') || 'aucun'),
@@ -132,8 +130,8 @@ Règles : "taches" = ce que quelqu'un doit faire et qui n'est pas déjà fait ni
     if (r.semaine) {
       const doc = (await BK.db.liste('veille')).find(x => x.id === 'resume') || { id: 'resume' };
       const dernier = (recents[recents.length - 1] || {}).id || '';
-      Object.assign(doc, { texte: r.semaine, afaire: Array.isArray(r.afaire) ? r.afaire : [], dernier, t: Date.now(), nb: recents.filter(l => l.t >= semaine).length });
-      await BK.db.ecrire('veille', doc); BK.regler('accueil.resume', { id: 'resume', texte: doc.texte, afaire: doc.afaire, t: doc.t });
+      BK.discord.garderResume(doc, r); Object.assign(doc, { dernier, t: Date.now(), nb: recents.filter(l => l.t >= semaine).length });
+      await BK.db.ecrire('veille', doc); BK.regler('accueil.resume', { ...doc });
       BK.renfortGarder && BK.renfortGarder({ type: 'resume', q: 'Miette a tout relu (' + new Date().toLocaleDateString('fr-CA', { day: 'numeric', month: 'short' }) + ')', r: doc.texte });
     }
     const av = props.length, l = [];
@@ -145,13 +143,9 @@ Règles : "taches" = ce que quelqu'un doit faire et qui n'est pas déjà fait ni
     for (const x of (r.tournages || []).filter(x => x && x.titre)) l.push({ ...x, type: 'tournage' });
     await BK.discord.rangerPropositions(l);
     const nouv = (await BK.db.liste('propositions')).length - av; if (nouv) out.push(nouv + ' proposition(s)');
-    // Calendrier
-    if (Array.isArray(r.planning)) {
-      const doc = (await BK.db.liste('veille')).find(x => x.id === 'planning') || { id: 'planning', l: [] }, ign = new Set(doc.ignores || []);
-      doc.l = r.planning.filter(e => e && Array.isArray(e.dates) && e.dates.some(d => /^\d{4}-\d\d-\d\d$/.test(d) && d >= auj))
-        .map(e => ({ ...e, cle: [e.type, e.morceau, e.titre, e.dates.join('+')].join('|') })).filter(e => !ign.has(e.cle));
-      doc.t = Date.now(); await BK.db.ecrire('veille', doc); nb(doc.l.length, 'date(s) au calendrier');
-    }
+    // Calendrier : une lecture À PART, rien que pour les dates (plus fiable que dans la grande lecture), qui s'ajoute à ce qu'on avait
+    try { const doc = await BK.discord.planning(); nb((doc.l || []).length, 'date(s) au calendrier'); }
+    catch (e) { console.warn(e); out.push('calendrier : ' + e.message); }
     // Assistant audio : les passages
     if (Array.isArray(r.passages)) {
       const sec = t => { const x = String(t || '').match(/(\d{1,2})\s*[:'’]\s*(\d{2})/); return x ? +x[1] * 60 + +x[2] : null; };
@@ -179,8 +173,7 @@ Règles : "taches" = ce que quelqu'un doit faire et qui n'est pas déjà fait ni
       if (!l.length && /shoot|photo/i.test((t.type || '') + ' ' + (t.titre || ''))) l = mood.filter(f => /shoot|photo/i.test(f.dossiers.join(' ') + ' ' + f.name));
       if (!l.length) continue;
       const imgs = l.filter(f => /^image\//.test(f.mimeType || '')).slice(0, 12), docs = l.filter(f => !/^image\//.test(f.mimeType || '')).slice(0, 10);
-      t.moodboard = [];
-      for (const f of imgs) { try { const u = await BK.drive.vignette(f); if (u) t.moodboard.push(await BK.miette.reduire(u)); } catch (e) {} await BK.audio.pause(); }
+      t.moodboard = imgs.map(f => BK.img.ref(f.id));                 // juste l'adresse des images du Drive : rien n'est recopié
       t.moodboardDocs = docs.map(f => ({ nom: f.name, url: f.webViewLink, id: f.id }));
       if (t.moodboard.length || t.moodboardDocs.length) { t.moodboardAuto = true; await BK.db.ecrire('tournages', t, { sansAnnuler: true }); n++; }
     }
@@ -206,25 +199,25 @@ BK.presence = {
   // ce que ce PC est en train de faire : la petite ligne d'état de l'onglet ouvert (« Export 2/3 », « Image prête »…)
   noter(t) { t = String(t || '').trim(); if (!t || t === BK.presence.action) return; BK.presence.action = t.slice(0, 60); BK.presence.actionT = Date.now();
     const attente = 15e3 - (Date.now() - BK.presence.dernierEnvoi);                   // on prévient les autres vite, mais pas plus d'une fois toutes les 15 s
-    clearTimeout(BK.presence._t); BK.presence._t = setTimeout(() => BK.presence.maj(), Math.max(0, attente)); },
-  async battre() {
+    clearTimeout(BK.presence._t); BK.presence._t = setTimeout(() => BK.presence.maj(true), Math.max(0, attente)); },
+  async battre(parti) {
     if (!BK.drive || !BK.drive.relie()) return;
     const moi = BK.reglage('nomPc', '') || 'ce PC';
     const o = (BK.onglets || []).find(x => x.id === BK.reglage('dernierOnglet', 'accueil'));
     const action = Date.now() - BK.presence.actionT < 10 * 60e3 ? BK.presence.action : '';            // une action trop vieille ne compte plus
     BK.presence.dernierEnvoi = Date.now();
-    try { await BK.db.ecrire('config', { id: 'ici-' + moi.toLowerCase().replace(/[^a-z0-9]+/g, '-'), qui: moi, onglet: o ? o.titre : '', action, t: Date.now() }, { sansAnnuler: true }); } catch (e) {}
+    try { await BK.db.ecrire('config', { id: 'ici-' + moi.toLowerCase().replace(/[^a-z0-9]+/g, '-'), qui: moi, onglet: o ? o.titre : '', action, t: parti ? 0 : Date.now() }, { sansAnnuler: true }); } catch (e) {}
   },
   async lire() {
     if (!BK.drive || !BK.drive.relie()) return [];
     const moi = (BK.reglage('nomPc', '') || 'ce PC').toLowerCase();
     try {
-      return (await BK.db.liste('config')).filter(d => /^ici-/.test(d.id) && Date.now() - (d.t || 0) < 3 * 60e3 && String(d.qui || '').toLowerCase() !== moi);
+      return (await BK.db.liste('config')).filter(d => /^ici-/.test(d.id) && Date.now() - (d.t || 0) < 7 * 60e3 && String(d.qui || '').toLowerCase() !== moi);
     } catch (e) { return []; }
   },
-  async maj() {
+  async maj(ecrire) {
     const z = document.getElementById('syQuiL'), b = document.getElementById('syQui'); if (!z) return;
-    await BK.presence.battre();
+    if (ecrire || Date.now() - BK.presence.dernierEnvoi > 3 * 60e3) await BK.presence.battre();
     const l = await BK.presence.lire();
     if (!b) return;
     b.style.display = BK.drive && BK.drive.relie() ? '' : 'none';
@@ -271,8 +264,9 @@ BK.synchro = {
     BK.synchro.prevenir();
     // un seul tempo pour la présence et la synchro (deux appels au Drive, groupés, toutes les 45 s)
     const tic = () => { BK.synchro.tour(); BK.presence.maj(); };
-    BK.presence.maj(); setInterval(tic, 45e3);
+    BK.presence.maj(true); setInterval(tic, 45e3);                 // à l'ouverture : « je suis là »
     window.addEventListener('focus', tic);
+    window.addEventListener('beforeunload', () => { BK.presence.battre(true); });   // à la fermeture : « je pars » (si Internet le permet)
     // quand une fiche change ailleurs, l'onglet concerné se relit (sauf si on est en train d'écrire dedans)
     // tout ce qui est fait sur un PC se retrouve sur les autres : chaque collection dit quels onglets relire
     const QUI = {

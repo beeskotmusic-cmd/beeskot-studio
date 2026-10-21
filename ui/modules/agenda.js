@@ -148,6 +148,10 @@ BK.module('agenda', function (page) {
           <span class="nt">${e.dates.map(d => new Date(d + 'T12:00').toLocaleDateString('fr-CA', { weekday: 'short', day: 'numeric', month: 'short' })).join(' ou ')}${e.heure ? ' · ' + e.heure : ''} · ${e.statut === 'valide' ? 'décidé' : 'possible'}${e.pourquoi ? ' — « ' + esc(e.pourquoi) + ' »' : ''}</span></div>
         <button class="btn xs" data-rep="${esc(e.cle)}" title="Remplir le formulaire">✎</button><button class="btn xs" data-repx="${esc(e.cle)}" title="Ignorer">✕</button></div>`).join('')
       : `<span class="nt">${A.planning && A.planning.t ? 'Rien de prévu dans les messages récents.' : 'Miette lit Discord et place ici les dates dont vous parlez (décidées ou possibles).'}</span>`;
+    const lu = A.planning && A.planning.lu;                       // ce que Miette a lu la dernière fois : pour comprendre ce qui manque
+    if (lu) { const j = d => d ? new Date(d).toLocaleDateString('fr-CA', { day: 'numeric', month: 'short' }) : '?';
+      z.insertAdjacentHTML('beforeend', `<span class="nt ag-lu">🍞 Dernière lecture : ${lu.messages} message(s) du ${j(lu.de)} au ${j(lu.a)}, dont <b>${lu.mails} mail(s)</b> · ${lu.trouvees} date(s) trouvée(s)${lu.passees ? `, ${lu.passees} déjà passée(s)` : ''}.
+        ${lu.mails ? '' : '<br>⚠ Aucun mail lu : vérifie que le salon des mails est coché dans Réglages › Miette & Discord.'}</span>`); }
     $$('[data-rep]', z).forEach(b => b.onclick = () => { const e = A.miette.find(x => x.cle === b.dataset.rep); remplirDepuis(e); if (e) { A.mois = new Date(e.debut.getFullYear(), e.debut.getMonth(), 1); rendre(); } });
     $$('[data-repx]', z).forEach(b => b.onclick = async () => { const d = A.planning; d.ignores = [...(d.ignores || []), b.dataset.repx]; d.l = d.l.filter(x => x.cle !== b.dataset.repx); await BK.db.ecrire('veille', d); await charger(); });
   }

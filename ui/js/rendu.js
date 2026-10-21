@@ -3,10 +3,12 @@
 // couleur (LUT .cube), puis sous-titres. Le même dessin sert à l'aperçu ET à l'export MP4.
 // =====================================================================
 BK.rendu = {
-  // ---------- DIAPORAMA : des photos → une vidéo 9:16 (sans son), qu'on retravaille ensuite comme n'importe quelle vidéo ----------
-  // photos : [{ img (ImageBitmap/Image), duree (s) }]. Chaque photo est montrée entière, sur un fond flou d'elle-même,
-  // avec un léger zoom lent pour que ça vive. Image par image, sans jamais surcharger le PC.
-  async diaporama(photos, { progression } = {}) {
+  // ---------- MONTAGE : des photos ET des vidéos → une vidéo 9:16 (sans son), qu'on retravaille ensuite comme n'importe quelle vidéo ----------
+  // morceaux : [{ img (ImageBitmap) OU video (<video> chargée), debut (s, pour une vidéo), duree (s), anim }]
+  //   anim : 'zoom' (s'approche), 'recul' (s'éloigne), 'glisse' (traverse l'image), 'fixe'
+  // transition : 'coupe', 'fondu' (enchaîné), 'noir' (fondu au noir) · voile : un effet vintage (voir VOILES)
+  // Chaque image est montrée entière sur un fond flou d'elle-même. Image par image, sans jamais surcharger le PC.
+  async montage(morceaux, { transition = 'coupe', voile = '', progression } = {}) {
     if (!window.VideoEncoder) throw new Error('Cet ordinateur ne sait pas encoder la vidéo');
     const L = 1080, H = 1920, fps = 30;
     let codec = 'avc1.640028', mux = 'avc';
@@ -16,16 +18,31 @@ BK.rendu = {
     venc.configure({ codec, width: L, height: H, bitrate: 8e6, framerate: fps });
     const cv = document.createElement('canvas'); cv.width = L; cv.height = H; const cx = cv.getContext('2d');
     const fond = document.createElement('canvas'); fond.width = L / 4; fond.height = H / 4; const fx = fond.getContext('2d');
-    const total = photos.reduce((t, p) => t + Math.round(p.duree * fps), 0); let k = 0;
-    for (const p of photos) {
-      const iw = p.img.width, ih = p.img.height, n = Math.max(1, Math.round(p.duree * fps));
-      // le fond : la photo qui remplit l'écran, floutée et assombrie (calculé une fois par photo)
-      const ech = Math.max(fond.width / iw, fond.height / ih);
-      fx.filter = 'blur(10px) brightness(0.55)'; fx.drawImage(p.img, (fond.width - iw * ech) / 2, (fond.height - ih * ech) / 2, iw * ech, ih * ech); fx.filter = 'none';
+    const avant = document.createElement('canvas'); avant.width = L; avant.height = H; const ax = avant.getContext('2d');   // la dernière image du morceau d'avant (pour le fondu)
+    const total = morceaux.reduce((t, p) => t + Math.max(1, Math.round(p.duree * fps)), 0); let k = 0;
+    const FONDU = Math.round(0.45 * fps), NOIR = Math.round(0.3 * fps);
+    const caler = (v, t) => new Promise(ok => { const fin = () => { clearTimeout(z); ok(); }, z = setTimeout(ok, 1500); v.onseeked = fin; v.currentTime = t; });
+    for (const [ip, p] of morceaux.entries()) {
+      const src = p.img || p.video, iw = p.img ? p.img.width : p.video.videoWidth, ih = p.img ? p.img.height : p.video.videoHeight;
+      const n = Math.max(1, Math.round(p.duree * fps)), ech = Math.max(fond.width / iw, fond.height / ih);
+      const faireFond = () => { fx.filter = 'blur(10px) brightness(0.55)'; fx.drawImage(src, (fond.width - iw * ech) / 2, (fond.height - ih * ech) / 2, iw * ech, ih * ech); fx.filter = 'none'; };
+      if (p.img) faireFond();
       for (let i = 0; i < n; i++, k++) {
+        if (p.video) { await caler(p.video, (p.debut || 0) + i / fps); if (i % 3 === 0) faireFond(); }
+        const q = n > 1 ? i / (n - 1) : 0, a = p.anim || 'zoom';
         cx.drawImage(fond, 0, 0, L, H);
-        const z = 1 + 0.06 * (i / n), e = Math.min(L / iw, H / ih) * z;              // la photo entière, qui s'approche doucement
-        cx.drawImage(p.img, (L - iw * e) / 2, (H - ih * e) / 2, iw * e, ih * e);
+        if (a === 'glisse') {                                   // l'image remplit l'écran et le traverse doucement
+          const e = Math.max(L / iw, H / ih) * 1.12, w = iw * e, h = ih * e;
+          cx.drawImage(src, (L - w) / 2 + (w - L) / 2 * (1 - 2 * q), (H - h) / 2, w, h);
+        } else {
+          const z = a === 'zoom' ? 1 + 0.08 * q : a === 'recul' ? 1.08 - 0.08 * q : 1, e = Math.min(L / iw, H / ih) * z;
+          cx.drawImage(src, (L - iw * e) / 2, (H - ih * e) / 2, iw * e, ih * e);
+        }
+        if (transition === 'fondu' && ip > 0 && i < FONDU) { cx.globalAlpha = 1 - i / FONDU; cx.drawImage(avant, 0, 0); cx.globalAlpha = 1; }
+        if (transition === 'noir') { const b = Math.max(ip > 0 && i < NOIR ? 1 - i / NOIR : 0, ip < morceaux.length - 1 && i >= n - NOIR ? (i - (n - NOIR) + 1) / NOIR : 0);
+          if (b > 0) { cx.fillStyle = `rgba(0,0,0,${Math.min(1, b)})`; cx.fillRect(0, 0, L, H); } }
+        if (voile) BK.rendu.voile(cx, L, H, voile, k / fps);
+        if (i === n - 1) { ax.clearRect(0, 0, L, H); ax.drawImage(cv, 0, 0); }
         const f = new VideoFrame(cv, { timestamp: Math.round(k * 1e6 / fps), duration: Math.round(1e6 / fps) });
         venc.encode(f, { keyFrame: k % (fps * 2) === 0 }); f.close();
         if (venc.encodeQueueSize > 6) await new Promise(r => setTimeout(r, 15));
@@ -34,6 +51,52 @@ BK.rendu = {
     }
     await venc.flush(); venc.close(); muxer.finalize(); progression && progression(1);
     return new Uint8Array(muxer.target.buffer);
+  },
+  async diaporama(photos, o) { return BK.rendu.montage(photos.map(p => ({ ...p, anim: p.anim || 'zoom' })), o); },
+
+  // ---------- EFFETS VINTAGE (dessinés ici, sans fichier) : par-dessus l'image, en photo comme en vidéo ----------
+  VOILES: [['', 'Aucun effet'], ['vintage', 'Vintage'], ['grain', 'Grain de film'], ['poussiere', 'Poussière et rayures'], ['lumiere', 'Fuite de lumière'], ['vhs', 'VHS'], ['vignette', 'Vignettage']],
+  _bruit: null,
+  bruit() {
+    if (BK.rendu._bruit) return BK.rendu._bruit;
+    const c = document.createElement('canvas'); c.width = c.height = 256; const x = c.getContext('2d'), d = x.createImageData(256, 256);
+    for (let i = 0; i < d.data.length; i += 4) { const v = Math.random() * 255; d.data[i] = d.data[i + 1] = d.data[i + 2] = v; d.data[i + 3] = 255; }
+    x.putImageData(d, 0, 0); return BK.rendu._bruit = c;
+  },
+  // t : le temps (s) — en vidéo le grain et la poussière bougent ; en photo t = 0 (toujours le même dessin)
+  voile(cx, L, H, type, t = 0) {
+    if (!type) return;
+    const s = L / 1080, f = Math.floor(t * 12), h = n => { const x = Math.sin(n * 12.9898 + 78.233) * 43758.5453; return x - Math.floor(x); };
+    cx.save();
+    const grain = a => { const pat = cx.createPattern(BK.rendu.bruit(), 'repeat');
+      pat.setTransform && pat.setTransform(new DOMMatrix().translate(h(f + 1) * 256, h(f + 2) * 256).scale(Math.max(1, 1.6 * s)));
+      cx.globalCompositeOperation = 'overlay'; cx.globalAlpha = a; cx.fillStyle = pat; cx.fillRect(0, 0, L, H); cx.globalCompositeOperation = 'source-over'; cx.globalAlpha = 1; };
+    const vignette = a => { const g = cx.createRadialGradient(L / 2, H / 2, Math.min(L, H) * 0.35, L / 2, H / 2, Math.hypot(L, H) * 0.55);
+      g.addColorStop(0, 'rgba(0,0,0,0)'); g.addColorStop(1, `rgba(0,0,0,${a})`); cx.fillStyle = g; cx.fillRect(0, 0, L, H); };
+    const poussiere = nb => { for (let i = 0; i < nb; i++) { const x = h(f * 131 + i) * L, y = h(f * 173 + i * 7) * H, r = (0.6 + h(i * 3 + f) * 2.4) * s * 1.6;
+        cx.fillStyle = h(i + f * 5) > 0.5 ? 'rgba(255,250,235,.55)' : 'rgba(20,14,8,.55)'; cx.beginPath(); cx.arc(x, y, r, 0, 7); cx.fill(); }
+      for (let i = 0; i < 2; i++) if (h(f * 11 + i) > 0.45) { const x = h(f * 19 + i * 5) * L; cx.fillStyle = 'rgba(255,248,230,.22)'; cx.fillRect(x, 0, Math.max(1, 1.5 * s), H); } };
+    const lumiere = a => { cx.globalCompositeOperation = 'screen';
+      const x1 = L * (0.05 + 0.08 * Math.sin(t * 0.7)), g = cx.createRadialGradient(x1, H * 0.18, 0, x1, H * 0.18, H * 0.55);
+      g.addColorStop(0, `rgba(255,140,50,${a})`); g.addColorStop(0.5, `rgba(255,70,30,${a * 0.45})`); g.addColorStop(1, 'rgba(255,60,20,0)'); cx.fillStyle = g; cx.fillRect(0, 0, L, H);
+      const g2 = cx.createRadialGradient(L, H * 0.85, 0, L, H * 0.85, H * 0.4); g2.addColorStop(0, `rgba(255,190,90,${a * 0.6})`); g2.addColorStop(1, 'rgba(255,190,90,0)');
+      cx.fillStyle = g2; cx.fillRect(0, 0, L, H); cx.globalCompositeOperation = 'source-over'; };
+    if (type === 'vintage') {                                     // chaud, noirs délavés, grain, poussière, coins sombres
+      cx.globalCompositeOperation = 'multiply'; cx.fillStyle = 'rgba(255,222,170,.55)'; cx.fillRect(0, 0, L, H);
+      cx.globalCompositeOperation = 'screen'; cx.fillStyle = 'rgba(46,32,20,.55)'; cx.fillRect(0, 0, L, H); cx.globalCompositeOperation = 'source-over';
+      grain(0.35); poussiere(14); vignette(0.5);
+    }
+    if (type === 'grain') grain(0.5);
+    if (type === 'poussiere') { poussiere(28); grain(0.18); }
+    if (type === 'lumiere') { lumiere(0.6); grain(0.15); }
+    if (type === 'vignette') vignette(0.7);
+    if (type === 'vhs') {
+      cx.globalCompositeOperation = 'soft-light'; cx.fillStyle = 'rgba(80,120,255,.35)'; cx.fillRect(0, 0, L, H); cx.globalCompositeOperation = 'source-over';
+      cx.fillStyle = 'rgba(0,0,0,.16)'; const pas = Math.max(2, Math.round(4 * s)); for (let y = 0; y < H; y += pas) cx.fillRect(0, y, L, Math.max(1, pas / 2));
+      const yb = (t * 140 * s + h(3) * H) % H; cx.fillStyle = 'rgba(255,255,255,.07)'; cx.fillRect(0, yb, L, 26 * s);
+      grain(0.3); vignette(0.35);
+    }
+    cx.restore();
   },
 
   // ---------- lire un fichier LUT .cube ----------
@@ -82,7 +145,7 @@ BK.rendu = {
       lut(l) { gl.activeTexture(gl.TEXTURE1); gl.bindTexture(gl.TEXTURE_2D, tLut);
         if (l) gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, l.n * l.n, l.n, 0, gl.RGBA, gl.UNSIGNED_BYTE, l.px); this.n = l ? l.n : 0; },
       // video : élément <video> ; cadre : { zoom (1 = remplit), x, y (en % du cadre) } ; sous : texte à afficher ; style des sous-titres
-      dessiner(video, cadre, force, sous) {
+      dessiner(video, cadre, force, sous, voile) {
         const vw = video.videoWidth || video.naturalWidth || video.width, vh = video.videoHeight || video.naturalHeight || video.height; if (!vw) return;   // une vidéo ou une image
         // « remplir » le cadre 9:16, puis zoom et déplacement → zone de la vidéo à lire (en 0..1)
         const ech = Math.max(largeur / vw, hauteur / vh) * cadre.zoom, w = largeur / (vw * ech), h = hauteur / (vh * ech);
@@ -94,6 +157,7 @@ BK.rendu = {
         gl.uniform1f(u.n, this.n || 2); gl.uniform1f(u.force, this.n ? force : 0);
         gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
         ctx.drawImage(cv, 0, 0);
+        if (voile && voile.type) BK.rendu.voile(ctx, largeur, hauteur, voile.type, voile.t || 0);   // l'effet vintage, sous les sous-titres
         if (sous) BK.rendu.sousTitre(ctx, sous, largeur, hauteur);
       },
     };
@@ -114,7 +178,7 @@ BK.rendu = {
   texteA(sous, t) { let x = ''; for (const s of sous || []) if (s.t <= t) x = s.texte; else break; return x; },
 
   // ---------- EXPORT MP4 (encodeur intégré à Windows, assemblage en local) ----------
-  async exporter({ video, debut, fin, cadre, force, lut, sous, audio, progression }) {
+  async exporter({ video, debut, fin, cadre, force, lut, sous, voile, audio, progression }) {
     if (!window.VideoEncoder) throw new Error('Cet ordinateur ne sait pas encoder la vidéo');
     const L = 1080, H = 1920, fps = 30, r = BK.rendu.creer(L, H); r.lut(lut);
     if (audio && !(window.AudioEncoder && (await AudioEncoder.isConfigSupported({ codec: 'mp4a.40.2', sampleRate: audio.sampleRate, numberOfChannels: audio.numberOfChannels, bitrate: 192000 })).supported)) audio = null;   // pas d'encodeur AAC : vidéo sans son
@@ -134,7 +198,7 @@ BK.rendu = {
     for (let k = 0; k < n; k++) {
       const t = debut + k / fps;
       await new Promise(res => { video.onseeked = res; video.currentTime = t; });
-      r.dessiner(video, cadre, force, BK.rendu.texteA(sous, k / fps));
+      r.dessiner(video, cadre, force, BK.rendu.texteA(sous, k / fps), voile ? { type: voile, t: k / fps } : null);
       const f = new VideoFrame(r.sortie, { timestamp: Math.round(k * 1e6 / fps), duration: Math.round(1e6 / fps) });
       venc.encode(f, { keyFrame: k % (fps * 2) === 0 }); f.close();
       if (venc.encodeQueueSize > 8) await new Promise(res => setTimeout(res, 10));   // ne pas surcharger le PC

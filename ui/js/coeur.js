@@ -7,7 +7,7 @@ const $ = (s, r = document) => r.querySelector(s);
 const $$ = (s, r = document) => [...r.querySelectorAll(s)];
 
 const BK = {
-  version: '0.9.51 bêta',
+  version: '0.9.52 bêta',
   modules: {},
   onglets: [],
   cotes: [],
@@ -75,19 +75,36 @@ const BK = {
   },
 
   // ---------- pages ----------
+  // Au démarrage : les cadres des onglets sont posés (léger), mais un onglet n'est CONSTRUIT qu'à sa première ouverture,
+  // ou tranquillement en arrière-plan quand le PC n'a rien d'autre à faire. Démarrage plus rapide, moins de mémoire.
+  // le nom de CE PC dans le bandeau (Yacine, Pierre, Baptiste, Studio) — à régler une fois dans Réglages › Ce PC
+  majNomPc() { const n = BK.reglage('nomPc', ''), e = document.getElementById('syPc'), b = document.getElementById('syPcB'); if (!e) return;
+    e.textContent = n ? n.toUpperCase() : 'QUI ?'; b && b.classList.toggle('a-regler', !n); },
+  construits: {},
   construirePages() {
-    const zone = $('#pages'); zone.innerHTML = '';
-    for (const o of BK.onglets) {
-      const p = BK.page(o, o.droite || '');
-      zone.appendChild(p);
-      const dessiner = BK.modules[o.id] || (o.pret ? null : BK.modules['_en-construction']);
-      try { if (dessiner) dessiner(p, o); }
-      catch (e) { $('.grid', p).innerHTML = `<div class="pane vit"><span class="nt">Cet onglet a un souci : ${e.message}</span></div>`; console.error(e); }
-    }
+    const zone = $('#pages'); zone.innerHTML = ''; BK.construits = {};
+    for (const o of BK.onglets) zone.appendChild(BK.page(o, o.droite || ''));
+  },
+  construire(id) {
+    if (BK.construits[id]) return; BK.construits[id] = true;
+    const o = BK.onglets.find(x => x.id === id), p = $('#p-' + id); if (!o || !p) return;
+    const dessiner = BK.modules[o.id] || (o.pret ? null : BK.modules['_en-construction']);
+    try { if (dessiner) dessiner(p, o); }
+    catch (e) { $('.grid', p).innerHTML = `<div class="pane vit"><span class="nt">Cet onglet a un souci : ${e.message}</span></div>`; console.error(e); }
+    $$('.knobify', p).forEach(BK.knobify);
+    const v = $('.pane.abar > .vfd', p); if (v && BK._obsEtats) BK._obsEtats.observe(v, { childList: true, characterData: true, subtree: true });
+  },
+  // les autres onglets se construisent un par un, seulement quand le PC est au repos
+  construireLeReste(ordre) {
+    const reste = ordre.filter(id => !BK.construits[id]); if (!reste.length) return;
+    const suivant = () => { const id = reste.shift(); if (!id) return; BK.construire(id); planifier(); };
+    const planifier = () => window.requestIdleCallback ? requestIdleCallback(suivant, { timeout: 1500 }) : setTimeout(suivant, 120);
+    planifier();
   },
 
   ouvrir(id) {
     if (!$('#p-' + id)) id = 'accueil';
+    BK.construire(id);
     $$('#pages > section').forEach(s => s.classList.toggle('hidden', s.id !== 'p-' + id));
     $$('#nav .tab').forEach(t => {
       const on = t.dataset.p === id;
@@ -125,7 +142,9 @@ const BK = {
   },
   zoomCss(f) { document.documentElement.style.zoom = f; document.documentElement.style.setProperty('--z', f); },
   relancer() { if (window.__TAURI__?.process) window.__TAURI__.process.relaunch(); else location.reload(); },
-  fermer()   { if (window.__TAURI__?.process) window.__TAURI__.process.exit(0); else window.close(); },
+  async fermer() {                                                   // on prévient « je pars » (1,5 s maximum), puis on ferme
+    try { await Promise.race([BK.presence && BK.presence.battre(true), new Promise(r => setTimeout(r, 1500))]); } catch (e) {}
+    if (window.__TAURI__?.process) window.__TAURI__.process.exit(0); else window.close(); },
   // ---------- mises à jour : vérifiées au démarrage, installées en 1 clic depuis le bouton STOP ----------
   async verifierMaj() {
     const up = BK.T && BK.T.updater; if (!up) return;
@@ -139,6 +158,22 @@ const BK = {
     } catch (e) { /* pas d'Internet : on réessaiera tout à l'heure */ }
   },
   // ---------- la mise à jour est obligatoire (tout le monde sur la même version) : un gros pop-up au milieu ----------
+  // un petit mot différent à chaque mise à jour (choisi selon le numéro de version) — à compléter à chaque fois
+  MOTS_MAJ: [
+    'Si tu ne veux pas que tout parte en miettes,<br><b>fais la mise à jour.</b>',
+    'Deux secondes, papillon : ça t\'embête pas ?<br><b>Petite mise à jour à faire.</b>',
+    'Je sais que t\'as du pain sur la planche…<br><b>mais si tu veux pas perdre une miette, mets à jour.</b>',
+    'Je vais pas te tartiner avec des histoires :<br><b>la mise à jour, c\'est maintenant.</b>',
+    'Une biscotte toute fraîche sort du four.<br><b>Croque dedans : mise à jour !</b>',
+    'Ne reste pas sur ta faim :<br><b>la nouvelle fournée t\'attend.</b>',
+    'Ça croustille de nouveautés.<br><b>Une minute et c\'est servi.</b>',
+    'Pas de quoi en faire tout un fromage :<br><b>un clic et c\'est à jour.</b>',
+    'Le beurre, l\'argent du beurre… et la mise à jour.<br><b>On y va ?</b>',
+    'Pour rester dans le même pétrin que le groupe,<br><b>prends la nouvelle version.</b>',
+    'C\'est pas de la confiture donnée aux cochons :<br><b>c\'est la mise à jour.</b>',
+    'Il reste une biscotte au fond du paquet…<br><b>la nouvelle version. Prends-la !</b>',
+  ],
+  motMaj(v) { let h = 0; for (const c of String(v || '')) h = (h * 31 + c.charCodeAt(0)) >>> 0; return BK.MOTS_MAJ[(h + 1) % BK.MOTS_MAJ.length]; },
   popupMaj(m) {
     if (document.getElementById('majVoile')) return;
     if (Date.now() < BK.reglage('maj.plusTard', 0)) { setTimeout(() => BK.popupMaj(m), BK.reglage('maj.plusTard', 0) - Date.now() + 500); return; }
@@ -147,7 +182,7 @@ const BK = {
       <span class="screw tl"></span><span class="screw tr"></span><span class="screw bl"></span><span class="screw br"></span>
       <img src="look/patch-biscotte.png" class="maj-biscotte" alt="">
       <span class="dymo">Mise à jour nécessaire</span>
-      <p class="maj-txt">Si tu ne veux pas que tout parte en miettes,<br><b>fais la mise à jour.</b></p>
+      <p class="maj-txt">${BK.motMaj(m.version)}</p>
       <span class="nt">Version ${String(m.version).replace(/[<>&]/g, '')} · tout le groupe doit avoir la même pour que le travail reste synchronisé. Ça prend une minute, le logiciel se relance tout seul.</span>
       <button class="btn pri maj-go" id="majGo">⬇ Installer maintenant</button>
       <button class="maj-tard" id="majTard">Plus tard (10 min) — je finis ce que je fais</button></div>`;
@@ -189,31 +224,31 @@ const BK = {
   async demarrer() {
     BK.boutonStop();
     try { await BK.semer(); await BK.semerAlias(); await BK.semerBudget(); } catch (e) { console.error(e); }
+    BK._obsEtats = new MutationObserver(ms => { const vfd = ms[0] && ms[0].target; const el = vfd.nodeType === 3 ? vfd.parentElement : vfd;
+      const page = el && el.closest('#pages > section'); if (page && !page.classList.contains('hidden')) BK.presence && BK.presence.noter(el.textContent); });
     BK.construireMenu();
     BK.construirePages();
-    $$('.knobify').forEach(BK.knobify);
+    // d'abord ce qui sert partout (Miette AI range ses réglages dans Réglages), puis l'onglet qu'on ouvre
+    BK.construire('renforts'); BK.construire('reglages'); BK.construire(BK.reglage('dernierOnglet', 'accueil'));
+    $$('#nav .knobify, header .knobify').forEach(BK.knobify);
     $('#syVer').textContent = BK.version.toUpperCase();
     if (BK.T && BK.T.app) BK.T.app.getVersion().then(v => { BK.version = v + ' bêta'; $('#syVer').textContent = $('#stVer').textContent = BK.version.toUpperCase(); });   // le vrai numéro du .exe
-    $('#syPc').textContent = BK.reglage('nomPc', 'CE PC').toUpperCase();
+    BK.majNomPc(); $('#syPcB').onclick = () => { BK.ouvrir('reglages'); BK.reglagesOnglet && BK.reglagesOnglet('pc'); };
     BK.etatDrive && BK.etatDrive();
     BK.horloge(); setInterval(BK.horloge, 20000);   // léger : une mise à jour toutes les 20 s
     BK.charge(); setInterval(BK.charge, 8000);
     BK.appliquerZoom(BK.reglage('zoom', 100));
     BK.synchro && BK.synchro.demarrer();                              // ce qu'un autre PC change arrive ici tout seul
-    // ce qu'on fait ici (la ligne d'état en bas de l'onglet) est partagé avec les autres PC.
-    // On n'écoute QUE ces petites lignes (pas toute la fenêtre) : une par onglet, repérées une fois les onglets construits.
-    const ecouteEtats = () => {
-      const obs = new MutationObserver(ms => { const vfd = ms[0] && ms[0].target; const el = vfd.nodeType === 3 ? vfd.parentElement : vfd;
-        const page = el && el.closest('#pages > section'); if (page && !page.classList.contains('hidden')) BK.presence && BK.presence.noter(el.textContent); });
-      for (const bar of document.querySelectorAll('.pane.abar')) { const v = bar.querySelector(':scope > .vfd'); if (v) obs.observe(v, { childList: true, characterData: true, subtree: true }); }
-    };
-    setTimeout(ecouteEtats, 1500);
+    // ce qu'on fait ici (la ligne d'état en bas de l'onglet) est partagé avec les autres PC :
+    // chaque onglet branche sa petite ligne sur l'écouteur au moment où il se construit (voir BK.construire).
     const ba = document.getElementById('stAmeliorer');                 // raconter un souci → Miette AI › Aides
     if (ba) ba.onclick = () => { document.getElementById('stopVoile').classList.add('hidden');
       BK.regler('renfort.aide', 'amelioration'); BK.renfortDemander ? BK.renfortDemander('amelioration', {}) : BK.ouvrir('renforts'); };
     const bm = document.getElementById('btMiette');                 // le bouton jaune : Miette relit tout
     if (bm) bm.onclick = () => { bm.classList.add('pressed'); setTimeout(() => bm.classList.remove('pressed'), 150); BK.miette.toutLire(); };
     BK.ouvrir(BK.reglage('dernierOnglet', 'accueil'));
+    // le reste se construit en arrière-plan, quand le PC est au repos (l'Accueil d'abord, il sert souvent)
+    setTimeout(() => BK.construireLeReste(['accueil', 'biblio', 'medias', 'taches', 'agenda', 'suivi', 'tournage', 'budget', ...BK.onglets.map(o => o.id)]), 1200);
     setTimeout(() => BK.bienvenue && BK.bienvenue.ouvrir(), 600);      // premier lancement : le petit guide
     setTimeout(BK.verifierMaj, 3000);
     BK.nouveautes && BK.nouveautes.verifier();                  // juste après une mise à jour : « Quoi de neuf ? »
