@@ -332,7 +332,15 @@ BK.module('renforts', function (page) {
     $$('#raSalons [data-s]').forEach(c => c.onchange = async () => {
       const tous = R.salons.length ? R.salons : (d.salons || []);
       const sel = $$('#raSalons [data-s]').filter(x => x.checked).map(x => tous.find(s => s.id === x.dataset.s)).filter(Boolean);
-      R.discord = await BK.discord.enregistrer({ salons: sel }); msg(sel.length + ' salon(s) suivis'); if (R.volet === 'veilleur') rendreVeilleur();
+      const avant = new Set((R.discord.salons || []).map(x => x.id));
+      R.discord = await BK.discord.enregistrer({ salons: sel }); if (R.volet === 'veilleur') rendreVeilleur();
+      const neufs = sel.filter(x => !avant.has(x.id));
+      if (neufs.length) {                       // un salon vient d'être ajouté : on relit tout de suite, sinon le résumé garde l'ancien
+        const vieux = (await BK.db.liste('veille')).find(d => d.id === 'resume');
+        if (vieux) { vieux.dernier = ''; vieux.t = 0; await BK.db.ecrire('veille', vieux, { sansAnnuler: true }); }
+        msg('Nouveau salon #' + neufs[0].nom + ' : Miette relit Discord…');
+        BK.miette.toutLire().then(() => msg('Discord relu : regarde l\'Accueil et le Calendrier')).catch(e => msg(e.message || 'Relecture impossible'));
+      } else msg(sel.length + ' salon(s) suivis');
     });
   }
 

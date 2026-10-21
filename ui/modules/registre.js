@@ -14,7 +14,7 @@ BK.onglets = [
   { id: 'medias',   cote: 'audio',   titre: 'Médias',         sous: 'Photos, vidéos, étiquettes',    couleur: 'var(--ox)',   pret: true , defaut: true },
 
   { id: 'suivi',    cote: 'outils',  titre: 'Reels',          sous: 'Suivi : audio, tournage, médias', couleur: 'var(--teal)', pret: true , defaut: true },
-  { id: 'tournage', cote: 'outils',  titre: 'Tournages',      sous: 'Plan, moodboard, PDF',          couleur: 'var(--navy)', pret: true, defaut: true },
+  { id: 'tournage', cote: 'assist',  titre: 'Tournages',      sous: 'Plan, moodboard, PDF',          couleur: 'var(--navy)', pret: true, defaut: true },
   { id: 'agenda',   cote: 'outils',  titre: 'Calendrier',     sous: 'Agenda BEESKOT, promo',         couleur: 'var(--mus)',  pret: true , defaut: true },
   { id: 'taches',   cote: 'outils',  titre: 'To-do list',     sous: 'À faire',                       couleur: 'var(--crm)',  pret: true , defaut: true },
   { id: 'budget',   cote: 'outils',  titre: 'Budget',         sous: 'Dépenses, qui doit à qui',      couleur: 'var(--olv)',  pret: true , defaut: true },

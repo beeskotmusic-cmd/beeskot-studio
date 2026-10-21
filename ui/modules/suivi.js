@@ -12,7 +12,7 @@ const ETAPES = [
   { k: 'monte',   nom: 'Monté',     ic: '🎞' },
   { k: 'publie',  nom: 'Publié',    ic: '🚀' },
 ];
-const R = { l: [], morceaux: [], tournages: [], exports: [], tags: {}, fichiers: [], filtre: BK.reglage('suivi.filtre', 'encours') };
+const R = { l: [], morceaux: [], tournages: [], exports: [], tags: {}, fichiers: [], filtre: BK.reglage('suivi.filtre', 'encours'), ouvert: BK.reglage('suivi.ouvert', '') || null };
 const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 const date = d => d ? new Date(d.length === 10 ? d + 'T12:00' : d).toLocaleDateString('fr-CA', { day: 'numeric', month: 'short' }) : '';
 const t2 = s => BK.audio.temps(s).replace(/\.\d$/, '');
@@ -64,21 +64,48 @@ BK.module('suivi', function (page) {
     return R.fichiers.filter(f => { const l = BK.etiquettes.liste(R.tags, f.id); return l.includes(m.id) || (r.tournage && l.includes('t:' + r.tournage)); })
       .filter(f => /^(image|video)\//.test(f.mimeType || '')); };
 
+  // l'image du poster : d'abord le moodboard du tournage, sinon la photo du morceau,
+  // sinon (chargée après coup) une image étiquetée pour ce reel
+  function imageDe(r) {
+    const t = tournageDe(r), m = morceauDe(r);
+    return (t && (t.moodboard || [])[0]) || (m && m.photo) || '';
+  }
+
+  // ---------- le POSTER vertical ----------
+  function affiche(r) {
+    const m = morceauDe(r), t = tournageDe(r), a = audioDe(r), md = mediasDe(r);
+    const i = ETAPES.findIndex(e => e.k === (r.statut || 'idee'));
+    const choisi = R.ouvert === r.id;
+    const img = imageDe(r);
+    const pas = r.passage || (a && a.duree ? { debut: a.debut || 0, fin: (a.debut || 0) + a.duree } : null);
+    return `<button class="su-aff${choisi ? ' on' : ''}" data-ouv="${r.id}" data-id="${r.id}"
+        ${img ? ` style="background-image:url(${img})"` : ''} data-img="${(md.find(f => /^image\//.test(f.mimeType || '')) || {}).id || ''}"
+        title="${esc(r.titre || 'Reel')}">
+      ${img ? '' : '<span class="su-aff-vide">🎬</span>'}
+      <span class="su-aff-jauge"><i style="width:${Math.round((i + 1) / ETAPES.length * 100)}%"></i></span>
+      <span class="su-aff-bas">
+        <span class="su-aff-t">${esc(r.titre || 'Reel')}</span>
+        ${m ? `<span class="su-aff-m">${esc(m.nom)}</span>` : ''}
+        <span class="su-aff-pas">${ETAPES.map((e, k) => `<i class="${k <= i ? 'faite' : ''}"></i>`).join('')}<em>${esc(ETAPES[Math.max(0, i)].nom)}</em></span>
+      </span>
+      ${pas ? '<span class="su-aff-son">♪</span>' : ''}
+      ${t && t.date ? `<span class="su-aff-date">${esc(date(t.date))}</span>` : ''}
+    </button>`;
+  }
+
+  // ---------- le panneau qui s'ouvre en dessous : exactement la même ligne qu'avant ----------
   function carte(r) {
     const m = morceauDe(r), t = tournageDe(r), a = audioDe(r), md = mediasDe(r);
     const vid = md.filter(f => /^video\//.test(f.mimeType || '')).length, ph = md.length - vid;
     const i = ETAPES.findIndex(e => e.k === (r.statut || 'idee'));
     const tenues = t && t.tenues ? Object.entries(t.tenues).filter(([, v]) => v && String(v).trim()).map(([k, v]) => k + ' : ' + v) : [];
-    const ouvert = (BK.reglage('suivi.ouverts', {}))[r.id] ?? false;
     const pas = r.passage || (a && a.duree ? { debut: a.debut || 0, fin: (a.debut || 0) + a.duree } : null);
-    const vign = (m && m.photo) || '';
-    return `<div class="su-c${ouvert ? ' ouverte' : ''}" data-id="${r.id}">
+    return `<div class="su-c ouverte" data-id="${r.id}">
       <div class="su-tete">
-        <button class="su-vign" data-ouv="${r.id}" title="${ouvert ? 'Replier' : 'Tout voir'}"${vign ? ` style="background-image:url(${vign})"` : ''} data-img="${(md.find(f => /^image\//.test(f.mimeType || '')) || {}).id || ''}">${vign ? '' : '🎬'}</button>
         <button class="su-titre" data-ouv="${r.id}"><b>${esc(r.titre || 'Reel')}</b>${m ? `<span class="su-m">${esc(m.nom)}</span>` : ''}</button>
         ${pas ? `<span class="su-lect"><button class="btn xs" data-play="${r.id}" title="Écouter le passage">▶</button><span class="mono">${t2(pas.debut)} → ${t2(pas.fin)}</span></span>` : '<span class="nt su-lect">passage à choisir</span>'}
         <div class="su-etapes">${ETAPES.map((e, k) => `<button class="su-e${k <= i ? ' ok' : ''}${k === i ? ' on' : ''}" data-st="${r.id}|${e.k}" title="${e.nom}">${e.ic}</button>`).join('')}</div>
-        <button class="btn xs" data-ouv="${r.id}" title="${ouvert ? 'Replier' : 'Tout voir'}">${ouvert ? '▾' : '▸'}</button>
+        <button class="btn xs" data-ouv="${r.id}" title="Replier">▾ Fermer</button>
         <button class="btn xs" data-sx="${r.id}" title="Retirer">✕</button></div>
       <div class="su-l">
         <div class="su-b${a ? ' fait' : ''}"><span class="eng">🎵 Audio</span>
@@ -108,7 +135,10 @@ BK.module('suivi', function (page) {
       .sort((a, b) => (b.maj || '').localeCompare(a.maj || ''));
     $('#suNb').textContent = String(R.l.filter(r => r.statut !== 'publie').length).padStart(2, '0');
     $('#suPub').textContent = String(R.l.filter(r => r.statut === 'publie').length).padStart(2, '0');
-    $('#suListe').innerHTML = l.length ? l.map(carte).join('')
+    if (R.ouvert && !l.some(r => r.id === R.ouvert)) R.ouvert = null;
+    const choisi = l.find(r => r.id === R.ouvert);
+    $('#suListe').innerHTML = l.length
+      ? `<div class="su-affs">${l.map(affiche).join('')}</div>${choisi ? carte(choisi) : ''}`
       : `<span class="nt" style="padding:20px">${R.filtre === 'publie' ? 'Aucun reel publié pour l\'instant.' : 'Aucun reel. Crée-en un à droite, ou reprends ceux des fiches de tournage.'}</span>`;
     brancher();
   }
@@ -147,12 +177,13 @@ BK.module('suivi', function (page) {
 
   function brancher() {
     const z = $('#suListe');
-    $$('[data-ouv]', z).forEach(b => b.onclick = () => { const o = BK.reglage('suivi.ouverts', {}); o[b.dataset.ouv] = !(o[b.dataset.ouv] ?? false); BK.regler('suivi.ouverts', o); rendre(); });
+    $$('[data-ouv]', z).forEach(b => b.onclick = () => { R.ouvert = R.ouvert === b.dataset.ouv ? null : b.dataset.ouv; BK.regler('suivi.ouvert', R.ouvert || ''); rendre();
+      if (R.ouvert) setTimeout(() => { const c = $('.su-c', z); c && c.scrollIntoView({ behavior: 'smooth', block: 'nearest' }); }, 60); });
     $$('[data-play]', z).forEach(b => b.onclick = e => { e.stopPropagation(); jouerPassage(R.l.find(x => x.id === b.dataset.play)); });
     // la vignette : une image des médias du reel si la fiche du morceau n'en a pas
-    (async () => { for (const b of $$('.su-vign[data-img]', z)) { if (b.style.backgroundImage || !b.dataset.img) continue;
+    (async () => { for (const b of $$('.su-aff[data-img]', z)) { if (b.style.backgroundImage || !b.dataset.img) continue;
       const f = R.fichiers.find(x => x.id === b.dataset.img); if (!f) continue;
-      try { const u = await BK.drive.vignette(f); if (u) { b.style.backgroundImage = `url(${u})`; b.textContent = ''; } } catch (e) {} } })();
+      try { const u = await BK.drive.vignette(f); if (u) { b.style.backgroundImage = `url(${u})`; const v = b.querySelector('.su-aff-vide'); v && v.remove(); } } catch (e) {} } })();
     $$('[data-st]', z).forEach(b => b.onclick = async () => { const [id, k] = b.dataset.st.split('|'); const r = R.l.find(x => x.id === id);
       const avant = ETAPES.findIndex(e => e.k === (r.statut || 'idee'));
       r.statut = r.statut === k ? (ETAPES[Math.max(0, ETAPES.findIndex(e => e.k === k) - 1)] || {}).k || 'idee' : k;

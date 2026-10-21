@@ -881,3 +881,29 @@ body.dropping main>section:not(.hidden) .box.pick::after{content:none!important;
 #stMaj.clignote{animation:majBtn 1.3s ease-in-out infinite}
 @keyframes majBtn{0%,100%{box-shadow:0 1px 2px rgba(0,0,0,.5);filter:brightness(1)}
   50%{box-shadow:0 0 0 2px #ffb23e,0 0 14px rgba(255,178,62,.8);filter:brightness(1.18)}}
+
+/* ---- Reels : des posters verticaux, comme les banques de sons de Dari Audio Live ---- */
+.su-affs{display:grid;grid-template-columns:repeat(auto-fill,minmax(172px,1fr));gap:14px;padding:2px 2px 10px}
+.su-aff{position:relative;aspect-ratio:9/16;border-radius:9px;padding:0;cursor:pointer;overflow:hidden;
+  background:#15110e center/cover no-repeat;border:1px solid rgba(239,230,210,.14);
+  box-shadow:0 4px 12px rgba(0,0,0,.5),inset 0 0 0 1px rgba(255,255,255,.05);
+  display:block;text-align:left;color:var(--ink);transition:transform .14s,box-shadow .14s,border-color .14s}
+.su-aff::after{content:'';position:absolute;inset:0;background:linear-gradient(180deg,rgba(0,0,0,.1) 0%,rgba(0,0,0,0) 32%,rgba(0,0,0,.82) 78%,rgba(0,0,0,.94) 100%)}
+.su-aff:hover{transform:translateY(-3px);box-shadow:0 8px 20px rgba(0,0,0,.6);border-color:rgba(255,178,62,.55)}
+.su-aff.on{border-color:#ffb23e;box-shadow:0 0 0 2px #ffb23e,0 8px 22px rgba(0,0,0,.6)}
+.su-aff-vide{position:absolute;inset:0;display:grid;place-items:center;font-size:34px;opacity:.3}
+.su-aff-jauge{position:absolute;left:0;right:0;top:0;height:3px;background:rgba(255,255,255,.12);z-index:2}
+.su-aff-jauge i{display:block;height:100%;background:#ffb23e;box-shadow:0 0 6px rgba(255,178,62,.8)}
+.su-aff-bas{position:absolute;left:0;right:0;bottom:0;z-index:2;padding:9px 10px 10px;display:flex;flex-direction:column;gap:2px}
+.su-aff-t{font:600 12.5px Jost,sans-serif;letter-spacing:.03em;line-height:1.2;text-shadow:0 1px 3px rgba(0,0,0,.9)}
+.su-aff-m{font-size:10.5px;color:#cbbfa8;text-shadow:0 1px 3px rgba(0,0,0,.9);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.su-aff-pas{display:flex;align-items:center;gap:3px;margin-top:4px}
+.su-aff-pas i{width:9px;height:3px;border-radius:2px;background:rgba(255,255,255,.22)}
+.su-aff-pas i.faite{background:#ffb23e}
+.su-aff-pas em{font:500 9px/1 Jost,sans-serif;letter-spacing:.1em;text-transform:uppercase;color:#ffb23e;margin-left:5px;font-style:normal}
+.su-aff-son,.su-aff-date{position:absolute;top:8px;z-index:2;font:600 9.5px/1 Jost,sans-serif;letter-spacing:.06em;
+  padding:3px 6px;border-radius:4px;background:rgba(0,0,0,.6);box-shadow:inset 0 0 0 1px rgba(255,255,255,.14)}
+.su-aff-son{left:8px;color:#ffb23e}
+.su-aff-date{right:8px;color:#cbbfa8}
+/* le panneau qui s'ouvre sous la grille */
+.su-liste .su-c{border:1px solid rgba(255,178,62,.45);background:rgba(0,0,0,.34)}
