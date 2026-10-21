@@ -159,7 +159,7 @@ BK.FICHES_DEPART = [
 BK.semer = async function () {
   if (BK.reglage('seme.v1', false)) return;
   const deja = new Set((await BK.db.liste('morceaux')).map(m => m.id));
-  for (const f of BK.FICHES_DEPART) if (!deja.has(f.id)) await BK.db.ecrire('morceaux', { ...f, statut: 'chantier', fait: 0 });
+  for (const f of BK.FICHES_DEPART) if (!deja.has(f.id)) await BK.db.ecrire('morceaux', { ...f, statut: 'chantier', fait: 0, graine: true });
   BK.regler('seme.v1', true);
 };
 // le budget de départ : le loyer du studio (chaque mois) et les factures déjà payées

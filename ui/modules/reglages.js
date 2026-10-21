@@ -47,13 +47,54 @@ BK.module('reglages', function (page) {
   });
   $('#rgGuide', page).onclick = () => BK.bienvenue.ouvrir(true);
   $('#rgNom', page).onchange = e => { BK.regler('nomPc', e.target.value.trim()); $('#syPc').textContent = (e.target.value.trim() || 'CE PC').toUpperCase(); };
+  // ---------- RETOUR EN ARRIÈRE : remettre des fiches comme elles étaient avant une heure donnée ----------
+  const COLS_RETOUR = [
+    { c: 'morceaux', n: 'Bibliothèque (les morceaux)' }, { c: 'taches', n: 'To-do list' },
+    { c: 'evenements', n: 'Calendrier' }, { c: 'tournages', n: 'Tournages' }, { c: 'reels', n: 'Reels' },
+    { c: 'depenses', n: 'Budget : dépenses' }, { c: 'abonnements', n: 'Budget : abonnements' },
+    { c: 'inventaires', n: 'Fichiers repérés sur les PC' }, { c: 'config', n: 'Étiquettes et réglages partagés' },
+  ];
+  function panneauRetour() {
+    const v = document.createElement('div'); v.className = 'voile';
+    const d = new Date(Date.now() - 3 * 36e5 - new Date().getTimezoneOffset() * 60e3).toISOString().slice(0, 16);
+    v.innerHTML = `<div class="stopbox" style="width:520px;align-items:stretch">
+      <span class="screw tl"></span><span class="screw tr"></span><span class="screw bl"></span><span class="screw br"></span>
+      <span class="dymo" style="align-self:center">Retour en arrière</span>
+      <span class="nt">Google garde les versions précédentes de chaque fiche pendant 30 jours. On remet tout un onglet comme il était avant l'heure choisie. <b>Rien n'est effacé</b> : on réécrit par-dessus, et on peut refaire un retour en arrière après.</span>
+      <label style="margin-top:10px"><span class="eng">Quoi</span><select class="fld" id="rtCol">${COLS_RETOUR.map(x => `<option value="${x.c}">${x.n}</option>`).join('')}</select></label>
+      <label style="margin-top:8px"><span class="eng">Comme c'était avant le</span><input class="fld" type="datetime-local" id="rtQuand" value="${d}"></label>
+      <span class="nt" id="rtMsg" style="min-height:18px;margin-top:8px"></span>
+      <div class="stopbox-btns"><button class="btn pri" id="rtGo">⏪ Remettre comme avant</button><button class="btn" id="rtNon">Annuler</button></div></div>`;
+    document.body.appendChild(v);
+    const fermer = () => v.remove();
+    v.querySelector('#rtNon').onclick = fermer;
+    v.addEventListener('click', e => { if (e.target === v) fermer(); });
+    v.querySelector('#rtGo').onclick = async () => {
+      const col = v.querySelector('#rtCol').value, q = v.querySelector('#rtQuand').value;
+      if (!q) return v.querySelector('#rtMsg').textContent = 'Choisis une date et une heure';
+      const nom = (COLS_RETOUR.find(x => x.c === col) || {}).n;
+      if (!confirm(`Remettre « ${nom} » comme avant le ${new Date(q).toLocaleString('fr-CA')} ?`)) return;
+      const b = v.querySelector('#rtGo'), m = v.querySelector('#rtMsg');
+      b.disabled = true; b.innerHTML = '<span class="spin"></span>…';
+      try {
+        const n = await BK.drive.restaurer(col, new Date(q).toISOString(), t => m.textContent = t);
+        m.textContent = n ? n + ' fiche(s) remises comme avant' : 'Aucune version plus ancienne trouvée';
+        BK.db.cache[col] = null; BK.regler('drive.cache.' + col, {});
+        window.dispatchEvent(new CustomEvent('bk:distant', { detail: { cols: [col] } }));
+        for (const f of ['biblioRecharger', 'tachesRecharger', 'agendaRecharger', 'budgetRecharger', 'tournagesRecharger', 'suiviRecharger', 'mediasRecharger']) try { BK[f] && BK[f](); } catch (e) {}
+        rmsg(n ? n + ' fiche(s) récupérées' : 'rien à récupérer');
+      } catch (e) { m.textContent = 'Problème : ' + (e.message || e); }
+      b.disabled = false; b.textContent = '⏪ Remettre comme avant';
+    };
+  }
+
   // ---------- Drive : 3 états (rien / fichier client importé / relié) ----------
   const rmsg = t => $('#rgMsg', page).textContent = String(t).toUpperCase();
   function zoneDrive() {
     const c = BK.drive.conf(), z = $('#rgDriveZone', page);
     if (!BK.estExe) { z.innerHTML = '<span class="nt">Disponible dans le logiciel installé.</span>'; return; }
     if (BK.drive.relie()) z.innerHTML = `<span class="nt">✅ Relié. Les fiches sont partagées avec tous les PC (dossier « BEESKOT Studio » du Drive).</span>
-      <div class="chips" style="margin-top:10px"><button class="btn sm pri" data-d="carte">🎫 Fabriquer la carte d'accès</button><button class="chip" data-d="sync">↻ Relire le Drive</button><button class="chip" data-d="off">Déconnecter</button></div>
+      <div class="chips" style="margin-top:10px"><button class="btn sm pri" data-d="carte">🎫 Fabriquer la carte d'accès</button><button class="chip" data-d="sync">↻ Relire le Drive</button><button class="chip" data-d="retour">⏪ Retour en arrière…</button><button class="chip" data-d="off">Déconnecter</button></div>
       <span class="nt">La carte d'accès relie les autres PC du groupe en un clic : le Drive <b>et</b> les codes de Miette. Elle se range sur ton Bureau. Ne l'envoie qu'aux membres (message privé).</span>`;
     else z.innerHTML = `<span class="nt"><b>Chez Yacine (1 fois)</b> : importe le fichier client Google, puis connecte-toi.<br><b>Autres PC</b> : importe la carte d'accès.</span>
       <div class="chips" style="margin-top:10px">
@@ -68,6 +109,7 @@ BK.module('reglages', function (page) {
         if (a === 'importer') { if (await BK.drive.importerCarte()) { rmsg('Drive relié avec la carte'); BK.pousser(); } }
         if (a === 'carte') { const p = await BK.drive.exporterCarte(); if (p) { rmsg('Carte enregistrée sur le Bureau'); BK.drive.derniereCarte = p; } }
         if (a === 'sync') { rmsg('Lecture du Drive…'); await BK.pousser(); rmsg('Drive relu'); }
+        if (a === 'retour') { panneauRetour(); return; }
         if (a === 'off') { if (confirm('Déconnecter ce PC du Drive BEESKOT ? (rien n\'est effacé)')) { BK.drive.deconnecter(); rmsg('Déconnecté'); } }
       } catch (e) { console.error(e); rmsg('Problème : ' + (e.message || e)); }
       zoneDrive(); BK.etatDrive();

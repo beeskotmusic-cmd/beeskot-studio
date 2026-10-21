@@ -137,9 +137,47 @@ BK.drive = {
     for (const col of ['morceaux', 'taches', 'evenements', 'config', 'inventaires', 'tournages', 'renforts', 'veille', 'propositions']) {
       const loc = BK.reglage('db.' + col, {}); if (!Object.keys(loc).length) continue;
       const dist = await BK.drive.liste(col);
-      for (const f of Object.values(loc)) if (!dist[f.id] || (f.maj || '') > (dist[f.id].maj || '')) await BK.drive.ecrire(col, f);
+      for (const f of Object.values(loc)) {
+        if (dist[f.id] && f.graine) continue;                     // fiche de départ : elle n'écrase jamais le travail du groupe
+        if (dist[f.id] && !dist[f.id].graine && (f.maj || '') <= (dist[f.id].maj || '')) continue;
+        if (!dist[f.id] || (f.maj || '') > (dist[f.id].maj || '')) await BK.drive.ecrire(col, f);
+      }
       BK.regler('db.envoye.' + col, true);
     }
+  },
+
+  // ---------- RETOUR EN ARRIÈRE : Google garde les versions précédentes de chaque fiche (30 jours) ----------
+  async idFichier(col, idFiche) {
+    const nom = idFiche + '.json'; let id = (BK.drive.ids[col] || {})[nom];
+    if (id) return id;
+    const dos = await BK.drive.dossier(col, await BK.drive.racine());
+    const l = await (await BK.drive.api('/files?' + new URLSearchParams({ q: `name=${BK.drive.q(nom)} and ${BK.drive.q(dos)} in parents and trashed=false`, fields: 'files(id)' }))).json();
+    id = l.files && l.files[0] && l.files[0].id;
+    if (id) (BK.drive.ids[col] = BK.drive.ids[col] || {})[nom] = id;
+    return id;
+  },
+  async versions(col, idFiche) {
+    const id = await BK.drive.idFichier(col, idFiche); if (!id) return [];
+    const r = await (await BK.drive.api(`/files/${id}/revisions?` + new URLSearchParams({ fields: 'revisions(id,modifiedTime)', pageSize: '200' }))).json();
+    return (r.revisions || []).map(v => ({ rev: v.id, t: v.modifiedTime, fichier: id })).sort((a, b) => a.t.localeCompare(b.t));
+  },
+  async lireVersion(fichier, rev) { return (await BK.drive.api(`/files/${fichier}/revisions/${rev}?alt=media`)).json(); },
+
+  // remet toute une collection telle qu'elle était avant une date (rien n'est effacé : on réécrit par-dessus)
+  async restaurer(col, avant, avancement) {
+    const fiches = Object.values(await BK.drive.liste(col));
+    let n = 0, vus = 0;
+    for (const f of fiches) {
+      vus++; avancement && avancement(`${vus}/${fiches.length} · ${f.nom || f.titre || f.id}`);
+      let vs = []; try { vs = await BK.drive.versions(col, f.id); } catch (e) { continue; }
+      const v = vs.filter(x => x.t < avant).pop();
+      if (!v) continue;
+      let ancienne = null; try { ancienne = await BK.drive.lireVersion(v.fichier, v.rev); } catch (e) { continue; }
+      if (!ancienne || !ancienne.id || ancienne.id !== f.id) continue;
+      if (JSON.stringify(ancienne) === JSON.stringify(f)) continue;           // déjà pareil : on ne touche à rien
+      await BK.drive.ecrire(col, ancienne); n++;
+    }
+    return n;
   },
 
   // ---------- chercher des fichiers dans tout le Drive (ex. les zips du bot Discord) ----------
