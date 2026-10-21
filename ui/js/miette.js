@@ -146,6 +146,34 @@ Règles : "taches" = ce que quelqu'un doit faire et qui n'est pas déjà fait ni
 // la To-do, le Budget, le résumé de la semaine, les étiquettes des Médias…
 // l'onglet se relit tout seul. Une seule petite question au Drive : très léger.
 // =====================================================================
+// ---------- qui travaille sur BEESKOT Studio en même temps que toi ----------
+// Chaque PC laisse un petit mot sur le Drive toutes les 40 s : son nom et l'onglet ouvert.
+BK.presence = {
+  async battre() {
+    if (!BK.drive || !BK.drive.relie()) return;
+    const moi = BK.reglage('nomPc', '') || 'ce PC';
+    const o = (BK.onglets || []).find(x => x.id === BK.reglage('dernierOnglet', 'accueil'));
+    try { await BK.db.ecrire('config', { id: 'ici-' + moi.toLowerCase().replace(/[^a-z0-9]+/g, '-'), qui: moi, onglet: o ? o.titre : '', t: Date.now() }, { sansAnnuler: true }); } catch (e) {}
+  },
+  async lire() {
+    if (!BK.drive || !BK.drive.relie()) return [];
+    const moi = (BK.reglage('nomPc', '') || 'ce PC').toLowerCase();
+    try {
+      return (await BK.db.liste('config')).filter(d => /^ici-/.test(d.id) && Date.now() - (d.t || 0) < 3 * 60e3 && String(d.qui || '').toLowerCase() !== moi);
+    } catch (e) { return []; }
+  },
+  async maj() {
+    const z = document.getElementById('syQuiL'), b = document.getElementById('syQui'); if (!z) return;
+    await BK.presence.battre();
+    const l = await BK.presence.lire();
+    if (!b) return;
+    b.style.display = BK.drive && BK.drive.relie() ? '' : 'none';
+    z.textContent = l.length ? l.map(x => String(x.qui).toUpperCase()).join(' · ') : 'PERSONNE';
+    b.title = l.length ? l.map(x => x.qui + (x.onglet ? ' — ' + x.onglet : '')).join('\n') : 'Tu es seul sur BEESKOT Studio en ce moment';
+    b.classList.toggle('qui-on', !!l.length);
+  },
+};
+
 BK.synchro = {
   dernier: new Date(Date.now() - 60e3).toISOString(),
   async tour() {
@@ -155,7 +183,8 @@ BK.synchro = {
       const r = await (await BK.drive.api('/files?' + new URLSearchParams({ q: `modifiedTime > '${depuis}' and mimeType='application/json' and trashed=false`, fields: 'files(id,name,parents,lastModifyingUser(me))', pageSize: '200' }))).json();
       BK.synchro.dernier = maintenant;
       const parCol = {}; for (const [cle, id] of Object.entries(BK.drive.dossiers)) if (cle.startsWith(racine + '/')) parCol[id] = cle.slice(racine.length + 1);
-      const cols = [...new Set((r.files || []).map(f => parCol[(f.parents || [])[0]]).filter(Boolean))];
+      const utiles = (r.files || []).filter(f => !/^ici-/.test(f.name || ''));     // les petits mots « je suis là » ne font pas tout relire
+      const cols = [...new Set(utiles.map(f => parCol[(f.parents || [])[0]]).filter(Boolean))];
       if (cols.length) window.dispatchEvent(new CustomEvent('bk:distant', { detail: { cols } }));
     } catch (e) { /* hors ligne : on réessaie au prochain tour */ }
   },
@@ -170,6 +199,8 @@ BK.synchro = {
   },
   demarrer() {
     BK.synchro.prevenir();
+    BK.presence.maj(); setInterval(BK.presence.maj, 45e3);
+    window.addEventListener('focus', () => BK.presence.maj());
     setInterval(BK.synchro.tour, 40e3);
     window.addEventListener('focus', () => BK.synchro.tour());
     // quand une fiche change ailleurs, l'onglet concerné se relit (sauf si on est en train d'écrire dedans)

@@ -90,6 +90,25 @@ BK.module('renforts', function (page) {
   $$('#raVolets button').forEach(b => b.onclick = () => volet(b.dataset.v));
 
   // ================= LE VEILLEUR =================
+  // ---------- « Ce que Miette a lu » : la preuve, salon par salon ----------
+  async function journalLu() {
+    const z = $('#raLuC'); if (!z) return;
+    if (!BK.reglage('ra.luOuvert', true)) { z.innerHTML = ''; return; }
+    z.innerHTML = '<span class="nt">Lecture du journal…</span>';
+    let j = []; try { j = await BK.discord.journal(2); } catch (e) {}
+    const depuis = new Date(Date.now() - 14 * 864e5).toISOString();
+    const recents = j.filter(l => l.t >= depuis);
+    if (!recents.length) { z.innerHTML = '<span class="nt">Le journal est vide : appuie sur « ↻ Lire Discord maintenant ».</span>'; return; }
+    const parSalon = {};
+    for (const l of recents) { const k = l.salon || '?'; parSalon[k] = parSalon[k] || { n: 0, bots: 0 }; parSalon[k].n++; if (/^🤖/.test(l.qui || '')) parSalon[k].bots++; }
+    const salons = Object.entries(parSalon).sort((a, b) => b[1].n - a[1].n);
+    const derniers = recents.slice(-12).reverse();
+    z.innerHTML = `<span class="nt">Les 14 derniers jours, salon par salon. Un <b>🤖</b> = un message de bot : c'est là que sont recopiés les mails.</span>
+      <div class="ra-salons-lu">${salons.map(([n, v]) => `<span class="ra-lu-s${v.bots ? ' bots' : ''}">#${esc(n)} <em>${v.n}</em>${v.bots ? ` · 🤖 ${v.bots}` : ''}</span>`).join('')}</div>
+      <div class="ra-lu-l">${derniers.map(l => `<div class="ra-lu-m"><span class="nt">${esc((l.t || '').slice(5, 16).replace('T', ' '))} · #${esc(l.salon || '?')} · ${esc(l.qui || '')}</span>
+        <span>${esc(String(l.txt || '').slice(0, 220))}</span></div>`).join('')}</div>`;
+  }
+
   async function rendreVeilleur() {
     const z = $('#raVolet'), d = await BK.discord.config(), pret = await BK.ia.pret();
     const verrou = (await BK.db.liste('config')).find(x => x.id === 'veilleur');
@@ -103,9 +122,14 @@ BK.module('renforts', function (page) {
           <button class="btn sm pri" id="raRonde" style="margin-left:auto"${!d.jeton || !(d.salons || []).length ? ' disabled' : ''}>↻ Lire Discord maintenant</button>
           <button class="btn sm" id="raTout"${!d.jeton || !(d.salons || []).length ? ' disabled' : ''} title="Relit TOUT l'historique des salons, puis Gemini range tout : rendez-vous, exports, tâches, et un résumé dans chaque fiche">🧹 Grand rangement</button></div>
         <span class="nt">${manque || `Miette lit ${d.salons.length} salon(s) toutes les 30 min quand le logiciel est ouvert, et te propose ce qui a été décidé.${sansGemini}${verrou && verrou.passage ? ` Dernière lecture : ${new Date(verrou.passage).toLocaleString('fr-CA', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })} (${esc(verrou.par || '')}).` : ''}`}</span></div>
+      <div class="box ra-lu" id="raLu"><div class="ligne-titre"><span class="lb">👁 Ce que Miette a lu</span>
+          <button class="btn xs" id="raLuPli" style="margin-left:auto">${BK.reglage('ra.luOuvert', true) ? '▾' : '▸'}</button></div>
+        <div id="raLuC"></div></div>
       <div class="box grow ra-props"><span class="lb">À valider (${att.length})</span>
         ${att.length ? att.map(p => carte(p, true)).join('') : '<span class="nt" style="padding:14px 0">Rien à valider pour l\'instant.</span>'}
         ${faites.length ? `<span class="lb" style="margin-top:14px">Déjà ajouté</span>${faites.map(p => carte(p, false)).join('')}` : ''}</div>`;
+    $('#raLuPli').onclick = () => { BK.regler('ra.luOuvert', !BK.reglage('ra.luOuvert', true)); rendreVeilleur(); };
+    journalLu();
     const rt = $('#raTout'); if (rt) rt.onclick = async () => {
       if (!confirm('Grand rangement : Miette relit TOUT l\'historique des salons cochés, puis Gemini range tout (ça peut prendre plusieurs minutes, le logiciel reste utilisable). On y va ?')) return;
       rt.disabled = true; rt.innerHTML = '<span class="spin"></span>Rangement…';

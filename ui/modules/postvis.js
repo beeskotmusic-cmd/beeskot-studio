@@ -41,6 +41,8 @@ BK.module('postvis', function (page) {
             <div class="box"><span class="lb">③ Recadrer et couleur</span>
               <span class="nt">Fais glisser l'image dans l'aperçu pour la déplacer.</span>
               <div class="rv-reglages"><span class="eng">Zoom</span><input class="fld rv-glisse" id="pvZoom" value="0 %" title="Clic maintenu et glisse la souris (ou double-clic pour taper)">
+                <button class="chip" id="pvEntier" title="Voir toute la photo, avec des bandes noires, au lieu de la recadrer">⤢ Photo entière</button>
+                <button class="chip" id="pvRemplir" title="La photo remplit tout le cadre : les bords sont coupés">⤡ Remplir le cadre</button>
                 <button class="chip" id="pvCentre">Recentrer</button><button class="chip" id="pvTous">Même cadrage pour toutes</button></div>
               <span class="eng" style="margin-top:6px">Filtre</span><div class="chips filtres" id="pvFiltres">${['Aucun', ...BK.filtres.map(f => f.nom)].map((n, i) => `<button class="chip${i ? '' : ' on'}" data-fi="${i ? n : ''}">${n}</button>`).join('')}</div>
               <div class="rv-reglages"><span class="eng">Intensité</span><input class="fld rv-glisse" id="pvForce" value="100 %" title="Clic maintenu et glisse la souris (ou double-clic pour taper)"></div>
@@ -74,7 +76,19 @@ BK.module('postvis', function (page) {
     const f = F(), k = 0.5; cv.width = Math.round(f.L * k); cv.height = Math.round(f.H * k);
     r = BK.rendu.creer(cv.width, cv.height); r.lut(P.lut);
     ecran.style.aspectRatio = `${f.L} / ${f.H}`;
+    ecran.style.maxWidth = Math.round(520 * f.L / f.H) + 'px';     // sinon la hauteur est bridée à 520 px et la photo s'allonge (story 9:16)
     $('#pvFmtH').textContent = f.nom.split(' ').pop(); $$('#pvFmt .chip').forEach(c => c.classList.toggle('on', c.dataset.f === P.format));
+  }
+  // « photo entière » : le moteur remplit le cadre par défaut ; ce zoom-là montre toute la photo
+  function zoomEntier(img) {
+    const f = F(), vw = img.naturalWidth || img.width, vh = img.naturalHeight || img.height;
+    if (!vw || !vh) return 100;
+    return Math.round(Math.min(f.L / vw, f.H / vh) / Math.max(f.L / vw, f.H / vh) * 100);
+  }
+  // une photo très différente du cadre (une 16:9 dans un 4:5) serait coupée de moitié : on la montre entière
+  function cadrageDepart(img) {
+    const z = zoomEntier(img);
+    return z < 80 ? z : 100;
   }
   function dessiner() {
     const s = S(); $('#pvVide').classList.toggle('hidden', !!s);
@@ -105,7 +119,7 @@ BK.module('postvis', function (page) {
     let reste = fs.length;
     for (const f of fs) {
       const url = URL.createObjectURL(f), img = new Image();
-      img.onload = () => { P.slides.push({ img, url, nom: f.name, zoom: 100, x: 0, y: 0 }); if (P.slides.length === 1 && P.nom === 'post') { P.nom = f.name.replace(/\.[^.]+$/, '').replace(/[^\w\- ]+/g, '').slice(0, 40) || 'post'; $('#pvNom').value = P.nom; }
+      img.onload = () => { P.slides.push({ img, url, nom: f.name, zoom: cadrageDepart(img), x: 0, y: 0 }); if (P.slides.length === 1 && P.nom === 'post') { P.nom = f.name.replace(/\.[^.]+$/, '').replace(/[^\w\- ]+/g, '').slice(0, 40) || 'post'; $('#pvNom').value = P.nom; }
         if (--reste === 0) { majTout(); msg(P.slides.length + ' photo(s)'); } };
       img.onerror = () => { if (--reste === 0) majTout(); msg('Image illisible : ' + f.name); };
       img.src = url;
@@ -205,6 +219,8 @@ BK.module('postvis', function (page) {
   fc.addEventListener('blur', () => { if (fc.readOnly) return; fc.readOnly = true; const v = parseFloat(fc.value.replace(',', '.')); force(isNaN(v) ? P.force : v); });
   fc.addEventListener('keydown', e => { e.stopPropagation(); if (e.key === 'Enter') fc.blur(); });
   fc.addEventListener('wheel', e => { e.preventDefault(); force(P.force - Math.sign(e.deltaY) * 5); }, { passive: false });
+  $('#pvEntier').onclick = () => { const s = S(); if (!s) return; s.zoom = zoomEntier(s.img); s.x = 0; s.y = 0; dessiner(); majTout(); msg('Photo entière'); };
+  $('#pvRemplir').onclick = () => { const s = S(); if (!s) return; s.zoom = 100; s.x = 0; s.y = 0; dessiner(); majTout(); msg('La photo remplit le cadre'); };
   $('#pvCentre').onclick = () => { const s = S(); if (!s) return; s.x = s.y = 0; s.zoom = 100; dessiner(); };
   $('#pvTous').onclick = () => { const s = S(); if (!s) return; P.slides.forEach(x => { x.zoom = s.zoom; x.x = s.x; x.y = s.y; }); msg('Même cadrage partout'); };
 
@@ -222,7 +238,9 @@ BK.module('postvis', function (page) {
   $('#pvLutX').onclick = () => { P.lut = null; r.lut(null); $('#pvLutNom').textContent = ''; $('#pvLutX').classList.add('hidden'); dessiner(); };
 
   // ---------- format, légende, nom ----------
-  $$('#pvFmt .chip').forEach(c => c.onclick = () => { P.format = c.dataset.f; BK.regler('pv.format', P.format); moteur(); dessiner(); });
+  $$('#pvFmt .chip').forEach(c => c.onclick = () => { P.format = c.dataset.f; BK.regler('pv.format', P.format); moteur();
+    for (const s of P.slides) if (s.zoom <= 100) s.zoom = cadrageDepart(s.img);      // on change de cadre : on ne coupe pas la photo sans le dire
+    dessiner(); majTout(); });
   $('#pvLeg').oninput = e => { P.legende = e.target.value; $('#pvLegAff').textContent = P.legende.split('\n')[0] || 'La légende du post…'; };
   $('#pvLeg').addEventListener('keydown', e => e.stopPropagation());
   $('#pvCopier').onclick = async () => { await navigator.clipboard.writeText(P.legende); msg('Légende copiée'); };
