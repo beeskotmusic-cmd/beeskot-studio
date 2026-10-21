@@ -6,6 +6,72 @@
 // Rien n'est ajouté sans qu'on valide (sauf le résumé et les moodboards des fiches vides).
 // =====================================================================
 BK.miette = {
+  // ---------- la fenêtre « Miette propose » : des cases à cocher, on garde ce qu'on veut ----------
+  // items : [{ apercu?, titre, sous? }] → Promise des items cochés ([] si on annule)
+  proposer({ titre, vide = 'Miette n\'a rien trouvé', bouton = 'Ajouter', items = [] }) {
+    return new Promise(ok => {
+      const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+      const v = document.createElement('div'); v.className = 'voile';
+      v.innerHTML = `<div class="stopbox mi-box"><button class="btn xs rt-x" data-mi="x">✕</button>
+        <span class="dymo mi-titre" style="align-self:center"><img src="look/patch-biscotte.png" alt="">${esc(titre)}</span>
+        ${items.length ? `<div class="mi-l">${items.map((x, i) => `<label class="mi-p"><input type="checkbox" data-i="${i}" checked>
+            ${x.apercu ? `<span class="mi-ph" style="background-image:url('${esc(x.apercu)}')"></span>` : ''}
+            <span class="mi-t"><b>${esc(x.titre)}</b>${x.sous ? `<small>${esc(x.sous)}</small>` : ''}</span></label>`).join('')}</div>
+          <span class="nt">Décoche ce qui ne va pas.</span>` : `<span class="nt" style="text-align:center;padding:18px">${esc(vide)}</span>`}
+        <div class="stopbox-btns">${items.length ? `<button class="btn pri" data-mi="ok">${esc(bouton)}</button>` : ''}<button class="btn" data-mi="x">${items.length ? 'Annuler' : 'Fermer'}</button></div></div>`;
+      document.body.appendChild(v);
+      v.onclick = e => { const b = e.target.closest('[data-mi]'); if (!b) return; v.remove();
+        ok(b.dataset.mi === 'ok' ? [...v.querySelectorAll('[data-i]:checked')].map(c => items[+c.dataset.i]) : []); };
+    });
+  },
+  // les mots qui désignent un tournage : son titre, son morceau (et ses surnoms)
+  motsDe(t, ms) {
+    const m = BK.inv.trouverMorceau(t.morceau || '', ms), n = x => BK.inv.normaliser(x || '');
+    return [t.titre, ...(m ? [m.nom, ...(m.alias || [])] : [t.morceau])].map(n).filter(x => x && x.length >= 3 && !/^(tournage|shooting|clip|reel|photo)$/.test(x));
+  },
+  // ---------- MOODBOARD d'un tournage : les images du dossier moodboard du Drive, et celles postées sur Discord ----------
+  async moodboardPour(t) {
+    const [ms, tous, carte] = await Promise.all([BK.db.liste('morceaux'), BK.dossiers.tousFichiers(), BK.dossiers.carte()]);
+    const mots = BK.miette.motsDe(t, ms), parle = x => { const s = BK.inv.normaliser(x); return mots.some(w => s.includes(w)); };
+    const deja = new Set(t.moodboard || []), out = [];
+    for (const f of tous) {
+      if (!/^image\//.test(f.mimeType || '') || deja.has(BK.img.ref(f.id))) continue;
+      const p = (f.parents || [])[0]; if (!p) continue;
+      const doss = BK.dossiers.ancetres(p, carte).map(a => carte[a].name);
+      if (!doss.some(d => /mood/i.test(d))) continue;
+      if (!parle(f.name + ' ' + doss.join(' '))) continue;
+      out.push({ f, apercu: await BK.drive.vignette(f).catch(() => ''), titre: f.name, sous: '☁ Drive · ' + doss.slice(0, 2).reverse().join(' / ') });
+      if (out.length >= 30) break;
+    }
+    const dc = await BK.discord.mediasVite('media', {}).catch(() => []) || [];
+    for (const x of dc) {
+      if (x.video || !/\.(jpe?g|png|webp)$/i.test(x.nom || '')) continue;
+      if (!/mood|inspi|ref|vibe|ambiance|style/i.test((x.salon || '') + ' ' + (x.texte || ''))) continue;
+      if (!parle((x.texte || '') + ' ' + (x.salon || '') + ' ' + x.nom) && !/mood/i.test(x.salon || '')) continue;
+      out.push({ dc: x, nom: x.nom, apercu: x.apercu || x.url, titre: (x.texte || x.nom).slice(0, 70), sous: '🍞 Discord · ' + [x.qui, x.salon && '#' + x.salon].filter(Boolean).join(' · ') });
+      if (out.length >= 50) break;
+    }
+    return out;
+  },
+  // ---------- RÉFÉRENCES d'un tournage : les liens (Instagram, TikTok, YouTube, Pinterest…) donnés sur Discord ----------
+  async referencesPour(t) {
+    const [ms, j] = await Promise.all([BK.db.liste('morceaux'), BK.discord.journal(6).catch(() => [])]);
+    const mots = BK.miette.motsDe(t, ms), deja = new Set((t.references || []).map(r => r.url)), vus = new Set(), out = [];
+    const RE = /https?:\/\/[^\s<>")]+/gi, SITES = /instagram\.com|tiktok\.com|youtu\.?be|pinterest\.|vimeo\.com/i;
+    for (let i = j.length - 1; i >= 0 && out.length < 40; i--) {
+      const l = j[i], txt = String(l.txt || ''), s = BK.inv.normaliser(txt + ' ' + (l.salon || ''));
+      const sujet = mots.some(w => s.includes(w)) || /ref|inspi|mood|clip|tournage|shoot/i.test(l.salon || '');
+      // un lien seul juste après un message qui parle du tournage compte aussi
+      const avant = j[i - 1] ? BK.inv.normaliser(j[i - 1].txt || '') : '';
+      if (!sujet && !mots.some(w => avant.includes(w))) continue;
+      for (const u of txt.match(RE) || []) {
+        if (!SITES.test(u) || deja.has(u) || vus.has(u)) continue; vus.add(u);
+        const note = txt.replace(RE, '').replace(/\s+/g, ' ').trim().slice(0, 60);
+        out.push({ url: u, note, titre: note || u, sous: `${l.qui || ''} · ${new Date(l.t).toLocaleDateString('fr-CA', { day: 'numeric', month: 'short' })} · ${u.replace(/^https?:\/\/(www\.)?/, '').slice(0, 50)}` });
+      }
+    }
+    return out;
+  },
   enCours: false,
   etape(txt) {
     let v = document.getElementById('bkScan');

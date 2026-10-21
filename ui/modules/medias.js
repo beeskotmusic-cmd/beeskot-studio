@@ -24,7 +24,7 @@ BK.module('medias', function (page) {
     <div class="cols">
       <section class="pane vit md-vit">
         <div class="box md-barre">
-          <button class="md-ico" id="mdHaut" title="Remonter d'un dossier">⬆</button>
+          <button class="md-haut" id="mdHaut" title="Revenir au dossier d'avant (⌂ = tous les dossiers)">↰ Retour</button>
           <div class="md-fil" id="mdFil"></div>
           <label class="md-filtre"><span class="eng">🏷 Voir</span><select class="fld" id="mdFiltre"><option value="">Tout le dossier</option></select></label>
           <div class="md-outils"><button class="md-ico" id="mdMoins" title="Vignettes plus petites">−</button><button class="md-ico" id="mdPlus2" title="Vignettes plus grandes">+</button><button class="md-ico" id="mdCaches" title="Voir les fichiers masqués">🙈<span id="mdNbC"></span></button></div>
@@ -36,7 +36,7 @@ BK.module('medias', function (page) {
           <span class="nt">Glisse des fichiers sur la page, ou « + » : ils vont dans le dossier ouvert.</span>
           <button class="btn sm" id="mdAjout" style="margin-top:10px">+ Choisir des fichiers…</button>
           <button class="btn sm" id="mdDossier" style="margin-top:8px">+ Nouveau dossier ici…</button>
-          <button class="btn sm pri" id="mdTrier" style="margin-top:8px" title="Miette regarde les photos sans étiquette et propose où les ranger">🍞 Étiqueter avec Miette</button>
+          <button class="btn sm miette-aide" id="mdTrier" style="margin-top:8px" title="Miette regarde les photos sans étiquette et propose où les ranger">Miette étiquette les photos</button>
           <input type="file" id="mdInput" multiple hidden></div>
         <div class="box"><span class="lb">📍 Tu es ici</span>
           <span class="nt" id="mdChemin" style="color:var(--ink)">—</span>
@@ -92,7 +92,7 @@ BK.module('medias', function (page) {
     $$('#mdRub button').forEach(b => { b.classList.toggle('on', b.dataset.rub === rub); b.onclick = () => { M.rub = b.dataset.rub; BK.regler('medias.rub', M.rub); paniers(); }; });
     const compte = k => Object.keys(M.tags).filter(id => BK.etiquettes.liste(M.tags, id).includes(k)).length;
     z.innerHTML = cases()[rub].map(c => { const n = compte(c.k);
-      return `<div class="md-panier" data-pan="${esc(c.k)}" style="--tc:${couleurTag(c.k)}">${c.ph ? `<span class="md-pan-ph"${BK.img.bg(c.ph)}></span>` : `<span class="md-pan-ph">${c.ic}</span>`}<b>${esc(c.nom)}</b>${n ? `<em>${n}</em>` : ''}</div>`; }).join('')
+      return `<div class="md-panier${M.choix && M.filtre === c.k ? ' on' : ''}" data-pan="${esc(c.k)}" style="--tc:${couleurTag(c.k)}">${c.ph ? `<span class="md-pan-ph"${BK.img.bg(c.ph)}></span>` : `<span class="md-pan-ph">${c.ic}</span>`}<b>${esc(c.nom)}</b>${n ? `<em>${n}</em>` : ''}</div>`; }).join('')
       || '<span class="nt">Aucun morceau : crée d\'abord des fiches dans la Bibliothèque.</span>';
     $$('.md-panier', z).forEach(p => {
       p.ondragover = e => { if (e.dataTransfer.types.includes('text/bk-media') || e.dataTransfer.types.includes('Files')) { e.preventDefault(); e.stopPropagation(); p.classList.add('survol'); } };
@@ -100,13 +100,15 @@ BK.module('medias', function (page) {
       p.ondrop = e => { e.preventDefault(); e.stopPropagation(); p.classList.remove('survol');
         const id = e.dataTransfer.getData('text/bk-media'); if (id) return etiqueterTous(id.split(','), p.dataset.pan);
         if (e.dataTransfer.files.length) envoyer(e.dataTransfer.files, p.dataset.pan); };     // un fichier du PC lâché sur une case : envoyé dans le bon dossier + étiqueté
-      p.onclick = () => { if (M.sel.size > 1) return etiqueterTous([...M.sel], p.dataset.pan);
+      p.onclick = () => { if (M.choix) { const sel = $('#mdFiltre'); sel.value = M.filtre === p.dataset.pan ? '' : p.dataset.pan; sel.onchange({ target: sel }); return paniers(); }   // fenêtre « choisir » : une étiquette = voir ce qu'il y a dedans
+        if (M.sel.size > 1) return etiqueterTous([...M.sel], p.dataset.pan);
         if (M.choisi) etiqueter(M.choisi, p.dataset.pan, null); else { const sel = $('#mdFiltre'); sel.value = p.dataset.pan; sel.onchange({ target: sel }); } };
     });
   }
   function majSel() {
     $$('.md-tuile[data-id]').forEach(x => x.classList.toggle('choisie', M.sel.has(x.dataset.id)));
     const n = $('#mdSelN'); if (n) { n.textContent = M.sel.size > 1 ? M.sel.size + ' choisis' : ''; n.classList.toggle('hidden', M.sel.size < 2); }
+    M.choix && M.choix.maj && M.choix.maj();
   }
 
   // étiqueter plusieurs fichiers d'un coup
@@ -192,6 +194,45 @@ BK.module('medias', function (page) {
     catch (e) { vide('Drive injoignable pour l\'instant.'); console.error(e); }
   }
   BK.mediasRecharger = charger;
+  // ---------- LA FENÊTRE « CHOISIR DANS MÉDIAS » ----------
+  // Exactement la vue Médias (dossiers, Discord, étiquettes en couleur), dans une fenêtre par-dessus l'onglet en cours :
+  // on « prête » la vue Médias à la fenêtre, puis on la remet à sa place. Les étiquettes sont en haut : un clic = voir ce qu'il y a dedans.
+  // Renvoie [{ id, nom, f (fichier du Drive) ou dc (Discord), apercu, mime }] — ou [] si on annule.
+  BK._choixMedias = ({ titre = 'Choisir dans Médias', bouton = 'Ajouter', type = 'image', sujet = '', pc = true, retirer = '' } = {}) => new Promise(ok => {
+    if (M.choix) return ok([]);
+    const vit = $('.md-vit', page), aj = $('#mdAjouter', page), p1 = document.createComment('md-vit'), p2 = document.createComment('md-aj');
+    const pliee = aj.classList.contains('plie'), avant = { filtre: M.filtre, pile: [...M.pile], racine: M.racine };
+    vit.before(p1); aj.before(p2); aj.classList.remove('plie');
+    M.sel.clear(); M.choisi = null;
+    const v = document.createElement('div'); v.className = 'voile md-choix-voile';
+    v.innerHTML = `<div class="stopbox md-choix"><button class="btn xs rt-x" data-c="x" title="Fermer">✕</button>
+      <span class="dymo" style="align-self:center">🖼 ${esc(titre)}</span><div class="md-choix-c"></div>
+      <div class="md-choix-pied">${pc ? '<button class="btn sm" data-c="pc">💻 Ce PC…</button>' : ''}${retirer ? `<button class="btn sm" data-c="retirer">${esc(retirer)}</button>` : ''}<span class="nt" id="mdChN">Clic = choisir · Ctrl+clic = en ajouter · Maj+clic = une suite · double-clic = choisir et ajouter</span>
+        <button class="btn" data-c="x">Annuler</button><button class="btn pri" data-c="ok" disabled>${esc(bouton)}</button>
+        <input type="file" multiple hidden accept="${type === 'video' ? 'video/*' : type === 'image' ? 'image/*' : 'image/*,video/*'}"></div></div>`;
+    const c = v.querySelector('.md-choix-c'); c.appendChild(aj); c.appendChild(vit);
+    document.body.appendChild(v); v.querySelector('.md-choix').classList.add('md-choix');
+    const choisis = () => [...M.sel].map(id => M.vus && M.vus[id]).filter(Boolean)
+      .map(f => ({ id: f.id, nom: f.name, mime: f.mimeType, apercu: M.vign[f.id] || '', ...(f.dc ? { dc: f.dc } : { f }) }));
+    const fin = l => { M.choix = null; p1.replaceWith(vit); p2.replaceWith(aj); aj.classList.toggle('plie', pliee); v.remove();
+      M.sel.clear(); M.choisi = null; M.filtre = avant.filtre; M.pile = avant.pile; M.racine = avant.racine;
+      const sel = $('#mdFiltre'); if (sel) sel.value = M.filtre || ''; paniers(); charger(); ok(l); };
+    M.choix = { type, maj: () => { const n = choisis().length, b = v.querySelector('[data-c="ok"]'); b.disabled = !n; b.textContent = n ? `${bouton} (${n}) ▶` : bouton;
+      v.querySelector('#mdChN').textContent = n ? n + ' choisi(s) · Ctrl+clic pour en ajouter' : 'Clic = choisir · Ctrl+clic = en ajouter · Maj+clic = une suite · double-clic = choisir et ajouter'; } };
+    v.addEventListener('click', e => { const b = e.target.closest('[data-c]'); if (!b) return;
+      if (b.dataset.c === 'x') return fin([]);
+      if (b.dataset.c === 'ok') return fin(choisis());
+      if (b.dataset.c === 'retirer') return fin([{ retirer: true }]);
+      if (b.dataset.c === 'pc') v.querySelector('input[type=file]').click(); });
+    v.querySelector('input[type=file]').onchange = e => { const l = [...e.target.files].map(f => ({ id: 'pc:' + f.name, nom: f.name, mime: f.type, apercu: '', fichier: f })); if (l.length) fin(l); };
+    vit.addEventListener('dblclick', function dbl(e) { if (!M.choix) return vit.removeEventListener('dblclick', dbl, true);
+      const t = e.target.closest('.md-tuile[data-id]'); if (!t) return; e.stopPropagation(); e.preventDefault(); M.sel.add(t.dataset.id); fin(choisis()); }, true);
+    const k = e => { if (e.key === 'Escape' && M.choix) { document.removeEventListener('keydown', k, true); fin([]); } }; document.addEventListener('keydown', k, true);
+    paniers();
+    (async () => { try { if (!M.morceaux.length) await etiquettes(); } catch (e) {}
+      if (sujet) { const sel = $('#mdFiltre'); sel.value = sujet; if (sel.value === sujet) { sel.onchange({ target: sel }); return paniers(); } }
+      if (!M.fichiers.length || M.filtre) allerRacine('cloud'); else rendre(!!M.filtre); })();
+  });
   BK.mediasTags = async () => { BK.etiquettes.doc = null; M.tags = await BK.etiquettes.tous(); majTags(); paniers(); };
   function majTags(force) {
     if (!force && $$('.md-menu').length) return;                        // un menu est ouvert : on ne touche à rien
@@ -219,7 +260,9 @@ BK.module('medias', function (page) {
   const couleurTag = BK.couleurTag;
   function rendre(filtre) {
     const masque = f => BK.etiquettes.liste(M.tags, idTags(f)).includes('c:masque');
-    const ds = M.fichiers.filter(f => f.mimeType === DOSSIER), tous = M.fichiers.filter(f => f.mimeType !== DOSSIER);
+    const garde = f => !M.choix || !M.choix.type || (M.choix.type === 'image' ? /^image\//.test(f.mimeType || '') : M.choix.type === 'video' ? /^video\//.test(f.mimeType || '') : true);
+    const ds = M.fichiers.filter(f => f.mimeType === DOSSIER), tous = M.fichiers.filter(f => f.mimeType !== DOSSIER && garde(f));
+    M.vus = M.vus || {}; for (const f of tous) M.vus[f.id] = f;          // pour retrouver un fichier choisi dans un autre dossier
     const fs = M.voirCaches ? tous.filter(masque) : tous.filter(f => !masque(f));
     const nbC = tous.filter(masque).length;
     $('#mdNbC').textContent = nbC ? '(' + nbC + ')' : '';
@@ -374,7 +417,7 @@ BK.module('medias', function (page) {
     let props = [];
     try { props = await BK.trierMedias(l, { avancement: (k, n) => msg(`Miette regarde ${k}/${n} photo(s)…`) }); }
     catch (e) { msg(e.message); }
-    b.disabled = false; b.textContent = '🍞 Étiqueter avec Miette';
+    b.disabled = false; b.textContent = 'Miette étiquette les photos';
     if (!props.length) return msg('Rien à ranger : tout est déjà étiqueté');
     montrerPropositions(props);
   };
@@ -475,3 +518,6 @@ BK.module('medias', function (page) {
 
 });
 })();
+
+// ouvrir la fenêtre « Choisir dans Médias » depuis n'importe quel onglet (Reels Photo, Reels Vidéo, Tournages…)
+BK.choisirDansMedias = async o => { BK.construire('medias'); return BK._choixMedias ? BK._choixMedias(o) : []; };

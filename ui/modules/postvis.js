@@ -25,19 +25,18 @@ BK.module('postvis', function (page) {
           <div class="pv-tel"><div class="pv-app">
             <div class="pv-tete"><span class="rv-avatar petit"></span><b>beeskot</b><span class="pv-pts">⋯</span></div>
             <div class="pv-ecran" id="pvEcran"><canvas id="pvCanvas"></canvas>
-              <div class="rv-vide" id="pvVide"><span class="dymo">Glisse des photos ici</span><span class="nt">JPG, PNG… · ou clique celles du Drive :</span><div class="gd" id="pvGal"></div></div>
+              <div class="rv-vide" id="pvVide"><span class="dymo">Glisse des photos ici</span><span class="nt">JPG, PNG… depuis ce PC · ou :</span><div class="gd" id="pvGal"><button class="btn sm pri" id="pvGalB">🖼 Choisir dans Médias…</button></div></div>
               <button class="pv-fl g" id="pvPrec">‹</button><button class="pv-fl d" id="pvSuiv">›</button><span class="pv-num" id="pvNum"></span></div>
             <div class="pv-icones"><span>♡</span><span>💬</span><span>➤</span><span class="pv-points" id="pvPoints"></span><span style="margin-left:auto">⌑</span></div>
             <div class="pv-legende"><b>beeskot</b> <span id="pvLegAff">La légende du post…</span></div>
           </div></div>
           <div class="rv-cote">
-            <div class="box"><span class="lb">① De quoi parle le post ?</span>
-              <select class="fld" id="pvSujet" style="margin-top:8px"><option value="">Choisis : un morceau, un tournage, un live, la promo…</option></select></div>
-            <div class="box"><div class="ligne-titre"><span class="lb">② Les photos (ordre du carrousel)</span>
-                <span class="nt" style="margin:0 0 0 auto">Clique une photo pour la régler · ‹ › pour changer l'ordre</span></div>
-              <div class="pv-bande" id="pvBande"></div>
-              <div class="pv-tagstrip" id="pvTagStrip"></div>
-              <div class="chips" style="margin-top:8px"><button class="btn sm pri" id="pvAjout">+ Ajouter des photos</button><input type="file" id="pvInput" accept="image/*" multiple hidden></div></div>
+            <div class="box"><div class="ligne-titre"><span class="lb">① Les photos (ordre du carrousel)</span>
+                <span class="nt" style="margin:0 0 0 auto">Clique une photo pour la régler · ‹ › pour l'ordre</span>
+                <button class="btn sm pri" id="pvAjout" style="flex:none">+ Ajouter des photos</button><input type="file" id="pvInput" accept="image/*" multiple hidden></div>
+              <div class="pv-bande" id="pvBande"></div></div>
+            <div class="box"><div class="ligne-titre"><span class="lb">② De quoi parle le post ?</span>
+                <button class="btn sm pv-sujet-b" id="pvSujetB" style="margin-left:auto">Choisir ▾</button><input type="hidden" id="pvSujet" value=""></div></div>
             <div class="box"><span class="lb">③ Recadrer et couleur</span>
               <div class="pv-tab">
                 <span class="eng">Cadrage</span>
@@ -131,63 +130,34 @@ BK.module('postvis', function (page) {
       img.src = url;
     }
   }
-  // ---------- ① le sujet : les photos déjà étiquetées passent en premier ----------
-  (async () => { const g = await BK.etiquettes.sujets();
-    $('#pvSujet').innerHTML = '<option value="">Choisis : un morceau, un tournage, un live, la promo…</option>' + g.map(x => `<optgroup label="${esc(x.groupe)}">${x.l.map(c => `<option value="${esc(c.k)}">${esc(c.nom)}</option>`).join('')}</optgroup>`).join('');
-    P.sujets = g.flatMap(x => x.l); })();
+  // ---------- ② le sujet : un menu qui se déroule (Morceaux ▸, Tournages ▸…) ----------
+  (async () => { const g = await BK.etiquettes.sujets(); P.groupes = g; P.sujets = g.flatMap(x => x.l); })();
   const sujet = () => (P.sujets || []).find(c => c.k === $('#pvSujet').value);
-  $('#pvSujet').onchange = () => { const c = sujet(); galerie(); bandeauTag();
-    if (c && c.morceau && [...$('#pvMorceau').options].some(o => o.value === c.morceau.nom || o.textContent === c.morceau.nom)) $('#pvMorceau').value = [...$('#pvMorceau').options].find(o => o.textContent === c.morceau.nom).value;
-    msg(c ? 'Les photos de « ' + c.nom + ' » d\'abord' : 'PRÊT'); };
-  // le bandeau toujours visible : les photos déjà étiquetées pour le sujet choisi
-  async function bandeauTag() {
-    const z = $('#pvTagStrip'), c = sujet();
-    if (!BK.drive.relie()) { z.innerHTML = ''; return; }
-    if (!c) { z.innerHTML = '<span class="nt">🏷 Choisis le sujet au-dessus : vos photos étiquetées s\'afficheront ici, prêtes à cliquer.</span>'; return; }
-    z.innerHTML = `<span class="nt"><span class="spin"></span>Vos photos de « ${esc(c.nom)} »…</span>`;
-    try {
-      const l = (await BK.etiquettes.fichiersDe(c.k)).filter(f => /^image\//.test(f.mimeType || '')).slice(0, 14);
-      if (!l.length) { z.innerHTML = `<span class="nt">🏷 Aucune photo étiquetée « ${esc(c.nom)} ». Dans <b>Médias</b>, glisse des photos sur sa case.</span>`; return; }
-      z.innerHTML = `<span class="nt">🏷 Vos photos de « ${esc(c.nom)} » — clique pour l'ajouter au post</span><div class="pv-ts-l">`
-        + l.map(f => `<button class="pv-ts" data-ts="${f.id}" title="${esc(f.name)}"><span class="spin"></span></button>`).join('') + '</div>';
-      for (const f of l) { const u = await BK.drive.vignette(f), b = $(`[data-ts="${f.id}"]`, z); if (b) b.innerHTML = u ? `<img src="${u}" draggable="false">` : '🖼'; }
-      $$('.pv-ts', z).forEach(b => b.onclick = async () => { const f = l.find(x => x.id === b.dataset.ts);
-        b.classList.add('prise'); msg('Ajout de ' + f.name + '…'); try { ajouter([await telecharger(f)]); } catch (e) { msg('Téléchargement impossible'); } });
-    } catch (e) { z.innerHTML = '<span class="nt">Drive injoignable pour l\'instant.</span>'; }
-  }
+  const changerSujet = k => { $('#pvSujet').value = k || ''; const c = sujet(); galerie();
+    $('#pvSujetB').textContent = c ? c.nom + ' ▾' : 'Choisir ▾'; $('#pvSujetB').classList.toggle('pri', !!c);
+    if (c && c.morceau && [...$('#pvMorceau').options].some(o => o.textContent === c.morceau.nom)) $('#pvMorceau').value = [...$('#pvMorceau').options].find(o => o.textContent === c.morceau.nom).value;
+    msg(c ? 'Le post parle de « ' + c.nom + ' »' : 'PRÊT'); };
+  $('#pvSujetB').onclick = async e => { if (!P.groupes) { P.groupes = await BK.etiquettes.sujets(); P.sujets = P.groupes.flatMap(x => x.l); }
+    const r = e.currentTarget.getBoundingClientRect();
+    BK.menuCascade({ x: r.left, y: r.bottom + 4 }, P.groupes.map(g => ({ nom: g.groupe, l: g.l })), k => changerSujet(k), { actuel: $('#pvSujet').value, aucun: '— Aucun sujet' }); };
   const telecharger = async f => new File([await (await BK.drive.api(`/files/${f.id}?alt=media`)).blob()], f.name, { type: f.mimeType || 'image/jpeg' });
-  async function ajouterDrive(l) { msg('Téléchargement des photos…'); const fs = []; for (const f of l) { try { fs.push(await telecharger(f)); } catch (e) {} } ajouter(fs); }
-  // ---------- ② « + Ajouter des photos » : d'abord celles du sujet, puis PC, Drive, Discord ----------
-  $('#pvAjout').onclick = e => {
-    $$('.md-menu').forEach(x => x.remove());
-    const c = sujet(), r0 = e.currentTarget.getBoundingClientRect(), menu = document.createElement('div'); menu.className = 'md-menu';
-    menu.style.left = Math.min(r0.left, innerWidth - 240) + 'px'; menu.style.top = Math.min(r0.bottom + 4, innerHeight - 200) + 'px';
-    menu.innerHTML = (BK.drive.relie() ? `<button data-aj="tag">🏷 ${c ? 'Les photos de « ' + esc(c.nom) + ' »' : 'Les photos étiquetées (choisis d\'abord le sujet)'}</button>` : '')
-      + '<button data-aj="pc">💻 Depuis ce PC…</button>' + (BK.drive.relie() ? '<button data-aj="drive">☁ Depuis le Drive…</button>' : '') + '<button data-aj="discord">🍞 Depuis Discord…</button>';
-    document.body.appendChild(menu);
-    const fermer = ev => { if (!menu.contains(ev.target)) { menu.remove(); document.removeEventListener('pointerdown', fermer, true); } };
-    setTimeout(() => document.addEventListener('pointerdown', fermer, true));
-    menu.onclick = async ev => { const b = ev.target.closest('[data-aj]'); if (!b) return; menu.remove(); const k = b.dataset.aj;
-      if (k === 'pc') return $('#pvInput').click();
-      if (k === 'drive') { const l = await BK.explorerDrive({ titre: 'Photos du Drive pour le post', mode: 'images', depart: 'photovideo' }); if (l && l.length) ajouterDrive(l); return; }
-      if (k === 'tag') { if (!c) { $('#pvSujet').focus(); return msg('Choisis d\'abord de quoi parle le post'); }
-        const l = await BK.choisirImages({ titre: '🏷 Les photos de « ' + c.nom + ' »', bouton: 'Ajouter au post',
-          charger: async () => (await BK.etiquettes.fichiersDe(c.k)).filter(f => /^image\//.test(f.mimeType || '')).map(f => ({ id: f.id, nom: f.name, f, vignette: () => BK.drive.vignette(f) })) });
-        if (l && l.length) ajouterDrive(l.map(x => x.f)); return; }
-      if (k === 'discord') { const l = await BK.choisirImages({ titre: '🍞 Photos postées sur Discord', bouton: 'Ajouter au post',
-          charger: async () => (await BK.discord.medias()).filter(x => !x.video).map(x => ({ id: x.id, nom: x.nom, apercu: x.apercu + '?width=240&height=240', info: x.qui + ' · #' + x.salon, x })) });
-        if (!l || !l.length) return; msg('Téléchargement depuis Discord…'); const fs = [];
-        for (const it of l) { try { const r = await BK.discord.fetch(it.x.url); fs.push(new File([await r.blob()], it.nom, { type: 'image/jpeg' })); } catch (er) {} }
-        ajouter(fs); }
-    };
-  };
+  // ---------- ① « + Ajouter des photos » : la fenêtre Médias (dossiers, Discord, étiquettes) ----------
+  async function ajouterChoisis(l) {
+    msg('Chargement des photos…'); const fs = [];
+    for (const x of l) { try {
+      if (x.fichier) fs.push(x.fichier);
+      else if (x.dc) { const r = await BK.discord.fetch(x.dc.url); if (!r.ok) throw new Error('expiré'); fs.push(new File([await r.blob()], x.nom, { type: x.mime || 'image/jpeg' })); }
+      else fs.push(await telecharger(x.f));
+    } catch (e) { msg('Illisible : ' + x.nom); } }
+    ajouter(fs); }
+  $('#pvAjout').onclick = async () => {
+    if (!BK.drive.relie()) return $('#pvInput').click();                 // sans Drive : seulement ce PC
+    const l = await BK.choisirDansMedias({ titre: 'Photos pour le post', bouton: 'Ajouter au post', type: 'image', sujet: $('#pvSujet').value });
+    if (l && l.length) ajouterChoisis(l); };
   $('#pvInput').onchange = e => { ajouter(e.target.files); e.target.value = ''; };
-  const galerie = () => BK.galerieDrive($('#pvGal'), { type: 'image', titre: (sujet() || {}).nom || '', source: sujet() ? () => BK.etiquettes.fichiersDe(sujet().k) : null, choisir: async f => { msg('Téléchargement de ' + f.name + '…');
-    try { ajouter([new File([await (await BK.drive.api(`/files/${f.id}?alt=media`)).blob()], f.name, { type: f.mimeType })]); } catch (e) { msg('Téléchargement impossible'); } } });
-  galerie();
-  (BK.surOuvrir = BK.surOuvrir || {}).postvis = () => { if (!$('#pvGal .gd-l')) galerie(); if (!$('#pvTagStrip').innerHTML) bandeauTag(); };
-  bandeauTag();
-  page.addEventListener('dragover', e => { e.preventDefault(); ecran.classList.add('survol'); });
+  const galerie = () => {};                                     // l'écran vide propose la fenêtre Médias (plus de galerie à part)
+  $('#pvGalB').onclick = e => { e.stopPropagation(); $('#pvAjout').click(); };
+    page.addEventListener('dragover', e => { e.preventDefault(); ecran.classList.add('survol'); });
   page.addEventListener('dragleave', e => { if (e.target === page) ecran.classList.remove('survol'); });
   page.addEventListener('drop', e => { e.preventDefault(); ecran.classList.remove('survol'); const fs = [...e.dataTransfer.files]; if (!fs.length) return;
     const cube = fs.find(f => /\.cube$/i.test(f.name)); if (cube) return chargerLut(cube); ajouter(fs); });

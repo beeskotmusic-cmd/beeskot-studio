@@ -7,7 +7,7 @@ const $ = (s, r = document) => r.querySelector(s);
 const $$ = (s, r = document) => [...r.querySelectorAll(s)];
 
 const BK = {
-  version: '0.9.53 bêta',
+  version: '0.9.54 bêta',
   modules: {},
   onglets: [],
   cotes: [],
@@ -60,6 +60,7 @@ const BK = {
       html += '</div>';
     }
     const ia = BK.reglage('ia.active', true);
+    document.body.classList.toggle('sans-miette', !ia);          // Miette coupée : plus aucun bouton d'aide (ce qui est déjà validé reste)
     html += `<div class="navfoot">
         <button class="st bascule${ia ? ' on' : ''}" id="iaBascule" title="Active ou coupe l'AI (Gemini) sur ce PC"><span class="interrupteur"><i></i></span><span class="eng">AI Miette ${ia ? 'activée' : 'coupée'}</span></button>
         <div class="st"><span id="ledDrive" class="led"></span><span class="eng">Drive BEESKOT</span></div>
@@ -80,6 +81,7 @@ const BK = {
   // le nom de CE PC dans le bandeau (Yacine, Pierre, Baptiste, Studio) — à régler une fois dans Réglages › Ce PC
   majNomPc() { const n = BK.reglage('nomPc', ''), e = document.getElementById('syPc'), b = document.getElementById('syPcB'); if (!e) return;
     e.textContent = n ? n.toUpperCase() : 'QUI ?'; b && b.classList.toggle('a-regler', !n); },
+  OUTILS_EDITION: ['reels', 'postvis', 'reelvis', 'mixprep'],
   construits: {},
   construirePages() {
     const zone = $('#pages'); zone.innerHTML = ''; BK.construits = {};
@@ -237,7 +239,10 @@ const BK = {
     BK.boutonStop();
     try { await BK.semer(); await BK.semerAlias(); await BK.semerBudget(); } catch (e) { console.error(e); }
     BK._obsEtats = new MutationObserver(ms => { const vfd = ms[0] && ms[0].target; const el = vfd.nodeType === 3 ? vfd.parentElement : vfd;
-      const page = el && el.closest('#pages > section'); if (page && !page.classList.contains('hidden')) BK.presence && BK.presence.noter(el.textContent); });
+      const page = el && el.closest('#pages > section'); if (!page || page.classList.contains('hidden')) return;
+      // les outils d'édition (Reels Audio / Photo / Vidéo, Ableton) : les autres PC n'ont pas besoin de suivre chaque réglage, seulement les exports
+      if (BK.OUTILS_EDITION.includes(page.id.replace(/^p-/, '')) && !/export|upload|drive|enregistr|prêt|zipp|envoy/i.test(el.textContent)) return;
+      BK.presence && BK.presence.noter(el.textContent); });
     BK.construireMenu();
     BK.construirePages();
     // d'abord ce qui sert partout (Miette AI range ses réglages dans Réglages), puis l'onglet qu'on ouvre

@@ -43,7 +43,7 @@ BK.module('reels', function (page) {
         </div>
         <div class="box">
           <div class="re-prevus"><select class="fld" id="rePrevus" title="Les passages déjà choisis pour les tournages (fiches Tournages, PLAN.xlsx, Discord)"><option value="">📋 Passages prévus pour ce morceau…</option></select>
-            <button class="btn xs" id="reMiettePass" title="Miette cherche dans Discord les timings donnés pour ce morceau">🍞 Chercher sur Discord</button></div>
+            <button class="btn xs miette-aide" id="reMiettePass" title="Miette cherche dans Discord les timings donnés pour ce morceau">Miette trouve les passages</button></div>
           <div class="ligne-titre"><span class="lb">Passage</span>
             <span class="nt" style="margin:0 0 0 auto">Glisse le bloc · tire ses bords · <b>I</b> / <b>O</b> · molette = zoom</span>
             <span class="onde-zoom"><span class="eng">Zoom</span><button class="btn xs" id="reZm" title="Dézoomer">−</button><button class="btn xs" id="reZp" title="Zoomer (molette) · clic molette maintenu : glisser à gauche / droite">+</button><button class="btn xs" id="reZpass" title="Zoomer sur le passage">⤢ Passage</button><button class="btn xs" id="reZtout">Tout</button></span></div>
@@ -242,7 +242,7 @@ BK.module('reels', function (page) {
     try { const l = await BK.discord.passages(m, ms), tout = await BK.partage.lire('passages.discord', {}); tout[m.id] = l; await BK.partage.ecrire('passages.discord', tout);
       msg(l.length ? l.length + ' passage(s) trouvé(s) sur Discord : ouvre « Passages prévus »' : 'Aucun timing trouvé sur Discord pour ' + m.nom); await remplirPrevus(); }
     catch (e) { msg(e.message); }
-    b.disabled = false; b.textContent = '🍞 Chercher sur Discord';
+    b.disabled = false; b.textContent = 'Miette trouve les passages';
   };
   BK.reelAudio = () => R.buffer ? { nom: R.nom, url: R.url, debut: R.debut, duree: R.duree } : null;   // pour l'Assistant visuel
   $('#rePick').onclick = () => $('#reInput').click();

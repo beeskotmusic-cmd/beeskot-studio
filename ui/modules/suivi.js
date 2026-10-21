@@ -227,21 +227,10 @@ BK.module('suivi', function (page) {
       if (!BK.drive.relie()) {                                    // sans Drive : une image de ce PC
         const inp = document.createElement('input'); inp.type = 'file'; inp.accept = 'image/*';
         inp.onchange = async () => { if (inp.files[0]) fin(await reduire(inp.files[0])); }; return inp.click(); }
-      const etiquetes = async () => { await BK.dossiers.assurer(); const [tous, tags] = await Promise.all([BK.dossiers.tousFichiers(), BK.etiquettes.tous()]);
-        const cles = [...(m ? [m.id] : []), ...(r.tournage ? ['t:' + r.tournage] : []), 'c:moodboard', 'c:tournage'];
-        return tous.filter(f => image(f) && cles.some(k => BK.etiquettes.liste(tags, f.id).includes(k))).map(f => ({ id: f.id, nom: f.name, f, vignette: () => BK.drive.vignette(f) })); };
-      const toutLeCloud = async () => { await BK.dossiers.assurer();
-        return (await BK.dossiers.tousFichiers()).filter(image).sort((a, b) => (b.modifiedTime || '').localeCompare(a.modifiedTime || '')).slice(0, 300).map(f => ({ id: f.id, nom: f.name, f, vignette: () => BK.drive.vignette(f) })); };
-      const discord = async () => (await BK.discord.mediasVite('media', {}).catch(() => []) || []).filter(x => /\.(jpe?g|png|webp)$/i.test(x.nom || '')).map(x => ({ id: 'dc:' + x.id, nom: x.nom, dc: x, apercu: x.url }));
-      const cePC = async () => [];
-      const l = await BK.choisirImages({ titre: 'Image du poster · ' + (r.titre || 'Reel'), bouton: 'Choisir cette image',
-        sources: [{ nom: '🏷 Étiquetés pour ce reel', charger: etiquetes }, { nom: '☁ Tout le cloud', charger: toutLeCloud }, { nom: '🍞 Discord', charger: discord }] });
+      const l = await BK.choisirDansMedias({ titre: 'Image du poster · ' + (r.nom || r.titre || 'Reel'), bouton: 'Choisir cette image', type: 'image', sujet: m ? m.id : '' });
       if (!l || !l[0]) return;
-      const x = l[0]; msg('Chargement de l\'image…');
-      try {
-        if (x.dc) return fin((await BK.img.depuisDiscord(x.dc, x.nom, 'photovideo')).ref);              // de Discord : rangé d'abord dans le Drive
-        return fin(BK.img.ref(x.f.id));                                                                       // déjà dans le Drive : on garde juste son adresse
-      } catch (e) { msg('Image illisible'); }
+      msg('Image du poster…');
+      try { fin((await BK.img.depuisChoix(l[0], 'photovideo')).ref); } catch (e) { msg('Image illisible'); }
     });
     $$('[data-sx]', z).forEach(b => b.onclick = async () => { const r = R.l.find(x => x.id === b.dataset.sx);
       if (!confirm(`Retirer « ${r.titre || 'ce reel'} » du suivi ?`)) return;

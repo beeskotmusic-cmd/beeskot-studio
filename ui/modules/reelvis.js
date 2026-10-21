@@ -37,13 +37,13 @@ BK.module('reelvis', function (page) {
           <div class="rv-tel"><div class="rv-ecran" id="rvEcran">
             <canvas id="rvCanvas" width="540" height="960"></canvas>
             <video id="rvVideo" playsinline preload="auto" hidden></video>
-            <div class="rv-vide" id="rvVide"><span class="dymo">Glisse une vidéo ici</span><span class="nt">MP4, MOV… · ou choisis-en une du Drive :</span><div class="gd" id="rvGal"></div></div>
+            <div class="rv-vide" id="rvVide"><span class="dymo">Glisse une vidéo ici</span><span class="nt">MP4, MOV… depuis ce PC · ou :</span><div class="gd" id="rvGal"><button class="btn sm pri" id="rvGalB">🖼 Choisir dans Médias…</button></div></div>
             <div class="rv-zones" id="rvZones"></div><div id="rvCalque"></div>
           </div></div>
           <div class="rv-cote">
             <div class="box"><div class="ligne-titre"><span class="lb">① La vidéo</span></div>
-              <div class="rv-charge"><select class="fld" id="rvMorceau"><option value="">Choisis : un morceau, un tournage, un live…</option></select>
-                <button class="btn sm pri" id="rvTag">🏷 Les vidéos de Médias</button><button class="btn sm" id="rvPick">💻 Ce PC…</button><button class="btn sm" id="rvDrive">☁ Drive…</button><button class="btn sm warm" id="rvPhotos" title="Mettre bout à bout des photos et des vidéos (avec une musique)">🖼 Photos et vidéos…</button><input type="file" id="rvInput" accept="video/*" hidden></div></div>
+              <div class="rv-charge"><button class="btn sm rv-sujet-b" id="rvSujetB" title="De quoi parle la vidéo ?">De quoi parle la vidéo ? ▾</button><select class="fld hidden" id="rvMorceau"><option value="">—</option></select>
+                <button class="btn sm pri" id="rvTag">🏷 Une vidéo de Médias…</button><button class="btn sm" id="rvPick">💻 Ce PC…</button><button class="btn sm warm" id="rvPhotos" title="Mettre bout à bout des photos et des vidéos (avec une musique)">🖼 Photos et vidéos…</button><input type="file" id="rvInput" accept="video/*" hidden></div></div>
             <div class="box"><div class="ligne-titre"><span class="lb">② Couper la vidéo</span>
                 <span class="nt" style="margin:0 0 0 auto">Glisse le bloc · tire ses bords · <b>I</b> / <b>O</b> = début / fin à la tête de lecture</span></div>
               <div class="onde rv-bande" id="rvBande">
@@ -162,7 +162,7 @@ BK.module('reelvis', function (page) {
             <select class="fld mt-a" data-an="${i}">${ANIMS.map(([k, n]) => `<option value="${k}"${x.anim === k ? ' selected' : ''}>${n}</option>`).join('')}</select>
             <span class="mt-o"><button data-g="${i}" title="Avant">▲</button><button data-dr="${i}" title="Après">▼</button><button data-x="${i}" title="Enlever">✕</button></span></div>`).join('')
           || '<span class="nt" style="padding:14px;text-align:center">Ajoute des photos ou des vidéos : de ce PC, ou de Médias / Discord.</span>'}</div>
-        <div class="chips"><button class="btn sm" data-d="pc">💻 Ce PC…</button><button class="btn sm" data-d="medias">🏷 Médias / Discord…</button></div>
+        <div class="chips"><button class="btn sm" data-d="pc">💻 Ce PC…</button><button class="btn sm" data-d="medias">🖼 Depuis Médias…</button></div>
         <div class="pv-tab mt-tab">
           <span class="eng">Photos</span>
           <div class="pv-ligne"><span class="nt">toutes à</span><input class="fld rv-glisse" id="dpDuree" type="number" min="0.5" max="30" step="0.5" value="${D.dureePhoto || 2.5}"><span class="nt">s</span>
@@ -198,21 +198,13 @@ BK.module('reelvis', function (page) {
         const reste = dureeMus() - D.l.filter(x => x.video).reduce((t, x) => t + x.duree, 0), ph = D.l.filter(x => !x.video);
         if (reste <= ph.length * 0.5) return msg('Les vidéos prennent déjà toute la musique');
         D.dureePhoto = Math.round(reste / ph.length * 10) / 10; ph.forEach(x => x.duree = D.dureePhoto); return dessinerD(); }
-      if (a === 'medias') {
-        if (!BK.drive.relie()) return msg('Relie d\'abord le Drive');
-        const ok = f => /^(image|video)\//.test(f.mimeType || '');
+      if (a === 'medias') {                                         // la fenêtre Médias : dossiers, Discord, étiquettes
+        if (!BK.drive.relie()) return v.querySelector('#dpIn').click();
         v.style.display = 'none';
-        const l = await BK.choisirImages({ titre: 'Photos et vidéos', bouton: 'Ajouter', sources: [
-          { nom: '🏷 Étiquetées (Médias)', charger: async () => { await BK.dossiers.assurer(); const [tous, tags] = await Promise.all([BK.dossiers.tousFichiers(), BK.etiquettes.tous()]);
-              return tous.filter(f => ok(f) && BK.etiquettes.liste(tags, f.id).length).map(f => ({ id: f.id, nom: f.name, f, vignette: () => BK.drive.vignette(f) })); } },
-          { nom: '🍞 Discord', charger: async () => ((await BK.discord.mediasVite('media', {}).catch(() => [])) || []).filter(x => x.video || /\.(jpe?g|png|webp)$/i.test(x.nom || '')).map(x => ({ id: 'dc:' + x.id, nom: x.nom, dc: x, apercu: x.apercu || (x.video ? '' : x.url) })) },
-          { nom: '☁ Tout le cloud', charger: async () => { await BK.dossiers.assurer(); return (await BK.dossiers.tousFichiers()).filter(ok).sort((a, b) => (b.modifiedTime || '').localeCompare(a.modifiedTime || '')).slice(0, 300).map(f => ({ id: f.id, nom: f.name, f, vignette: () => BK.drive.vignette(f) })); } } ] });
+        const l = await BK.choisirDansMedias({ titre: 'Photos et vidéos du montage', bouton: 'Ajouter', type: 'tous', sujet: $('#rvMorceau').value });
         v.style.display = '';
-        for (const x of l || []) {
-          const ap = x.apercu || (x.f ? await BK.drive.vignette(x.f).catch(() => '') : '');
-          ajouter({ nom: x.nom, type: x.f ? x.f.mimeType : (x.dc && x.dc.video ? 'video/mp4' : ''), apercu: ap,
-            charger: async () => x.dc ? (await BK.discord.fetch(x.dc.url)).blob() : new Blob([await BK.drive.telecharger(x.f.id)], { type: x.f.mimeType }) });
-        }
+        for (const x of l || []) ajouter({ nom: x.nom, type: x.mime || (x.dc && x.dc.video ? 'video/mp4' : ''), apercu: x.apercu || '',
+          charger: async () => x.fichier ? x.fichier : x.dc ? (await BK.discord.fetch(x.dc.url)).blob() : new Blob([await BK.drive.telecharger(x.f.id)], { type: x.f.mimeType }) });
         return dessinerD();
       }
       if (a === 'ok') {
@@ -240,35 +232,32 @@ BK.module('reelvis', function (page) {
     });
     document.body.appendChild(v); dessinerD();
   };
-  $('#rvDrive').onclick = async () => {
-    if (!BK.drive.relie()) return msg('Relie d\'abord le Drive (Réglages)');
-    const l = await BK.explorerDrive({ titre: 'Vidéo du Drive pour le reel', mode: 'video', depart: 'tournage' }); if (!l || !l[0]) return;
-    const f = l[0]; msg('Téléchargement de ' + f.name + '…');
-    try { const o = await BK.drive.telecharger(f.id); charger(new File([o], f.name, { type: f.mimeType || 'video/mp4' })); }
-    catch (e) { msg('Téléchargement impossible'); }
-  };
   async function depuisDrive(f) { msg('Téléchargement de ' + f.name + '…');
     try { const o = await BK.drive.telecharger(f.id); charger(new File([o], f.name, { type: f.mimeType || 'video/mp4' })); } catch (e) { msg('Téléchargement impossible'); } }
-  BK.galerieDrive($('#rvGal'), { type: 'video', choisir: depuisDrive });
-  const galerieSiVide = () => { if (!$('#rvGal .gd-l') && !$('#rvMorceau').value) BK.galerieDrive($('#rvGal'), { type: 'video', choisir: depuisDrive }); };
+  $('#rvGalB').onclick = e => { e.stopPropagation(); $('#rvTag').click(); };             // l'écran vide propose la fenêtre Médias
+  const galerieSiVide = () => {};
   // ---------- ① le sujet : morceau, tournage, live, promo — ses vidéos passent en premier ----------
   (async () => { const g = await BK.etiquettes.sujets();
     $('#rvMorceau').innerHTML = '<option value="">Choisis : un morceau, un tournage, un live…</option>'
       + g.map(x => `<optgroup label="${esc(x.groupe)}">${x.l.map(c => `<option value="${esc(c.k)}">${esc(c.nom)}</option>`).join('')}</optgroup>`).join('');
     V.sujets = g.flatMap(x => x.l);
     $('#rvMorceau').onchange = e => { const c = (V.sujets || []).find(x => x.k === e.target.value), m = c && c.morceau;
-      BK.galerieDrive($('#rvGal'), { type: 'video', choisir: depuisDrive, titre: c ? c.nom : '', source: c ? () => BK.etiquettes.fichiersDe(c.k) : null });
       const so = $('#rvSousM'); if (m && so && [...so.options].some(o => o.value === m.id)) { so.value = m.id; so.dispatchEvent(new Event('change')); }
-      if (c && vid.videoWidth) msg('Pour une autre vidéo de ' + c.nom + ' : 🏷 Les vidéos de Médias'); };
+        $('#rvSujetB').textContent = c ? c.nom + ' ▾' : 'De quoi parle la vidéo ? ▾'; $('#rvSujetB').classList.toggle('pri', !!c);
+      if (c && vid.videoWidth) msg('Pour une autre vidéo de ' + c.nom + ' : 🏷 Une vidéo de Médias'); };
+    V.groupes = g;
   })();
+  $('#rvSujetB').onclick = e => { if (!V.groupes) return; const r = e.currentTarget.getBoundingClientRect(), sel = $('#rvMorceau');
+    BK.menuCascade({ x: r.left, y: r.bottom + 4 }, V.groupes.map(x => ({ nom: x.groupe, l: x.l })), k => { sel.value = k; sel.dispatchEvent(new Event('change')); }, { actuel: sel.value, aucun: '— Aucun sujet' }); };
   const sujetV = () => (V.sujets || []).find(x => x.k === $('#rvMorceau').value);
-  // les vidéos déjà étiquetées dans Médias (en premier), avec Maj + clic et Tout sélectionner
+  // une vidéo de Médias : la fenêtre Médias (dossiers, Discord, étiquettes), ouverte sur le sujet choisi
   $('#rvTag').onclick = async () => {
-    if (!BK.drive.relie()) return msg('Relie d\'abord le Drive (Réglages)');
-    const c = sujetV(); if (!c) { $('#rvMorceau').focus(); return msg('Choisis d\'abord le morceau ou le sujet'); }
-    const l = await BK.choisirImages({ titre: '🏷 Les vidéos de « ' + c.nom + ' »', bouton: 'Charger la vidéo',
-      charger: async () => (await BK.etiquettes.fichiersDe(c.k)).filter(f => /^video\//.test(f.mimeType || '')).map(f => ({ id: f.id, nom: f.name, f, vignette: () => BK.drive.vignette(f) })) });
-    if (l && l[0]) depuisDrive(l[0].f);
+    if (!BK.drive.relie()) return $('#rvInput').click();
+    const l = await BK.choisirDansMedias({ titre: 'Une vidéo pour le reel', bouton: 'Charger la vidéo', type: 'video', sujet: $('#rvMorceau').value });
+    const x = l && l[0]; if (!x) return;
+    if (x.fichier) return charger(x.fichier);
+    if (x.dc) { msg('Téléchargement depuis Discord…'); try { const r = await BK.discord.fetch(x.dc.url); charger(new File([await r.blob()], x.nom, { type: x.mime || 'video/mp4' })); } catch (e) { msg('Vidéo expirée sur Discord'); } return; }
+    depuisDrive(x.f);
   };
   $('#rvInput').onchange = e => charger(e.target.files[0]);
   page.addEventListener('dragover', e => { e.preventDefault(); ecran.classList.add('survol'); });

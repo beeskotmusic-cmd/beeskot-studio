@@ -98,17 +98,17 @@ BK.module('tournage', function (page) {
           <label class="large"><span class="eng">Lieu</span><input class="fld" data-c="lieu" value="${esc(t.lieu)}" placeholder="ex. Studio BEESKOT"></label>
           <label class="large"><span class="eng">L'idée en une phrase</span><input class="fld" data-c="idee" value="${esc(t.idee)}" placeholder="ex. ambiance VHS, lumière rouge, plans serrés sur les mains"></label>
         </div></div>
-      <div class="box"><div class="ligne-titre"><span class="lb">Moodboard</span><span class="nt" style="margin:0 0 0 auto">Glisse des images ici (captures, photos, Pinterest…)</span></div>
+      <div class="box"><div class="ligne-titre"><span class="lb">Moodboard</span><button class="btn xs miette-aide" id="toMoodMiette" style="margin-left:auto" title="Miette cherche les images de moodboard de ce tournage dans le Drive et sur Discord">Miette trouve les moodboards</button></div>
         <div class="to-mood" id="toMood">${t.moodboard.map((u, i) => `<div class="to-img"${BK.img.bg(u)}><button class="md-x" data-mx="${i}">✕</button></div>`).join('')}
-          <button class="to-img to-plus to-plus-tag" id="toMoodTag" title="Les médias étiquetés, tout le cloud, ou Discord">＋<small>Ajouter des images</small></button><button class="to-img to-plus" id="toMoodPlus" title="Images de ce PC">💻<small>Ce PC</small></button></div>
+          <button class="to-img to-plus to-plus-tag" id="toMoodTag" title="Depuis Médias (dossiers, Discord, étiquettes)">＋<small>Ajouter des images</small></button><button class="to-img to-plus" id="toMoodPlus" title="Images de ce PC">💻<small>Ce PC</small></button></div>
         ${(t.moodboardDocs || []).length ? `<div class="to-docs">${t.moodboardDocs.map((d, i) => `<span class="to-doc"><a href="#" data-url="${esc(d.url)}">📄 ${esc(d.nom)}</a><button class="md-x" data-dx="${i}">✕</button></span>`).join('')}</div>` : ''}
         ${t.moodboardAuto ? '<span class="nt">🍞 Rempli par Miette depuis le dossier moodboard du Drive.</span>' : ''}
         <input type="file" id="toMoodIn" accept="image/*" multiple hidden>
-        <div class="to-refs"><div class="ligne-titre"><span class="lb">Références</span><span class="nt" style="margin:0 0 0 auto">Des liens : reels Instagram, TikTok, YouTube, Pinterest…</span></div>
+        <div class="to-refs"><div class="ligne-titre"><span class="lb">Références</span><span class="nt" style="margin:0 0 0 auto">Des liens : Instagram, TikTok, YouTube, Pinterest…</span><button class="btn xs miette-aide" id="toRefMiette" title="Miette cherche les liens donnés sur Discord pour ce tournage">Miette trouve les références</button></div>
           <div class="to-refs-l">${(t.references || []).map((r, i) => `<span class="to-ref"><a href="#" data-url="${esc(r.url)}" title="${esc(r.url)}">${esc(iconeLien(r.url))} ${esc(r.note || nomLien(r.url))}</a><button class="md-x" data-rx="${i}">✕</button></span>`).join('')}</div>
           <div class="to-refs-add"><input class="fld" id="toRefUrl" placeholder="Colle un lien (https://…)"><input class="fld" id="toRefNote" placeholder="En un mot : pourquoi (facultatif)"><button class="btn sm" id="toRefAdd">+ Ajouter</button></div></div></div>
       <div class="box"><div class="ligne-titre"><span class="lb">Découpage</span>
-          <button class="btn xs" id="toRenfort" style="margin-left:auto">🍞 Idées avec Miette</button></div>
+          <button class="btn xs miette-aide" id="toRenfort" style="margin-left:auto">Miette propose un découpage</button></div>
         <table class="to-plans"><thead><tr><th>#</th><th>Cadrage</th><th>Ce qu'on voit / ce qui se passe</th><th>Durée</th><th>Notes</th><th></th></tr></thead>
           <tbody>${t.plans.map((p, i) => `<tr data-i="${i}"><td class="mono">${i + 1}</td>
             <td><select class="fld" data-p="cadrage"><option value="">—</option>${CADRAGES.map(c => `<option${p.cadrage === c ? ' selected' : ''}>${c}</option>`).join('')}</select></td>
@@ -118,7 +118,7 @@ BK.module('tournage', function (page) {
             <td class="to-btns"><button class="btn xs" data-haut="${i}" title="Monter">↑</button><button class="btn xs" data-px="${i}" title="Retirer">✕</button></td></tr>`).join('')}</tbody></table>
         <button class="btn xs" id="toPlan" style="margin-top:8px">+ Ajouter un plan</button></div>
       <div class="deux-box">
-        <div class="box"><div class="ligne-titre"><span class="lb">Tenues</span><button class="btn xs" id="toTenuesMiette" style="margin-left:auto" title="Miette cherche sur Discord les photos de tenues, et qui les porte">🍞 Qui porte quoi ?</button></div>
+        <div class="box"><div class="ligne-titre"><span class="lb">Tenues</span><button class="btn xs miette-aide" id="toTenuesMiette" style="margin-left:auto" title="Miette cherche sur Discord les photos de tenues, et qui les porte">Miette : qui porte quoi ?</button></div>
           ${T.membres.map(m => `<div class="to-tenue2"><span class="eng">${esc(m)}</span>
             <div class="to-tenue-ph">${((t.tenuesPhotos || {})[m] || []).map((u, i) => `<div class="to-tph"${BK.img.bg(u)}><button class="md-x" data-tpx="${esc(m)}|${i}">✕</button></div>`).join('')}
               <button class="to-tph to-tph-plus" data-tph="${esc(m)}" title="Une photo de Médias, du cloud ou de Discord">＋<small>Photo</small></button></div>
@@ -142,23 +142,12 @@ BK.module('tournage', function (page) {
     // ---------- tenues : des photos (Médias, cloud, Discord), rangées dans la fiche et étiquetées « Tenues » + ce tournage ----------
     const image = f => /^image\//.test(f.mimeType || '');
     const enImage = async (x, role) => {                     // x : { f } (Drive) ou { dc } (Discord) → l'adresse de l'image sur le Drive, et étiquettes
-      let id = x.f && x.f.id, u = id ? BK.img.ref(id) : '';
-      if (x.dc) { const d = await BK.img.depuisDiscord(x.dc, x.nom, role); id = d.id; u = d.ref; }
-      if (id) for (const k of ['c:outfits', 't:' + t.id]) await BK.etiquettes.basculer(id, k, true);
-      return u; };
-    const sourcesTenue = qui => [
-      { nom: '👕 Tenues (Médias)', charger: async () => { await BK.dossiers.assurer(); const [tous, tags, carte] = await Promise.all([BK.dossiers.tousFichiers(), BK.etiquettes.tous(), BK.dossiers.carte()]);
-          return tous.filter(f => image(f) && (BK.etiquettes.liste(tags, f.id).includes('c:outfits') || ((f.parents || [])[0] && BK.dossiers.ancetres(f.parents[0], carte).some(a => /outfit|tenue/i.test(carte[a].name)))))
-            .map(f => ({ id: f.id, nom: f.name, f, vignette: () => BK.drive.vignette(f) })); } },
-      { nom: '🍞 Discord' + (qui ? ' (' + qui + ' d\'abord)' : ''), charger: async () => { const l = (await BK.discord.mediasVite('media', {}).catch(() => []) || []).filter(x => !x.video && /\.(jpe?g|png|webp)$/i.test(x.nom || ''));
-          l.sort((a, b) => ((b.qui === qui) - (a.qui === qui)) || String(b.t || '').localeCompare(String(a.t || '')));
-          return l.map(x => ({ id: 'dc:' + x.id, nom: x.nom, dc: x, apercu: x.apercu || x.url, info: [x.qui, x.salon && '#' + x.salon].filter(Boolean).join(' · ') })); } },
-      { nom: '☁ Tout le cloud', charger: async () => { await BK.dossiers.assurer();
-          return (await BK.dossiers.tousFichiers()).filter(image).sort((a, b) => (b.modifiedTime || '').localeCompare(a.modifiedTime || '')).slice(0, 300).map(f => ({ id: f.id, nom: f.name, f, vignette: () => BK.drive.vignette(f) })); } },
-    ];
+      const d = await BK.img.depuisChoix(x, role);
+      if (d.id) for (const k of ['c:outfits', 't:' + t.id]) await BK.etiquettes.basculer(d.id, k, true);
+      return d.ref; };
     $$('[data-tph]', z).forEach(b => b.onclick = async () => {
       if (!BK.drive.relie()) return msg('Relie d\'abord le Drive');
-      const qui = b.dataset.tph, l = await BK.choisirImages({ titre: 'Tenue de ' + qui, bouton: 'Ajouter', sources: sourcesTenue(qui) });
+      const qui = b.dataset.tph, l = await BK.choisirDansMedias({ titre: 'Tenue de ' + qui, bouton: 'Ajouter', type: 'image', sujet: 'c:outfits' });
       if (!l || !l.length) return;
       msg('Ajout des photos…'); t.tenuesPhotos = t.tenuesPhotos || {}; t.tenuesPhotos[qui] = t.tenuesPhotos[qui] || [];
       for (const x of l) { try { const u = await enImage(x, 'outfits'); if (u) t.tenuesPhotos[qui].push(u); } catch (e) { console.warn(e); } await BK.audio.pause(); }
@@ -168,7 +157,7 @@ BK.module('tournage', function (page) {
     $('#toTenuesMiette').onclick = async () => {
       const b = $('#toTenuesMiette'); b.disabled = true; b.innerHTML = '<span class="spin"></span>Miette cherche…';
       let l = []; try { l = await BK.discord.mediasVite('media', {}) || []; } catch (e) {}
-      b.disabled = false; b.textContent = '🍞 Qui porte quoi ?';
+      b.disabled = false; b.textContent = 'Miette : qui porte quoi ?';
       const RE = /tenue|outfit|fringue|look|porte|portera|habit|veste|chemise|pantalon|jean|robe|chaussure|sneaker|costume/i;
       const deja = new Set(Object.values(t.tenuesPhotos || {}).flat());
       const props = [];
@@ -220,36 +209,14 @@ BK.module('tournage', function (page) {
     })();
     $('#toMoodTag').onclick = async () => {
       if (!BK.drive.relie()) return msg('Relie d\'abord le Drive');
-      const ms = await BK.db.liste('morceaux'), m = BK.inv.trouverMorceau(t.morceau || '', ms);
-      const cles = ['c:moodboard', 'c:tournage', 'c:outfits', 't:' + t.id, ...(m ? [m.id] : [])];
-      const image = f => /^image\//.test(f.mimeType || '');
-      // 1. les médias déjà étiquetés pour ce tournage  2. tout le cloud  3. Discord
-      const etiquetes = async () => {
-        await BK.dossiers.assurer();
-        const [tous, tags, carte] = await Promise.all([BK.dossiers.tousFichiers(), BK.etiquettes.tous(), BK.dossiers.carte()]);
-        const vus = new Set(), out = [];
-        for (const k of cles) for (const f of tous) {
-          if (vus.has(f.id) || !image(f)) continue;
-          const et = BK.etiquettes.liste(tags, f.id);
-          const dossierMood = (f.parents || [])[0] && BK.dossiers.ancetres(f.parents[0], carte).some(a => /mood|outfit|tournage/i.test(carte[a].name));
-          if (!et.includes(k) && !(k === 'c:moodboard' && dossierMood)) continue;
-          vus.add(f.id); out.push({ id: f.id, nom: f.name, f, vignette: () => BK.drive.vignette(f) });
-        }
-        return out; };
-      const toutLeCloud = async () => { await BK.dossiers.assurer();
-        return (await BK.dossiers.tousFichiers()).filter(image).sort((a, b) => (b.modifiedTime || '').localeCompare(a.modifiedTime || '')).slice(0, 300)
-          .map(f => ({ id: f.id, nom: f.name, f, vignette: () => BK.drive.vignette(f) })); };
-      const discord = async () => { const l = await BK.discord.mediasVite('media', {}).catch(() => []);
-        return (l || []).filter(x => /\.(jpe?g|png|webp|gif)$/i.test(x.nom || x.name || '')).map(x => ({ id: 'dc:' + x.id, nom: x.nom || x.name, dc: x, apercu: x.url })); };
-      const l = await BK.choisirImages({ titre: 'Images pour le moodboard', bouton: 'Ajouter au moodboard',
-        sources: [{ nom: '🏷 Étiquetés pour ce tournage', charger: etiquetes }, { nom: '☁ Tout le cloud', charger: toutLeCloud }, { nom: '🍞 Discord', charger: discord }] });
+      // toujours par Médias : la fenêtre s'ouvre sur l'étiquette « Moodboard »
+      const l = await BK.choisirDansMedias({ titre: 'Images pour le moodboard', bouton: 'Ajouter au moodboard', type: 'image', sujet: 'c:moodboard' });
       if (!l || !l.length) return;
       msg('Ajout des images…');
       const tagsMood = ['t:' + t.id, 'c:moodboard', 'c:tournage'];
       for (const x of l) {
         try {
-          let id = x.f && x.f.id, u = id ? BK.img.ref(id) : '';
-          if (x.dc) { const d = await BK.img.depuisDiscord(x.dc, x.nom, 'moodboard'); id = d.id; u = d.ref; }   // venu de Discord : rangé d'abord dans le Drive (moodboard)
+          const d = await BK.img.depuisChoix(x, 'moodboard'), id = d.id, u = d.ref;   // Discord ou ce PC : rangé d'abord dans le Drive (moodboard)
           if (u && !t.moodboard.includes(u)) t.moodboard.push(u);                 // la fiche garde juste l'adresse de l'image
           if (id) for (const k of tagsMood) await BK.etiquettes.basculer(id, k, true);   // étiqueté tournage + moodboard, tout seul
         } catch (e) { console.warn(e); }
@@ -263,6 +230,23 @@ BK.module('tournage', function (page) {
       if (!/^https?:\/\//i.test(u)) { $('#toRefUrl').focus(); return msg('Colle un lien qui commence par https://'); }
       t.references = t.references || []; t.references.push({ url: u, note: n }); await BK.db.ecrire('tournages', t); msg('Référence ajoutée'); rendreFiche(); };
     $('#toRefAdd').onclick = ajouterRef;
+    // ---------- Miette aide : les moodboards et les références dont on a parlé ----------
+    const occupe = (b, oui) => { b.disabled = oui; if (oui) { b.dataset.t = b.textContent; b.innerHTML = '<span class="spin"></span>Miette cherche…'; } else b.textContent = b.dataset.t; };
+    $('#toMoodMiette').onclick = async () => { const b = $('#toMoodMiette');
+      if (!BK.drive.relie()) return msg('Relie d\'abord le Drive');
+      occupe(b, true); let l = []; try { await BK.dossiers.assurer(); l = await BK.miette.moodboardPour(t); } catch (e) { console.warn(e); } occupe(b, false);
+      const ch = await BK.miette.proposer({ titre: 'Miette a trouvé ces images', vide: 'Miette n\'a pas trouvé d\'image de moodboard pour ce tournage (dossier Moodboards du Drive, ou Discord).', bouton: 'Ajouter au moodboard', items: l });
+      if (!ch.length) return; msg('Ajout des images…'); let n = 0;
+      for (const x of ch) { try { const d = await BK.img.depuisChoix(x, 'moodboard');
+          if (d.ref && !t.moodboard.includes(d.ref)) { t.moodboard.push(d.ref); n++; }
+          if (d.id) for (const k of ['t:' + t.id, 'c:moodboard', 'c:tournage']) await BK.etiquettes.basculer(d.id, k, true); } catch (e) { console.warn(e); } await BK.audio.pause(); }
+      await BK.db.ecrire('tournages', t); msg(n + ' image(s) ajoutée(s) par Miette'); rendreFiche(); };
+    $('#toRefMiette').onclick = async () => { const b = $('#toRefMiette');
+      occupe(b, true); let l = []; try { l = await BK.miette.referencesPour(t); } catch (e) { console.warn(e); } occupe(b, false);
+      const ch = await BK.miette.proposer({ titre: 'Les références dites sur Discord', vide: 'Miette n\'a pas trouvé de lien (Instagram, TikTok, YouTube…) pour ce tournage sur Discord.', bouton: 'Ajouter aux références', items: l });
+      if (!ch.length) return; t.references = t.references || [];
+      for (const x of ch) t.references.push({ url: x.url, note: x.note });
+      await BK.db.ecrire('tournages', t); msg(ch.length + ' référence(s) ajoutée(s) par Miette'); rendreFiche(); };
     ['#toRefUrl', '#toRefNote'].forEach(k => $(k).addEventListener('keydown', e => { e.stopPropagation(); if (e.key === 'Enter') ajouterRef(); }));
     $$('[data-rx]', z).forEach(b => b.onclick = async () => { t.references.splice(+b.dataset.rx, 1); await BK.db.ecrire('tournages', t); rendreFiche(); });
     $$('.to-ref a[data-url]', z).forEach(a => a.onclick = e => { e.preventDefault(); BK.ouvrirLien(a.dataset.url); });

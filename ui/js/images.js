@@ -89,6 +89,13 @@ BK.img = {
     try { await BK.etiquettes.noterCopie(dc.id, d.id); } catch (e) {}
     return d;
   },
+  // un fichier choisi dans la fenêtre Médias → son adresse sur le Drive (Discord et ce PC y sont rangés d'abord, une seule fois)
+  async depuisChoix(x, role) {
+    if (x.f) return { ref: BK.img.ref(x.f.id), id: x.f.id };
+    if (x.dc) return BK.img.depuisDiscord(x.dc, x.nom, role);
+    if (x.fichier) { const d = await BK.img.versDrive(x.fichier, x.nom, role); return typeof d === 'string' ? { ref: d, id: null } : d; }
+    return { ref: '', id: null };
+  },
   async dossier(role) {
     const d = role && BK.dossiers ? await BK.dossiers.get(role).catch(() => null) : null;
     if (d && d.id) return d.id;

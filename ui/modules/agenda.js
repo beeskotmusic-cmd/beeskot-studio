@@ -52,7 +52,7 @@ BK.module('agenda', function (page) {
         <div class="ligne-titre">
           <button class="btn sm" id="agPrec">◀</button><span class="vfd" id="agMois" style="font-size:15px;min-width:200px;text-align:center">—</span><button class="btn sm" id="agSuiv">▶</button>
           <button class="btn sm" id="agAuj">Aujourd'hui</button>
-          <div class="chips" style="margin-left:auto"><button class="chip" id="agPromo">Planning de promo seulement</button></div>
+          <div class="chips" style="margin-left:auto"><button class="chip" id="agPromo">Planning de promo seulement</button><button class="btn xs miette-aide" id="agMiette" title="Miette relit Discord et les mails, et place les dates dont vous parlez">Miette trouve les dates</button></div>
         </div>
         <div class="cal" id="agCal"></div>
       </section>
@@ -71,7 +71,7 @@ BK.module('agenda', function (page) {
           <span class="nt">Colle ici l'« adresse secrète au format iCal » de l'agenda (Google Agenda › Paramètres de l'agenda). À faire une seule fois, pour tout le groupe.</span>
           <input class="fld" id="agIcs" style="margin-top:8px" placeholder="https://calendar.google.com/calendar/ical/…/basic.ics">
           <div class="chips" style="margin-top:8px"><button class="chip" id="agLire">↻ Relire l'agenda</button></div></div>
-        <div class="box"><div class="ligne-titre"><span class="lb">🍞 Miette a repéré sur Discord</span><button class="btn xs pri" id="agMiette" style="margin-left:auto">🍞 Lire Discord et placer les dates</button></div>
+        <div class="box miette-seul"><div class="ligne-titre"><span class="lb">Miette a repéré (Discord et mails)</span></div>
           <div id="agRepere" class="ag-repere"></div></div>
         <div class="box grow"><span class="lb">À venir</span><div id="agVenir" class="surv"></div></div>
       </section>
@@ -81,7 +81,8 @@ BK.module('agenda', function (page) {
   const msg = t => $('#agMsg').textContent = String(t).toUpperCase();
   $('#agDate').value = jour(new Date());
 
-  window.addEventListener('bk:annule', () => charger());   // après « ↶ Annuler » : on relit
+  window.addEventListener('bk:annule', () => charger());
+  window.addEventListener('bk:ia', () => A.locaux && rendre());       // Miette allumée / coupée : ses dates apparaissent / disparaissent
   async function charger() {
     A.locaux = (await BK.db.liste('evenements')).map(e => ({ ...e, debut: new Date(e.date + 'T' + (e.heure || '00:00')), local: true }));
     const cfg = (await BK.db.liste('config')).find(c => c.id === 'agenda');
@@ -114,7 +115,7 @@ BK.module('agenda', function (page) {
     const m = A.mois, an = m.getFullYear(), mo = m.getMonth();
     const nomMois = m.toLocaleDateString('fr-CA', { month: 'long', year: 'numeric' }).toUpperCase();
     $('#agMois').textContent = nomMois; $('#agMoisH').textContent = nomMois;
-    const tous = [...BK.agendaTous(), ...A.miette, ...(A.taches || [])].filter(e => !A.promoSeule || e.type === 'promo');
+    const tous = [...BK.agendaTous(), ...(BK.ia.active() ? A.miette || [] : []), ...(A.taches || [])]   // Miette coupée : ses dates pas encore validées disparaissent.filter(e => !A.promoSeule || e.type === 'promo');
     const parJour = {}; for (const e of tous) (parJour[jour(new Date(e.debut.getTime() - e.debut.getTimezoneOffset() * 6e4))] ||= []).push(e);
     const premier = new Date(an, mo, 1), decal = (premier.getDay() + 6) % 7, nb = new Date(an, mo + 1, 0).getDate(), auj = jour(new Date());
     let h = ['L', 'M', 'M', 'J', 'V', 'S', 'D'].map(j => `<span class="cal-j">${j}</span>`).join('');
@@ -157,7 +158,7 @@ BK.module('agenda', function (page) {
   }
   $('#agMiette').onclick = async () => { const b = $('#agMiette'); b.disabled = true; b.innerHTML = '<span class="spin"></span>Miette lit Discord…';
     try { const d = await BK.discord.planning(); msg((d.l || []).length + ' date(s) repérée(s)'); } catch (e) { msg(e.message); }
-    b.disabled = false; b.textContent = '🍞 Lire Discord et placer les dates'; await charger(); };
+    b.disabled = false; b.textContent = 'Miette trouve les dates'; await charger(); };
   const lireForm = () => ({ type: $('#agType').value, titre: $('#agTitre').value.trim() || TYPES[$('#agType').value].nom, morceau: $('#agMorceau').value,
     date: $('#agDate').value, heure: $('#agHeure').value, lieu: $('#agLieu').value.trim() });
   $('#agAjout').onclick = async () => { const f = lireForm(); if (!f.date) return msg('Choisis une date'); await BK.db.ecrire('evenements', f); $('#agTitre').value = ''; msg('Rendez-vous ajouté'); await charger(); };

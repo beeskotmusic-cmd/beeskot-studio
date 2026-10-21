@@ -252,11 +252,14 @@ BK.module('renforts', function (page) {
       const att = l.filter(x => !x.fait);
       if (!att.length) return $('#raRep').innerHTML = '<span class="nt">Raconte ce qui ne va pas, puis « Ranger en note ». Les notes du groupe s\'affichent ici.</span>';
       $('#raRep').innerHTML = `<div class="ligne-titre"><span class="lb">${att.length} note(s) à transmettre</span>
-          <button class="btn xs pri" id="raAmCop" style="margin-left:auto">Tout copier pour Dari</button></div>`
-        + att.map(x => `<div class="ra-am"><div class="ra-texte">${esc(x.texte)}</div>
+          <button class="btn xs" id="raAmBrut" style="margin-left:auto" title="Exactement ce que les membres ont écrit ou dicté, sans passer par Miette">📋 Copier les mots exacts</button>
+          <button class="btn xs pri" id="raAmCop">Tout copier pour Dari</button></div>`
+        + att.map(x => `<div class="ra-am">${x.texte ? `<div class="ra-texte">${esc(x.texte)}</div>` : ''}${x.brut ? `<div class="ra-brut"><b>Mots exacts :</b> « ${esc(x.brut)} »</div>` : ''}
             <span class="nt">${esc(x.par)} · ${new Date(x.quand).toLocaleDateString('fr-CA', { day: 'numeric', month: 'short' })}</span>
             <button class="btn xs" data-amx="${x.id}" title="Réglé : retirer de la liste">✓ Réglé</button></div>`).join('');
-      $('#raAmCop').onclick = async () => { const txt = att.map(x => `— ${x.par} (${new Date(x.quand).toLocaleDateString('fr-CA')}) —\n${x.texte}`).join('\n\n');
+      $('#raAmBrut').onclick = async () => { const txt = att.map(x => `— ${x.par} (${new Date(x.quand).toLocaleDateString('fr-CA')}) —\n${x.brut || x.texte}`).join('\n\n');
+        try { await navigator.clipboard.writeText(txt); msg('Mots exacts copiés : colle-les à Claude'); } catch (e) { msg('Copie impossible'); } };
+      $('#raAmCop').onclick = async () => { const txt = att.map(x => `— ${x.par} (${new Date(x.quand).toLocaleDateString('fr-CA')}) —\n${x.texte || x.brut}${x.brut && x.texte ? '\n(mots exacts : « ' + x.brut + ' »)' : ''}`).join('\n\n');
         try { await navigator.clipboard.writeText(txt); msg('Copié : colle-le à Claude'); } catch (e) { msg('Copie impossible'); } };
       $$('[data-amx]', $('#raRep')).forEach(b => b.onclick = async () => { const x = l.find(y => y.id === b.dataset.amx); x.fait = true; await BK.db.ecrire('ameliorations', x); listeAmeliorations(); });
     }
@@ -267,7 +270,11 @@ BK.module('renforts', function (page) {
       if (a.besoin === 'texte' && !detail) { $('#raTexte').focus(); return msg('Raconte d\'abord ce qui ne va pas'); }
       const demande = a.demande({ morceau: m && m.nom, paroles: m && m.paroles, sortie: m && m.sortie, tournage: t, detail });
       if (!demande) return msg('Écris ta demande dans « Précisions »');
-      if (!await BK.ia.pret()) return sansCle(`${await BK.ia.contexte()}\n\n${demande}`);
+      // une note d'amélioration : les mots EXACTS sont rangés dans le Drive tout de suite, avant Gemini (rien ne se perd, même sans AI)
+      let note = null;
+      if (a.fiche) { note = await BK.db.ecrire('ameliorations', { texte: '', brut: detail, par: BK.reglage('nomPc', '') || 'ce PC', quand: new Date().toISOString(), fait: false });
+        $('#raTexte').value = ''; listeAmeliorations(); }
+      if (!await BK.ia.pret()) { if (note) return msg('Note enregistrée telle quelle : Dari la verra'); return sansCle(`${await BK.ia.contexte()}\n\n${demande}`); }
       $('#raRep').innerHTML = '<span class="nt"><span class="spin"></span>Miette réfléchit…</span>';
       try {
         const r = await BK.ia.demander(`${await BK.ia.contexte()}\n\n${demande}`, { json: !!a.json, systeme: 'Tu aides le groupe de musique BEESKOT. Réponds en français, simplement.' });
@@ -279,12 +286,11 @@ BK.module('renforts', function (page) {
             await BK.db.ecrire('tournages', t); BK.tournagesRecharger && BK.tournagesRecharger(); msg('Ajouté au découpage ✓'); };
         } else {
           $('#raRep').innerHTML = `<div class="ra-texte">${esc(r)}</div>`;
-          if (a.fiche) { await BK.db.ecrire('ameliorations', { texte: r, brut: detail, par: BK.reglage('nomPc', '') || 'ce PC', quand: new Date().toISOString(), fait: false });
-            msg('Note enregistrée : Dari la verra'); listeAmeliorations(); }
+          if (note) { note.texte = r; await BK.db.ecrire('ameliorations', note); msg('Note enregistrée : Dari la verra'); listeAmeliorations(); }
           garder({ type: 'aide', q: a.nom + (m && a.besoin === 'morceau' ? ' · ' + m.nom : '') + ($('#raDetail').value.trim() ? ' · ' + $('#raDetail').value.trim() : ''), r });
           $('#raCopier').classList.remove('hidden'); $('#raCopier').onclick = async () => { await navigator.clipboard.writeText(r); msg('Copié'); };
         }
-      } catch (e) { $('#raRep').innerHTML = `<span class="nt">${esc(e.message)}</span>`; }
+      } catch (e) { $('#raRep').innerHTML = `<span class="nt">${esc(e.message)}${note ? ' · la note est quand même enregistrée, avec les mots exacts' : ''}</span>`; if (note) listeAmeliorations(); }
     };
   }
   // ---------- l'historique : toutes les questions et réponses, gardées dans le Drive (tout le groupe les voit) ----------

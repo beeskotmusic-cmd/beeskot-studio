@@ -427,3 +427,28 @@ Réponds en JSON : un tableau d'objets {"i":<numéro de l'image, à partir de 1>
   avancement(aTrier.length, aTrier.length);
   return out;
 };
+
+// ---------- un menu qui se déroule en cascade (comme le clic droit de Médias) ----------
+// pos : { x, y } ; groupes : [{ nom, l: [{ k, nom, couleur? }] }] ; choisir(k, item)
+BK.menuCascade = function (pos, groupes, choisir, { actuel = '', aucun = '' } = {}) {
+  document.querySelectorAll('.md-menu').forEach(x => x.remove());
+  const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+  const menu = document.createElement('div'); menu.className = 'md-menu';
+  menu.style.left = Math.min(pos.x, innerWidth - 230) + 'px'; menu.style.top = Math.min(pos.y, innerHeight - 240) + 'px';
+  menu.innerHTML = groupes.map((g, i) => `<div class="md-grp" data-grp="${i}"><button class="md-grp-b">${esc(g.nom)}${g.l.some(c => c.k === actuel) ? ' <em>●</em>' : ''}<span class="md-fl">▸</span></button>
+      <div class="md-sub">${g.l.length ? g.l.map(c => `<button data-m="${esc(c.k)}"${c.k === actuel ? ' class="on"' : ''}><i style="background:${c.couleur || (BK.couleurTag ? BK.couleurTag(c.k) : '#ffb23e')}"></i>${esc(c.nom)}</button>`).join('') : '<span class="nt" style="padding:6px 10px">Rien ici</span>'}</div></div>`).join('')
+    + (aucun ? `<span class="md-menu-sep"></span><button data-m="">${esc(aucun)}</button>` : '');
+  document.body.appendChild(menu);
+  menu.querySelectorAll('.md-grp').forEach(g => {
+    const ouvrir = () => { menu.querySelectorAll('.md-grp').forEach(x => x.classList.toggle('ouvert', x === g));
+      const sub = g.querySelector('.md-sub'), r = g.getBoundingClientRect(), droite = r.right + 230 < innerWidth;
+      sub.style.left = (droite ? r.right + 2 : r.left - 232) + 'px';
+      sub.style.top = Math.max(8, Math.min(r.top - 6, innerHeight - Math.min(sub.scrollHeight, 360) - 8)) + 'px'; };
+    g.addEventListener('mouseenter', ouvrir); g.querySelector('.md-grp-b').onclick = e => { e.stopPropagation(); ouvrir(); };
+  });
+  const fermer = e => { if (!menu.contains(e.target)) { menu.remove(); document.removeEventListener('pointerdown', fermer, true); } };
+  setTimeout(() => document.addEventListener('pointerdown', fermer, true));
+  menu.onclick = e => { const x = e.target.closest('[data-m]'); if (!x) return; menu.remove(); document.removeEventListener('pointerdown', fermer, true);
+    const k = x.dataset.m; choisir(k, groupes.flatMap(g => g.l).find(c => c.k === k) || null); };
+  return menu;
+};

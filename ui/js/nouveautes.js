@@ -3,6 +3,17 @@
 // Pour une nouvelle version : ajouter un bloc EN HAUT de la liste. Une ligne courte par point : « Onglet : ce qui change. »
 // =====================================================================
 BK.NOUVEAUTES = [
+  { v: '0.9.54', titre: '', l: [
+    ['🎛', 'Outils Reels et Ableton : seuls les exports sont partagés en direct.'],
+    ['🖼', 'Reels Photo et Vidéo : on importe depuis une fenêtre Médias (étiquettes en haut).'],
+    ['▾', 'Reels Photo et Vidéo : « De quoi parle… » en menu déroulant.'],
+    ['🖼', 'Tournages, posters, photos des morceaux : choisis aussi dans Médias.'],
+    ['🍞', 'Partout : la biscotte jaune montre où Miette peut aider.'],
+    ['🍞', 'Tournages : Miette trouve les moodboards et les références.'],
+    ['↰', 'Médias : bouton Retour plus visible.'],
+    ['🔌', 'AI Miette coupée : toutes ses aides disparaissent.'],
+    ['📋', 'Améliorer : les mots exacts sont gardés, bouton pour les copier.'],
+  ] },
   { v: '0.9.53', titre: '', l: [
     ['🔍', 'Bouton rouge (?) : vérifier les mises à jour.'],
     ['📖', 'Tuto : pas à pas, questions fréquentes, recherche.'],
@@ -62,6 +73,8 @@ BK.TUTO = [
       ['Annuler une erreur', 'Ctrl + Z annule la dernière action. Pour revenir plus loin en arrière (des heures, des jours) : Réglages › Drive › ⏪ Time Machine.'] ],
     astuces: [
       'Bouton jaune (la biscotte) : Miette relit Discord, les mails et le Drive, et prépare tous les onglets.',
+      'Un bouton jaune avec la biscotte, partout dans le logiciel = Miette peut t\'aider ici.',
+      'Interrupteur « AI Miette » en bas du menu : coupé, toutes les aides de Miette disparaissent (ce que vous avez déjà validé reste).',
       'Bouton rouge (?) : version, mises à jour, nouveautés, relancer, fermer.',
       'ONLINE (en haut) : qui est connecté. EN CE MOMENT (en bas de chaque page) : ce que font les autres.',
       'Ce que tu fais arrive sur les autres PC en moins d\'une minute.',
@@ -77,7 +90,7 @@ BK.TUTO = [
     comment: [
       ['Poser une question', 'Écris ta question (« quand est le tournage de Mother ? », « comment on exporte un reel ? ») → Demander. Miette répond avec les messages Discord et ce qu\'elle sait du logiciel.'],
       ['Valider ce que Miette a repéré', 'Dans « À valider » : ✓ pour accepter (ça va dans la To-do, le Calendrier ou le Budget), ✕ pour refuser.'],
-      ['Signaler un problème ou une idée', 'Choisis « 🔧 Améliorer BEESKOT Studio » → écris ou 🎤 dicte ce qui ne va pas → Ranger en note. Dari récupère toutes les notes d\'un coup.'],
+      ['Signaler un problème ou une idée', 'Choisis « 🔧 Améliorer BEESKOT Studio » → écris ou 🎤 dicte ce qui ne va pas → Ranger en note. Tes mots exacts sont gardés dans le Drive tout de suite (même sans AI). Dari récupère tout avec 📋 Copier les mots exacts.'],
       ['Choisir les salons Discord à lire', 'Réglages › Miette & Discord → coche les salons (pense au salon des mails).'] ],
     astuces: [
       '« 👁 Ce que Miette a lu » : la liste des salons et des mails qu\'elle a vraiment lus.',
@@ -88,28 +101,28 @@ BK.TUTO = [
       ['Créer une fiche', '« + Fiche » en haut, ou « Scanner ce PC » / Drive : le logiciel trouve les fichiers pas encore reliés et propose de créer les fiches.'],
       ['Choisir le bon export d\'un morceau', 'Ouvre la fiche → clique ☆ à côté de l\'export : il devient ★. C\'est lui qu\'utilisent Reels Audio et les autres onglets.'],
       ['Changer l\'avancement', 'Ouvre la fiche → clique l\'étape (maquette, enregistrement, mixage, master, sortie, promo).'],
-      ['Changer la photo', 'Clique la photo de la fiche → une photo étiquetée, du Drive ou de ce PC. Elle reste dans le Drive : la fiche garde juste son adresse.'],
-      ['Mettre le bon BPM', 'Écris-le dans la fiche : ce que vous écrivez passe avant tout. Sinon : 🎛 Ableton (le tempo du projet), ou 🍞 Vérifier les infos des morceaux (ce qui a été dit sur Discord).'],
+      ['Changer la photo', 'Clique la photo de la fiche → la fenêtre Médias s\'ouvre sur les photos du morceau → double-clic sur la photo. Elle reste dans le Drive : la fiche garde juste son adresse.'],
+      ['Mettre le bon BPM', 'Écris-le dans la fiche : ce que vous écrivez passe avant tout. Sinon : 🎛 Ableton (le tempo du projet), ou Miette vérifie les infos des morceaux (ce qui a été dit sur Discord).'],
       ['Copier les paroles pour le distributeur', 'Ouvre la fiche → Paroles → Copier pour le distributeur.'] ],
     astuces: [
       'Next release, Work in progress, Sortis : glisse une fiche pour changer son statut ou son ordre.',
       '🏷 Étiqueté BEESKOT : tout ce qui concerne le morceau (audio, projets, photos), rangé par type.',
       'Une couleur par étape : maquette rouge, enregistrement orange, mixage jaune, master bleu-vert, sortie bleu, promo vert.' ] },
-  { o: 'Médias', ic: '🖼', quoi: 'Toutes les photos et vidéos du groupe : les dossiers du Drive, plus celles postées sur Discord. On les range avec des étiquettes (un morceau, un tournage, Instagram…), sans jamais déplacer les fichiers.',
+  { o: 'Médias', ic: '🖼', quoi: 'Toutes les photos et vidéos du groupe : les dossiers du Drive, plus celles postées sur Discord. Partout dans le logiciel, on importe une photo ou une vidéo depuis une fenêtre Médias. On les range avec des étiquettes (un morceau, un tournage, Instagram…), sans jamais déplacer les fichiers.',
     comment: [
       ['Étiqueter des photos', 'Choisis les photos (clic, Ctrl+clic pour en ajouter, Maj+clic pour une suite) → clic droit → Morceaux ▸ / Tournage ▸ / Réseaux ▸ → l\'étiquette. Ou glisse-les sur une étiquette dans la barre du bas.'],
       ['Retrouver les photos d\'un morceau', 'Menu « Voir » en haut → choisis le morceau ou l\'étiquette.'],
       ['Ajouter des photos de ce PC', 'Ouvre le dossier du Drive voulu → glisse les fichiers sur la page, ou « + Choisir des fichiers ». Ils partent dans ce dossier du Drive.'],
-      ['Laisser Miette étiqueter', '🍞 Étiqueter avec Miette (à droite) : elle regarde les photos sans étiquette et propose où les ranger.'] ],
+      ['Laisser Miette étiqueter', 'Miette étiquette les photos (à droite) : elle regarde les photos sans étiquette et propose où les ranger.'] ],
     astuces: [
-      'Médias s\'ouvre toujours sur « Tous les dossiers ». La flèche ⬆ remonte d\'un dossier.',
+      'Médias s\'ouvre toujours sur « Tous les dossiers ». ↰ Retour revient au dossier d\'avant.',
       'Discord (pas sur le Drive) : chargé une fois, puis ↻ Actualiser Discord pour les nouvelles images.',
       '− + : taille des vignettes. 🙈 : voir les fichiers masqués. ▾ : replier la barre des étiquettes.' ] },
   { o: 'Reels', ic: '🎬', quoi: 'Le suivi de chaque reel : un poster par reel, avec son audio, ses médias, son moodboard, son tournage et où il en est (Idée → Publié).',
     comment: [
       ['Créer un reel', 'À droite, « Nouveau reel » : choisis le morceau → + Créer le reel. Un poster apparaît.'],
       ['Voir et régler un reel', 'Clique le poster : le panneau s\'ouvre dessous (audio, médias, moodboard, tournage). Change le nom court en haut du panneau.'],
-      ['Changer l\'image du poster', '🖼 sur le poster → une image étiquetée, du cloud ou de Discord. ↺ revient à l\'image automatique.'],
+      ['Changer l\'image du poster', '🖼 sur le poster → la fenêtre Médias s\'ouvre sur le morceau → choisis l\'image. ↺ revient à l\'image automatique.'],
       ['Prévoir la date de sortie', 'Dans le panneau : Sortie prévue → la date va toute seule dans le Calendrier.'] ],
     astuces: [ 'Chaque étape cochée (Idée, Audio, Tourné, Monté, Publié) va dans la To-do de la personne.' ] },
   { o: 'Calendrier', ic: '📅', quoi: 'Les rendez-vous du groupe (tournages, shootings, enregistrements, sorties…), les tâches avec une date, et les dates que Miette a repérées sur Discord et dans les mails.',
@@ -117,7 +130,7 @@ BK.TUTO = [
       ['Ajouter un rendez-vous', 'Clique le jour → remplis type, titre, heure, lieu → + Ajouter. « Ajouter à Google Agenda ↗ » le met aussi dans Google.'],
       ['Garder une date repérée par Miette', 'Dans « Repéré par Miette » : ✎ remplit le formulaire → vérifie → + Ajouter. ✕ l\'ignore pour de bon.'],
       ['Comprendre pourquoi une date manque', 'Regarde la ligne « 🍞 Dernière lecture » : combien de messages et de mails Miette a lus, combien de dates elle a trouvées. 0 mail = le salon des mails n\'est pas coché dans Réglages.'] ],
-    astuces: [ 'Pointillés = date possible (pas encore décidée). Trait plein = décidé.', '🍞 Lire Discord et placer les dates : relit tout de suite, sans attendre la biscotte.' ] },
+    astuces: [ 'Pointillés = date possible (pas encore décidée). Trait plein = décidé.', 'Bouton Miette trouve les dates (en haut) : relit Discord et les mails tout de suite, sans attendre la biscotte.' ] },
   { o: 'To-do list', ic: '✅', quoi: 'Qui fait quoi : un panier par membre, plus « BEESKOT » (tout le groupe) et « Déjà fait ».',
     comment: [
       ['Ajouter une tâche', 'Écris-la en haut (morceau et date si besoin) → + Ajouter ou Entrée. Elle arrive dans « Tâches en vrac ». Avec une date, elle apparaît aussi dans le Calendrier.'],
@@ -134,9 +147,10 @@ BK.TUTO = [
   { o: 'Tournages', ic: '🎥', quoi: 'Une fiche par tournage ou shooting : l\'idée, le moodboard, des références, le découpage plan par plan, les tenues, le matériel. On l\'imprime en PDF pour l\'équipe.',
     comment: [
       ['Créer un tournage', '+ Nouveau tournage (à droite) → titre, type (Clip, Reel, Shooting), morceau, date, lieu. 📅 Mettre au Calendrier pour la date.'],
-      ['Remplir le moodboard', '＋ Ajouter des images → étiquetées pour ce tournage, tout le cloud ou Discord. Elles sont étiquetées « moodboard » toutes seules. 💻 Ce PC pour des images de ton ordinateur.'],
-      ['Ajouter les tenues', '＋ Photo sous le nom de chacun, ou 🍞 Qui porte quoi ? pour que Miette trouve les photos de tenues sur Discord.'],
-      ['Faire le découpage', '+ Ajouter un plan pour chaque plan (cadrage, ce qu\'on voit, durée), ou demande à Miette de proposer un découpage.'],
+      ['Remplir le moodboard', '＋ Ajouter des images → la fenêtre Médias s\'ouvre sur l\'étiquette Moodboard (clique une autre étiquette ou un dossier si besoin) → choisis → Ajouter au moodboard. Elles sont étiquetées « moodboard » et « ce tournage » toutes seules.'],
+      ['Ajouter les tenues', '＋ Photo sous le nom de chacun (la fenêtre Médias s\'ouvre sur l\'étiquette Tenues), ou Miette : qui porte quoi ? pour que Miette trouve les photos de tenues sur Discord.'],
+      ['Laisser Miette remplir le moodboard et les références', 'Miette trouve les moodboards : les images du dossier Moodboards du Drive et de Discord qui parlent de ce tournage. Miette trouve les références : les liens Instagram, TikTok, YouTube donnés sur Discord. Tu coches ce que tu gardes.'],
+      ['Faire le découpage', '+ Ajouter un plan pour chaque plan (cadrage, ce qu\'on voit, durée), ou Miette propose un découpage.'],
       ['Imprimer la fiche', 'Imprimer / PDF → « Enregistrer au format PDF » ou ton imprimante.'] ],
     astuces: [ 'Chaque encadré se replie d\'un clic sur son titre.', 'Les images restent dans le Drive : la fiche garde juste leur adresse.' ] },
   { o: 'Ableton Live', ic: '🎛', quoi: 'Prépare un projet Ableton pour l\'envoyer au mixeur : noms des pistes, couleurs, gel, puis zip daté dans le Drive.',
@@ -148,19 +162,19 @@ BK.TUTO = [
     comment: [
       ['Faire l\'audio d\'un reel', 'Choisis le morceau (son export ★) → place le passage (glisse le bloc, ou I / O) → durée → Exporter.'],
       ['Tourner au ralenti', 'Règle la vitesse de tournage (ex. 50 %) : l\'export donne 2 fichiers, MONTAGE (vitesse normale) et TOURNAGE (à jouer pendant le tournage).'],
-      ['Reprendre un passage dit sur Discord', 'Les passages repérés par Miette (🍞 Discord) sont dans la liste des passages du morceau.'] ],
+      ['Reprendre un passage dit sur Discord', 'Miette trouve les passages : les timings donnés sur Discord pour ce morceau arrivent dans la liste des passages.'] ],
     astuces: [ 'Après l\'export : 📂 Ouvrir le dossier, ⇪ Upload Drive → ☁ Ouvrir le dossier du Drive.' ] },
   { o: 'Reels Photo', ic: '📸', quoi: 'Prépare des photos ou un carrousel Instagram : format, cadrage, couleur, effet vintage, légende.',
     comment: [
-      ['Faire un post', 'Choisis le sujet → + Ajouter des photos → format (Story 9:16, Portrait 4:5, Carré, Paysage) → règle chaque photo → Exporter les images.'],
+      ['Faire un post', '+ Ajouter des photos → la fenêtre Médias s\'ouvre (dossiers, Discord, étiquettes en haut : clique une étiquette pour voir ce qu\'elle contient) → choisis les photos → Ajouter au post. Puis De quoi parle le post ? ▾, le format (Story 9:16, Portrait 4:5, Carré, Paysage), règle chaque photo → Exporter les images.'],
       ['Régler une photo', 'Clique-la dans la bande → Cadrage (Entière, Remplir, Centrer), Zoom (glisse la souris sur la case), glisse l\'image dans l\'aperçu pour la déplacer.'],
       ['Mettre une couleur ou un effet', 'Couleur : un filtre (ou « Ajouter une LUT ») + Intensité. Effet : Vintage, Grain, Poussière, Fuite de lumière, VHS, Vignettage. Ça vaut pour toutes les photos.'],
       ['Trouver une légende', '✨ Idées de légende : Miette en propose. Copier la légende pour la coller sur Instagram.'] ],
     astuces: [ '↻ Même cadrage pour toutes les photos : applique le réglage de la photo choisie à tout le carrousel.' ] },
   { o: 'Reels Vidéo', ic: '🎞', quoi: 'Monte une vidéo verticale (1080×1920) : couper, recadrer, couleur, effet, sous-titres calés sur la musique, export MP4.',
     comment: [
-      ['Partir d\'une vidéo', 'Choisis le sujet → 🏷 Les vidéos de Médias, 💻 Ce PC ou ☁ Drive.'],
-      ['Faire une vidéo avec des photos et des vidéos', '🖼 Photos et vidéos… → ajoute tes fichiers → pour chacun : durée et animation (zoom avant, zoom arrière, glisser, fixe) → Transition et Effet → Importer ces fichiers.'],
+      ['Partir d\'une vidéo', 'De quoi parle la vidéo ? ▾ (menu qui se déroule) → 🏷 Une vidéo de Médias… : la fenêtre Médias s\'ouvre sur ce sujet → double-clic sur la vidéo. Ou 💻 Ce PC…'],
+      ['Faire une vidéo avec des photos et des vidéos', '🖼 Photos et vidéos… → 🖼 Depuis Médias… ou 💻 Ce PC… → pour chacun : durée et animation (zoom avant, zoom arrière, glisser, fixe) → Transition et Effet → Importer ces fichiers.'],
       ['Mettre la musique', 'À droite, Musique : un export de Reels Audio, le passage ouvert dans Reels Audio, ou une musique de ce PC.'],
       ['Ajouter des sous-titres', 'Choisis les paroles d\'un morceau → ⏺ Caler en écoutant → appuie sur Espace au début de chaque phrase.'],
       ['Exporter', 'Exporter en MP4 → 📂 Ouvrir le dossier ou ⇪ Upload Drive.'] ],

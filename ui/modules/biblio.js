@@ -25,7 +25,7 @@ BK.module('biblio', function (page) {
       <section class="pane reg" aria-label="Réglages"><span class="ptitle">② Réglages</span>
         <div class="box"><span class="lb">🍞 Vérifier avec Miette</span>
           <span class="nt">Miette relit Discord : les BPM et tonalités que vous avez écrits passent devant ce qui a été deviné.</span>
-          <button class="btn sm pri" id="biVerif" style="margin-top:10px">🍞 Vérifier les infos des morceaux</button></div>
+          <button class="btn sm miette-aide" id="biVerif" style="margin-top:10px">Miette vérifie les infos des morceaux</button></div>
         <div class="box"><span class="lb">Nouveau morceau</span>
           <input class="fld" id="biNom" style="margin-top:10px" placeholder="nom du morceau">
           <div class="chips" style="margin-top:10px"><button class="chip" id="biAjout">+ Créer la fiche</button></div></div>
@@ -47,7 +47,7 @@ BK.module('biblio', function (page) {
     const b = $('#biVerif'); b.disabled = true; b.innerHTML = '<span class="spin"></span>Miette relit Discord…';
     let l = [];
     try { l = await BK.miette.infosDiscord(); } catch (e) { msg('Impossible : ' + (e.message || e)); }
-    b.disabled = false; b.textContent = '🍞 Vérifier les infos des morceaux';
+    b.disabled = false; b.textContent = 'Miette vérifie les infos des morceaux';
     const src = { nous: 'écrit dans la fiche', ableton: 'lu dans Ableton', detecte: 'deviné', discord: 'déjà repris de Discord' };
     const diff = [];
     for (const o of l) for (const [k, nom] of [['bpm', 'BPM'], ['ton', 'Tonalité']]) {
@@ -334,45 +334,16 @@ BK.module('biblio', function (page) {
   }
 
   // ---------- la photo du morceau (la fiche garde son adresse sur le Drive) ----------
-  function photo(m) {
-    const v = document.createElement('div'); v.className = 'voile';
-    v.innerHTML = `<div class="stopbox" style="width:560px"><span class="dymo">Photo de ${esc(m.nom)}</span>
-      ${BK.drive.relie() ? `<div class="chips ph-src" id="phSrc">
-          <button class="chip on" data-src="${m.id}">🏷 ${esc(m.nom)}</button>
-          ${BK.etiquettes.RUBRIQUES.reseaux.map(c => `<button class="chip" data-src="${c.k}">${esc(c.nom)}</button>`).join('')}
-          <button class="chip" data-src="*">＋ Tout Médias</button></div>
-        <div class="ph-tags" id="phTags"><span class="nt"><span class="spin"></span>Recherche…</span></div>` : ''}
-      <div class="stopbox-btns" style="flex-direction:column">${BK.drive.relie() ? '<button class="btn pri" data-p="drive">Choisir dans le Drive…</button>' : ''}<button class="btn" data-p="pc">Choisir sur ce PC…</button>${m.photo ? '<button class="btn" data-p="x">Enlever la photo</button>' : ''}</div>
-      <button class="btn sm" data-p="annuler">Annuler</button><input type="file" accept="image/*" hidden></div>`;
-    document.body.appendChild(v);
-    const fin = async url => { v.remove(); if (url === undefined) return; m.photo = url; await sauver(m); msg(url ? 'Photo enregistrée' : 'Photo enlevée'); rendre(); };
-    // les images de Médias : celles du morceau, celles des réseaux, ou toutes
-    async function bandeau(src) {
-      const z = $('#phTags', v); z.innerHTML = '<span class="nt"><span class="spin"></span>Recherche…</span>';
-      try {
-        await BK.dossiers.assurer();
-        const brut = src === '*' ? await BK.dossiers.tousFichiers() : await BK.etiquettes.fichiersDe(src);
-        const l = brut.filter(f => /^image\//.test(f.mimeType || ''))
-          .sort((a, b) => (b.modifiedTime || '').localeCompare(a.modifiedTime || '')).slice(0, src === '*' ? 60 : 30);
-        const vide = src === m.id ? 'Aucune photo étiquetée pour ce morceau. Dans Médias, glisse une photo sur sa case.' : 'Rien ici pour l\'instant.';
-        z.innerHTML = l.length ? l.map(f => `<button class="ph-t" data-ph="${f.id}" title="${esc(f.name)}"><span class="spin"></span></button>`).join('') : `<span class="nt">${vide}</span>`;
-        for (const f of l) { const u = await BK.drive.vignette(f), b = $(`[data-ph="${CSS.escape(f.id)}"]`, z); if (b) b.innerHTML = u ? `<img src="${u}" draggable="false">` : '🖼'; }
-      } catch (e) { z.innerHTML = '<span class="nt">Drive injoignable pour l\'instant.</span>'; }
-    }
-    if (BK.drive.relie()) { bandeau(m.id);
-      $$('#phSrc .chip', v).forEach(c => c.onclick = () => { $$('#phSrc .chip', v).forEach(x => x.classList.toggle('on', x === c)); bandeau(c.dataset.src); }); }
-    v.onclick = async e => { const t = e.target.closest('[data-ph]');
-      if (t) return fin(BK.img.ref(t.dataset.ph));                       // déjà dans le Drive : la fiche garde juste son adresse
-      const b = e.target.closest('[data-p]'); if (!b) return;
-      if (b.dataset.p === 'annuler') return fin(undefined);
-      if (b.dataset.p === 'x') return fin('');
-      if (b.dataset.p === 'pc') return $('input', v).click();
-      if (b.dataset.p === 'drive') { v.style.display = 'none'; const l = await BK.explorerDrive({ titre: 'Photo de ' + m.nom, mode: 'image', depart: 'photovideo' });
-        if (!l || !l[0]) return fin(undefined);
-        return fin(BK.img.ref(l[0].id)); } };
-    $('input', v).onchange = async e => { const f = e.target.files[0]; if (!f) return;            // de ce PC : rangée dans le Drive (Photos / Vidéos)
-      try { msg('Envoi de la photo dans le Drive…'); const d = await BK.img.versDrive(f, (m.nom || 'morceau') + ' - photo.' + ((f.name.split('.').pop() || 'jpg')), 'photovideo'); fin(d.ref || d); }
-      catch (er) { msg(er.message); fin(undefined); } };
+  async function photo(m) {
+    const fin = async v => { if (v === undefined) return; m.photo = v; await sauver(m); msg(v ? 'Photo enregistrée' : 'Photo enlevée'); rendre(); };
+    if (!BK.drive.relie()) {                                           // sans Drive : une image de ce PC, comme avant
+      const inp = document.createElement('input'); inp.type = 'file'; inp.accept = 'image/*';
+      inp.onchange = async () => { const f = inp.files[0]; if (f) fin(await BK.img.versDrive(f, f.name, 'photovideo')); }; return inp.click(); }
+    // toujours par Médias : la fenêtre s'ouvre sur les photos du morceau
+    const l = await BK.choisirDansMedias({ titre: 'Photo de ' + m.nom, bouton: 'Choisir cette photo', type: 'image', sujet: m.id, retirer: m.photo ? 'Enlever la photo' : '' });
+    const x = l && l[0]; if (!x) return;
+    if (x.retirer) return fin('');
+    msg('Photo…'); try { fin((await BK.img.depuisChoix(x, 'photovideo')).ref); } catch (e) { msg('Image illisible'); }
   }
 
   // ---------- choisir un export : sur ce PC ou dans le Drive (un seul bouton, un petit menu) ----------
