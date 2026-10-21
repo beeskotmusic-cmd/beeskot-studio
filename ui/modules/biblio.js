@@ -68,7 +68,9 @@ BK.module('biblio', function (page) {
     const P = C.filter(prochaine), W = C.filter(m => !prochaine(m));
     // l'ordre : celui qu'on a choisi à la main (rang), sinon le plus récemment touché
     const l = (B.vue === 'sorti' ? S : B.vue === 'prochaine' ? P : W).filter(m => !f || BK.inv.normaliser(m.nom).includes(f))
-      .sort((a, b) => (a.rang ?? 1e9) - (b.rang ?? 1e9) || (b.maj || '').localeCompare(a.maj || ''));
+      .sort((a, b) => (a.rang ?? 1e9) - (b.rang ?? 1e9)          // l'ordre choisi à la main d'abord…
+        || (Math.min(b.fait || 0, 5) - Math.min(a.fait || 0, 5))   // …sinon le morceau le plus avancé en haut
+        || (b.maj || '').localeCompare(a.maj || ''));
     B.affiches = l;
     liste.innerHTML = l.length ? l.map(fiche).join('') : `<span class="nt" style="padding:20px">${B.vue === 'sorti' ? 'Aucun morceau sorti pour l\'instant.' : B.vue === 'prochaine' ? 'Aucun morceau prévu pour la prochaine sortie. Ouvre une fiche et clique « ⭐ Next release ».' : 'Aucun morceau en chantier. Crée une fiche à droite, ou lance « Scanner ce PC ».'}</span>`;
     brancherFiches(); lecteur.maj();
