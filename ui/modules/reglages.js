@@ -24,6 +24,10 @@ BK.module('reglages', function (page) {
       <section class="pane reg"><span class="ptitle">② Ce PC</span>
         <div class="box"><span class="lb">Guide de démarrage</span>
           <button class="btn sm" id="rgGuide" style="margin-top:8px">🍞 Revoir le guide</button></div>
+        <div class="box"><span class="lb">Version du logiciel</span>
+          <span class="vfd" style="margin-top:6px;align-self:flex-start">${String(BK.version || '').replace(/[<>&]/g, '')}</span>
+          <button class="btn sm" id="rgMaj" style="margin-top:8px">⬇ Chercher une mise à jour</button>
+          <span class="nt" id="rgMajTxt">Le logiciel regarde tout seul au démarrage, puis toutes les 20 minutes.</span></div>
         <div class="box"><span class="lb">Qui utilise cet ordinateur ?</span>
           <span class="nt">Ton prénom (Yacine, Pierre, Baptiste) ou « Studio ». C'est à ce nom que partent les tâches que tu coches et les reels que tu fais avancer.</span>
           <input class="fld" id="rgNom" style="margin-top:10px" maxlength="16" placeholder="ton prénom, ou Studio" value="${BK.reglage('nomPc', '')}"></div>
@@ -45,6 +49,15 @@ BK.module('reglages', function (page) {
     BK.construireMenu(); BK.ouvrir('reglages');
     $('#rgMsg', page).textContent = (o.titre + (v ? ' AFFICHÉ' : ' CACHÉ')).toUpperCase();
   });
+  $('#rgMaj', page).onclick = async () => {
+    const b = $('#rgMaj', page), t = $('#rgMajTxt', page);
+    b.disabled = true; b.innerHTML = '<span class="spin"></span>Recherche…';
+    const avant = BK.majDispo;
+    try { await BK.verifierMaj(); } catch (e) {}
+    if (BK.majDispo && BK.majDispo !== avant || BK.majDispo) { t.textContent = 'Version ' + BK.majDispo.version + ' trouvée : clique sur le ❓ en haut pour l\'installer.'; t.style.color = '#ffb23e'; }
+    else { t.textContent = 'Tu as déjà la dernière version.'; t.style.color = ''; }
+    b.disabled = false; b.textContent = '⬇ Chercher une mise à jour';
+  };
   $('#rgGuide', page).onclick = () => BK.bienvenue.ouvrir(true);
   $('#rgNom', page).onchange = e => { BK.regler('nomPc', e.target.value.trim()); $('#syPc').textContent = (e.target.value.trim() || 'CE PC').toUpperCase(); };
   // ---------- RETOUR EN ARRIÈRE : remettre des fiches comme elles étaient avant une heure donnée ----------
