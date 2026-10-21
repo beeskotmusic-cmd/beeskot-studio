@@ -3,6 +3,39 @@
 // couleur (LUT .cube), puis sous-titres. Le même dessin sert à l'aperçu ET à l'export MP4.
 // =====================================================================
 BK.rendu = {
+  // ---------- DIAPORAMA : des photos → une vidéo 9:16 (sans son), qu'on retravaille ensuite comme n'importe quelle vidéo ----------
+  // photos : [{ img (ImageBitmap/Image), duree (s) }]. Chaque photo est montrée entière, sur un fond flou d'elle-même,
+  // avec un léger zoom lent pour que ça vive. Image par image, sans jamais surcharger le PC.
+  async diaporama(photos, { progression } = {}) {
+    if (!window.VideoEncoder) throw new Error('Cet ordinateur ne sait pas encoder la vidéo');
+    const L = 1080, H = 1920, fps = 30;
+    let codec = 'avc1.640028', mux = 'avc';
+    if (!(await VideoEncoder.isConfigSupported({ codec, width: L, height: H, bitrate: 8e6, framerate: fps })).supported) { codec = 'vp09.00.40.08'; mux = 'vp9'; }
+    const muxer = new Mp4Muxer.Muxer({ target: new Mp4Muxer.ArrayBufferTarget(), fastStart: 'in-memory', video: { codec: mux, width: L, height: H } });
+    const venc = new VideoEncoder({ output: (c, m) => muxer.addVideoChunk(c, m), error: e => { throw e; } });
+    venc.configure({ codec, width: L, height: H, bitrate: 8e6, framerate: fps });
+    const cv = document.createElement('canvas'); cv.width = L; cv.height = H; const cx = cv.getContext('2d');
+    const fond = document.createElement('canvas'); fond.width = L / 4; fond.height = H / 4; const fx = fond.getContext('2d');
+    const total = photos.reduce((t, p) => t + Math.round(p.duree * fps), 0); let k = 0;
+    for (const p of photos) {
+      const iw = p.img.width, ih = p.img.height, n = Math.max(1, Math.round(p.duree * fps));
+      // le fond : la photo qui remplit l'écran, floutée et assombrie (calculé une fois par photo)
+      const ech = Math.max(fond.width / iw, fond.height / ih);
+      fx.filter = 'blur(10px) brightness(0.55)'; fx.drawImage(p.img, (fond.width - iw * ech) / 2, (fond.height - ih * ech) / 2, iw * ech, ih * ech); fx.filter = 'none';
+      for (let i = 0; i < n; i++, k++) {
+        cx.drawImage(fond, 0, 0, L, H);
+        const z = 1 + 0.06 * (i / n), e = Math.min(L / iw, H / ih) * z;              // la photo entière, qui s'approche doucement
+        cx.drawImage(p.img, (L - iw * e) / 2, (H - ih * e) / 2, iw * e, ih * e);
+        const f = new VideoFrame(cv, { timestamp: Math.round(k * 1e6 / fps), duration: Math.round(1e6 / fps) });
+        venc.encode(f, { keyFrame: k % (fps * 2) === 0 }); f.close();
+        if (venc.encodeQueueSize > 6) await new Promise(r => setTimeout(r, 15));
+        if (k % 10 === 0) { progression && progression(k / total); await new Promise(r => setTimeout(r, 0)); }
+      }
+    }
+    await venc.flush(); venc.close(); muxer.finalize(); progression && progression(1);
+    return new Uint8Array(muxer.target.buffer);
+  },
+
   // ---------- lire un fichier LUT .cube ----------
   lireCube(txt) {
     let n = 0; const v = [];

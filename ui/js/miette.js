@@ -39,7 +39,7 @@ BK.miette = {
       // 4) les moodboards du Drive dans les fiches de tournage vides
       if (BK.drive && BK.drive.relie()) { BK.miette.etape('Miette range les moodboards…'); try { const n = await BK.miette.moodboards(); if (n) bilan.push(n + ' moodboard(s) rempli(s)'); } catch (e) { console.warn(e); } }
       // 5) chaque onglet se met à jour
-      for (const f of ['tachesRecharger', 'agendaRecharger', 'budgetRecharger', 'tournagesRecharger', 'veilleurMaj', 'mediasRecharger']) try { BK[f] && BK[f](); } catch (e) {}
+      for (const f of ['tachesRecharger', 'agendaRecharger', 'budgetRecharger', 'tournagesRecharger', 'veilleurMaj', 'mediasTags']) try { BK[f] && BK[f](); } catch (e) {}
       try { BK.surOuvrir && BK.surOuvrir.accueil && BK.surOuvrir.accueil(); } catch (e) {}
       BK.regler('miette.dernierTour', Date.now());
       BK.miette.fin('Miette a tout relu' + (bilan.length ? ' · ' + bilan.join(' · ') : ''));
@@ -252,7 +252,8 @@ BK.synchro = {
       const r = await (await BK.drive.api('/files?' + new URLSearchParams({ q: `modifiedTime > '${depuis}' and mimeType='application/json' and trashed=false`, fields: 'files(id,name,parents,lastModifyingUser(me))', pageSize: '200' }))).json();
       BK.synchro.dernier = maintenant;
       const parCol = {}; for (const [cle, id] of Object.entries(BK.drive.dossiers)) if (cle.startsWith(racine + '/')) parCol[id] = cle.slice(racine.length + 1);
-      const utiles = (r.files || []).filter(f => !/^ici-/.test(f.name || ''));     // les petits mots « je suis là » ne font pas tout relire
+      const recents = BK.drive.ecrits || {};                         // ce que CE PC vient d'écrire ne revient pas faire tout relire
+      const utiles = (r.files || []).filter(f => !/^ici-/.test(f.name || '') && !(recents[f.name] && Date.now() - recents[f.name] < 120e3));
       const cols = [...new Set(utiles.map(f => parCol[(f.parents || [])[0]]).filter(Boolean))];
       if (cols.length) window.dispatchEvent(new CustomEvent('bk:distant', { detail: { cols } }));
     } catch (e) { /* hors ligne : on réessaie au prochain tour */ }
@@ -268,10 +269,10 @@ BK.synchro = {
   },
   demarrer() {
     BK.synchro.prevenir();
-    BK.presence.maj(); setInterval(BK.presence.maj, 45e3);
-    window.addEventListener('focus', () => BK.presence.maj());
-    setInterval(BK.synchro.tour, 40e3);
-    window.addEventListener('focus', () => BK.synchro.tour());
+    // un seul tempo pour la présence et la synchro (deux appels au Drive, groupés, toutes les 45 s)
+    const tic = () => { BK.synchro.tour(); BK.presence.maj(); };
+    BK.presence.maj(); setInterval(tic, 45e3);
+    window.addEventListener('focus', tic);
     // quand une fiche change ailleurs, l'onglet concerné se relit (sauf si on est en train d'écrire dedans)
     // tout ce qui est fait sur un PC se retrouve sur les autres : chaque collection dit quels onglets relire
     const QUI = {
@@ -286,7 +287,7 @@ BK.synchro = {
       inventaires:  ['biblioRecharger', 'suiviRecharger'],
       morceaux:     ['biblioRecharger', 'suiviRecharger'],
       veille:       ['agendaRecharger'],
-      config:       ['mediasRecharger'],
+      config:       ['mediasTags'],
       renforts:     ['veilleurMaj'],
       ameliorations:['veilleurMaj'],
     };

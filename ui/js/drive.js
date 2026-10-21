@@ -95,9 +95,22 @@ BK.drive = {
   async preparer() { const r = await BK.drive.racine(); const c = BK.drive.conf(); BK.regler('drive.conf', { ...c, racine: r }); return r; },
 
   // ---------- fiches (JSON) ----------
+  // la copie de chaque collection : en MÉMOIRE d'abord (lue une seule fois depuis le navigateur),
+  // et réécrite dans le navigateur seulement si quelque chose a changé — et seulement si elle n'est pas énorme.
+  memo: {},
+  cacheDe(col) {
+    if (!BK.drive.memo[col]) BK.drive.memo[col] = { c: BK.reglage('drive.cache.' + col, {}), sale: false };
+    return BK.drive.memo[col];
+  },
+  garderCache(col) {
+    const m = BK.drive.memo[col]; if (!m || !m.sale) return; m.sale = false;
+    try { const txt = JSON.stringify(m.c);
+      if (txt.length > 1_500_000) { localStorage.removeItem('bk.drive.cache.' + col); return; }     // trop gros pour le navigateur : on la garde en mémoire seulement
+      localStorage.setItem('bk.drive.cache.' + col, txt); } catch (e) {}
+  },
   async liste(col) {
     const dos = await BK.drive.dossier(col, await BK.drive.racine());
-    const cache = BK.reglage('drive.cache.' + col, {}), out = {}; BK.drive.ids[col] = {};
+    const memo = BK.drive.cacheDe(col), cache = memo.c, out = {}; BK.drive.ids[col] = {};
     let page = '';
     do {
       const r = await (await BK.drive.api('/files?' + new URLSearchParams({ q: `${BK.drive.q(dos)} in parents and trashed=false`, fields: 'nextPageToken,files(id,name,modifiedTime)', pageSize: '1000', pageToken: page }))).json();
@@ -106,12 +119,13 @@ BK.drive = {
         BK.drive.ids[col][f.name] = f.id;
         const c = cache[f.id];
         if (c && c.t === f.modifiedTime) { out[c.fiche.id] = c.fiche; continue; }      // déjà à jour : on ne retélécharge pas
-        try { const fiche = await (await BK.drive.api(`/files/${f.id}?alt=media`)).json(); out[fiche.id] = fiche; cache[f.id] = { t: f.modifiedTime, fiche }; } catch (e) {}
+        try { const fiche = await (await BK.drive.api(`/files/${f.id}?alt=media`)).json(); out[fiche.id] = fiche; cache[f.id] = { t: f.modifiedTime, fiche }; memo.sale = true; } catch (e) {}
       }
       page = r.nextPageToken || '';
     } while (page);
-    for (const k of Object.keys(cache)) if (!Object.values(BK.drive.ids[col]).includes(k)) delete cache[k];
-    BK.regler('drive.cache.' + col, cache);
+    const vivants = new Set(Object.values(BK.drive.ids[col]));
+    for (const k of Object.keys(cache)) if (!vivants.has(k)) { delete cache[k]; memo.sale = true; }
+    BK.drive.garderCache(col);
     return out;
   },
   async ecrire(col, fiche) {
@@ -124,6 +138,14 @@ BK.drive = {
       id = (await (await BK.drive.api('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id', { method: 'POST', headers: { 'Content-Type': 'multipart/related; boundary=' + b }, body: multi })).json()).id;
     }
     (BK.drive.ids[col] = BK.drive.ids[col] || {})[nom] = id;
+    (BK.drive.ecrits = BK.drive.ecrits || {})[nom] = Date.now();      // on s'en souvient : ce n'est pas « un autre PC a changé quelque chose »
+  },
+  // les vignettes : gardées en mémoire, mais pas sans limite (les plus anciennes sont libérées)
+  vignetteGarder(id, url) {
+    const v = BK.drive.vignettes; v[id] = url;
+    const cles = Object.keys(v);
+    if (cles.length > 300) for (const k of cles.slice(0, cles.length - 300)) { try { URL.revokeObjectURL(v[k]); } catch (e) {} delete v[k]; }
+    return url;
   },
   async supprimer(col, idFiche) {              // jamais effacé : déplacé dans « corbeille »
     const nom = idFiche + '.json', id = (BK.drive.ids[col] || {})[nom]; if (!id) return;
@@ -217,7 +239,7 @@ BK.drive = {
   async vignette(f) {                                               // petite image d'aperçu (gardée en mémoire)
     if (BK.drive.vignettes[f.id]) return BK.drive.vignettes[f.id];
     if (!f.thumbnailLink) return '';
-    try { const r = await BK.drive.api(f.thumbnailLink.replace(/=s\d+$/, '=s400')); return BK.drive.vignettes[f.id] = URL.createObjectURL(await r.blob()); }
+    try { const r = await BK.drive.api(f.thumbnailLink.replace(/=s\d+$/, '=s400')); return BK.drive.vignetteGarder(f.id, URL.createObjectURL(await r.blob())); }
     catch (e) { return ''; }
   },
   async corbeille(fileId) {                                         // jamais effacé : rangé dans « corbeille » de BEESKOT Studio

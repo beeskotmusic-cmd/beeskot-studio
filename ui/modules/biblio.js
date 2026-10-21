@@ -260,7 +260,7 @@ BK.module('biblio', function (page) {
           <button class="fiche-tete">
             <span class="fiche-nom">${esc(m.nom)}</span>
             <span class="dymo sm">${m.statut === 'sorti' ? 'Sorti' : BK.etapes[Math.min(m.fait || 0, 5)].nom}</span>
-            <span class="mini-etapes">${BK.etapes.map((e, i) => `<i class="${i < (m.fait || 0) ? 'fait' : i === (m.fait || 0) ? 'encours' : ''}" style="flex:${e.poids}"></i>`).join('')}</span>
+            <span class="mini-etapes">${BK.etapes.map((e, i) => `<i class="${i < (m.fait || 0) ? 'fait' : i === (m.fait || 0) ? 'encours' : ''}" style="flex:${e.poids};--sc:${e.c}"></i>`).join('')}</span>
             <span class="vfd fiche-pc">${pc} %</span><span class="fleche">${ouvert ? '▾' : '▸'}</span></button>
           <div class="lecteur" data-lect="${m.id}"><button class="lect-play" title="Écouter l'export principal">▶</button><div class="lect-barre"><i></i></div><span class="lect-t mono"></span><span class="nt lect-src"></span></div>
         </div>
@@ -299,7 +299,7 @@ BK.module('biblio', function (page) {
           <div class="chips" style="margin-top:8px"><button class="chip" data-act="analyser" title="Lit l'export principal et remplit la durée, le BPM et la tonalité">🎚 Analyser l'export (durée, BPM, tonalité)</button></div>
           <span class="nt">La tonalité est une estimation : vérifie à l'oreille.</span>`)}
         ${t('avance', 'Avancement', `${BK.etapes[Math.min(m.fait || 0, 5)].nom} · ${pc} %`, () => `
-          <div class="etapes-clic">${BK.etapes.map((e, i) => `<button class="etape-b ${i < (m.fait || 0) ? 'fait' : i === (m.fait || 0) ? 'encours' : ''}" data-etape="${i}">${e.nom}</button>`).join('')}</div>
+          <div class="etapes-clic">${BK.etapes.map((e, i) => `<button class="etape-b ${i < (m.fait || 0) ? 'fait' : i === (m.fait || 0) ? 'encours' : ''}" style="--sc:${e.c}" data-etape="${i}">${e.nom}</button>`).join('')}</div>
           `)}
         ${t('liens', '🏷 Étiqueté BEESKOT', ((m.liens || []).length ? m.liens.length + ' lien(s) · ' : '') + (BK.drive.relie() ? 'tout ce qui concerne ce morceau' : 'Drive non relié'), () => `
           ${BK.drive.relie() ? `<button class="btn xs etq-plus" data-act="etiqueter">🏷 Étiqueter d'autres fichiers pour ${esc(m.nom)}</button>

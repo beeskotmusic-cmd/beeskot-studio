@@ -11,7 +11,7 @@
 const DOSSIERS_CLOUD = [['photovideo', 'Photos / Vidéos'], ['moodboard', 'Moodboards'], ['tournage', 'Tournages'],
   ['outfits', 'Outfits'], ['scenographie', 'Scénographie'], ['lightshow', 'Light Show']];
 const M = { racine: ['cloud','discord'].includes(BK.reglage('medias.racine','cloud')) ? BK.reglage('medias.racine','cloud') : 'cloud', pile: [], fichiers: [], envoi: false, morceaux: [], tags: {}, filtre: '',
-  sel: new Set(), dernier: null,
+  sel: new Set(), dernier: null, vign: {}, dc: null,
   taille: Math.min(5, Math.max(0, BK.reglage('medias.taille', BK.reglage('medias.petit', false) ? 1 : 2))), voirCaches: false };
 const TAILLES = [72, 100, 136, 170, 220, 290];        // largeur mini d'une vignette, du plus petit au plus grand
 const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
@@ -41,7 +41,7 @@ BK.module('medias', function (page) {
         <div class="box"><span class="lb">📍 Tu es ici</span>
           <span class="nt" id="mdChemin" style="color:var(--ink)">—</span>
           <button class="btn sm" id="mdOuvrirDos" style="margin-top:10px">Ouvrir ce dossier dans le Drive</button>
-          <button class="btn sm hidden" id="mdMajDc" style="margin-top:8px">↻ Recharger les images Discord</button></div>
+          <button class="btn sm hidden" id="mdMajDc" style="margin-top:8px">↻ Actualiser Discord</button></div>
         <div class="box"><span class="lb">Rien n'est effacé</span></div>
       </section>
     </div>
@@ -115,7 +115,7 @@ BK.module('medias', function (page) {
     let k = 0;
     for (const id of l) { k++; msg(`Étiquetage ${k}/${l.length}…`); try { await etiqueter(id, cle, forcer); } catch (e) {} }
     M.sel.clear(); M.choisi = null; M.tags = await BK.etiquettes.tous();
-    msg(l.length + ' fichiers étiquetés « ' + nomCase(cle) + ' »'); rendre(!!M.filtre);
+    msg(l.length + ' fichiers étiquetés « ' + nomCase(cle) + ' »'); majTags(true);
   }
 
   async function etiqueter(fileId, cle, forcer = true) {
@@ -123,7 +123,7 @@ BK.module('medias', function (page) {
     if (f && f.dc) {                                                   // venu de Discord : exactement comme le cloud, la copie dans le Drive se fait une seule fois
       const deja = BK.etiquettes.copieDe(f.id);
       if (deja) { const a = await BK.etiquettes.basculer(deja, cle, forcer); M.tags = await BK.etiquettes.tous(); M.choisi = null;
-        msg(`« ${f.name} » ${a ? '→' : 'retiré de'} ${c ? c.nom : ''} 🏷`); rendre(!!M.filtre); paniers(); return; }
+        msg(`« ${f.name} » ${a ? '→' : 'retiré de'} ${c ? c.nom : ''} 🏷`); majTags(true); paniers(); return; }
       if (M.envoi) return msg('Un envoi est déjà en cours');
       M.envoi = true;
       try { msg('Téléchargement de ' + f.name + '…');
@@ -138,7 +138,7 @@ BK.module('medias', function (page) {
       M.envoi = false; return;
     }
     const a = await BK.etiquettes.basculer(fileId, cle, forcer); M.tags = await BK.etiquettes.tous(); M.choisi = null;
-    msg(`« ${f ? f.name : 'fichier'} » ${a ? '→' : 'retiré de'} ${c ? c.nom : ''} 🏷`); rendre(!!M.filtre); paniers();
+    msg(`« ${f ? f.name : 'fichier'} » ${a ? '→' : 'retiré de'} ${c ? c.nom : ''} 🏷`); majTags(true); paniers();
   }
   // tout ce qui porte l'étiquette d'un morceau, dans tous les dossiers médias
   async function parMorceau(id) {
@@ -162,9 +162,16 @@ BK.module('medias', function (page) {
       if (M.racine === 'discord') { rendre(); if (garde) msg('Miette regarde s\'il y a du nouveau…'); } };
     try {
       if (!M.morceaux.length) await etiquettes();
-      const l = await BK.discord.mediasVite('media', { surMaj: pose, rafraichir: M.majDiscord });
-      M.majDiscord = false; pose(l, false);
-      if (M.racine === 'discord') msg(l.length + ' fichier(s) · gardés dans le Drive');
+      if (M.dc && !M.majDiscord) { pose(M.dc, false); return msg(M.dc.length + ' fichier(s) · ↻ Actualiser pour voir les nouveaux'); }   // déjà chargé : on ne bouge plus
+      if (!M.majDiscord) {                                              // 1re fois : la liste gardée sur le Drive, si elle est récente, sans rien recharger
+        const g = await BK.discord.mediasGardes('media').catch(() => null);
+        if (g && g.l && g.l.length && Date.now() - (g.t || 0) < 6 * 3600e3) { M.dc = g.l; pose(M.dc, false); return msg(M.dc.length + ' fichier(s) · ↻ Actualiser pour voir les nouveaux'); }
+      }
+      msg('Lecture de Discord…');
+      const l = await BK.discord.mediasVite('media', { rafraichir: M.majDiscord });      // une seule fois, puis on affiche
+      M.majDiscord = false; M.dc = l; M.vign = Object.fromEntries(Object.entries(M.vign).filter(([k]) => !k.startsWith('dc:')));
+      pose(l, false);
+      if (M.racine === 'discord') msg(l.length + ' fichier(s) · à jour');
     } catch (e) { if (!M.fichiers.length) vide(e.message || 'Discord injoignable'); else msg(e.message || 'Discord injoignable'); }
   }
 
@@ -184,6 +191,13 @@ BK.module('medias', function (page) {
     catch (e) { vide('Drive injoignable pour l\'instant.'); console.error(e); }
   }
   BK.mediasRecharger = charger;
+  BK.mediasTags = async () => { BK.etiquettes.doc = null; M.tags = await BK.etiquettes.tous(); majTags(); paniers(); };
+  function majTags(force) {
+    if (!force && $$('.md-menu').length) return;                        // un menu est ouvert : on ne touche à rien
+    const grille = $('#mdGrille'), y = grille.parentElement.scrollTop;
+    rendre(!!M.filtre); grille.parentElement.scrollTop = y;             // les vignettes gardées reviennent tout de suite
+    majSel();
+  }
 
   // la première page du cloud : les grands dossiers du Drive, comme des dossiers
   async function racineCloud() {
@@ -226,7 +240,7 @@ BK.module('medias', function (page) {
           return [...ms.map(m => ({ n: m.nom, k: m.id })), ...lf.filter(k => /^[a-z]:/.test(k)).map(k => ({ n: (nomCase(k) || {}).nom, k })).filter(x => x.n)]; })();
         const main = lf.length;
         return `<div class="md-tuile${M.choisi === f.id ? ' choisie' : ''}" data-id="${f.id}" title="${esc(f.name)}" draggable="true">
-          <div class="md-img${video ? ' video' : ''}">${f.thumbnailLink ? '<span class="spin"></span>' : `<span class="md-ext">${esc((f.name.split('.').pop() || '').toUpperCase())}</span>`}
+          <div class="md-img${video ? ' video' : ''}"${M.vign[f.id] ? ` style="background-image:url(${M.vign[f.id]})"` : ''}>${M.vign[f.id] ? '' : f.thumbnailLink ? '<span class="spin"></span>' : `<span class="md-ext">${esc((f.name.split('.').pop() || '').toUpperCase())}</span>`}
             ${video ? `<span class="md-duree">${d ? BK.audio.temps(d / 1000).replace(/\.\d$/, '') : '▶'}</span>` : ''}
             ${etqs.length ? `<span class="md-sur">${etqs.slice(0, 3).map(x => `<em class="${main ? 'main' : ''}" style="--tc:${couleurTag(x.k)}">${esc(x.n)}</em>`).join('')}${etqs.length > 3 ? `<em>+${etqs.length - 3}</em>` : ''}</span>`
               : '<span class="md-sur vide"><em>sans étiquette</em></span>'}</div>
@@ -266,8 +280,9 @@ BK.module('medias', function (page) {
       await BK.etiquettes.basculer(f.id, 'c:masque', true); M.tags = await BK.etiquettes.tous();   // mis de côté : rien n'est effacé
       msg(`« ${f.name} » masqué · « 🙈 Masqués » pour le revoir`); rendre(!!M.filtre);
     });
-    (async () => { for (const f of fs) {                               // vignettes une par une : léger
-      if (!f.thumbnailLink) continue; const u = f.dc ? f.thumbnailLink + '?width=320&height=320' : await BK.drive.vignette(f), el = $(`.md-tuile[data-id="${CSS.escape(f.id)}"] .md-img`);
+    (async () => { for (const f of fs) {                               // vignettes une par une : léger, et gardées pour la suite
+      if (!f.thumbnailLink || M.vign[f.id]) continue; const u = f.dc ? f.thumbnailLink + '?width=320&height=320' : await BK.drive.vignette(f), el = $(`.md-tuile[data-id="${CSS.escape(f.id)}"] .md-img`);
+      if (u) M.vign[f.id] = u;
       if (el) { const sp = $('.spin', el); sp && sp.remove(); if (u) el.style.backgroundImage = `url(${u})`; }
     } })();
   }
@@ -310,7 +325,7 @@ BK.module('medias', function (page) {
       if (k === '' || k === '-') { const d = await BK.etiquettes.charger(); for (const i of tous) { const ii = (String(i).startsWith('dc:') && BK.etiquettes.copieDe(i)) || i; if (k) d.map[ii] = ['-']; else delete d.map[ii]; } await BK.db.ecrire('config', d); menu.remove(); }
       else { const l = lireTags(id), mettre = !l.includes(k);
         for (const i of tous) { if (String(i).startsWith('dc:')) await etiqueter(i, k, mettre); else await BK.etiquettes.basculer(i, k, mettre); } }
-      M.tags = await BK.etiquettes.tous(); msg('Étiquettes enregistrées'); if (menu.isConnected) dessiner(); rendre(!!M.filtre); paniers(); };
+      M.tags = await BK.etiquettes.tous(); msg('Étiquettes enregistrées'); majTags(true); if (menu.isConnected) dessiner(); paniers(); };
   }
 
   // ---------- ajouter des fichiers dans le dossier ouvert ----------

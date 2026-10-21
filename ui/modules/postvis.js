@@ -6,12 +6,12 @@
 // =====================================================================
 (() => {
 const FORMATS = {
+  story:    { nom: 'Story 9:16',   L: 1080, H: 1920 },
   portrait: { nom: 'Portrait 4:5', L: 1080, H: 1350 },
   carre:    { nom: 'Carré 1:1',    L: 1080, H: 1080 },
-  story:    { nom: 'Story 9:16',   L: 1080, H: 1920 },
   paysage:  { nom: 'Paysage',      L: 1080, H: 566 },
 };
-const P = { format: BK.reglage('pv.format', 'portrait'), slides: [], i: 0, lut: null, lutNom: '', legende: '', nom: 'post' };
+const P = { format: 'story', slides: [], i: 0, lut: null, lutNom: '', legende: '', nom: 'post' };   // pas de projet en cours : on part en 9:16
 const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 
 BK.module('postvis', function (page) {

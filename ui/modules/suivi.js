@@ -73,6 +73,10 @@ BK.module('suivi', function (page) {
   }
 
   // ---------- le POSTER vertical ----------
+  const nomCourt = r => { if (r.nom) return r.nom;
+    if (r.titre && r.titre.length <= 18) return r.titre;
+    const n = [...R.l].sort((a, b) => String(a.id).localeCompare(String(b.id))).findIndex(x => x.id === r.id) + 1;
+    return (r.type || 'Reel') + ' ' + n; };
   function affiche(r) {
     const m = morceauDe(r), t = tournageDe(r), a = audioDe(r), md = mediasDe(r);
     const i = ETAPES.findIndex(e => e.k === (r.statut || 'idee'));
@@ -86,8 +90,8 @@ BK.module('suivi', function (page) {
       <span class="su-aff-jauge"><i style="width:${Math.round((i + 1) / ETAPES.length * 100)}%"></i></span>
       <span class="su-aff-bas">
         <span class="su-aff-type">${esc(r.type || 'Reel')}</span>
-        <span class="su-aff-t">${esc(r.titre || 'Reel')}</span>
-        ${m ? `<span class="su-aff-m">${esc(m.nom)}</span>` : ''}
+        <span class="su-aff-t">${esc(nomCourt(r))}</span>
+        ${m ? `<span class="su-aff-m"><em style="--tc:${BK.couleurTag(m.id)}">♪ ${esc(m.nom)}</em></span>` : ''}
         <span class="su-aff-pas">${ETAPES.map((e, k) => `<i class="${k <= i ? 'faite' : ''}"></i>`).join('')}<em>${esc(ETAPES[Math.max(0, i)].nom)}</em></span>
       </span>
       ${pas ? '<span class="su-aff-son">♪</span>' : ''}
@@ -105,7 +109,8 @@ BK.module('suivi', function (page) {
     const pas = r.passage || (a && a.duree ? { debut: a.debut || 0, fin: (a.debut || 0) + a.duree } : null);
     return `<div class="su-c ouverte" data-id="${r.id}">
       <div class="su-tete">
-        <button class="su-titre" data-ouv="${r.id}"><b>${esc(r.titre || 'Reel')}</b>${m ? `<span class="su-m">${esc(m.nom)}</span>` : ''}</button>
+        <input class="fld su-nom" data-nom="${r.id}" value="${esc(nomCourt(r))}" title="Le nom sur le poster" placeholder="ex. Reel 1">
+        <button class="su-titre" data-ouv="${r.id}">${r.titre && r.titre !== nomCourt(r) ? `<span class="nt su-long">${esc(r.titre)}</span>` : ''}${m ? `<span class="su-m">${esc(m.nom)}</span>` : ''}</button>
         <select class="fld su-type" data-type="${r.id}" title="C'est quoi ?">${TYPES_R.map(x => `<option${(r.type || 'Reel') === x ? ' selected' : ''}>${x}</option>`).join('')}</select>
         ${pas ? `<span class="su-lect"><button class="btn xs" data-play="${r.id}" title="Écouter le passage">▶</button><span class="mono">${t2(pas.debut)} → ${t2(pas.fin)}</span></span>` : '<span class="nt su-lect">passage à choisir</span>'}
         <div class="su-etapes">${ETAPES.map((e, k) => `<button class="su-e${k <= i ? ' ok' : ''}${k === i ? ' on' : ''}" data-st="${r.id}|${e.k}" title="${e.nom}">${e.ic}</button>`).join('')}</div>
@@ -210,6 +215,8 @@ BK.module('suivi', function (page) {
     };
     $$('[data-sortie]', z).forEach(i => { i.addEventListener('keydown', e => e.stopPropagation()); i.onchange = () => sortie(R.l.find(x => x.id === i.dataset.sortie), i.value); });
     $$('[data-sortiex]', z).forEach(b => b.onclick = () => sortie(R.l.find(x => x.id === b.dataset.sortiex), ''));
+    $$('[data-nom]', z).forEach(i => { i.onclick = e => e.stopPropagation(); i.addEventListener('keydown', e => { e.stopPropagation(); if (e.key === 'Enter') i.blur(); });
+      i.onchange = async () => { const r = R.l.find(x => x.id === i.dataset.nom); r.nom = i.value.trim().slice(0, 24); await BK.db.ecrire('reels', r); msg('Nom : ' + nomCourt(r)); rendre(); }; });
     $$('[data-type]', z).forEach(sel => { sel.onclick = e => e.stopPropagation(); sel.onchange = async () => { const r = R.l.find(x => x.id === sel.dataset.type); r.type = sel.value; await BK.db.ecrire('reels', r); msg('Type : ' + r.type); rendre(); }; });
     $$('[data-imgx]', z).forEach(b => b.onclick = async e => { e.stopPropagation(); const r = R.l.find(x => x.id === b.dataset.imgx); delete r.affiche; delete r.afficheIA; await BK.db.ecrire('reels', r); msg('Image automatique'); rendre(); });
     $$('[data-affiche]', z).forEach(b => b.onclick = async e => { e.stopPropagation(); const r = R.l.find(x => x.id === b.dataset.affiche), m = morceauDe(r);

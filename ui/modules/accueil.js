@@ -3,12 +3,12 @@
 // Sur le côté : avancement des morceaux, alertes, et « Pour démarrer ».
 // =====================================================================
 BK.etapes = [            // les étapes d'un morceau et leur poids dans le pourcentage
-  { id: 'maquette', nom: 'Maquette',   poids: 15 },
-  { id: 'enreg',    nom: 'Enreg.',     poids: 25 },
-  { id: 'mixage',   nom: 'Mixage',     poids: 20 },
-  { id: 'master',   nom: 'Mastering',  poids: 10 },
-  { id: 'release',  nom: 'Release',    poids: 10 },
-  { id: 'promo',    nom: 'Promo',      poids: 20 },
+  { id: 'maquette', nom: 'Maquette',   poids: 15, c: '#b23a2a' },   // chaque étape a SA couleur (celles du rail, rouge → vert)
+  { id: 'enreg',    nom: 'Enreg.',     poids: 25, c: '#d2722e' },
+  { id: 'mixage',   nom: 'Mixage',     poids: 20, c: '#d9a93c' },
+  { id: 'master',   nom: 'Mastering',  poids: 10, c: '#2f7377' },
+  { id: 'release',  nom: 'Release',    poids: 10, c: '#3f6f9a' },
+  { id: 'promo',    nom: 'Promo',      poids: 20, c: '#6c9a52' },
 ];
 BK.pourcent = m => BK.etapes.reduce((t, e, i) => t + (i < (m.fait || 0) ? e.poids : i === (m.fait || 0) ? e.poids * (m.enCours || 0) : 0), 0);
 // la couleur de l'avancement : les mêmes que le rail sous les titres (rouge → orange → jaune → bleu → vert)
@@ -56,7 +56,7 @@ BK.module('accueil', function (page) {
       <div><span class="eng" style="font-size:9px">Morceaux en chantier</span><span class="vfd">${String(d.morceaux.length).padStart(2, '0')}</span></div>`;
     const barre = m => { const p = Math.round(BK.pourcent(m));
       return `<div class="avance mini" style="--av:${BK.couleurAvance(m)}"><span class="avance-nom">${esc(m.nom)}</span>
-        <div class="avance-piste"><div class="etapes">${BK.etapes.map((e, i) => `<span class="seg-etape ${i < (m.fait || 0) ? 'fait' : i === (m.fait || 0) ? 'encours' : ''}" style="flex:${e.poids}"><i style="width:${i < (m.fait || 0) ? 100 : 0}%"></i></span>`).join('')}</div></div>
+        <div class="avance-piste"><div class="etapes">${BK.etapes.map((e, i) => `<span class="seg-etape ${i < (m.fait || 0) ? 'fait' : i === (m.fait || 0) ? 'encours' : ''}" style="flex:${e.poids};--sc:${e.c}"><i style="width:${i < (m.fait || 0) ? 100 : 0}%"></i></span>`).join('')}</div></div>
         <span class="vfd avance-pc">${p} %</span></div>`; };
     const toutFait = d.demarrer.slice(0, 3).every(x => x.ok);
     $('.grid', page).innerHTML = `

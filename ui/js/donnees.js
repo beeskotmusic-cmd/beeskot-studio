@@ -58,7 +58,7 @@ BK.db = {
       BK.db.cache[col] = out; BK.db.enLigne = true;
     } catch (e) {
       BK.db.enLigne = false;                                         // hors ligne : dernière copie connue
-      const c = BK.reglage('drive.cache.' + col, {}), out = {};
+      const c = (BK.drive.cacheDe ? BK.drive.cacheDe(col).c : BK.reglage('drive.cache.' + col, {})), out = {};
       for (const x of Object.values(c)) out[x.fiche.id] = x.fiche;
       for (const a of BK.reglage('db.attente', [])) if (a.col === col) { if (a.suppr) delete out[a.id]; else out[a.fiche.id] = a.fiche; }
       BK.db.cache[col] = out;

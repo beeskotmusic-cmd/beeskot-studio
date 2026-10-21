@@ -1100,3 +1100,43 @@ body.dropping main>section:not(.hidden) .box.pick::after{content:none!important;
 .nv-i{display:grid;grid-template-columns:26px 1fr;gap:8px;align-items:start;padding:7px 9px;border-radius:5px;background:rgba(0,0,0,.25)}
 .nv-i span{font-size:16px;line-height:1.2}
 .nv-i p{margin:0;font:400 12.5px/1.45 Jost,sans-serif;color:var(--ink)}
+
+/* avancement : chaque portion garde la couleur de SON étape (maquette rouge, enreg orange, mixage jaune…) */
+.mini-etapes i.fait,.mini-etapes i.encours{background:var(--sc)!important;filter:none!important}
+.mini-etapes i.encours{box-shadow:0 0 6px var(--sc)!important;opacity:.75}
+.seg-etape.fait i,.seg-etape.encours i{background:var(--sc)!important;opacity:1!important}
+.seg-etape.encours i{box-shadow:0 0 6px var(--sc)!important}
+.seg-etape.fait i{width:100%!important}
+.etape-b.fait{background:var(--sc)!important}
+.etape-b.encours{box-shadow:0 0 0 2px var(--sc),0 0 10px var(--sc)!important}
+
+/* le tuto */
+.tu-box{width:760px;max-width:94vw;align-items:stretch;gap:12px;padding:26px 28px 22px}
+.tu-cols{display:grid;grid-template-columns:180px 1fr;gap:16px;min-height:340px}
+.tu-menu{display:flex;flex-direction:column;gap:2px;max-height:60vh;overflow:auto;padding-right:6px;border-right:1px solid rgba(239,230,210,.1)}
+.tu-menu button{border:0;background:none;text-align:left;padding:6px 9px;border-radius:4px;cursor:pointer;color:#cbbfa8;font:500 12.5px Jost,sans-serif}
+.tu-menu button:hover{background:rgba(255,178,62,.12)}.tu-menu button.on{background:rgba(255,178,62,.2);color:#ffb23e}
+.tu-c{display:flex;flex-direction:column;gap:6px}
+.tu-c b{font:600 16px Jost,sans-serif;color:#ffb23e;margin-bottom:4px}
+.tu-c p{margin:0;font:400 13px/1.5 Jost,sans-serif;color:var(--ink)}
+.tu-nav{margin-top:auto;display:flex;justify-content:space-between;padding-top:12px}
+
+/* Reels : nom court sur le poster, la musique en étiquette */
+.su-aff-m{white-space:normal}
+.su-aff-m em{display:inline-block;font:600 9px/1 Jost,sans-serif;font-style:normal;letter-spacing:.05em;text-transform:uppercase;padding:3px 6px;border-radius:3px;
+  background:var(--tc,#555);color:#fff6e4;text-shadow:0 1px 1px rgba(0,0,0,.5);max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.su-nom{width:130px;height:28px;font-weight:600;flex:none}
+.su-long{margin:0;font-size:11px;max-width:420px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+
+/* Reels Vidéo : des photos → une vidéo */
+.dp-l{display:flex;flex-wrap:wrap;gap:8px;max-height:46vh;overflow:auto;padding:2px}
+.dp-p{position:relative;width:84px;height:150px;border-radius:6px;background:#0a0604 center/cover no-repeat;box-shadow:inset 0 0 0 1px rgba(239,230,210,.16)}
+.dp-p b{position:absolute;top:4px;left:5px;font:600 10px Jost,sans-serif;background:rgba(0,0,0,.65);padding:2px 5px;border-radius:3px}
+.dp-o{position:absolute;left:0;right:0;bottom:0;display:flex;justify-content:space-between;padding:3px;opacity:0;transition:opacity .15s}
+.dp-p:hover .dp-o{opacity:1}
+.dp-o button{width:24px;height:22px;border:0;border-radius:4px;background:rgba(0,0,0,.75);color:#efe6d2;cursor:pointer;font-size:10px}
+.dp-plus{border:1px dashed rgba(239,230,210,.28);background:rgba(0,0,0,.2);color:#cbbfa8;cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;font-size:20px}
+.dp-plus small{font-size:9px;letter-spacing:.06em;text-transform:uppercase;text-align:center}
+.dp-plus:hover{border-color:#ffb23e;color:#ffb23e}
+.dp-reg{display:flex;align-items:center;gap:8px}
+.dp-reg .fld{width:76px;height:28px}

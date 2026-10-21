@@ -43,7 +43,7 @@ BK.module('reelvis', function (page) {
           <div class="rv-cote">
             <div class="box"><div class="ligne-titre"><span class="lb">① La vidéo</span></div>
               <div class="rv-charge"><select class="fld" id="rvMorceau"><option value="">Choisis : un morceau, un tournage, un live…</option></select>
-                <button class="btn sm pri" id="rvTag">🏷 Les vidéos de Médias</button><button class="btn sm" id="rvPick">💻 Ce PC…</button><button class="btn sm" id="rvDrive">☁ Drive…</button><input type="file" id="rvInput" accept="video/*" hidden></div></div>
+                <button class="btn sm pri" id="rvTag">🏷 Les vidéos de Médias</button><button class="btn sm" id="rvPick">💻 Ce PC…</button><button class="btn sm" id="rvDrive">☁ Drive…</button><button class="btn sm warm" id="rvPhotos" title="Fabriquer une vidéo à partir de photos (et d'une musique)">🖼 Des photos…</button><input type="file" id="rvInput" accept="video/*" hidden></div></div>
             <div class="box"><div class="ligne-titre"><span class="lb">② Couper la vidéo</span>
                 <span class="nt" style="margin:0 0 0 auto">Glisse le bloc · tire ses bords · <b>I</b> / <b>O</b> = début / fin à la tête de lecture</span></div>
               <div class="onde rv-bande" id="rvBande">
@@ -80,7 +80,8 @@ BK.module('reelvis', function (page) {
           <div class="chips" style="margin-top:8px"><button class="chip on" id="rvZonesB">Montrer les zones à éviter</button></div>
           <span class="nt">Les zones hachurées sont cachées par l'appli : n'y mets rien d'important.</span></div>
         <div class="box"><span class="lb">Musique</span>
-          <div class="chips" style="margin-top:10px" id="rvMus"><button class="chip" data-m="video">Son de la vidéo</button><button class="chip" data-m="export">Un export de l'Assistant audio</button><button class="chip" data-m="reel">Le passage ouvert dans l'Assistant audio</button></div>
+          <div class="chips" style="margin-top:10px" id="rvMus"><button class="chip" data-m="video">Son de la vidéo</button><button class="chip" data-m="export">Un export de l'Assistant audio</button><button class="chip" data-m="reel">Le passage ouvert dans l'Assistant audio</button><button class="chip" data-m="pc">🎵 Une musique de ce PC…</button></div>
+          <input type="file" id="rvMusIn" accept="audio/*" hidden>
           <select class="fld hidden" id="rvExp" style="margin-top:8px"></select>
           <span class="nt" id="rvMusTxt"></span></div>
         <div class="box"><span class="lb">Export</span></div>
@@ -118,10 +119,80 @@ BK.module('reelvis', function (page) {
     V.debut = 0; V.fin = vid.duration; $('#rvBloc').classList.remove('hidden'); $('#rvBandeVide').classList.add('hidden'); vignettes();
     $('#rvVide').classList.add('hidden'); ['#rvPlay', '#rvExport', '#rvCaler'].forEach(s => $(s).disabled = false);
     V.x = V.y = 0; reglerZoom(100); majTrim(); msg(`Vidéo prête · ${vid.videoWidth}×${vid.videoHeight}`);
+    vid.currentTime = 0.01;                                         // pour que la 1re image s'affiche tout de suite
   };
   vid.onseeked = () => { if (!V.lecture) dessiner(); };
   vid.onerror = () => msg('Vidéo illisible (essaie un MP4)');
   $('#rvPick').onclick = () => $('#rvInput').click();
+
+  // ---------- DES PHOTOS → UNE VIDÉO ----------
+  // On choisit des photos (ce PC, Médias, Discord), une durée par photo (ou calée sur la musique),
+  // et on fabrique une vraie vidéo 9:16 : ensuite tout marche comme pour une vidéo (couper, couleur, sous-titres, musique, export).
+  $('#rvPhotos').onclick = () => {
+    const D = { l: [] };                                      // { nom, charger: () => Blob, apercu }
+    const v = document.createElement('div'); v.className = 'voile';
+    const dureeMus = () => { const a = musique(); return a ? a.duree : 0; };
+    const dessinerD = () => {
+      const m = dureeMus();
+      v.innerHTML = `<div class="stopbox" style="width:680px;align-items:stretch">
+        <span class="screw tl"></span><span class="screw tr"></span><span class="screw bl"></span><span class="screw br"></span>
+        <button class="btn xs rt-x" data-d="x">✕</button>
+        <span class="dymo" style="align-self:center">🖼 Une vidéo avec des photos</span>
+        <div class="dp-l">${D.l.map((x, i) => `<div class="dp-p" style="background-image:url(${esc(x.apercu || '')})"><b>${i + 1}</b>
+            <span class="dp-o"><button data-g="${i}" title="Avant">◀</button><button data-dr="${i}" title="Après">▶</button><button data-x="${i}" title="Enlever">✕</button></span></div>`).join('')}
+          <button class="dp-p dp-plus" data-d="pc">＋<small>Ce PC</small></button><button class="dp-p dp-plus" data-d="medias">🏷<small>Médias / Discord</small></button></div>
+        <div class="dp-reg"><span class="eng">Chaque photo</span><input class="fld" id="dpDuree" type="number" min="0.5" max="20" step="0.5" value="${D.duree || 2.5}"><span class="nt" style="margin:0">secondes</span>
+          ${m && D.l.length ? `<button class="btn xs" data-d="caler">♪ Caler sur la musique (${t2(m)})</button>` : ''}
+          <span class="nt" style="margin:0 0 0 auto">Total : <b id="dpTotal">${t2(D.l.length * (D.duree || 2.5))}</b></span></div>
+        <span class="nt">Les photos sont montrées entières, sur un fond flou. Choisis la musique dans « Musique » à droite (un export Reels Audio, ou une musique de ce PC).</span>
+        <div class="stopbox-btns"><button class="btn pri" data-d="ok"${D.l.length ? '' : ' disabled'}>Fabriquer la vidéo ▶</button><button class="btn" data-d="x">Annuler</button></div>
+        <input type="file" accept="image/*" multiple hidden id="dpIn"></div>`;
+      const du = v.querySelector('#dpDuree'); du.addEventListener('keydown', e => e.stopPropagation());
+      du.oninput = du.onchange = () => { D.duree = Math.max(0.5, Math.min(20, parseFloat(du.value) || 2.5));       // on ne redessine pas : juste le total
+        const t = v.querySelector('#dpTotal'); if (t) t.textContent = t2(D.l.length * D.duree); };
+      v.querySelector('#dpIn').onchange = e => { for (const f of e.target.files) D.l.push({ nom: f.name, apercu: URL.createObjectURL(f), charger: async () => f }); dessinerD(); };
+    };
+    v.addEventListener('click', async e => {
+      const b = e.target.closest('[data-d],[data-g],[data-dr],[data-x]'); if (!b) return;
+      if (b.dataset.g) { const i = +b.dataset.g; if (i > 0) [D.l[i - 1], D.l[i]] = [D.l[i], D.l[i - 1]]; return dessinerD(); }
+      if (b.dataset.dr) { const i = +b.dataset.dr; if (i < D.l.length - 1) [D.l[i + 1], D.l[i]] = [D.l[i], D.l[i + 1]]; return dessinerD(); }
+      if (b.dataset.x) { D.l.splice(+b.dataset.x, 1); return dessinerD(); }
+      const a = b.dataset.d;
+      if (a === 'x') return v.remove();
+      if (a === 'pc') return v.querySelector('#dpIn').click();
+      if (a === 'caler') { D.duree = Math.round(dureeMus() / D.l.length * 10) / 10; return dessinerD(); }
+      if (a === 'medias') {
+        if (!BK.drive.relie()) return msg('Relie d\'abord le Drive');
+        const image = f => /^image\//.test(f.mimeType || '');
+        v.style.display = 'none';
+        const l = await BK.choisirImages({ titre: 'Photos pour la vidéo', bouton: 'Ajouter', sources: [
+          { nom: '🏷 Étiquetées (Médias)', charger: async () => { await BK.dossiers.assurer(); const [tous, tags] = await Promise.all([BK.dossiers.tousFichiers(), BK.etiquettes.tous()]);
+              return tous.filter(f => image(f) && BK.etiquettes.liste(tags, f.id).length).map(f => ({ id: f.id, nom: f.name, f, vignette: () => BK.drive.vignette(f) })); } },
+          { nom: '🍞 Discord', charger: async () => ((await BK.discord.mediasVite('media', {}).catch(() => [])) || []).filter(x => !x.video && /\.(jpe?g|png|webp)$/i.test(x.nom || '')).map(x => ({ id: 'dc:' + x.id, nom: x.nom, dc: x, apercu: x.apercu || x.url })) },
+          { nom: '☁ Tout le cloud', charger: async () => { await BK.dossiers.assurer(); return (await BK.dossiers.tousFichiers()).filter(image).sort((a, b) => (b.modifiedTime || '').localeCompare(a.modifiedTime || '')).slice(0, 300).map(f => ({ id: f.id, nom: f.name, f, vignette: () => BK.drive.vignette(f) })); } } ] });
+        v.style.display = '';
+        for (const x of l || []) {
+          const ap = x.apercu || (x.f ? await BK.drive.vignette(x.f).catch(() => '') : '');
+          D.l.push({ nom: x.nom, apercu: ap, charger: async () => x.dc ? (await BK.discord.fetch(x.dc.url)).blob() : (await BK.drive.api(`/files/${x.f.id}?alt=media`)).blob() });
+        }
+        return dessinerD();
+      }
+      if (a === 'ok') {
+        const ok = v.querySelector('[data-d="ok"]'); ok.disabled = true; ok.innerHTML = '<span class="spin"></span>Préparation des photos…';
+        try {
+          const photos = [];
+          for (const [i, x] of D.l.entries()) { ok.innerHTML = `<span class="spin"></span>Photo ${i + 1}/${D.l.length}…`;
+            const blob = await x.charger(); const img = await createImageBitmap(blob);
+            const k = Math.min(1, 2160 / Math.max(img.width, img.height));              // pas plus grand qu'il ne faut : léger pour le PC
+            photos.push({ img: k < 1 ? await createImageBitmap(blob, { resizeWidth: Math.round(img.width * k), resizeHeight: Math.round(img.height * k), resizeQuality: 'high' }) : img, duree: D.duree || 2.5 }); }
+          const mp4 = await BK.rendu.diaporama(photos, { progression: p => ok.innerHTML = `<span class="spin"></span>Fabrication… ${Math.round(p * 100)} %` });
+          const f = new File([mp4], 'Diaporama_' + new Date().toISOString().slice(0, 10) + '.mp4', { type: 'video/mp4' });
+          v.remove(); charger(f); if (musique()) $('#rvMusTxt').textContent += ' · calée sur les photos';
+        } catch (er) { console.error(er); ok.disabled = false; ok.textContent = 'Fabriquer la vidéo ▶'; msg('Impossible : ' + (er.message || er)); }
+      }
+    });
+    document.body.appendChild(v); dessinerD();
+  };
   $('#rvDrive').onclick = async () => {
     if (!BK.drive.relie()) return msg('Relie d\'abord le Drive (Réglages)');
     const l = await BK.explorerDrive({ titre: 'Vidéo du Drive pour le reel', mode: 'video', depart: 'tournage' }); if (!l || !l[0]) return;
@@ -273,7 +344,7 @@ BK.module('reelvis', function (page) {
 
   // ---------- musique ----------
   // la musique du reel : le son de la vidéo, un export de l'Assistant audio, ou le passage ouvert là-bas
-  const musique = () => V.musique === 'reel' ? (BK.reelAudio && BK.reelAudio()) : V.musique === 'export' ? V.exp || null : null;
+  const musique = () => V.musique === 'reel' ? (BK.reelAudio && BK.reelAudio()) : V.musique === 'export' ? V.exp || null : V.musique === 'pc' ? V.pc || null : null;
   let EXPORTS = [];
   async function chargerExports() { try { EXPORTS = await BK.exportsAudio.tous(); } catch (e) { EXPORTS = BK.exportsAudio.local(); } remplirExports(); }
   function remplirExports() {
@@ -298,11 +369,16 @@ BK.module('reelvis', function (page) {
   function majMusique() {
     $$('#rvMus .chip').forEach(c => c.classList.toggle('on', c.dataset.m === V.musique));
     $('#rvExp').classList.toggle('hidden', V.musique !== 'export');
+    if (V.musique === 'pc') { $('#rvMusTxt').textContent = V.pc ? `« ${V.pc.nom} » (${t2(V.pc.duree)}) · clique « 🎵 » pour en changer` : ''; return; }
     if (V.musique === 'export') { const l = remplirExports(); if (!V.exp && l[0]) { choisirExport(l[0].id); return; } }
     const a = BK.reelAudio && BK.reelAudio();
     $('#rvMusTxt').textContent = V.musique === 'export' ? (V.exp ? `« ${V.exp.nom} » (${t2(V.exp.duree)}) remplace le son de la vidéo.` : '') : V.musique === 'reel' ? (a ? `Passage de « ${a.nom} » : ${t2(a.debut)} → ${t2(a.debut + a.duree)}` : 'Choisis d\'abord un passage dans l\'Assistant audio Reel.') : 'Le son d\'origine de la vidéo.';
   }
-  $$('#rvMus .chip').forEach(c => c.onclick = () => { V.musique = c.dataset.m; majMusique(); });
+  $$('#rvMus .chip').forEach(c => c.onclick = () => { if (c.dataset.m === 'pc' && (!V.pc || V.musique === 'pc')) return $('#rvMusIn').click(); V.musique = c.dataset.m; majMusique(); });
+  $('#rvMusIn').onchange = async e => { const f = e.target.files[0]; e.target.value = ''; if (!f) return;
+    const url = URL.createObjectURL(f), d = await new Promise(ok => { const a = new Audio(url); a.onloadedmetadata = () => ok(a.duration); a.onerror = () => ok(0); });
+    if (!d) return msg('Musique illisible');
+    V.pc = { nom: f.name, url, debut: 0, duree: d }; V.musique = 'pc'; majMusique(); msg('Musique : ' + f.name); };
   BK.surOuvrir = BK.surOuvrir || {}; BK.surOuvrir.reelvis = () => { galerieSiVide(); chargerExports(); majMusique(); remplirMorceaux(); };
 
   // ---------- lecture ----------

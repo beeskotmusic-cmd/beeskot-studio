@@ -7,7 +7,7 @@ const $ = (s, r = document) => r.querySelector(s);
 const $$ = (s, r = document) => [...r.querySelectorAll(s)];
 
 const BK = {
-  version: '0.9.50 bêta',
+  version: '0.9.51 bêta',
   modules: {},
   onglets: [],
   cotes: [],
@@ -197,13 +197,17 @@ const BK = {
     $('#syPc').textContent = BK.reglage('nomPc', 'CE PC').toUpperCase();
     BK.etatDrive && BK.etatDrive();
     BK.horloge(); setInterval(BK.horloge, 20000);   // léger : une mise à jour toutes les 20 s
-    BK.charge(); setInterval(BK.charge, 5000);
+    BK.charge(); setInterval(BK.charge, 8000);
     BK.appliquerZoom(BK.reglage('zoom', 100));
     BK.synchro && BK.synchro.demarrer();                              // ce qu'un autre PC change arrive ici tout seul
-    // ce qu'on fait ici (la ligne d'état en bas de l'onglet) est partagé avec les autres PC
-    new MutationObserver(ms => { for (const m of ms) { const v = (m.target.nodeType === 3 ? m.target.parentElement : m.target); if (!v) continue;
-      const vfd = v.closest && v.closest('.pane.abar > .vfd'); if (vfd && vfd === vfd.parentElement.querySelector('.vfd') && !vfd.closest('.page.hidden')) BK.presence && BK.presence.noter(vfd.textContent); } })
-      .observe(document.body, { subtree: true, childList: true, characterData: true });
+    // ce qu'on fait ici (la ligne d'état en bas de l'onglet) est partagé avec les autres PC.
+    // On n'écoute QUE ces petites lignes (pas toute la fenêtre) : une par onglet, repérées une fois les onglets construits.
+    const ecouteEtats = () => {
+      const obs = new MutationObserver(ms => { const vfd = ms[0] && ms[0].target; const el = vfd.nodeType === 3 ? vfd.parentElement : vfd;
+        const page = el && el.closest('#pages > section'); if (page && !page.classList.contains('hidden')) BK.presence && BK.presence.noter(el.textContent); });
+      for (const bar of document.querySelectorAll('.pane.abar')) { const v = bar.querySelector(':scope > .vfd'); if (v) obs.observe(v, { childList: true, characterData: true, subtree: true }); }
+    };
+    setTimeout(ecouteEtats, 1500);
     const ba = document.getElementById('stAmeliorer');                 // raconter un souci → Miette AI › Aides
     if (ba) ba.onclick = () => { document.getElementById('stopVoile').classList.add('hidden');
       BK.regler('renfort.aide', 'amelioration'); BK.renfortDemander ? BK.renfortDemander('amelioration', {}) : BK.ouvrir('renforts'); };

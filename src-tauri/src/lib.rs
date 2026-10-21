@@ -12,7 +12,7 @@ use std::net::TcpStream;
 use std::time::Duration;
 
 #[tauri::command]
-fn ableton(requete: String) -> Result<String, String> {
+async fn ableton(requete: String) -> Result<String, String> {
     let adr = "127.0.0.1:9931".parse().unwrap();   // le port du pont BEESKOT (9877 est souvent pris par d'autres ponts)
     let mut s = TcpStream::connect_timeout(&adr, Duration::from_millis(400))
         .map_err(|_| "Ableton n'est pas relié (ouvert avec le pont BEESKOT ?)".to_string())?;
@@ -67,14 +67,15 @@ static ECOUTE: std::sync::Mutex<Option<std::net::TcpListener>> = std::sync::Mute
 
 // ce que BEESKOT Studio consomme sur ce PC (pour l'afficheur du bandeau)
 #[tauri::command]
-fn ressources() -> Result<String, String> {
+async fn ressources() -> Result<String, String> {
     use sysinfo::{Pid, ProcessRefreshKind, ProcessesToUpdate, System};
     use std::sync::Mutex;
     static SYS: Mutex<Option<System>> = Mutex::new(None);
     let mut g = SYS.lock().map_err(|e| e.to_string())?;
     let sys = g.get_or_insert_with(System::new);
     let moi = Pid::from_u32(std::process::id());
-    sys.refresh_processes_specifics(ProcessesToUpdate::All, true, ProcessRefreshKind::everything());
+    // seulement le processeur et la mémoire : pas le chemin, la ligne de commande, le disque… de chaque programme du PC
+    sys.refresh_processes_specifics(ProcessesToUpdate::All, true, ProcessRefreshKind::new().with_cpu().with_memory());
     let coeurs = std::thread::available_parallelism().map(|n| n.get() as f32).unwrap_or(1.0);
     let mut cpu = 0.0f32;
     let mut ram: u64 = 0;

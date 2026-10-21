@@ -22,8 +22,9 @@ BK.module('reglages', function (page) {
           <div class="rg-dos-liste" id="rgDos"></div></div>
       </section>
       <section class="pane reg"><span class="ptitle">② Ce PC</span>
-        <div class="box"><span class="lb">Guide de démarrage</span>
-          <button class="btn sm" id="rgGuide" style="margin-top:8px">🍞 Revoir le guide</button></div>
+        <div class="box"><span class="lb">Aide</span>
+          <div class="chips" style="margin-top:8px"><button class="btn sm pri" id="rgNouveau">✨ Quoi de neuf ?</button><button class="btn sm" id="rgTuto">📖 Tuto : tout le logiciel</button></div>
+          <button class="btn sm" id="rgGuide" style="margin-top:8px;align-self:flex-start">🍞 Revoir le guide de démarrage</button></div>
         <div class="box"><span class="lb">Version du logiciel</span>
           <span class="vfd" style="margin-top:6px;align-self:flex-start">${String(BK.version || '').replace(/[<>&]/g, '')}</span>
           <button class="btn sm" id="rgMaj" style="margin-top:8px">⬇ Chercher une mise à jour</button>
@@ -58,6 +59,8 @@ BK.module('reglages', function (page) {
     else { t.textContent = 'Tu as déjà la dernière version.'; t.style.color = ''; }
     b.disabled = false; b.textContent = '⬇ Chercher une mise à jour';
   };
+  $('#rgNouveau', page).onclick = () => BK.nouveautes.montrer(BK.NOUVEAUTES.slice(0, 3));
+  $('#rgTuto', page).onclick = () => BK.nouveautes.tuto();
   $('#rgGuide', page).onclick = () => BK.bienvenue.ouvrir(true);
   $('#rgNom', page).onchange = e => { BK.regler('nomPc', e.target.value.trim()); $('#syPc').textContent = (e.target.value.trim() || 'CE PC').toUpperCase(); };
   // ---------- TIME MACHINE : remettre des fiches comme elles étaient avant une heure donnée ----------
@@ -97,7 +100,7 @@ BK.module('reglages', function (page) {
       try {
         const n = await BK.drive.restaurer(col, new Date(q).toISOString(), t => m.textContent = t);
         m.textContent = n ? n + ' fiche(s) remises comme avant' : 'Aucune version plus ancienne trouvée';
-        BK.db.cache[col] = null; BK.regler('drive.cache.' + col, {});
+        BK.db.cache[col] = null; BK.regler('drive.cache.' + col, {}); if (BK.drive.memo) delete BK.drive.memo[col];
         window.dispatchEvent(new CustomEvent('bk:distant', { detail: { cols: [col] } }));
         for (const f of ['biblioRecharger', 'tachesRecharger', 'agendaRecharger', 'budgetRecharger', 'tournagesRecharger', 'suiviRecharger', 'mediasRecharger']) try { BK[f] && BK[f](); } catch (e) {}
         rmsg(n ? n + ' fiche(s) récupérées' : 'rien à récupérer');
