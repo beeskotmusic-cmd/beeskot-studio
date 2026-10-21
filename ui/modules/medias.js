@@ -6,7 +6,8 @@
 // =====================================================================
 (() => {
 const RACINES = [['photovideo', 'Photos / Vidéos'], ['moodboard', 'Moodboards'], ['tournage', 'Tournages'], ['outfits', 'Outfits'], ['scenographie', 'Scénographie'], ['lightshow', 'Light Show'], ['discord', '🍞 Discord']];
-const M = { racine: BK.reglage('medias.racine', 'photovideo'), pile: [], fichiers: [], envoi: false, morceaux: [], tags: {}, filtre: '' };
+const M = { racine: BK.reglage('medias.racine', 'photovideo'), pile: [], fichiers: [], envoi: false, morceaux: [], tags: {}, filtre: '',
+  petit: BK.reglage('medias.petit', false), voirCaches: false };
 const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 const DOSSIER = 'application/vnd.google-apps.folder';
 
@@ -20,6 +21,7 @@ BK.module('medias', function (page) {
           <div class="seg" id="mdRacines">${RACINES.map(([k, n]) => `<button data-r="${k}">${n}</button>`).join('')}</div>
           <div class="md-fil" id="mdFil"></div>
           <label class="md-filtre"><span class="eng">🏷 Voir</span><select class="fld" id="mdFiltre"><option value="">Tous (dossier ouvert)</option></select></label>
+          <div class="chips md-vue"><button class="chip" id="mdPetit" title="Vignettes plus petites : moins de défilement">⊞ Petites</button><button class="chip" id="mdCaches" title="Les fichiers mis de côté">🙈 Masqués <span id="mdNbC"></span></button></div>
         </div>
         <div class="box grow md-zone" id="mdZone"><div class="md-grille" id="mdGrille"></div></div>
       </section>
@@ -152,7 +154,13 @@ BK.module('medias', function (page) {
   BK.mediasRecharger = charger;
 
   function rendre(filtre) {
-    const ds = M.fichiers.filter(f => f.mimeType === DOSSIER), fs = M.fichiers.filter(f => f.mimeType !== DOSSIER);
+    const masque = f => BK.etiquettes.liste(M.tags, f.id).includes('c:masque');
+    const ds = M.fichiers.filter(f => f.mimeType === DOSSIER), tous = M.fichiers.filter(f => f.mimeType !== DOSSIER);
+    const fs = M.voirCaches ? tous.filter(masque) : tous.filter(f => !masque(f));
+    const nbC = tous.filter(masque).length;
+    $('#mdNbC').textContent = nbC ? '(' + nbC + ')' : '';
+    $('#mdPetit').classList.toggle('on', M.petit); $('#mdCaches').classList.toggle('on', M.voirCaches);
+    $('#mdGrille').classList.toggle('petit', M.petit);
     const tag = f => { if (f.dc) return `<button class="md-tag vide" data-tag="${esc(f.id)}" title="Copier dans le Drive et étiqueter">⤓ Ranger dans le Drive</button>`;
       const ms = BK.etiquettes.morceauxDe({ ...f, dossiers: f.dossiers || M.pile.map(p => p.nom) }, M.morceaux, M.tags), l = BK.etiquettes.liste(M.tags, f.id);
       const main = l.some(BK.etiquettes.estMorceau), noms = [...ms.map(m => m.nom), ...l.filter(k => /^[a-z]:/.test(k)).map(k => (nomCase(k) || {}).nom).filter(Boolean)];
@@ -178,9 +186,10 @@ BK.module('medias', function (page) {
       if (!e.ctrlKey) { M.choisi = M.choisi === t.dataset.id ? null : t.dataset.id; $$('.md-tuile').forEach(x => x.classList.toggle('choisie', x.dataset.id === M.choisi)); if (M.choisi) msg('Clique un morceau en bas (ou double-clic pour ouvrir)'); return; } const f = M.fichiers.find(x => x.id === t.dataset.id); f && BK.ouvrirLien(f.webViewLink); });
     $$('.md-x').forEach(b => b.onclick = async () => {
       const f = M.fichiers.find(x => x.id === b.dataset.x); if (!f) return;
-      if (f.dc) return msg('Les fichiers Discord ne s\'effacent pas d\'ici');
-      if (!confirm(`Ranger « ${f.name} » dans la corbeille de BEESKOT Studio ?`)) return;
-      try { await BK.drive.corbeille(f.id); M.fichiers = M.fichiers.filter(x => x !== f); rendre(); msg('Rangé dans la corbeille'); } catch (e) { msg('Impossible pour l\'instant'); }
+      if (f.dc) return msg('Les fichiers Discord ne se masquent pas d\'ici');
+      if (M.voirCaches) { await BK.etiquettes.basculer(f.id, 'c:masque', false); M.tags = await BK.etiquettes.tous(); msg('Remis en place'); return rendre(!!M.filtre); }
+      await BK.etiquettes.basculer(f.id, 'c:masque', true); M.tags = await BK.etiquettes.tous();   // mis de côté : rien n'est effacé
+      msg(`« ${f.name} » masqué · « 🙈 Masqués » pour le revoir`); rendre(!!M.filtre);
     });
     (async () => { for (const f of fs) {                               // vignettes une par une : léger
       if (!f.thumbnailLink) continue; const u = f.dc ? f.thumbnailLink + '?width=320&height=320' : await BK.drive.vignette(f), el = $(`.md-tuile[data-id="${CSS.escape(f.id)}"] .md-img`);
@@ -233,6 +242,8 @@ BK.module('medias', function (page) {
     } catch (e) { msg('Envoi impossible : ' + e.message); console.error(e); }
     M.envoi = false; charger();
   }
+  $('#mdPetit').onclick = () => { M.petit = !M.petit; BK.regler('medias.petit', M.petit); rendre(!!M.filtre); };
+  $('#mdCaches').onclick = () => { M.voirCaches = !M.voirCaches; msg(M.voirCaches ? 'Les fichiers masqués · ✕ pour les remettre' : 'PRÊT'); rendre(!!M.filtre); };
   $('#mdAjout').onclick = () => $('#mdInput').click();
   // ---------- 🍞 Miette regarde les photos et propose une case ----------
   $('#mdTrier').onclick = async () => {

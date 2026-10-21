@@ -66,7 +66,10 @@ BK.module('biblio', function (page) {
     const f = BK.inv.normaliser(B.filtre);
     const auj = new Date().toISOString().slice(0, 10), prochaine = m => m.statut === 'prochaine' || (m.statut !== 'sorti' && m.sortie && m.sortie >= auj);
     const P = C.filter(prochaine), W = C.filter(m => !prochaine(m));
-    const l = (B.vue === 'sorti' ? S : B.vue === 'prochaine' ? P : W).filter(m => !f || BK.inv.normaliser(m.nom).includes(f)).sort((a, b) => (b.maj || '').localeCompare(a.maj || ''));
+    // l'ordre : celui qu'on a choisi à la main (rang), sinon le plus récemment touché
+    const l = (B.vue === 'sorti' ? S : B.vue === 'prochaine' ? P : W).filter(m => !f || BK.inv.normaliser(m.nom).includes(f))
+      .sort((a, b) => (a.rang ?? 1e9) - (b.rang ?? 1e9) || (b.maj || '').localeCompare(a.maj || ''));
+    B.affiches = l;
     liste.innerHTML = l.length ? l.map(fiche).join('') : `<span class="nt" style="padding:20px">${B.vue === 'sorti' ? 'Aucun morceau sorti pour l\'instant.' : B.vue === 'prochaine' ? 'Aucun morceau prévu pour la prochaine sortie. Ouvre une fiche et clique « ⭐ Next release ».' : 'Aucun morceau en chantier. Crée une fiche à droite, ou lance « Scanner ce PC ».'}</span>`;
     brancherFiches(); lecteur.maj();
     remplirDrive();
@@ -481,20 +484,36 @@ BK.module('biblio', function (page) {
   window.addEventListener('pointermove', e => {
     if (!gl) return;
     if (!gl.pret) { if (Math.hypot(e.clientX - gl.x, e.clientY - gl.y) < 6) return;
-      gl.pret = true; gl.tete.classList.add('prise'); $('#biVues').classList.add('cible'); msg('Lâche-le sur Next release, Work in progress ou Sortis'); }
+      gl.pret = true; gl.tete.classList.add('prise'); $('#biVues').classList.add('cible'); $('#biListe').classList.add('en-ordre');
+      msg('Lâche-le plus haut ou plus bas pour changer l\'ordre · ou sur un onglet pour le ranger'); }
     if (!gl.fantome) { const r = gl.tete.getBoundingClientRect(); gl.fantome = gl.tete.cloneNode(true); gl.fantome.className = 'fiche-tete fiche-fantome';
       gl.fantome.style.width = Math.min(r.width, 420) + 'px'; gl.dx = Math.min(gl.x - r.left, 400); gl.dy = gl.y - r.top; document.body.appendChild(gl.fantome); }
     gl.fantome.style.left = (e.clientX - gl.dx) + 'px'; gl.fantome.style.top = (e.clientY - gl.dy) + 'px';
     $$('#biVues .chip').forEach(c => c.classList.remove('survol')); const o = ongletSous(e.clientX, e.clientY); o && o.classList.add('survol');
+    $$('#biListe .fiche').forEach(x => x.classList.remove('avant', 'apres'));
+    if (!o) { const el = document.elementFromPoint(e.clientX, e.clientY), f2 = el && el.closest('.fiche');
+      if (f2 && f2.dataset.id !== gl.id) { const r = f2.getBoundingClientRect(); f2.classList.add(e.clientY > r.top + r.height / 2 ? 'apres' : 'avant'); } }
   });
   window.addEventListener('pointerup', async e => {
     if (!gl) return; const d = gl; gl = null; clearTimeout(d.minuteur);
-    d.tete.classList.remove('prise'); $('#biVues').classList.remove('cible'); $$('#biVues .chip').forEach(c => c.classList.remove('survol'));
+    d.tete.classList.remove('prise'); $('#biVues').classList.remove('cible'); $('#biListe').classList.remove('en-ordre'); $$('#biVues .chip').forEach(c => c.classList.remove('survol'));
     if (!d.pret) return;
     d.fantome && d.fantome.remove(); d.tete.dataset.pasClic = '1'; setTimeout(() => delete d.tete.dataset.pasClic, 50);
-    const o = ongletSous(e.clientX, e.clientY), m = B.morceaux.find(x => x.id === d.id); if (!o || !m) return msg('PRÊT');
-    if ((m.statut || 'chantier') === o.dataset.v) return msg('Déjà là');
-    m.statut = o.dataset.v; await sauver(m); rendre(); msg(m.nom + ' → ' + o.textContent.trim());
+    const m = B.morceaux.find(x => x.id === d.id); if (!m) return msg('PRÊT');
+    const o = ongletSous(e.clientX, e.clientY);
+    if (o) {                                                            // lâché sur un onglet : on change d'état
+      if ((m.statut || 'chantier') === o.dataset.v) return msg('Déjà là');
+      m.statut = o.dataset.v; await sauver(m); rendre(); return msg(m.nom + ' → ' + o.textContent.trim());
+    }
+    // lâché dans la liste : on change l'ordre
+    const el = document.elementFromPoint(e.clientX, e.clientY), f2 = el && el.closest('.fiche');
+    if (!f2 || f2.dataset.id === m.id) return msg('PRÊT');
+    const l = (B.affiches || []).slice(), de = l.findIndex(x => x.id === m.id), vers = l.findIndex(x => x.id === f2.dataset.id);
+    if (de < 0 || vers < 0) return msg('PRÊT');
+    const r = f2.getBoundingClientRect(), apres = e.clientY > r.top + r.height / 2;
+    l.splice(de, 1); l.splice(vers + (apres ? (de < vers ? 0 : 1) : (de < vers ? -1 : 0)), 0, m);
+    for (let i = 0; i < l.length; i++) if (l[i].rang !== i) { l[i].rang = i; await BK.db.ecrire('morceaux', l[i], { sansAnnuler: i > 0 }); }
+    await charger(); msg(m.nom + ' déplacé');
   });
   $('#biCherche').oninput = e => { B.filtre = e.target.value; rendre(); };
   $('#biAjout').onclick = async () => { const n = $('#biNom').value.trim(); if (!n) return;
