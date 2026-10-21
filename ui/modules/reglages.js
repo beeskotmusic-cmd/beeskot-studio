@@ -24,8 +24,9 @@ BK.module('reglages', function (page) {
       <section class="pane reg"><span class="ptitle">② Ce PC</span>
         <div class="box"><span class="lb">Guide de démarrage</span>
           <button class="btn sm" id="rgGuide" style="margin-top:8px">🍞 Revoir le guide</button></div>
-        <div class="box"><span class="lb">Nom de cet ordinateur</span>
-          <input class="fld" id="rgNom" style="margin-top:10px" maxlength="16" placeholder="ex. STUDIO, PIERRE…" value="${BK.reglage('nomPc', '')}"></div>
+        <div class="box"><span class="lb">Qui utilise cet ordinateur ?</span>
+          <span class="nt">Ton prénom (Yacine, Pierre, Baptiste) ou « Studio ». C'est à ce nom que partent les tâches que tu coches et les reels que tu fais avancer.</span>
+          <input class="fld" id="rgNom" style="margin-top:10px" maxlength="16" placeholder="ton prénom, ou Studio" value="${BK.reglage('nomPc', '')}"></div>
         <div class="box"><span class="lb">Taille de l'interface</span>
           <div class="knobs" style="justify-content:center"><div class="kb">
             <input id="rgZoom" type="range" min="80" max="130" step="5" value="${BK.reglage('zoom', 100)}" class="knobify" data-ticks="80,,,,,130" data-fmt="{} %"><span class="lb">Zoom</span></div></div></div>

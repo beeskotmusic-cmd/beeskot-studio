@@ -13,8 +13,8 @@ BK.bienvenue = {
     const miettePrete = !!(d.jeton && (d.salons || []).length && ia.gemini);
     return [
       { id: 'nom', titre: 'Bienvenue dans BEESKOT Studio', ic: '🍞',
-        txt: 'Le logiciel du groupe : les morceaux, les tournages, les reels, le calendrier et le budget, au même endroit pour tout le monde.<br><br>Donne d\'abord un nom à cet ordinateur (ex. <b>Studio</b>, <b>Pierre</b>, <b>Baptiste</b>). Il sert juste à savoir qui a fait quoi.',
-        champ: { id: 'bvNom', val: BK.reglage('nomPc', ''), ph: 'ex. Studio' },
+        txt: 'Le logiciel du groupe : les morceaux, les tournages, les reels, le calendrier et le budget, au même endroit pour tout le monde.<br><br><b>Qui va utiliser cet ordinateur ?</b> Écris ton prénom (<b>Yacine</b>, <b>Pierre</b>, <b>Baptiste</b>), ou <b>Studio</b> si c\'est l\'ordinateur du studio.<br><br>Ça sert à savoir qui a fait quoi : quand tu coches une tâche ou qu\'un reel avance, ça part à ton nom.',
+        champ: { id: 'bvNom', val: BK.reglage('nomPc', ''), ph: 'ton prénom, ou Studio' },
         fait: () => !!BK.reglage('nomPc', ''),
         action: null },
       { id: 'drive', titre: 'Le Drive BEESKOT', ic: '☁',

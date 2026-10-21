@@ -109,8 +109,11 @@ BK.module('suivi', function (page) {
   function brancher() {
     const z = $('#suListe');
     $$('[data-st]', z).forEach(b => b.onclick = async () => { const [id, k] = b.dataset.st.split('|'); const r = R.l.find(x => x.id === id);
+      const avant = ETAPES.findIndex(e => e.k === (r.statut || 'idee'));
       r.statut = r.statut === k ? (ETAPES[Math.max(0, ETAPES.findIndex(e => e.k === k) - 1)] || {}).k || 'idee' : k;
-      await BK.db.ecrire('reels', r); msg(ETAPES.find(e => e.k === r.statut).nom); rendre(); });
+      await BK.db.ecrire('reels', r);
+      await noterDansTodo(r, avant, ETAPES.findIndex(e => e.k === r.statut));
+      msg(ETAPES.find(e => e.k === r.statut).nom); rendre(); });
     $$('[data-sx]', z).forEach(b => b.onclick = async () => { const r = R.l.find(x => x.id === b.dataset.sx);
       if (!confirm(`Retirer « ${r.titre || 'ce reel'} » du suivi ?`)) return;
       R.l = R.l.filter(x => x !== r); await BK.db.supprimer('reels', r.id); msg('Retiré'); rendre(); });
@@ -126,6 +129,24 @@ BK.module('suivi', function (page) {
       BK.tournageOuvrir ? BK.tournageOuvrir(t.id) : BK.ouvrir('tournage'); });
     $$('[data-me]', z).forEach(b => b.onclick = () => { const r = R.l.find(x => x.id === b.dataset.me), m = morceauDe(r);
       BK.ouvrirMedias && BK.ouvrirMedias(); if (m) setTimeout(() => { const s = document.getElementById('mdFiltre'); if (s) { s.value = m.id; s.onchange({ target: s }); } }, 400); });
+  }
+
+  // ---------- le lien avec la To-do list : ce qui est fait part dans le panier de la personne ----------
+  // Chaque étape franchie devient une tâche déjà cochée, au nom de l'ordinateur (donc de la personne).
+  async function noterDansTodo(r, avant, apres) {
+    const qui = BK.reglage('nomPc', '').trim();
+    const membres = (((await BK.db.liste('config')).find(c => c.id === 'membres') || {}).liste) || ['Yacine', 'Pierre', 'Baptiste'];
+    const aLui = membres.find(m => m.toLowerCase() === qui.toLowerCase()) || '';
+    const m = morceauDe(r), titre = r.titre || 'Reel';
+    for (let i = 1; i < ETAPES.length; i++) {
+      const e = ETAPES[i], id = 'reel-' + r.id + '-' + e.k, fait = i <= apres;
+      const deja = (await BK.db.liste('taches')).find(t => t.id === id);
+      if (fait && !deja) await BK.db.ecrire('taches', { id, texte: `${e.ic} ${e.nom} — ${titre}`, qui: aLui, morceau: m ? m.nom : '',
+        fait: true, faitLe: new Date().toISOString(), faitPar: qui || 'ce PC', ordre: Date.now(), reel: r.id });
+      else if (!fait && deja) await BK.db.supprimer('taches', id);
+    }
+    BK.tachesRecharger && BK.tachesRecharger();
+    if (apres > avant && aLui) msg(ETAPES[apres].nom + ' · noté pour ' + aLui);
   }
 
   // ---------- créer ----------
