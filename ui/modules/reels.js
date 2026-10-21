@@ -91,6 +91,7 @@ BK.module('reels', function (page) {
           <span class="nt" id="reClicTxt">Le pré-clic démarre pile 2 mesures avant le passage : place le début du bloc sur un premier temps.</span>
           <div class="chips" style="margin-top:10px" id="reElan"><span class="eng" style="align-self:center;margin-right:4px">Musique avant</span><button class="chip on" data-e="0">Aucune</button><button class="chip" data-e="2">2 s</button><button class="chip" data-e="4">4 s</button></div>
           <div class="chips" style="margin-top:8px"><button class="chip" id="reFondu">Fondu de fin (1 s)</button></div></div>
+        <div class="box re-faits hidden" id="reFaits"></div>
       </section>
     </div>
     <div class="pane abar" aria-label="Barre">
@@ -420,36 +421,54 @@ BK.module('reels', function (page) {
   // ---------- export ----------
   // chaque export « montage » est noté : l'Assistant visuel Reel le retrouve tout seul (menu Musique)
   BK.reelsExports = BK.reelsExports || {};
-  async function garderExport(chemin, nom, octets) {
+  async function garderExport(chemin, nom, octets, tournage) {
     if (!chemin) return;
     const { m } = await morceauActuel().catch(() => ({}));
-    const e = { id: Date.now().toString(36), nom, chemin, morceau: m ? m.nom : R.nom, debut: R.debut, duree: R.duree, t: new Date().toISOString() };
+    const e = { id: Date.now().toString(36) + (tournage ? 't' : ''), nom, chemin, morceau: m ? m.nom : R.nom, debut: R.debut, duree: R.duree, t: new Date().toISOString(), pour: tournage ? 'tournage' : 'montage' };
     BK.reelsExports[e.id] = URL.createObjectURL(new Blob([octets], { type: 'audio/wav' }));
     await BK.exportsAudio.ajouter(e);
-    if (BK.suiviEnCours) { try { const l = await BK.db.liste('reels'), r = l.find(x => x.id === BK.suiviEnCours);     // relié à la page Reels
+    if (BK.suiviEnCours && !tournage) { try { const l = await BK.db.liste('reels'), r = l.find(x => x.id === BK.suiviEnCours);     // relié à la page Reels
       if (r) { r.audio = e.id; r.passage = { debut: R.debut, fin: R.debut + R.duree }; if (r.statut === 'idee') r.statut = 'audio';
         await BK.db.ecrire('reels', r); BK.suiviRecharger && BK.suiviRecharger(); } } catch (er) {} }
   }
+  // après l'export : on montre NOIR SUR BLANC les fichiers écrits et où ils sont
+  function montrerFaits(faits) {
+    const vrais = faits.filter(f => f.p);
+    msg(vrais.length + ' fichier(s) prêt(s)');
+    const z = $('#reFaits'); if (!z) return;
+    z.classList.remove('hidden');
+    const dos = vrais[0] && String(vrais[0].p).replace(/[\\/][^\\/]+$/, '');
+    z.innerHTML = `<span class="lb">✓ ${vrais.length} fichier(s) écrit(s)</span>`
+      + vrais.map(f => `<div class="re-fait"><span>🎵 ${esc(f.nom)}</span></div>`).join('')
+      + (faits.length > vrais.length ? `<span class="nt" style="color:#ff8a6a">${faits.length - vrais.length} fichier(s) n'ont pas pu être écrits</span>` : '')
+      + (dos && BK.estExe ? `<span class="nt mono" style="white-space:normal">${esc(dos)}</span><button class="btn xs" id="reOuvrirDos">📂 Ouvrir le dossier</button>` : '');
+    const b = $('#reOuvrirDos'); if (b) b.onclick = () => { try { BK.T.opener.openPath(dos); } catch (e) { msg('Dossier : ' + dos); } };
+  }
+
   $('#reExport').onclick = async () => {
     if (!R.buffer) return; stop();
     if (R.clic && !R.bpm) return msg('Indique le tempo pour le pré-clic');
     const b = $('#reExport'); b.disabled = true; b.innerHTML = '<span class="spin"></span>Export…';
     try {
       const d = Math.round(R.duree), dossier = BK.chemin('Reels', R.nom), m = await fabriquer('M');
+      const faits = [];
       if (!deuxFichiers()) {
-        const o = BK.audio.wav(m.canaux, m.sr), p = await BK.enregistrerFichier(dossier, `${R.nom}_REEL_${d}s.wav`, o, 'audio/wav');
-        garderExport(p, `${R.nom}_REEL_${d}s.wav`, o);
-        msg('Fichier prêt');
+        const nom = `${R.nom}_REEL_${d}s.wav`, o = BK.audio.wav(m.canaux, m.sr);
+        const p = await BK.enregistrerFichier(dossier, nom, o, 'audio/wav');
+        await garderExport(p, nom, o); faits.push({ nom, p });
       } else {
-        const o = BK.audio.wav(m.canaux, m.sr), p = await BK.enregistrerFichier(dossier, `${R.nom}_REEL_${d}s_MONTAGE.wav`, o, 'audio/wav');
-        garderExport(p, `${R.nom}_REEL_${d}s_MONTAGE.wav`, o);
+        const nomM = `${R.nom}_REEL_${d}s_MONTAGE.wav`, o = BK.audio.wav(m.canaux, m.sr);
+        const pM = await BK.enregistrerFichier(dossier, nomM, o, 'audio/wav');
+        await garderExport(pM, nomM, o); faits.push({ nom: nomM, p: pM });
         await BK.audio.pause();
         const t = await fabriquer('T'), nomV = String(Math.round(R.v * 100)).padStart(3, '0');
-        await BK.enregistrerFichier(dossier, `${R.nom}_REEL_${d}s_TOURNAGE_${nomV}pc${R.clic ? '_CLIC' : ''}.wav`, BK.audio.wav(t.canaux, t.sr), 'audio/wav');
-        msg('2 fichiers prêts');
-        R.dernierTournage = { octets: BK.audio.wav(t.canaux, t.sr), nom: `${R.nom}_REEL_${d}s_TOURNAGE_${nomV}pc${R.clic ? '_CLIC' : ''}.wav` };
+        const nomT = `${R.nom}_REEL_${d}s_TOURNAGE_${nomV}pc${R.clic ? '_CLIC' : ''}.wav`, oT = BK.audio.wav(t.canaux, t.sr);
+        const pT = await BK.enregistrerFichier(dossier, nomT, oT, 'audio/wav');
+        await garderExport(pT, nomT, oT, true); faits.push({ nom: nomT, p: pT });   // le fichier tournage est noté lui aussi
+        R.dernierTournage = { octets: oT, nom: nomT };
         $('#reDrive').classList.toggle('hidden', !BK.drive.relie());
       }
+      montrerFaits(faits);
     } catch (e) { msg('Erreur à l\'export'); console.error(e); }
     b.disabled = false; majBouton();
   };
