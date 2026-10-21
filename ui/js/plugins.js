@@ -59,17 +59,37 @@ BK.plugins = {
     }
     return [...out.values()].sort((a, b) => a.nom.localeCompare(b.nom));
   },
-  // le projet ouvert dans Ableton : Ableton l'écrit dans son journal ; sinon le .als le plus récent de ce PC
+  // ---------- seulement les projets BEESKOT (pas les projets perso) ----------
+  //   un projet compte s'il porte le nom d'un morceau de la Bibliothèque (ou s'il a été choisi à la main),
+  //   et jamais s'il a été mis de côté (« Pas un projet BEESKOT »)
+  nomDe: p => String(p || '').split(/[\\/]/).pop().replace(/\.als$/i, ''),
+  async morceauDe(chemin, ms) {
+    ms = ms || await BK.db.liste('morceaux');
+    if (BK.reglage('plugins.ignores', []).includes(chemin)) return null;
+    const m = BK.inv.trouverMorceau(BK.plugins.nomDe(chemin), ms) || BK.inv.trouverMorceau(chemin.split(/[\\/]/).slice(-3).join(' '), ms);
+    if (m) return m;
+    return BK.reglage('plugins.ajoutes', []).includes(chemin) ? { nom: 'Ajouté à la main' } : null;
+  },
+  // les projets BEESKOT de ce PC, rangés par morceau (le plus récent d'abord)
+  async projetsBeeskot() {
+    const ms = await BK.db.liste('morceaux'), als = (await BK.inv.tous()).filter(f => f.type === 'als' && f.ici && !f.sauvegarde)
+      .sort((a, b) => (b.modif || '').localeCompare(a.modif || '')), out = [];
+    for (const f of als) { const m = await BK.plugins.morceauDe(f.chemin, ms); if (m) out.push({ ...f, morceau: m.nom }); }
+    for (const c of BK.reglage('plugins.ajoutes', [])) if (!out.some(x => x.chemin === c)) out.push({ chemin: c, nom: BK.plugins.nomDe(c), morceau: 'Ajouté à la main' });
+    return out;
+  },
+  // le projet ouvert dans Ableton (Ableton l'écrit dans son journal), s'il est BEESKOT ; sinon le projet BEESKOT le plus récent
   async projetOuvert() {
     if (!BK.estExe) return null;
+    const ms = await BK.db.liste('morceaux');
     try {
       const base = BK.chemin(await BK.T.path.configDir(), 'Ableton');
       const vs = (await BK.fichier.liste(base)).filter(v => /^Live /i.test(v.name)).map(v => v.name).sort().reverse();
       for (const v of vs) { try { const t = await BK.fichier.lireTexte(BK.chemin(base, v, 'Preferences', 'Log.txt'));
-        const l = t.match(/[A-Za-z]:\\[^"\r\n<>|]*?\.als/g); if (l && l.length) { const p = l[l.length - 1]; if (await BK.fichier.existe(p)) return p; } } catch (e) {} }
+        const l = t.match(/[A-Za-z]:\\[^"\r\n<>|]*?\.als/g) || [];
+        for (let i = l.length - 1; i >= 0; i--) if (await BK.plugins.morceauDe(l[i], ms) && await BK.fichier.existe(l[i])) return l[i]; } catch (e) {} }
     } catch (e) {}
-    const als = (await BK.inv.tous()).filter(f => f.type === 'als' && f.ici && !f.sauvegarde).sort((a, b) => (b.modif || '').localeCompare(a.modif || ''));
-    return als[0] ? als[0].chemin : null;
+    const l = await BK.plugins.projetsBeeskot(); return l[0] ? l[0].chemin : null;
   },
 
   // ---------- la comparaison : ce qui manque, PC par PC ----------
@@ -88,24 +108,35 @@ BK.plugins = {
     const dire = h => { el.innerHTML = `<span class="lb">Plugins manquants</span>${h}`; };
     if (!BK.estExe) return dire('<span class="nt">Disponible dans le logiciel installé.</span>');
     const rendre = async () => {
-      if (!P.chemin) return dire(`<span class="nt">Aucun projet Ableton trouvé sur ce PC.</span><div class="chips" style="margin-top:8px"><button class="chip" data-pl="fichier">Choisir un projet .als…</button></div>`);
+      if (!P.chemin) return dire(`<span class="nt">Aucun projet BEESKOT trouvé sur ce PC (seuls les projets qui portent le nom d'un morceau de la Bibliothèque comptent).</span><div class="chips" style="margin-top:8px"><button class="chip" data-pl="choisir">Choisir le projet ▾</button></div>`);
       const nomP = P.chemin.split(/[\\/]/).pop().replace(/\.als$/i, '');
       if (!P.liste) return dire(`<span class="nt mono">${esc(nomP)}</span><span class="nt"><span class="spin"></span>Lecture du projet…</span>`);
       const membres = await BK.membres(), inv = await BK.partage.lire('plugins', {});
       const r = BK.plugins.manquants(P.liste, inv, membres); P.r = r;
       const nom = pc => pc === 'Studio' ? 'Au Studio' : 'Chez ' + pc;
-      dire(`<span class="nt mono pl-projet" title="${esc(P.chemin)}">${esc(nomP)} · ${P.liste.length} plugin(s)</span>
+      const mo = await BK.plugins.morceauDe(P.chemin);
+      dire(`<span class="nt mono pl-projet" title="${esc(P.chemin)}">${mo ? esc(mo.nom) + ' › ' : ''}${esc(nomP)} · ${P.liste.length} plugin(s)</span>
         <div class="pl-l">${r.map(x => `<div class="pl-pc"><b>${esc(nom(x.pc))}</b> ${!x.verifie ? '<span class="nt">pas encore vérifié</span>' : x.l.length ? `<span class="pl-manque">${x.l.map(esc).join(' · ')}</span>` : '<span class="pl-ok">rien ne manque ✓</span>'}</div>`).join('')}</div>
-        <div class="chips" style="margin-top:8px">${r.some(x => x.l.length) ? '<button class="chip" data-pl="taches">Envoyer dans les tâches</button>' : ''}<button class="chip" data-pl="relire" title="Relire le projet ouvert dans Ableton">↻</button><button class="chip" data-pl="fichier">Autre projet…</button></div>`);
+        <div class="chips" style="margin-top:8px">${r.some(x => x.l.length) ? '<button class="chip" data-pl="taches">Envoyer dans les tâches</button>' : ''}<button class="chip" data-pl="relire" title="Relire le projet ouvert dans Ableton">↻</button><button class="chip" data-pl="choisir">Autre projet ▾</button><button class="chip" data-pl="ignorer" title="Ce projet est perso : il ne sera plus jamais pris en compte">Pas un projet BEESKOT</button></div>`);
     };
     const charger = async chemin => { P.chemin = chemin || await BK.plugins.projetOuvert(); P.liste = null; await rendre();
       if (!P.chemin) return; try { P.liste = await BK.plugins.duProjet(await BK.fichier.lireOctets(P.chemin)); } catch (e) { P.liste = []; } await rendre(); };
     el.onclick = async e => { const b = e.target.closest('[data-pl]'); if (!b) return; const a = b.dataset.pl;
       if (a === 'relire') { await BK.plugins.noter(true).catch(() => {}); return charger(); }
-      if (a === 'fichier') { const i = document.createElement('input'); i.type = 'file'; i.accept = '.als';
-        i.onchange = async () => { const f = i.files[0]; if (!f) return; P.chemin = f.name; P.liste = null; await rendre(); try { P.liste = await BK.plugins.duProjet(new Uint8Array(await f.arrayBuffer())); } catch (er) { P.liste = []; } rendre(); }; return i.click(); }
+      if (a === 'ignorer') { BK.regler('plugins.ignores', [...new Set([...BK.reglage('plugins.ignores', []), P.chemin])]);
+        BK.regler('plugins.ajoutes', BK.reglage('plugins.ajoutes', []).filter(c => c !== P.chemin)); return charger(); }
+      if (a === 'choisir') {                                          // Morceau ▸ ses projets (seulement les projets BEESKOT)
+        const l = await BK.plugins.projetsBeeskot(), g = {};
+        for (const x of l) (g[x.morceau] ||= []).push({ k: x.chemin, nom: x.nom + (x.modif ? ' · ' + x.modif.slice(0, 10) : '') });
+        const r = b.getBoundingClientRect();
+        return BK.menuCascade({ x: r.left, y: r.bottom + 4 }, Object.entries(g).map(([nom, l]) => ({ nom, l })), k => {
+          if (!k) return choisirFichier(); charger(k); }, { actuel: P.chemin || '', aucun: 'Un autre fichier .als…' }); }
+      if (a === 'fichier') return choisirFichier();
       if (a === 'taches') { const n = await BK.plugins.versTaches(P); b.textContent = n ? n + ' tâche(s) ajoutée(s) ✓' : 'Déjà dans les tâches ✓'; }
     };
+    const choisirFichier = () => { const i = document.createElement('input'); i.type = 'file'; i.accept = '.als';
+        i.onchange = async () => { const f = i.files[0]; if (!f) return; P.chemin = f.name; P.liste = null; await rendre(); try { P.liste = await BK.plugins.duProjet(new Uint8Array(await f.arrayBuffer())); } catch (er) { P.liste = []; } rendre(); }; i.click(); };
+
     BK.plugins.noter().catch(() => {});                                  // ce PC dit ce qu'il a (au plus une fois par jour)
     await charger(P.chemin);
   },

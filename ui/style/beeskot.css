@@ -1459,3 +1459,201 @@ body.menu-etroit .navfoot .eng{display:none}
 .rg-qr-img svg{width:100%;height:100%;display:block}
 .rg-qr b{font-size:12px;color:var(--ink)}
 .rg-qr-img.vrai{opacity:1;filter:none}
+
+.pv-seg:has(#pvTourner){grid-template-columns:repeat(5,1fr)}
+/* Miette réfléchit : un petit cercle qui tourne PAR-DESSUS son patch (le patch lui-même ne tourne pas) */
+.btn.miette-aide{position:relative}
+.btn.miette-aide > .spin{position:absolute;left:3px;top:50%;width:26px;height:26px;margin:-13px 0 0 0;box-sizing:border-box;border:2.5px solid transparent;border-top-color:#f3e6c8;border-right-color:#f3e6c8;filter:drop-shadow(0 0 3px rgba(0,0,0,.6))}
+.btn.xs.miette-aide > .spin{left:2px;width:22px;height:22px;margin-top:-11px}
+body.miette-scan .estop.jaune img{animation:none!important}
+.estop.jaune::after{content:'';position:absolute;left:50%;top:-4px;width:60px;height:60px;margin-left:-30px;box-sizing:border-box;border-radius:50%;border:3px solid transparent;border-top-color:var(--mi-a);border-right-color:var(--mi-a);filter:drop-shadow(0 0 4px var(--mi-a));opacity:0;pointer-events:none}
+body.miette-pense .estop.jaune::after,body.miette-scan .estop.jaune::after{opacity:1;animation:spin .9s linear infinite}
+/* Écoute : un seul mix → la case B est grisée (elle redevient normale dès qu'on choisit une version) */
+.ec-solo #ecB{color:#8f8370!important;filter:grayscale(1);opacity:.6}
+.ec-solo #ecB:focus{filter:none;opacity:1}
+.ec-solo .ec-b .eng{opacity:.5}
+/* Calendrier : marquer les autres, et les absences lues par Miette (pointillés, à valider) */
+.ag-autre{display:flex;align-items:center;gap:4px;padding:2px 6px}
+.ag-autre b{flex:1;font-size:12px}
+.ag-autre button{width:auto!important;padding:4px 8px!important;font-size:11.5px}
+.ag-valider{color:#b9d98c!important}
+.cal-dispo i.miette{background:transparent;color:#ffb0a8;box-shadow:0 0 0 2px var(--m),inset 0 0 0 2px #d0574f;border:1px dashed #d0574f}
+.ag-autre button{white-space:nowrap}
+/* Bibliothèque : le bouton « ✓ Enregistrer » (orange = pas encore enregistré, vert = c'est enregistré) */
+.chip.bi-sauv.ok{background:rgba(111,191,90,.18)!important;color:#b9e3a6!important;box-shadow:inset 0 0 0 1px rgba(111,191,90,.6)!important}
+.chip.bi-sauv.a-faire{background:linear-gradient(180deg,#f0b54a,#c98a1e)!important;color:#2a1a0c!important;box-shadow:0 2px 0 #7a5212!important}
+/* Accueil : le résumé de Miette en 2 colonnes (texte | photo du jour + rendez-vous) ; « À faire » garde toujours sa place */
+.ac-resume{max-height:52%;min-height:0;display:flex;flex-direction:column}
+.ac-deux{display:flex;gap:18px;min-height:0;flex:1}
+.ac-g{flex:1 1 60%;min-width:0;overflow:auto;padding-right:4px}
+.ac-d{flex:0 0 220px;display:flex;flex-direction:column;gap:10px;min-height:0;overflow:auto}
+.ac-photo img{width:100%;display:block;border-radius:3px;box-shadow:0 6px 14px rgba(0,0,0,.55);transform:rotate(-1.2deg)}
+.ac-rdv{display:flex;flex-direction:column;gap:6px}
+.ac-rdv-l{display:flex;flex-direction:column;align-items:flex-start;gap:3px;text-align:left;border:0;cursor:pointer;padding:7px 9px;border-radius:5px;background:rgba(0,0,0,.25);box-shadow:inset 3px 0 0 var(--c);color:var(--ink);font:500 12.5px Jost,sans-serif}
+.ac-rdv-l .vfd{font-size:10.5px;padding:2px 6px}
+#p-accueil .vit > .box.grow{min-height:200px}
+/* le petit check d'enregistrement : juste ✓, carré */
+.chip.bi-sauv{min-width:30px;justify-content:center;padding-left:0!important;padding-right:0!important;font-size:14px}
+.ac-photo img{width:auto;max-width:100%;max-height:180px;margin:4px auto 0}
+.ac-rdv-l{flex:none}
+.ac-resume{max-height:none;flex:0 0 auto}
+.ac-deux{max-height:300px}
+.ac-photo img{max-height:150px}
+.ac-d{gap:8px;overflow:hidden}
+.ac-rdv{gap:4px}
+.ac-rdv-l{padding:5px 8px;gap:2px;font-size:12px}
+.ac-deux{max-height:330px}
+.chip.bi-sauv{font-size:15px!important;font-weight:700!important;min-width:34px}
+/* Reels : les cartes en noir et blanc sur papier d'affiche ; en couleur quand la souris passe (ou carte ouverte) */
+.su-aff{background-color:#808080;background-blend-mode:luminosity}
+.su-aff:hover,.su-aff.on{background-blend-mode:normal;background-color:#15110e}
+.su-aff::before{content:'';position:absolute;inset:0;z-index:1;pointer-events:none;background:var(--papier) 0 0/300px;mix-blend-mode:multiply;opacity:.7;transition:opacity .3s}
+.su-aff:hover::before{opacity:.45}
+.su-aff::after{z-index:1}
+.su-aff-vid{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;z-index:0}
+/* Miette AI : l'aide « parler à Miette sur Discord » */
+.ra-aide-dc{display:flex;flex-direction:column;gap:7px}
+.ra-aide-l{display:flex;align-items:flex-start;gap:10px;font-size:12.5px;line-height:1.4}
+.ra-emo{flex:none;width:30px;height:30px;display:grid;place-items:center;border-radius:6px;background:rgba(0,0,0,.3);box-shadow:inset 0 0 0 1px rgba(168,135,78,.4);font-size:16px}
+.ra-emo.ra-txt{font:700 12px Jost,sans-serif;color:#ffb23e}
+.ra-aide-l code{font-family:'Share Tech Mono',monospace;color:#ffb23e;background:#120c07;padding:1px 5px;border-radius:3px}
+/* To-do : « Dis-le à Miette » sous Ajouter */
+.todo-mi{padding-top:8px!important;padding-bottom:8px!important}
+.todo-mi .mi-ic{width:26px;height:26px;flex:none}
+.todo-mi #taMiTexte{flex:1;min-width:0;font-size:13px}
+.todo-mi #taMiAjout{flex:none;min-width:150px;position:relative}
+/* ===== ce que Miette a proposé : vert et un peu transparent, tant que personne ne l'a validé ===== */
+.mi-prop:not(.su-aff):not(.to-med){background:rgba(111,191,90,.13)!important;box-shadow:inset 0 0 0 1px rgba(111,191,90,.55)!important;opacity:.82;color:#cfe8c2}
+.mi-prop:hover{opacity:1}
+.mi-val{flex:none;border:0;cursor:pointer;width:22px;height:22px;border-radius:5px;font:700 13px Jost,sans-serif;color:#1d2a14;background:#7fc26a;box-shadow:0 2px 0 #3f6b31}
+.mi-val:hover{background:#9bd986}
+.mi-txt{color:#a9dc96;background:rgba(111,191,90,.12);border-radius:3px;padding:0 3px;opacity:.9}
+.mi-bandeau{display:flex;align-items:center;gap:8px;padding:6px 9px;border-radius:5px;background:rgba(111,191,90,.12);box-shadow:inset 0 0 0 1px rgba(111,191,90,.5);color:#cfe8c2;font-size:12px}
+.mi-bandeau .mi-val{width:auto;padding:0 9px;font-size:11px;letter-spacing:.06em;text-transform:uppercase}
+/* Calendrier : ce que Miette a trouvé (dates proposées, rendez-vous rangés depuis Discord) en vert transparent */
+.cal-ev.miette,.cal-ev.mi-ev{background:rgba(111,191,90,.2)!important;border-left-color:#7fc26a!important;color:#cfe8c2!important;opacity:.85}
+.cal-ev.miette.possible{background:repeating-linear-gradient(135deg,rgba(111,191,90,.28) 0 5px,rgba(111,191,90,.08) 5px 9px)!important}
+/* les propositions de Miette (To-do, Tournages…) : même vert */
+.ta-prop{border:1px dashed rgba(111,191,90,.6);background:rgba(111,191,90,.1);color:#cfe8c2;opacity:.9}
+.to-ref.mi-prop{display:inline-flex;align-items:center;gap:4px}.to-ref .mi-val{width:18px;height:18px;font-size:11px}
+/* Réglages : créer une étiquette */
+.rg-etiq-l{display:flex;gap:8px;margin-top:8px;flex-wrap:wrap}
+.rg-etiq-l #rgEtNom{flex:1;min-width:160px}.rg-etiq-l #rgEtRub{width:auto}
+.rg-et-pt{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:6px}
+.chip.bi-sauv::before{display:none!important}
+#nav .tab.bientot .nsub{color:#d9a93c;letter-spacing:.14em;text-transform:uppercase;font-size:8.5px}
+.pane.chantier{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px}
+#nav .tab.bientot .lab::after{content:'incoming';margin-left:8px;font-size:8px;letter-spacing:.14em;color:#d9a93c;opacity:.9}
+.chantier .dymo{align-self:center!important;margin:0 auto!important}.pane.chantier{flex-direction:column!important}
+/* Accueil (v2) : Next + résumé + release à gauche, la photo du jour + la phrase à droite, À faire dessous */
+.ac-haut{display:flex;gap:12px;min-height:0;flex:0 1 auto;max-height:64%}
+.ac-col{flex:1;min-width:0;display:flex;flex-direction:column;gap:12px;min-height:0}
+.ac-col .ac-resume{max-height:none;flex:0 1 auto;min-height:60px;overflow:auto;display:block}
+.ac-cote{flex:0 0 clamp(170px,19%,260px);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;padding:14px 12px!important;overflow:hidden}
+.ac-cote .ac-photo{width:100%;display:flex;justify-content:center;min-height:0;flex:0 1 auto}
+.ac-cote .ac-photo img{width:auto;max-width:100%;max-height:min(300px,34vh);margin:0;transform:rotate(-1.5deg);box-shadow:0 8px 16px rgba(0,0,0,.6);border-radius:2px}
+.ac-phrase{margin:0;text-align:center;font:600 14px/1.35 Jost,sans-serif;color:#f1d9a6;text-shadow:0 1px 2px rgba(0,0,0,.6)}
+@media (max-width:1300px){.ac-cote{flex-basis:170px}.ac-phrase{font-size:12.5px}}
+.ac-cote .ac-photo img{min-height:110px;object-fit:contain}
+/* Accueil v2 : tout tient même sur un petit écran (le résumé défile, la photo se cale sur la hauteur de la colonne) */
+.ac-haut{max-height:none;flex:0 1 auto;min-height:0;overflow:hidden}
+.ac-col{min-height:0}
+.ac-col > .next,.ac-col > .ac-rel{flex:none}
+.ac-col .ac-resume{flex:0 1 auto;min-height:56px;overflow:auto}
+.ac-cote{justify-content:flex-start}
+.ac-cote .ac-photo{flex:1 1 0;min-height:110px;position:relative;width:100%}
+.ac-cote .ac-photo img{position:absolute;inset:0;margin:auto;max-width:100%;max-height:100%;min-height:0;width:auto;height:auto}
+.ac-phrase{flex:none}
+#p-accueil .vit > .box.grow{min-height:150px}
+/* Accueil : la phrase, à peine visible ; Next plus discret */
+.ac-phrase{font:italic 400 10.5px/1.4 Jost,sans-serif!important;color:rgba(239,230,210,.42)!important;text-shadow:none!important;letter-spacing:.02em}
+#p-accueil .next-l{margin-top:8px;gap:10px}
+#p-accueil .next-l .nchip{height:30px}
+#p-accueil .next-q{font-size:13px;padding:5px 10px}
+#p-accueil .next .evt-type{font-size:10.5px}
+#p-accueil .next .nt{font-size:12.5px!important}
+@media (max-width:1300px){.ac-phrase{font-size:10px!important}}
+.ac-phrase .mi-ic{width:14px;height:14px;vertical-align:-3px;margin-right:4px;opacity:.75}
+.ac-phrase b{font-weight:600;font-style:normal;margin-right:3px;color:rgba(239,230,210,.55)}
+
+/* Reels : une carte trouvée par Miette = cadre vert + voile vert léger, la photo reste */
+.su-aff.mi-prop{box-shadow:0 0 0 2px rgba(127,194,106,.85),0 4px 12px rgba(0,0,0,.5)!important;opacity:.85}
+.su-aff.mi-prop::before{background:linear-gradient(rgba(111,191,90,.28),rgba(111,191,90,.28)),var(--papier) 0 0/300px}
+.su-aff-outils .mi-val{display:inline-grid;place-items:center;margin-right:4px}
+/* Tournages : les journées (dossiers) et les cartes à glisser */
+.to-fiche-barre{display:flex;gap:8px;margin-bottom:10px}
+.to-jours{display:flex;flex-direction:column;gap:12px}
+.to-jour{border-radius:8px;padding:10px 12px;background:rgba(0,0,0,.22);box-shadow:inset 0 0 0 1px rgba(168,135,78,.35);transition:box-shadow .12s,background .12s}
+.to-jour.passe{opacity:.6}
+.to-jour.sans{background:rgba(0,0,0,.12);border:1px dashed rgba(168,135,78,.35)}
+.to-jour.survol{background:rgba(255,178,62,.1);box-shadow:inset 0 0 0 2px #ffb23e}
+.to-jour-t{display:flex;align-items:center;gap:10px;margin-bottom:8px}
+.to-jour-t .dymo{font-size:13px;padding:4px 9px 3px}
+.to-jour-d{width:150px;padding:4px 8px;font-size:12px}
+.to-jour-t .md-x{margin-left:auto;position:static}
+.to-jour-l{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:8px;min-height:44px}
+.to-jour-vide{align-self:center;opacity:.6}
+.to-carte{display:flex;align-items:center;gap:10px;padding:8px;border-radius:6px;cursor:grab;background:linear-gradient(180deg,#2a221c,#16100b);box-shadow:0 0 0 1px rgba(168,135,78,.4),0 3px 6px rgba(0,0,0,.4)}
+.to-carte.on{box-shadow:0 0 0 2px #ffb23e}
+.to-carte.glisse{opacity:.4}
+.to-c-img{flex:none;width:44px;height:56px;border-radius:4px;background:#120c07 center/cover;display:grid;place-items:center;font-size:18px}
+.to-c-txt{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
+.to-c-txt b{font:600 13px Jost,sans-serif;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.to-c-txt .eng{font-size:8.5px;color:#d9a93c}
+.to-c-txt .nt{margin:0;font-size:10.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.to-c-btns{flex:none;display:flex;flex-direction:column;gap:4px;align-items:flex-end}
+.to-c-ok{margin:0;font-size:10px;color:#9bd986}
+/* Tournages : les médias à glisser */
+.to-vrac{padding:10px 12px;border-radius:8px;border:1px dashed rgba(217,169,60,.5);background:rgba(217,169,60,.06)}
+.to-meds{display:flex;flex-wrap:wrap;gap:6px;margin:6px 0 8px}
+.to-med{position:relative;width:62px;height:62px;border-radius:4px;background:#120c07 center/cover;cursor:grab;box-shadow:0 0 0 1px rgba(168,135,78,.45),0 2px 4px rgba(0,0,0,.5)}
+.to-med .md-x{position:absolute;top:2px;right:2px;display:none}
+.to-med:hover .md-x{display:block}
+.to-carte.survol{box-shadow:0 0 0 2px #7fc26a}
+/* journées : le dégradé chaud des fiches (et l'image du jour en fond, à droite, qui s'efface) ; la date se change en cliquant le titre */
+.to-jour{position:relative;overflow:hidden;background:linear-gradient(135deg,#3a2616,#241710);background-size:cover;background-position:right center;box-shadow:inset 0 0 0 1px rgba(168,135,78,.35),0 4px 12px rgba(0,0,0,.35)}
+.to-jour.sans{background:rgba(0,0,0,.12)}
+.to-jour-voile{position:absolute;inset:0;pointer-events:none;background:linear-gradient(90deg,rgba(18,10,5,.94) 0%,rgba(18,10,5,.82) 50%,rgba(18,10,5,.45) 100%)}
+.to-jour:not(.avec-fond) .to-jour-voile{background:linear-gradient(90deg,rgba(18,10,5,.35),rgba(18,10,5,0))}
+.to-jour > :not(.to-jour-voile){position:relative}
+.to-jour-nom{border:0;cursor:pointer}
+.to-jour-nom:hover{box-shadow:0 0 0 1px #ffb23e}
+.to-jour-d{position:absolute!important;width:1px;height:1px;opacity:0;pointer-events:none;border:0;padding:0}
+.to-jour.survol{background-color:#3a2a16}
+.to-jour.survol .to-jour-voile{background:rgba(255,178,62,.12)}
+.to-jour.avec-fond .to-jour-voile{background:linear-gradient(90deg,rgba(18,10,5,.96) 0%,rgba(18,10,5,.9) 55%,rgba(18,10,5,.62) 100%)}
+/* Tournages : Assets (petits dossiers), tournage fini */
+.to-assets{display:flex;flex-direction:column;gap:4px;padding:8px 10px;border-radius:6px;background:rgba(0,0,0,.32);box-shadow:inset 0 0 0 1px rgba(217,169,60,.4);grid-column:span 2}
+.to-assets > .eng{font-size:9px;color:#d9a93c}
+.to-as-dos .to-meds{margin:4px 0 6px}
+.to-as-t{display:flex;align-items:center;gap:6px;border:0;background:none;color:var(--ink);cursor:pointer;font:600 10.5px Jost,sans-serif;letter-spacing:.12em;text-transform:uppercase;padding:2px 0}
+.to-as-t small{opacity:.6;font-size:10px}
+.to-as-tout{width:auto!important;height:18px!important;padding:0 6px;font-size:9.5px!important;margin-left:auto;display:inline-grid;place-items:center}
+.to-as-dos .to-med{width:48px;height:48px}
+.to-med.audio{display:grid;place-items:center;font-size:18px;color:#d9a93c;background:#1a120b}
+.to-med-v{position:absolute;left:3px;bottom:2px;font-style:normal;font-size:10px;color:#fff;text-shadow:0 1px 2px #000}
+.to-med .mi-val{position:absolute;left:2px;top:2px;width:18px;height:18px;font-size:11px;display:none}
+.to-med.mi-prop{background-color:#1a2a14}
+.to-med.mi-prop:hover .mi-val,.to-med:hover .md-x{display:grid;place-items:center}
+.to-med.mi-prop::after{content:'';position:absolute;inset:0;border-radius:4px;background:rgba(111,191,90,.25);box-shadow:inset 0 0 0 1px rgba(127,194,106,.8);pointer-events:none}
+.to-carte.fini{opacity:.75}
+.btn.to-fini.on{background:linear-gradient(180deg,#7fc26a,#4f8a3f)!important;color:#142010!important}
+.su-tourne{font:600 10px Jost,sans-serif;color:#9bd986;margin-left:6px}
+.su-idee{font-style:italic}
+
+.to-jour-l > .to-carte{align-self:start}
+/* Bibliothèque : une étape « en cours » = à moitié remplie */
+.etape-b.demi{background:linear-gradient(90deg,var(--sc) 0 50%,transparent 50%)!important;color:#fff4dc}
+.etape-b small{font-size:8px;opacity:.8;display:block;letter-spacing:.08em}
+.etape-b.demi{background:linear-gradient(90deg,var(--sc) 0 50%,#1a120c 50%)!important;box-shadow:0 0 0 2px var(--sc)!important}
+/* Assets : repliés par défaut (une petite carte), dépliés en dessous sur toute la largeur */
+.to-assets{grid-column:1/-1}
+.to-assets.ferme{grid-column:auto;align-self:start;flex-direction:column;align-items:flex-start;gap:2px;border:0;cursor:pointer;text-align:left;color:var(--ink);padding:8px 10px;min-height:0}
+.to-assets.ferme b{font:600 13px Jost,sans-serif}
+.to-assets.ferme .nt{margin:0;font-size:10.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}
+.to-assets.ferme:hover{box-shadow:inset 0 0 0 1px #ffb23e}
+.to-as-nb{font-size:10px;margin-top:2px}
+.to-as-tete{display:flex;align-items:center;gap:8px;border:0;background:none;color:var(--ink);cursor:pointer;padding:0}
+.to-as-tete .nt{margin:0}
+.to-as-rang{display:flex;flex-wrap:wrap;gap:6px 22px;margin-top:4px}
+.to-as-dos{min-width:0}

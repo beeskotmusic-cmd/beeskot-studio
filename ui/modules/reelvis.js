@@ -100,6 +100,7 @@ BK.module('reelvis', function (page) {
 
   const msg = t => $('#rvMsg').textContent = String(t).toUpperCase();
   const vid = $('#rvVideo'), ecran = $('#rvEcran'), cv = $('#rvCanvas'), cx2 = cv.getContext('2d'), son = new Audio(), t2 = BK.audio.temps;
+  BK.mini.suivre(son, { page: 'reelvis', titre: () => 'Reels Vidéo · la musique du montage' });   // la musique coupe la Bibliothèque, et s'affiche en bas
   const r = BK.rendu.creer(540, 960);
   const cadre = () => ({ zoom: V.zoom / 100, x: V.x, y: V.y });
   const tReel = () => vid.currentTime - V.debut;                    // temps depuis le début du reel

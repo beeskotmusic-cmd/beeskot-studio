@@ -37,7 +37,7 @@ BK.module('medias', function (page) {
           <span class="nt" id="mdAjoutTxt">Glisse des fichiers sur la page, ou « + » : ils vont dans le dossier ouvert.</span>
           <button class="btn sm" id="mdAjout" style="margin-top:10px">+ Choisir des fichiers…</button>
           <button class="btn sm" id="mdDossier" style="margin-top:8px">+ Nouveau dossier ici…</button>
-          <button class="btn sm miette-aide" id="mdTrier" style="margin-top:8px" title="Miette regarde les photos sans étiquette et propose où les ranger">Étiqueter les photos</button>
+          <button class="btn sm miette-aide" id="mdTrier" style="margin-top:8px" title="Miette regarde les photos sans étiquette d'ici (ce dossier, ou Discord) et propose où les ranger">Étiqueter les photos</button>
           <button class="btn sm miette-aide" id="mdMenage" style="margin-top:8px" title="Miette cherche les fichiers en double (même nom, même taille) et les fichiers vides. Elle propose, vous validez. Rien n'est effacé : tout va dans la corbeille de BEESKOT Studio.">Faire le ménage</button>
           <input type="file" id="mdInput" multiple hidden></div>
         <div class="box"><span class="lb">📍 Tu es ici</span>
@@ -48,7 +48,7 @@ BK.module('medias', function (page) {
       </section>
     </div>
     <div class="pane md-ajouter${BK.reglage('medias.ajPlie', false) ? ' plie' : ''}" id="mdAjouter">
-      <div class="md-aj-tete"><button class="md-aj-plier" id="mdAjPlier" title="Réduire / montrer les étiquettes">▾</button><span class="eng md-lab">Filtrer</span><div class="seg" id="mdRub"><button data-rub="morceaux">♪ Morceaux</button><button data-rub="tournage">🎬 Tournage</button><button data-rub="lumiere">💡 Lumière</button><button data-rub="reseaux">📣 Réseaux</button></div>
+      <div class="md-aj-tete"><button class="md-aj-plier" id="mdAjPlier" title="Réduire / montrer les étiquettes">▾</button><span class="eng md-lab">Filtrer</span><div class="seg" id="mdRub"><button data-rub="morceaux">♪ Morceaux</button><button data-rub="tournage">🎬 Tournage</button><button data-rub="lumiere">💡 Lumière</button><button data-rub="reseaux">📣 Réseaux</button><button data-rub="membres">◉ Membres</button></div>
         <span class="nt md-aj-aide">Clic = filtrer le dossier · glisse des médias sur une étiquette pour les étiqueter</span></div>
       <div class="md-paniers" id="mdPaniers"></div></div>
     <div class="pane abar"><span class="vfd" id="mdMsg">PRÊT</span>
@@ -75,20 +75,24 @@ BK.module('medias', function (page) {
     M.morceaux = (await BK.db.liste('morceaux')).sort((a, b) => a.nom.localeCompare(b.nom)); M.tags = await BK.etiquettes.tous();
     M.tournages = (await BK.db.liste('tournages')).sort((a, b) => (b.date || b.maj || '').localeCompare(a.date || a.maj || ''));
     const sel = $('#mdFiltre'), v = sel.value, rubs = cases();
-    sel.innerHTML = '<option value="">Tout le dossier</option>' + [['morceaux', 'Morceaux'], ['tournage', 'Tournage'], ['lumiere', 'Lumière / scène'], ['reseaux', 'Réseaux']]
+    sel.innerHTML = '<option value="">Tout le dossier</option>' + [['morceaux', 'Morceaux'], ['tournage', 'Tournage'], ['lumiere', 'Lumière / scène'], ['reseaux', 'Réseaux'], ['membres', 'Membres']]
       .map(([r, t]) => `<optgroup label="${t}">${rubs[r].map(c => `<option value="${c.k}">${esc(c.nom)}</option>`).join('')}</optgroup>`).join(''); sel.value = v;
     paniers();
   }
   // ---------- « Ajouter à » : un panier par morceau, on y lâche les médias ----------
   // les cases de chaque rubrique : morceaux, tournages (une case par fiche + « général »), lumière / scène
   function cases() {
-    return {
+    const c = {
       morceaux: M.morceaux.map(m => ({ k: m.id, nom: m.nom, ph: m.photo, ic: '♪' })),
       tournage: [{ k: 'c:tournage', nom: 'Tournage (général)', ic: '🎬' }, { k: 'c:outfits', nom: 'Tenues', ic: '👕' }, { k: 'c:moodboard', nom: 'Moodboard', ic: '🖼' },
         ...(M.tournages || []).map(t => ({ k: 't:' + t.id, nom: t.titre || 'Tournage', ic: '🎬' }))],
       lumiere: [{ k: 'c:lumiere', nom: 'Light show', ic: '💡' }, { k: 'c:scenographie', nom: 'Scénographie', ic: '🎭' }, { k: 'c:live', nom: 'Live / concert', ic: '🎤' }],
-      reseaux: [{ k: 'c:cover', nom: 'Covers', ic: '💿' }, { k: 'c:insta', nom: 'Posts Instagram', ic: '📷' }, { k: 'c:story', nom: 'Stories', ic: '⭕' }, { k: 'c:reel', nom: 'Reels / TikTok', ic: '🎬' }, { k: 'c:affiche', nom: 'Affiches / flyers', ic: '📰' }, { k: 'c:presse', nom: 'Presse / EPK', ic: '🗞' }],
+      reseaux: [{ k: 'c:cover', nom: 'Covers', ic: '💿' }, { k: 'c:insta', nom: 'Posts Instagram', ic: '📷' }, { k: 'c:story', nom: 'Stories', ic: '⭕' }, { k: 'c:reel', nom: 'Reels / TikTok', ic: '🎬' }, { k: 'c:affiche', nom: 'Affiches / flyers', ic: '📰' }, { k: 'c:presse', nom: 'Presse / EPK', ic: '🗞' }, { k: 'c:inspi', nom: 'Références / inspiration', ic: '✦' }],
     };
+    const perso = r => (BK.etiquettes.PERSO || []).filter(x => (x.rub || 'reseaux') === r).map(x => ({ k: x.k, nom: x.nom, ic: '•' }));
+    c.membres = (M.membres || ['Yacine', 'Pierre', 'Baptiste']).map(n => ({ k: 'c:m-' + n.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, ''), nom: n, ic: '◉' }));
+    c.tournage.push(...perso('tournage')); c.lumiere.push(...perso('live')); c.reseaux.push(...perso('reseaux'));
+    return c;
   }
   const nomCase = k => Object.values(cases()).flat().find(c => c.k === k);
   // ---------- LES FILTRES DU BAS : seulement ce qui est dans le dossier ouvert ----------
@@ -142,7 +146,7 @@ BK.module('medias', function (page) {
     return (cases()[M.ff.rub] || []).some(c => a(c.k));
   }
   function dire() {
-    const n = M.ff && (M.ff.k ? (nomCase(M.ff.k) || {}).nom : M.ff.rub ? { morceaux: 'Morceaux', tournage: 'Tournage', lumiere: 'Lumière', reseaux: 'Réseaux' }[M.ff.rub] : '');
+    const n = M.ff && (M.ff.k ? (nomCase(M.ff.k) || {}).nom : M.ff.rub ? { morceaux: 'Morceaux', tournage: 'Tournage', lumiere: 'Lumière', reseaux: 'Réseaux', membres: 'Membres' }[M.ff.rub] : '');
     msg(n ? 'Filtre : ' + n + (M.filtre ? '' : ' (dans ce dossier)') : 'Sans filtre');
   }
   function majSel() {
@@ -221,6 +225,7 @@ BK.module('medias', function (page) {
 
   window.addEventListener('bk:annule', () => charger());   // après « ↶ Annuler » : on relit
   async function charger() {
+    BK.etiquettes.chargerPerso().then(() => { if ($('#mdPaniers')) paniers(); }).catch(() => {});   // les étiquettes créées dans Réglages
     if (M.racine === 'discord') return chargerDiscord();
     if (M.filtre) return parMorceau(M.filtre);
     if (!M.pile.length) return M.ff && M.ff.rub ? toutFiltre() : racineCloud();
@@ -393,7 +398,7 @@ BK.module('medias', function (page) {
     const rubs = cases();
     // un menu en cascade, comme Windows : les rubriques, et chacune s'ouvre à droite au survol (ou au clic)
     let ouverte = null;
-    const GROUPES = [['morceaux', '♪ Morceaux'], ['tournage', '🎬 Tournage'], ['lumiere', '💡 Lumière / scène'], ['reseaux', '📣 Réseaux']];
+    const GROUPES = [['morceaux', '♪ Morceaux'], ['tournage', '🎬 Tournage'], ['lumiere', '💡 Lumière / scène'], ['reseaux', '📣 Réseaux'], ['membres', '◉ Membres']];
     const dessiner = () => { const l = lireTags(id);
       menu.innerHTML = (tous.length > 1 ? `<span class="md-menu-t" style="color:#ffb23e">${tous.length} fichiers choisis</span>` : '')
         + GROUPES.map(([r, t]) => { const n = rubs[r].filter(c => l.includes(c.k)).length;
@@ -448,7 +453,7 @@ BK.module('medias', function (page) {
   function majVoir() { const b = $('#mdVoirB'); if (!b) return; const c = M.filtre && nomCase(M.filtre);
     b.textContent = c ? c.nom + ' ▾' : 'Choisir… ▾'; b.classList.toggle('on', !!c); }
   $('#mdVoirB').onclick = e => { const r = e.currentTarget.getBoundingClientRect(), cs = cases();
-    BK.menuCascade({ x: r.left, y: r.bottom + 4 }, [['morceaux', 'Morceaux'], ['tournage', 'Tournage'], ['lumiere', 'Lumière / scène'], ['reseaux', 'Réseaux']].map(([k, n]) => ({ nom: n, l: cs[k] })),
+    BK.menuCascade({ x: r.left, y: r.bottom + 4 }, [['morceaux', 'Morceaux'], ['tournage', 'Tournage'], ['lumiere', 'Lumière / scène'], ['reseaux', 'Réseaux'], ['membres', 'Membres']].map(([k, n]) => ({ nom: n, l: cs[k] })),
       k => { const sel = $('#mdFiltre'); sel.value = k; sel.onchange({ target: sel }); }, { actuel: M.filtre || '', aucun: '— Rien : revenir au dossier' }); };
   $('#mdMajDc').onclick = () => { M.majDiscord = true; chargerDiscord(); };
   $('#mdHaut').onclick = () => { M.filtre = ''; $('#mdFiltre').value = '';
@@ -492,11 +497,13 @@ BK.module('medias', function (page) {
   $('#mdTrier').onclick = async () => {
     if (!BK.drive.relie()) return msg('Relie d\'abord le Drive');
     if (!await BK.ia.pret()) return msg('Allume l\'AI et ajoute la clé Gemini (Réglages)');
-    if (M.racine === 'discord') return msg('Dans Discord, range d\'abord les fichiers dans le Drive');
-    const sansTag = x => /^image\//.test(x.mimeType || '') && !BK.etiquettes.liste(M.tags, x.id).length;
+    // seulement les photos de là où on est : Discord, ce dossier… (tout le Drive seulement à l'accueil de Médias)
+    const sansTag = x => /^image\//.test(x.mimeType || '') && !BK.etiquettes.liste(M.tags, x.dc ? (BK.etiquettes.copieDe(x.id) || x.id) : x.id).length;
+    const ici = M.racine === 'discord' ? 'Discord' : M.pile.length ? 'ce dossier' : M.filtre || (M.ff && M.ff.rub) ? 'cette vue' : '';
     let l = (M.fichiers || []).filter(sansTag);
-    if (!l.length) { msg('Miette cherche les photos sans étiquette…'); await BK.dossiers.assurer(); l = (await BK.dossiers.tousFichiers()).filter(sansTag); }
-    if (!l.length) return msg('Rien à ranger : toutes les photos ont déjà une étiquette');
+    if (!l.length && !ici) { msg('Miette cherche les photos sans étiquette…'); await BK.dossiers.assurer(); l = (await BK.dossiers.tousFichiers()).filter(sansTag); }
+    if (!l.length) return msg(`Rien à ranger : toutes les photos ${ici ? 'de ' + ici + ' ' : ''}ont déjà une étiquette`);
+    if (M.racine === 'discord') msg(`Miette regarde les photos de Discord (${Math.min(l.length, 40)} au maximum)…`);
     const b = $('#mdTrier'); b.disabled = true; b.innerHTML = '<span class="spin"></span>Miette regarde…';
     let props = [];
     try { props = await BK.trierMedias(l, { avancement: (k, n) => msg(`Miette regarde ${k}/${n} photo(s)…`) }); }
@@ -515,7 +522,7 @@ BK.module('medias', function (page) {
       <div class="ex-pied"><span class="nt" id="trInfo">Décoche ce qui ne va pas, puis « Ranger ».</span><button class="btn" data-tr="x">Annuler</button><button class="btn pri" data-tr="ok">Ranger</button></div></div>`;
     document.body.appendChild(v);
     const non = new Set();
-    (async () => { for (let i = 0; i < props.length; i++) { const u = await BK.drive.vignette(props[i].f), el = v.querySelector(`[data-tri="${i}"] .md-dc-img`); if (el) el.innerHTML = u ? `<img src="${u}" draggable="false">` : '🖼'; } })();
+    (async () => { for (let i = 0; i < props.length; i++) { const f = props[i].f, u = f.dc ? (f.dc.apercu ? f.dc.apercu + '?width=240&height=240' : '') : await BK.drive.vignette(f), el = v.querySelector(`[data-tri="${i}"] .md-dc-img`); if (el) el.innerHTML = u ? `<img src="${u}" draggable="false" referrerpolicy="no-referrer">` : '🖼'; } })();
     v.addEventListener('click', async e => {
       const t = e.target.closest('[data-tri]'), a = e.target.closest('[data-tr]');
       if (t) { const i = t.dataset.tri; non.has(i) ? non.delete(i) : non.add(i); t.classList.toggle('on', !non.has(i));
@@ -523,7 +530,12 @@ BK.module('medias', function (page) {
       if (!a) return; if (a.dataset.tr === 'x') return v.remove();
       const garde = props.filter((p, i) => !non.has(String(i)));
       v.remove(); let n = 0;
-      for (const p of garde) { try { await BK.etiquettes.basculer(p.f.id, p.cle, true); if (p.morceau) await BK.etiquettes.basculer(p.f.id, p.morceau.id, true); n++; } catch (er) {} }
+      for (const p of garde) { try {
+        if (p.f.dc) {                                                  // Discord : copiée dans le Drive (une fois), puis étiquetée
+          msg(`Rangement ${n + 1}/${garde.length}…`); await etiqueter(p.f.id, p.cle, true);
+          const c = BK.etiquettes.copieDe(p.f.id); if (c && p.morceau) await BK.etiquettes.basculer(c, p.morceau.id, true); if (c) n++;
+        } else { await BK.etiquettes.basculer(p.f.id, p.cle, true); if (p.morceau) await BK.etiquettes.basculer(p.f.id, p.morceau.id, true); n++; }
+      } catch (er) {} }
       M.tags = await BK.etiquettes.tous(); msg(n + ' photo(s) rangée(s) ✓'); paniers(); rendre(!!M.filtre);
     });
   }

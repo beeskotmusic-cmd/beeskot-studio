@@ -87,7 +87,8 @@ BK.module('biblio', function (page) {
   // fichiers liés à un morceau
   const fichiersDe = m => B.fichiers.filter(f => BK.inv.trouverMorceau(f.nom, [m]) && BK.inv.trouverMorceau(f.nom, B.morceaux) === m);
   const orphelins = () => {
-    const vus = new Set(); return B.fichiers.filter(f => !BK.inv.trouverMorceau(f.nom, B.morceaux) && !f.sauvegarde && !vus.has(f.nom) && vus.add(f.nom));
+    const vus = new Set(), ign = new Set(BK.reglage('biblio.ignores', []));     // les projets perso retirés (sur ce PC)
+    return B.fichiers.filter(f => !BK.inv.trouverMorceau(f.nom, B.morceaux) && !f.sauvegarde && !ign.has(f.nom) && !vus.has(f.nom) && vus.add(f.nom));
   };
 
   // ---------- affichage ----------
@@ -255,7 +256,7 @@ BK.module('biblio', function (page) {
     const t = (id, titre, resume, corps) => { const o = (B.tiroirs[m.id] || []).includes(id);
       return `<div class="tiroir${o ? ' ouvert' : ''}" data-t="${id}"><button class="tiroir-tete"><span class="fleche">${o ? '▾' : '▸'}</span><span class="lb">${titre}</span><span class="nt tiroir-resume">${resume}</span></button>${o ? `<div class="tiroir-corps">${corps()}</div>` : ''}</div>`; };
     const tAvance = () => `${t('avance', 'Avancement', `${BK.etapes[Math.min(m.fait || 0, 5)].nom} · ${pc} %`, () => `
-          <div class="etapes-clic">${BK.etapes.map((e, i) => `<button class="etape-b ${i < (m.fait || 0) ? 'fait' : i === (m.fait || 0) ? 'encours' : ''}" style="--sc:${e.c}" data-etape="${i}">${e.nom}</button>`).join('')}</div>
+          <div class="etapes-clic">${BK.etapes.map((e, i) => `<button class="etape-b ${i < (m.fait || 0) ? 'fait' : i === (m.fait || 0) ? 'encours' + ((m.enCours || 0) > 0 ? ' demi' : '') : ''}" style="--sc:${e.c}" data-etape="${i}" title="Clic : fait / pas fait · clic droit : en cours">${e.nom}${i === (m.fait || 0) && (m.enCours || 0) > 0 ? ' <small>en cours</small>' : ''}</button>`).join('')}</div>
           `)}`;
     // RETOURS : les notes d'Écoute, par version (le fichier), en français et en anglais
     const tRetours = () => { const ns = (B.notesmix || []).filter(n => n.morceau === m.id), parV = {};
@@ -303,18 +304,18 @@ BK.module('biblio', function (page) {
         <span class="eng fiche-grp">Orga</span>
         ${t('paroles', 'Paroles', m.paroles ? m.paroles.split('\n').filter(Boolean).length + ' lignes' : 'vides', () => `
           <textarea class="fld paroles" data-champ="paroles" placeholder="[COUPLET 1]&#10;…&#10;[REFRAIN]&#10;…">${esc(m.paroles || '')}</textarea>
-          <div class="chips" style="margin-top:8px"><button class="chip" data-act="plein">Plein écran</button><button class="chip" data-act="copier">Copier pour le distributeur</button><button class="chip" data-act="paroles" title="Ouvre la recherche dans ton navigateur : copie-colle les paroles ici">🔎 Chercher les paroles</button></div>`)}
+          <div class="chips" style="margin-top:8px"><button class="chip" data-act="plein">Plein écran</button><button class="chip" data-act="copier">Copier pour le distributeur</button><button class="chip" data-act="paroles" title="Ouvre la recherche dans ton navigateur : copie-colle les paroles ici">🔎 Chercher les paroles</button><button class="chip bi-sauv ok" data-sauver="1" title="Enregistré (clique pour enregistrer maintenant ; ça s\'enregistre aussi tout seul quand tu cliques ailleurs)">✓</button></div>`)}
         ${t('infos', 'Infos', [m.bpm && m.bpm + ' BPM', m.ton, m.duree, m.sortie && 'sortie ' + m.sortie].filter(Boolean).join(' · ') || '—', () => `
           <div class="infos">
             <label><span class="eng">BPM <small class="nt" style="margin:0">${m.bpm ? ({ nous: '· écrit par vous', discord: '· dit sur Discord', ableton: '· lu dans Ableton', detecte: '· deviné (à vérifier)' })[m.bpmSource || 'detecte'] : ''}</small></span>
-              <span class="bpm-ligne"><input class="fld" data-champ="bpm" value="${esc(m.bpm || '')}"><button class="btn xs" data-act="bpmAbleton" title="Lit le tempo du projet ouvert dans Ableton (pont BEESKOT)">🎛 Ableton</button></span></label>
-            <label><span class="eng">Tonalité</span><input class="fld" data-champ="ton" value="${esc(m.ton || '')}" placeholder="ex. Mi mineur"></label>
+              <span class="bpm-ligne"><input class="fld${(m.aValider || {}).bpm ? ' mi-prop' : ''}" data-champ="bpm" value="${esc(m.bpm || '')}">${(m.aValider || {}).bpm ? `<button class="mi-val" data-act="val-bpm" title="Trouvé par Miette sur Discord : c'est bon ?">✓</button>` : ''}<button class="btn xs" data-act="bpmAbleton" title="Lit le tempo du projet ouvert dans Ableton (pont BEESKOT)">🎛 Ableton</button></span></label>
+            <label><span class="eng">Tonalité</span><span class="bpm-ligne"><input class="fld${(m.aValider || {}).ton ? ' mi-prop' : ''}" data-champ="ton" value="${esc(m.ton || '')}" placeholder="ex. Mi mineur">${(m.aValider || {}).ton ? `<button class="mi-val" data-act="val-ton" title="Trouvé par Miette sur Discord : c'est bon ?">✓</button>` : ''}</span></label>
             <label><span class="eng">Durée</span><input class="fld" data-champ="duree" value="${esc(m.duree || '')}" placeholder="3:45"></label>
-            <label><span class="eng">Date de sortie</span><input class="fld" type="date" data-champ="sortie" value="${esc(m.sortie || '')}"></label>
+            <label><span class="eng">Date de sortie</span><span class="bpm-ligne"><input class="fld${(m.aValider || {}).sortie ? ' mi-prop' : ''}" type="date" data-champ="sortie" value="${esc(m.sortie || '')}">${(m.aValider || {}).sortie ? `<button class="mi-val" data-act="val-sortie" title="Trouvé par Miette sur Discord : c'est bon ?">✓</button>` : ''}</span></label>
             <label><span class="eng">Artiste original (reprise)</span><input class="fld" data-champ="artiste" value="${esc(m.artiste || '')}" placeholder="ex. Mika Nakashima"></label>
             <label><span class="eng">Autres noms du fichier</span><input class="fld" data-champ="alias" value="${esc((m.alias || []).join(', '))}" placeholder="ex. morceauA, MorcA"></label>
           </div>
-          <div class="chips" style="margin-top:8px"><button class="chip" data-act="analyser" title="Lit l'export principal et remplit la durée, le BPM et la tonalité">🎚 Analyser l'export (durée, BPM, tonalité)</button></div>
+          <div class="chips" style="margin-top:8px"><button class="chip bi-sauv ok" data-sauver="1" title="Enregistré (clique pour enregistrer maintenant ; ça s\'enregistre aussi tout seul quand tu cliques ailleurs)">✓</button><button class="chip" data-act="analyser" title="Lit l'export principal et remplit la durée, le BPM et la tonalité">🎚 Analyser l'export (durée, BPM, tonalité)</button></div>
           <span class="nt">La tonalité est une estimation : vérifie à l'oreille.</span>`)}
         ${t('liens', 'Étiquettes', ((m.liens || []).length ? m.liens.length + ' lien(s) · ' : '') + (BK.drive.relie() ? 'tout ce qui concerne ce morceau' : 'Drive non relié'), () => `
           ${BK.drive.relie() ? `<button class="btn xs etq-plus" data-act="etiqueter">🏷 Étiqueter d'autres fichiers pour ${esc(m.nom)}</button>
@@ -322,8 +323,8 @@ BK.module('biblio', function (page) {
           ${(m.liens || []).map((l, i) => `<div class="ligne-f"><span class="etoile">🔗</span><a href="#" class="f-nom lien" data-url="${esc(l.url)}" title="${esc(l.url)}">${esc(l.titre || l.url)}</a><button class="btn xs" data-lienx="${i}">✕</button></div>`).join('')}
           <div class="lien-aj"><input class="fld" data-lien="titre" placeholder="ex. Projet Ableton v8 (zipper)"><input class="fld" data-lien="url" placeholder="colle le lien Google Drive…"><button class="btn xs" data-act="lien">+ Ajouter</button></div>
           ${BK.drive.relie() ? '' : '<span class="nt">Relie le Drive (Réglages) : les fichiers déposés dans le Drive, par ex. par le zipper Discord, apparaîtront ici tout seuls.</span>'}`)}
-        ${t('notes', 'Notes du groupe', m.resumeDiscord ? '🍞 résumé Discord · ' + date(m.resumeDiscord.t) : m.notes ? m.notes.split('\n')[0].slice(0, 50) : '—', () => `${m.resumeDiscord ? `<div class="box" style="margin-bottom:8px"><span class="lb">🍞 Ce que Miette a compris de Discord (${m.resumeDiscord.nb} messages, ${date(m.resumeDiscord.t)})</span><p class="ac-texte" style="white-space:pre-wrap">${esc(m.resumeDiscord.texte)}</p></div>` : ''}<textarea class="fld" data-champ="notes" placeholder="ex. attention au break à 2:10">${esc(m.notes || '')}</textarea>
-          <div class="chips" style="margin-top:8px"><button class="btn xs miette-aide" data-act="resumeDiscord" title="Miette relit tout ce que le groupe a dit sur ce morceau dans Discord et fait le point">${m.resumeDiscord ? 'Refaire le point Discord' : 'Faire le point Discord'}</button></div>`)}
+        ${t('notes', 'Notes du groupe', m.resumeDiscord ? '🍞 résumé Discord · ' + date(m.resumeDiscord.t) : m.notes ? m.notes.split('\n')[0].slice(0, 50) : '—', () => `${m.resumeDiscord ? `<div class="box${m.resumeDiscord.ok ? '' : ' mi-prop'}" style="margin-bottom:8px"><span class="lb">${m.resumeDiscord.ok ? '' : '<button class="mi-val" data-act="val-resume" title="C\'est juste : valider" style="float:right">✓</button>'}🍞 Ce que Miette a compris de Discord (${m.resumeDiscord.nb} messages, ${date(m.resumeDiscord.t)})</span><p class="ac-texte" style="white-space:pre-wrap">${esc(m.resumeDiscord.texte)}</p></div>` : ''}${(m.aValider || {}).notes ? '<div class="mi-bandeau" style="margin-bottom:6px">Miette a ajouté des lignes 🍞 lues sur Discord : vérifie-les<button class="mi-val" data-act="val-notes" style="margin-left:auto">✓ C\'est bon</button></div>' : ''}<textarea class="fld${(m.aValider || {}).notes ? ' mi-prop' : ''}" data-champ="notes" placeholder="ex. attention au break à 2:10">${esc(m.notes || '')}</textarea>
+          <div class="chips" style="margin-top:8px"><button class="chip bi-sauv ok" data-sauver="1" title="Enregistré (clique pour enregistrer maintenant ; ça s\'enregistre aussi tout seul quand tu cliques ailleurs)">✓</button><button class="btn xs miette-aide" data-act="resumeDiscord" title="Miette relit tout ce que le groupe a dit sur ce morceau dans Discord et fait le point">${m.resumeDiscord ? 'Refaire le point Discord' : 'Faire le point Discord'}</button></div>`)}
         <span class="eng fiche-grp">Retours</span>
         ${tRetours()}
         <div class="fiche-actions">
@@ -348,7 +349,8 @@ BK.module('biblio', function (page) {
     return `<div class="ligne-titre"><span class="nt" style="margin:0">Fichiers trouvés mais pas encore reliés à une fiche. Relie-les à un morceau existant, ou crée une fiche.</span>
       <button class="btn sm pri" id="biTout" style="margin-left:auto;flex:none">Créer toutes les fiches d'un coup…</button></div>` +
       O.slice(0, 300).map(f => `<div class="ligne-f orph" data-nom="${esc(f.nom)}"><span class="mono f-nom">${esc(f.nom)}</span><span class="nt f-meta">${f.type === 'als' ? 'Ableton' : 'audio'} · ${date(f.modif)} · ${esc(f.pc)}</span>
-        <select class="fld f-sel"><option value="">relier à…</option>${opts}</select><button class="btn xs" data-act="creer">+ Fiche</button></div>`).join('');
+        <select class="fld f-sel"><option value="">relier à…</option>${opts}</select><button class="btn xs" data-act="creer">+ Fiche</button><button class="btn xs" data-act="perso" title="Projet perso, pas BEESKOT : le retirer de la liste (le fichier n'est pas supprimé)">✕ Pas BEESKOT</button></div>`).join('')
+      + (BK.reglage('biblio.ignores', []).length ? `<div class="ligne-titre" style="margin-top:10px"><span class="nt" style="margin:0">${BK.reglage('biblio.ignores', []).length} projet(s) perso retiré(s) sur ce PC.</span><button class="btn xs" id="biRemettre" style="margin-left:auto">↺ Les remettre</button></div>` : '');
   }
 
   // ---------- la photo du morceau (la fiche garde son adresse sur le Drive) ----------
@@ -418,11 +420,28 @@ BK.module('biblio', function (page) {
       $$('.tiroir-tete', el).forEach(b => b.onclick = () => {
         const id = b.parentElement.dataset.t, l = B.tiroirs[m.id] = B.tiroirs[m.id] || [];
         l.includes(id) ? l.splice(l.indexOf(id), 1) : l.push(id); BK.regler('biblio.tiroirs', B.tiroirs); rendre(); });
+      const etatSauv = (c, ok) => { const z = c.closest('.tiroir-corps'), b = z && z.querySelector('[data-sauver]'); if (!b) return;
+        b.classList.toggle('ok', ok); b.classList.toggle('a-faire', !ok); b.title = ok ? 'Enregistré' : 'Pas encore enregistré : clique pour enregistrer'; };
+      $$('[data-champ]', el).forEach(c => c.addEventListener('input', () => etatSauv(c, false)));
+      $$('[data-sauver]', el).forEach(b => b.onclick = async () => { const z = b.closest('.tiroir-corps');
+        for (const c of $$('[data-champ]', z)) await c.onchange();                          // enregistre tout ce qui est dans ce tiroir
+        b.classList.add('ok'); b.classList.remove('a-faire'); b.title = 'Enregistré'; });
       $$('[data-champ]', el).forEach(c => c.onchange = async () => {
         const k = c.dataset.champ; m[k] = k === 'alias' ? c.value.split(',').map(s => s.trim()).filter(Boolean) : c.value;
-        if (k === 'bpm') m.bpmSource = c.value.trim() ? 'nous' : '';             // ce que vous écrivez passe devant Ableton et la détection
-        await sauver(m); msg('Enregistré'); if (k === 'alias' || k === 'bpm') { rendre(); } });
+        if (k === 'bpm') m.bpmSource = c.value.trim() ? 'nous' : '';
+        if ((m.aValider || {})[k]) { delete m.aValider[k]; c.classList.remove('mi-prop'); }   // vous l'avez touché : c'est validé             // ce que vous écrivez passe devant Ableton et la détection
+        await sauver(m); msg('Enregistré ✓'); etatSauv(c, true); if (k === 'alias' || k === 'bpm') { rendre(); } });
       $$('.f-note', el).forEach(c => c.onchange = async () => { (m.notesExports = m.notesExports || {})[c.dataset.f] = c.value; await sauver(m); msg('Note enregistrée'); });
+      $$('[data-etape]', el).forEach(b => b.oncontextmenu = e => { e.preventDefault(); const i = +b.dataset.etape, enc = i === (m.fait || 0) && (m.enCours || 0) > 0;
+        BK.menuCascade && $$('.md-menu').forEach(x => x.remove());
+        const menu = document.createElement('div'); menu.className = 'md-menu'; menu.style.left = Math.min(e.clientX, innerWidth - 230) + 'px'; menu.style.top = Math.min(e.clientY, innerHeight - 120) + 'px';
+        menu.innerHTML = `<span class="md-menu-t">${esc(BK.etapes[i].nom)}</span>` + (enc ? '<button data-ec="0">Retirer « en cours »</button>' : '<button data-ec="1">Mettre en cours</button>');
+        document.body.appendChild(menu);
+        const fermer = ev => { if (!menu.contains(ev.target)) { menu.remove(); document.removeEventListener('pointerdown', fermer, true); } };
+        setTimeout(() => document.addEventListener('pointerdown', fermer, true));
+        menu.onclick = async ev => { const x = ev.target.closest('[data-ec]'); if (!x) return; menu.remove(); document.removeEventListener('pointerdown', fermer, true);
+          if (x.dataset.ec === '1') { m.fait = i; m.enCours = 0.5; } else m.enCours = 0;          // en cours = la moitié de l'étape
+          await sauver(m); msg(x.dataset.ec === '1' ? BK.etapes[i].nom + ' : en cours' : 'Plus en cours'); rendre(); }; });
       $$('[data-etape]', el).forEach(b => b.onclick = async () => { const i = +b.dataset.etape; m.fait = (m.fait || 0) === i + 1 ? i : i + 1; m.enCours = 0; await sauver(m); rendre(); });
       $$('[data-ouvrir]', el).forEach(b => b.onclick = async () => { try { await BK.fichier.ouvrir(b.dataset.ouvrir); msg('Ouverture dans Ableton…'); } catch (e) { msg('Impossible d\'ouvrir'); } });
       $$('[data-reel]', el).forEach(b => b.onclick = async () => {
@@ -443,6 +462,8 @@ BK.module('biblio', function (page) {
       $$('[data-lienx]', el).forEach(b => b.onclick = async () => { m.liens.splice(+b.dataset.lienx, 1); await sauver(m); rendre(); });
       $$('[data-act]', el).forEach(b => b.onclick = async () => {
         const a = b.dataset.act;
+        if (/^val-/.test(a)) { const k = a.slice(4); if (k === 'resume') { if (m.resumeDiscord) m.resumeDiscord.ok = true; } else if (m.aValider) delete m.aValider[k];
+          await sauver(m); msg('Validé'); rendre(); return; }
         if (/^st-/.test(a)) { m.statut = a.slice(3); await sauver(m); rendre(); }
         if (a === 'renommer') { const n = prompt('Nouveau nom du morceau', m.nom); if (n && n.trim()) { (m.alias = m.alias || []).push(m.nom); m.nom = n.trim(); await sauver(m); rendre(); } }
         if (a === 'suppr') { if (confirm(`Retirer « ${m.nom} » de la Bibliothèque ?\n(La fiche est rangée dans la corbeille du Drive, et aucun fichier audio ou Ableton n'est touché.)`)) { await BK.db.supprimer('morceaux', m.id); await charger(); } }
@@ -477,10 +498,15 @@ BK.module('biblio', function (page) {
   }
   function brancherOrphelins() {
     const bt = $('#biTout', page); if (bt) bt.onclick = creerTout;
+    const rm = $('#biRemettre', page); if (rm) rm.onclick = () => { BK.regler('biblio.ignores', []); msg('Projets perso remis dans la liste'); rendre(); };
     $$('.orph', page).forEach(el => {
       const nom = el.dataset.nom;
       $('.f-sel', el).onchange = async e => { const m = B.morceaux.find(x => x.id === e.target.value); if (!m) return;
         (m.alias = m.alias || []).push(BK.inv.normaliser(nom)); await sauver(m); msg('Relié à ' + m.nom); rendre(); };
+      $('[data-act="perso"]', el).onclick = () => { const f = B.fichiers.find(x => x.nom === nom);
+        BK.regler('biblio.ignores', [...new Set([...BK.reglage('biblio.ignores', []), nom])]);
+        if (f && f.chemin) BK.regler('plugins.ignores', [...new Set([...BK.reglage('plugins.ignores', []), f.chemin])]);   // les plugins manquants l'oublient aussi
+        el.remove(); msg('Retiré : ' + nom + ' (le fichier n\'est pas touché)'); const n = orphelins().length; $('#biNbR').textContent = n ? `(${n})` : ''; };
       $('[data-act="creer"]', el).onclick = async () => { const n = prompt('Nom du morceau', BK.inv.normaliser(nom).replace(/\b\w/g, c => c.toUpperCase())); if (!n) return;
         B.morceaux.push(await BK.db.ecrire('morceaux', { nom: n.trim(), statut: 'chantier', fait: 0 })); msg('Fiche créée'); rendre(); };
     });

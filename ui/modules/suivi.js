@@ -27,7 +27,8 @@ BK.module('suivi', function (page) {
       <section class="pane vit">
         <div class="ligne-titre">
           <div class="seg" id="suFiltre"><button data-f="encours">En cours</button><button data-f="tout">Tous</button><button data-f="publie">Publiés</button></div>
-          <button class="btn sm" id="suImport" style="margin-left:auto" title="Crée une carte pour chaque reel des fiches de tournage">📋 Depuis les tournages</button>
+          <button class="btn sm miette-aide" id="suMiette" style="margin-left:auto" title="Miette relit Discord et crée une carte pour chaque reel dont vous avez parlé (en vert : à valider)">Chercher les reels</button>
+          <button class="btn sm" id="suImport" title="Crée une carte pour chaque reel des fiches de tournage">📋 Depuis les tournages</button>
         </div>
         <div class="box grow su-liste" id="suListe"></div>
       </section>
@@ -55,6 +56,7 @@ BK.module('suivi', function (page) {
     rendre();
   }
   BK.suiviRecharger = charger;
+  BK.suiviOuvrir = async id => { R.ouvert = id; BK.regler('suivi.ouvert', id); R.filtre = 'tout'; BK.ouvrir('suivi'); await charger(); };
 
   const morceauDe = r => R.morceaux.find(m => m.id === r.morceau);
   const tournageDe = r => R.tournages.find(t => t.id === r.tournage) ||
@@ -83,8 +85,8 @@ BK.module('suivi', function (page) {
     const choisi = R.ouvert === r.id;
     const img = imageDe(r);
     const pas = r.passage || (a && a.duree ? { debut: a.debut || 0, fin: (a.debut || 0) + a.duree } : null);
-    return `<button class="su-aff${choisi ? ' on' : ''}" data-ouv="${r.id}" data-id="${r.id}"
-        ${BK.img.bg(img)} data-mdimg="${(md.find(f => /^image\//.test(f.mimeType || '')) || {}).id || ''}"
+    return `<button class="su-aff${choisi ? ' on' : ''}${r.miette ? ' mi-prop' : ''}" data-ouv="${r.id}" data-id="${r.id}"
+        ${BK.img.bg(img)} data-mdimg="${(md.find(f => /^image\//.test(f.mimeType || '')) || {}).id || ''}" data-vid="${(md.find(f => /^video\//.test(f.mimeType || '')) || {}).id || ''}"
         title="${esc(r.titre || 'Reel')}">
       ${img ? '' : '<span class="su-aff-vide">🎬</span>'}
       <span class="su-aff-jauge"><i style="width:${Math.round((i + 1) / ETAPES.length * 100)}%"></i></span>
@@ -95,7 +97,7 @@ BK.module('suivi', function (page) {
         <span class="su-aff-pas">${ETAPES.map((e, k) => `<i class="${k <= i ? 'faite' : ''}"></i>`).join('')}<em>${esc(ETAPES[Math.max(0, i)].nom)}</em></span>
       </span>
       ${pas ? '<span class="su-aff-son">♪</span>' : ''}
-      <span class="su-aff-outils"><span class="su-aff-o" data-affiche="${r.id}" title="Changer l'image">🖼</span>${r.affiche ? `<span class="su-aff-o" data-imgx="${r.id}" title="Revenir à l'image automatique (moodboard)">↺</span>` : ''}</span>
+      <span class="su-aff-outils">${r.miette ? `<span class="mi-val" data-reval="${r.id}" title="Trouvé par Miette sur Discord${r.pourquoi ? ' : « ' + esc(r.pourquoi) + ' »' : ''} — c'est bon ?">✓</span>` : ''}<span class="su-aff-o" data-affiche="${r.id}" title="Changer l'image">🖼</span>${r.affiche ? `<span class="su-aff-o" data-imgx="${r.id}" title="Revenir à l'image automatique (moodboard)">↺</span>` : ''}</span>
       ${r.sortie ? `<span class="su-aff-date sortie" title="Sortie prévue">🚀 ${esc(date(r.sortie))}</span>` : t && t.date ? `<span class="su-aff-date" title="Tournage">${esc(date(t.date))}</span>` : ''}
     </button>`;
   }
@@ -132,9 +134,10 @@ BK.module('suivi', function (page) {
           ${md.length ? `<span class="su-mini">${md.slice(0, 6).map(f => `<i${BK.img.bg(BK.img.ref(f.id))}></i>`).join('')}</span>` : '<span class="nt">étiquetés pour ce reel</span>'}
           <span class="su-bb"><button class="btn xs" data-medins="${r.id}" title="Choisir des photos ou vidéos dans Médias : elles sont étiquetées pour ce reel">＋ Insérer</button></span></div>
         <div class="su-b${t ? ' fait' : ''}"><span class="eng">🎬 Tournage</span>
-          ${t ? `<b>${esc(t.titre || 'Tournage')}</b><span class="nt">${[date(t.date), t.heure, t.lieu].filter(Boolean).map(esc).join(' · ') || 'date à fixer'}</span>`
+          ${t ? `<b>${esc(t.titre || 'Tournage')}${t.fini ? ' <span class="su-tourne">✓ tourné</span>' : ''}</b><span class="nt">${[date(t.date), t.heure, t.lieu].filter(Boolean).map(esc).join(' · ') || 'date à fixer'}</span>
+              ${t.idee ? `<span class="nt su-idee">« ${esc(t.idee)} »</span>` : ''}<span class="nt">${(t.plans || []).length} plan(s)${t.materiel ? ' · matériel noté' : ''}</span>`
               : '<span class="nt">Pas de fiche de tournage</span>'}
-          <button class="btn xs" data-to="${r.id}">${t ? 'Ouvrir' : 'Créer la fiche'}</button></div>
+          <span class="su-bb"><button class="btn xs" data-to="${r.id}">${t ? 'Ouvrir' : 'Créer la fiche'}</button>${t ? `<button class="btn xs${t.fini ? ' on' : ''}" data-tfini="${r.id}">${t.fini ? '✓ Tourné' : 'Tournage fini'}</button>` : ''}</span></div>
       </div>
       <div class="su-sortie"><span class="eng">🚀 Sortie prévue</span>
         <input class="fld" type="date" data-sortie="${r.id}" value="${esc(r.sortie || '')}">
@@ -190,19 +193,39 @@ BK.module('suivi', function (page) {
     } catch (e) { console.error(e); msg('Lecture impossible'); }
   }
 
+  // la vidéo d'un reel, téléchargée une fois (seulement si elle n'est pas trop lourde) et gardée pendant la session
+  const VIDS = {};
+  function videoDe(id) {
+    if (VIDS[id] !== undefined) return VIDS[id];
+    const f = R.fichiers.find(x => x.id === id);
+    if (!f || (f.size && +f.size > 80e6)) return VIDS[id] = Promise.resolve('');
+    return VIDS[id] = BK.drive.api(`/files/${id}?fields=size`).then(r => r.json()).then(x => { if (+x.size > 80e6) throw 0; return BK.drive.api(`/files/${id}?alt=media`); }).then(r => r.blob()).then(b => URL.createObjectURL(b)).catch(() => (delete VIDS[id], ''));
+  }
+
   function brancher() {
     const z = $('#suListe');
     $$('[data-ouv]', z).forEach(b => b.onclick = () => { R.ouvert = R.ouvert === b.dataset.ouv ? null : b.dataset.ouv; BK.regler('suivi.ouvert', R.ouvert || ''); rendre();
       if (R.ouvert) setTimeout(() => { const c = $('.su-c', z); c && c.scrollIntoView({ behavior: 'smooth', block: 'nearest' }); }, 60); });
+    $$('[data-reval]', z).forEach(b => b.onclick = async e => { e.stopPropagation(); const r = R.l.find(x => x.id === b.dataset.reval); if (!r) return;
+      delete r.miette; await BK.db.ecrire('reels', r); msg('Reel validé'); rendre(); });
     $$('[data-play]', z).forEach(b => b.onclick = e => { e.stopPropagation(); jouerPassage(R.l.find(x => x.id === b.dataset.play)); });
     // la vignette : une image des médias du reel si la fiche du morceau n'en a pas
     (async () => { for (const b of $$('.su-aff[data-mdimg]', z)) { if (b.style.backgroundImage || b.dataset.img || b.classList.contains('img-charge') || !b.dataset.mdimg) continue;
       const f = R.fichiers.find(x => x.id === b.dataset.mdimg); if (!f) continue;
       try { const u = await BK.drive.vignette(f); if (u) { b.style.backgroundImage = `url(${u})`; const v = b.querySelector('.su-aff-vide'); v && v.remove(); } } catch (e) {} } })();
+    // souris sur une carte : s'il y a une vidéo du reel, elle passe en priorité (sans le son, en boucle)
+    $$('.su-aff[data-vid]', z).forEach(b => { if (!b.dataset.vid) return;
+      b.addEventListener('mouseenter', async () => { b._dessus = true;
+        try { const u = await videoDe(b.dataset.vid); if (!u || !b._dessus || b.querySelector('video')) return;
+          const v = document.createElement('video'); v.className = 'su-aff-vid'; v.src = u; v.muted = true; v.loop = true; v.playsInline = true;
+          b.prepend(v); await v.play().catch(() => {}); } catch (e) {} });
+      b.addEventListener('mouseleave', () => { b._dessus = false; const v = b.querySelector('video'); if (v) { v.pause(); v.remove(); } }); });
     $$('[data-st]', z).forEach(b => b.onclick = async () => { const [id, k] = b.dataset.st.split('|'); const r = R.l.find(x => x.id === id);
       const avant = ETAPES.findIndex(e => e.k === (r.statut || 'idee'));
       r.statut = r.statut === k ? (ETAPES[Math.max(0, ETAPES.findIndex(e => e.k === k) - 1)] || {}).k || 'idee' : k;
       await BK.db.ecrire('reels', r);
+      const t = tournageDe(r), apres = ETAPES.findIndex(e => e.k === r.statut), kt = ETAPES.findIndex(e => e.k === 'tourne');
+      if (t && r.tournage === t.id && !!t.fini !== (apres >= kt)) { t.fini = apres >= kt; await BK.db.ecrire('tournages', t); BK.tournagesRecharger && BK.tournagesRecharger(); }
       await noterDansTodo(r, avant, ETAPES.findIndex(e => e.k === r.statut));
       msg(ETAPES.find(e => e.k === r.statut).nom); rendre(); });
     // la date de sortie : dans la fiche, et un rendez-vous « Publication » dans le Calendrier (créé ou déplacé)
@@ -242,9 +265,13 @@ BK.module('suivi', function (page) {
       BK.suiviEnCours = r.id;
       if (r.passage) BK.reelsPasser({ morceau: m, debut: r.passage.debut, fin: r.passage.fin });
       else { BK.ouvrir('reels'); BK.reelsPasser({ morceau: m }); } });
+    $$('[data-tfini]', z).forEach(b => b.onclick = async () => { const r = R.l.find(x => x.id === b.dataset.tfini), t = tournageDe(r); if (!t) return;
+      t.fini = !t.fini; await BK.db.ecrire('tournages', t); const kt = ETAPES.findIndex(e => e.k === 'tourne');
+      if (t.fini && ETAPES.findIndex(e => e.k === (r.statut || 'idee')) < kt) { r.statut = 'tourne'; await BK.db.ecrire('reels', r); }
+      BK.tournagesRecharger && BK.tournagesRecharger(); msg(t.fini ? 'Tourné ✓' : 'Tournage remis à faire'); rendre(); });
     $$('[data-to]', z).forEach(b => b.onclick = async () => { const r = R.l.find(x => x.id === b.dataset.to); let t = tournageDe(r);
       if (!t) { const m = morceauDe(r);
-        t = await BK.db.ecrire('tournages', { titre: r.titre || 'Tournage', type: 'Reel', morceau: m ? m.nom : '', date: '', heure: '', lieu: '', idee: '', moodboard: [], plans: [], tenues: {}, materiel: '', notes: '' });
+        t = await BK.db.ecrire('tournages', { titre: r.titre || 'Tournage', type: 'Reel', morceau: m ? m.nom : '', date: '', heure: '', lieu: '', idee: r.notes || '', moodboard: [], plans: [], tenues: {}, materiel: '', notes: '' });
         r.tournage = t.id; await BK.db.ecrire('reels', r); R.tournages.push(t); msg('Fiche de tournage créée'); }
       BK.tournageOuvrir ? BK.tournageOuvrir(t.id) : BK.ouvrir('tournage'); });
     // ＋ Insérer : la fenêtre Médias (jamais l'onglet Médias) ; ce qu'on choisit est étiqueté pour ce reel
@@ -294,6 +321,21 @@ BK.module('suivi', function (page) {
     R.l.push(r); $('#suTitre').value = ''; msg('Reel créé'); rendre();
   };
   $('#suTitre').addEventListener('keydown', e => { e.stopPropagation(); if (e.key === 'Enter') $('#suAjout').click(); });
+  $('#suMiette').onclick = async () => {
+    const b = $('#suMiette'), avant = b.innerHTML; b.disabled = true; b.innerHTML = '<span class="spin"></span>Miette cherche…';
+    try {
+      await BK.discord.ronde(() => {}, true).catch(() => {});
+      const l = await BK.discord.reelsTrouver(), n0 = BK.inv.normaliser; let n = 0;
+      for (const x of l) {
+        if (R.l.some(r => n0(r.titre || '') === n0(x.titre))) continue;
+        const m = BK.inv.trouverMorceau(x.morceau || '', R.morceaux);
+        const st = ETAPES.some(e => e.k === x.statut) ? x.statut : 'idee';
+        R.l.push(await BK.db.ecrire('reels', { titre: String(x.titre).slice(0, 80), morceau: m ? m.id : '', statut: st, notes: x.idee || '', pourquoi: x.pourquoi || '', miette: true })); n++;
+      }
+      rendre(); msg(n ? `Miette a trouvé ${n} reel(s) : en vert, à valider` : 'Pas de nouveau reel trouvé sur Discord');
+    } catch (e) { msg(e.message || 'Miette n\'a pas pu chercher'); }
+    finally { b.disabled = false; b.innerHTML = avant; }
+  };
   $('#suImport').onclick = async () => {
     let n = 0;
     for (const t of R.tournages) for (const p of (t.plans || [])) {

@@ -57,7 +57,7 @@ BK.module('postvis', function (page) {
             <div class="box"><span class="lb">Recadrer et couleur</span>
               <div class="pv-tab">
                 <span class="eng">Cadrage</span>
-                <div class="pv-seg"><button id="pvEntier" title="Voir toute la photo, avec des bandes noires">⤢ Entière</button><button id="pvRemplir" title="La photo remplit le cadre, les bords sont coupés">⤡ Remplir</button><button id="pvCentre" title="Remettre au centre, sans zoom">⊙ Centrer</button><button id="pvTous" title="Applique le cadrage de cette photo à toutes les photos du carrousel">↻ Pour toutes</button></div>
+                <div class="pv-seg"><button id="pvEntier" title="Voir toute la photo, avec des bandes noires">⤢ Entière</button><button id="pvRemplir" title="La photo remplit le cadre, les bords sont coupés">⤡ Remplir</button><button id="pvCentre" title="Remettre au centre, sans zoom">⊙ Centrer</button><button id="pvTourner" title="Tourner la photo d'un quart de tour">⟳ Tourner</button><button id="pvTous" title="Applique le cadrage de cette photo à toutes les photos du carrousel">↻ Pour toutes</button></div>
                 <span class="eng">Preset</span>
                 <div class="pv-ligne"><select class="fld" id="pvPreset" title="Couleur, effet et réglages d'un coup (tu peux tout retoucher après)"><option value="">Choisir un preset…</option>${PRESETS.map((x, i) => `<option value="${i}">${x.nom}</option>`).join('')}</select></div>
                 <span class="eng">Réglages</span>
@@ -106,6 +106,15 @@ BK.module('postvis', function (page) {
     $('#pvFmtH').textContent = f.nom.split(' ').pop(); $$('#pvFmt .chip').forEach(c => c.classList.toggle('on', c.dataset.f === P.format));
   }
   // « photo entière » : le moteur remplit le cadre par défaut ; ce zoom-là montre toute la photo
+  // la photo tournée d'un quart de tour (0, 90, 180, 270°) : une copie gardée tant que l'angle ne change pas
+  function tournee(s) {
+    const rot = ((s.rot || 0) % 360 + 360) % 360; if (!rot) return s.img;
+    if (s._tour && s._tour.rot === rot) return s._tour.c;
+    const w = s.img.naturalWidth || s.img.width, h = s.img.naturalHeight || s.img.height, c = document.createElement('canvas');
+    c.width = rot % 180 ? h : w; c.height = rot % 180 ? w : h;
+    const x = c.getContext('2d'); x.translate(c.width / 2, c.height / 2); x.rotate(rot * Math.PI / 180); x.drawImage(s.img, -w / 2, -h / 2);
+    s._tour = { rot, c }; return c;
+  }
   function zoomEntier(img) {
     const f = F(), vw = img.naturalWidth || img.width, vh = img.naturalHeight || img.height;
     if (!vw || !vh) return 100;
@@ -119,7 +128,7 @@ BK.module('postvis', function (page) {
   function dessiner() {
     const s = S(); $('#pvVide').classList.toggle('hidden', !!s);
     if (!s) { c2.clearRect(0, 0, cv.width, cv.height); return; }
-    r.dessiner(s.img, { zoom: s.zoom / 100, x: s.x, y: s.y }, (P.force ?? 100) / 100, '', P.voile ? { type: P.voile, t: 0, k: (P.voileK ?? 100) / 100 } : null); BK.rendu.cadre(c2, r.sortie, cv.width, cv.height, P.cadre || '', P.cadreT ?? 40, P.i);
+    r.dessiner(tournee(s), { zoom: s.zoom / 100, x: s.x, y: s.y }, (P.force ?? 100) / 100, '', P.voile ? { type: P.voile, t: 0, k: (P.voileK ?? 100) / 100 } : null); BK.rendu.cadre(c2, r.sortie, cv.width, cv.height, P.cadre || '', P.cadreT ?? 40, P.i);
     $('#pvZoom').value = (s.zoom - 100) + ' %';
   }
   function majTout() {
@@ -216,9 +225,11 @@ BK.module('postvis', function (page) {
   fc.addEventListener('blur', () => { if (fc.readOnly) return; fc.readOnly = true; const v = parseFloat(fc.value.replace(',', '.')); force(isNaN(v) ? P.force : v); });
   fc.addEventListener('keydown', e => { e.stopPropagation(); if (e.key === 'Enter') fc.blur(); });
   fc.addEventListener('wheel', e => { e.preventDefault(); force(P.force - Math.sign(e.deltaY) * 5); }, { passive: false });
-  $('#pvEntier').onclick = () => { const s = S(); if (!s) return; s.zoom = zoomEntier(s.img); s.x = 0; s.y = 0; dessiner(); majTout(); msg('Photo entière'); };
+  $('#pvEntier').onclick = () => { const s = S(); if (!s) return; s.zoom = zoomEntier(tournee(s)); s.x = 0; s.y = 0; dessiner(); majTout(); msg('Photo entière'); };
   $('#pvRemplir').onclick = () => { const s = S(); if (!s) return; s.zoom = 100; s.x = 0; s.y = 0; dessiner(); majTout(); msg('La photo remplit le cadre'); };
   $('#pvCentre').onclick = () => { const s = S(); if (!s) return; s.x = s.y = 0; s.zoom = 100; dessiner(); };
+  $('#pvTourner').onclick = () => { const s = S(); if (!s) return; s.rot = ((s.rot || 0) + 90) % 360;
+    if (s.zoom < 100) s.zoom = zoomEntier(tournee(s)); s.x = 0; s.y = 0; dessiner(); majTout(); msg('Photo tournée : ' + s.rot + '°'); };
   $('#pvTous').onclick = () => { const s = S(); if (!s) return; P.slides.forEach(x => { x.zoom = s.zoom; x.x = s.x; x.y = s.y; }); msg('Même cadrage partout'); };
 
   // ---------- couleur : LUT ----------
@@ -265,7 +276,7 @@ BK.module('postvis', function (page) {
 
   // ---------- format, légende, nom ----------
   $$('#pvFmt .chip').forEach(c => c.onclick = () => { P.format = c.dataset.f; BK.regler('pv.format', P.format); moteur();
-    for (const s of P.slides) if (s.zoom <= 100) s.zoom = cadrageDepart(s.img);      // on change de cadre : on ne coupe pas la photo sans le dire
+    for (const s of P.slides) if (s.zoom <= 100) s.zoom = cadrageDepart(tournee(s));      // on change de cadre : on ne coupe pas la photo sans le dire
     dessiner(); majTout(); });
   $('#pvLeg').oninput = e => { P.legende = e.target.value; $('#pvLegAff').textContent = P.legende.split('\n')[0] || 'La légende du post…'; };
   $('#pvLeg').addEventListener('keydown', e => e.stopPropagation());
@@ -283,7 +294,7 @@ BK.module('postvis', function (page) {
     const attente = () => { z.innerHTML = `<span class="nt pv-reflechit"><span class="spin"></span>🍞 Miette réfléchit à tes légendes… ${Math.round((Date.now() - t0) / 1000)} s</span>`; };
     attente(); const tic = setInterval(attente, 1000);
     try {
-      const r = await BK.ia.demander(demande, { json: true, vite: true, temperature: 0.8, delai: 60 });
+      const r = await BK.ia.demander(demande, { prio: true, json: true, vite: true, temperature: 0.8, delai: 60 });
       const tab = Array.isArray(r) ? r : (r && (r.legendes || Object.values(r).find(Array.isArray))) || (r && typeof r === 'object' ? Object.values(r).filter(x => typeof x === 'string') : []);
       clearInterval(tic);
       const l = tab.map(x => typeof x === 'string' ? x : (x && (x.legende || x.texte || x.caption || Object.values(x).find(v => typeof v === 'string'))) || '').filter(Boolean).slice(0, 6);
@@ -302,7 +313,7 @@ BK.module('postvis', function (page) {
     try {
       const f = F(), rr = BK.rendu.creer(f.L, f.H); rr.lut(P.lut); rr.reglages(P.regl); const faits = [];
       for (let k = 0; k < P.slides.length; k++) {
-        const s = P.slides[k]; rr.dessiner(s.img, { zoom: s.zoom / 100, x: s.x, y: s.y }, (P.force ?? 100) / 100, '', P.voile ? { type: P.voile, t: k * 0.37, k: (P.voileK ?? 100) / 100 } : null);   // l'effet vintage : un peu différent sur chaque photo
+        const s = P.slides[k]; rr.dessiner(tournee(s), { zoom: s.zoom / 100, x: s.x, y: s.y }, (P.force ?? 100) / 100, '', P.voile ? { type: P.voile, t: k * 0.37, k: (P.voileK ?? 100) / 100 } : null);   // l'effet vintage : un peu différent sur chaque photo
         const fin = document.createElement('canvas'); fin.width = f.L; fin.height = f.H;          // la photo dans son cadre (s'il y en a un)
         BK.rendu.cadre(fin.getContext('2d'), rr.sortie, f.L, f.H, P.cadre || '', P.cadreT ?? 40, k);
         const blob = await new Promise(ok => fin.toBlob(ok, 'image/jpeg', 0.92)), octets = new Uint8Array(await blob.arrayBuffer());

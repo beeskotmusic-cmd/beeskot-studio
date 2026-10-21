@@ -175,7 +175,7 @@ BK.discord = {
       let l = []; try { l = await BK.discord.api(`/channels/${s.id}/messages?limit=50`, c.jeton); } catch (e) { continue; }
       for (const m of l) {
         if (faits.has(m.id) || (m.author && m.author.bot && !BK.discord.texteDe(m))) continue;
-        const bisc = (m.reactions || []).some(r => r.emoji && r.emoji.name === '🍞'), dit = BK.discord.RE_POINTE.test(m.content || '');
+        const bisc = (m.reactions || []).some(r => r.emoji && (r.emoji.name === '🍞' || r.emoji.name === '🥖')), dit = BK.discord.RE_POINTE.test(m.content || '');
         if (!bisc && !dit) continue;
         if (!bisc && Date.now() - new Date(m.timestamp).getTime() > 3 * 864e5) continue;   // « Miette, … » : seulement les messages récents (pas de vieilles questions d'avant)
         if ((m.reactions || []).some(r => r.emoji && (r.emoji.name === '✅' || r.emoji.name === '❓') && r.me)) { faits.add(m.id); continue; }
@@ -225,21 +225,21 @@ Si le message dit OÙ ranger (calendrier, to-do / tâche, tournage / référence
       const src = String(x.source || '').replace(/\D/g, ''), p = pointes.find(q => q.m.id === src) || (pointes.length === 1 ? pointes[0] : null);
       try {
         let ok = false;
-        if (x.type === 'evenement' && /^\d{4}-\d\d-\d\d$/.test(x.date || '')) { await BK.db.ecrire('evenements', { type: TYPES_EV.includes(x.quoi) ? x.quoi : 'autre', titre: x.titre || 'Rendez-vous', morceau: (morc(x.morceau) || {}).nom || '', date: x.date, heure: x.heure || '', lieu: x.lieu || '', source: 'discord' }); ok = true; }
-        else if (x.type === 'tache' && x.texte) { await BK.db.ecrire('taches', { texte: x.texte, qui: membre(x.qui), morceau: (morc(x.morceau) || {}).nom || '', date: /^\d{4}-\d\d-\d\d$/.test(x.date || '') ? x.date : '', fait: false, ordre: Date.now(), source: 'discord' }); ok = true; }
+        if (x.type === 'evenement' && /^\d{4}-\d\d-\d\d$/.test(x.date || '')) { await BK.db.ecrire('evenements', { type: TYPES_EV.includes(x.quoi) ? x.quoi : 'autre', titre: x.titre || 'Rendez-vous', morceau: (morc(x.morceau) || {}).nom || '', date: x.date, heure: x.heure || '', lieu: x.lieu || '', source: 'discord', miette: true }); ok = true; }
+        else if (x.type === 'tache' && x.texte) { await BK.db.ecrire('taches', { texte: x.texte, qui: membre(x.qui), morceau: (morc(x.morceau) || {}).nom || '', date: /^\d{4}-\d\d-\d\d$/.test(x.date || '') ? x.date : '', fait: false, ordre: Date.now(), source: 'discord', miette: true }); ok = true; }
         else if ((x.type === 'bpm' || x.type === 'ton' || x.type === 'sortie' || x.type === 'note') && morc(x.morceau)) {
           const m = morc(x.morceau);
-          if (x.type === 'bpm' && +x.bpm >= 50 && +x.bpm <= 220) { m.bpm = String(x.bpm); m.bpmSource = 'discord'; ok = true; }
-          if (x.type === 'ton' && x.ton) { m.ton = x.ton; m.tonSource = 'discord'; ok = true; }
-          if (x.type === 'sortie' && /^\d{4}-\d\d-\d\d$/.test(x.date || '')) { m.sortie = x.date; ok = true; }
-          if (x.type === 'note' && x.texte) { m.notes = ((m.notes ? m.notes + '\n' : '') + '🍞 ' + x.texte).slice(-4000); ok = true; }
+          if (x.type === 'bpm' && +x.bpm >= 50 && +x.bpm <= 220) { m.bpm = String(x.bpm); m.bpmSource = 'discord'; (m.aValider = m.aValider || {}).bpm = true; ok = true; }
+          if (x.type === 'ton' && x.ton) { m.ton = x.ton; m.tonSource = 'discord'; (m.aValider = m.aValider || {}).ton = true; ok = true; }
+          if (x.type === 'sortie' && /^\d{4}-\d\d-\d\d$/.test(x.date || '')) { m.sortie = x.date; (m.aValider = m.aValider || {}).sortie = true; ok = true; }
+          if (x.type === 'note' && x.texte) { m.notes = ((m.notes ? m.notes + '\n' : '') + '🍞 ' + x.texte).slice(-4000); (m.aValider = m.aValider || {}).notes = true; ok = true; }
           if (ok) await BK.db.ecrire('morceaux', m);
         }
         else if (x.type === 'reference' && /^https?:\/\//.test(x.url || '')) {
           const n = BK.inv.normaliser, t = tours.find(t => x.tournage && n(t.titre) === n(x.tournage)) || tours.find(t => x.morceau && morc(x.morceau) && t.morceau === morc(x.morceau).nom);
-          if (t && !(t.references || []).some(y => y.url === x.url)) { (t.references = t.references || []).push({ url: x.url, note: x.note || '' }); await BK.db.ecrire('tournages', t); ok = true; }
+          if (t && !(t.references || []).some(y => y.url === x.url)) { (t.references = t.references || []).push({ url: x.url, note: x.note || '', miette: true }); await BK.db.ecrire('tournages', t); ok = true; }
         }
-        else if (x.type === 'depense' && +x.montant > 0) { await BK.db.ecrire('depenses', { titre: x.titre || 'Dépense', montant: +x.montant, payePar: membre(x.payePar) || (p && membre(p.qui)) || 'Yacine', pour: (x.pour || []).map(membre).filter(Boolean).length ? (x.pour || []).map(membre).filter(Boolean) : ['Yacine', 'Pierre', 'Baptiste'], date: /^\d{4}-\d\d-\d\d$/.test(x.date || '') ? x.date : auj, cat: '', source: 'discord' }); ok = true; }
+        else if (x.type === 'depense' && +x.montant > 0) { await BK.db.ecrire('depenses', { titre: x.titre || 'Dépense', montant: +x.montant, payePar: membre(x.payePar) || (p && membre(p.qui)) || 'Yacine', pour: (x.pour || []).map(membre).filter(Boolean).length ? (x.pour || []).map(membre).filter(Boolean) : ['Yacine', 'Pierre', 'Baptiste'], date: /^\d{4}-\d\d-\d\d$/.test(x.date || '') ? x.date : auj, cat: '', source: 'discord', miette: true }); ok = true; }
         if (ok && p) { parSource[p.m.id] = (parSource[p.m.id] || 0) + 1; ranges++; }
       } catch (e) { console.warn(e); }
     }
@@ -412,6 +412,23 @@ Si rien n'est décidé, réponds [].`;
   // ---------- PLANNING : les dates dont on a parlé (validées ou juste possibles) → le Calendrier ----------
   // les dates trouvées s'AJOUTENT à celles d'avant (une lecture qui en trouve moins n'efface plus rien) ;
   // une date passée ou « ✕ ignorée » s'en va
+  // les absences trouvées s'AJOUTENT (jamais effacées par une lecture suivante) ; les jours passés s'en vont.
+  // Rangées à part (« dispos.miette ») : ce que vous cochez vous-mêmes passe toujours devant.
+  async rangerAbsences(l, auj) {
+    const membres = ['Yacine', 'Pierre', 'Baptiste'], d = await BK.partage.lire('dispos.miette', {}), j = x => /^\d{4}-\d\d-\d\d$/.test(x || '');
+    let n = 0;
+    for (const a of l || []) {
+      const qui = membres.find(m => m.toLowerCase() === String(a.qui || '').toLowerCase()); if (!qui || !j(a.du)) continue;
+      const fin = j(a.au) && a.au >= a.du ? a.au : a.du;
+      for (let x = new Date(a.du + 'T12:00'), k = 0; k < 62; k++, x.setDate(x.getDate() + 1)) {
+        const jour = x.toISOString().slice(0, 10); if (jour > fin) break; if (jour < auj) continue;
+        const o = d[jour] = d[jour] || {}; if (!o[qui]) { o[qui] = { e: 'non', pourquoi: String(a.pourquoi || '').slice(0, 160) }; n++; }
+      }
+    }
+    for (const k of Object.keys(d)) if (k < auj) delete d[k];
+    if (n) await BK.partage.ecrire('dispos.miette', d);
+    return n;
+  },
   rangerPlanning(doc, trouvees, auj) {
     const ign = new Set(doc.ignores || []), sujet = e => [e.type, BK.inv.normaliser(e.morceau || ''), BK.inv.normaliser(e.titre || '')].join('|');
     const neuves = trouvees.filter(e => e.dates.some(d => /^\d{4}-\d\d-\d\d$/.test(d) && d >= auj))
@@ -433,11 +450,14 @@ Les MAILS recopiés par un bot comptent autant : livraison d'un mix promise par 
 Pour chacune, dis si c'est « valide » (décidé, confirmé) ou « possible » (proposé, hésitation entre plusieurs jours, « peut-être », pas encore confirmé).
 Si on hésite entre plusieurs jours (« le 24 ou le 25 »), mets toutes les dates possibles dans "dates".
 Les dates relatives se calculent depuis la date du message. Ne garde que les dates à partir d'aujourd'hui.
-Réponds en JSON : un tableau de {"type":"tournage|shooting|enreg|repet|mixage|sortie|promo|autre","titre":"court","morceau":"nom exact ou vide","dates":["AAAA-MM-JJ"],"heure":"HH:MM ou vide","lieu":"","statut":"valide|possible","pourquoi":"1 phrase qui cite ce qui a été dit","source":"l'identifiant (msg …)"}.
+Trouve AUSSI les absences des membres (« je suis pas là cette semaine », « je rentre le 24 », « dispo seulement à partir de lundi ») : qui (Yacine, Pierre ou Baptiste), du = premier jour d'absence, au = dernier jour d'absence (la veille du retour).
+Réponds en JSON : {"dates": [...], "absences": [{"qui":"Yacine|Pierre|Baptiste","du":"AAAA-MM-JJ","au":"AAAA-MM-JJ","pourquoi":"1 phrase qui cite ce qui a été dit"}]}, où chaque élément de "dates" est {"type":"tournage|shooting|enreg|repet|mixage|sortie|promo|autre","titre":"court","morceau":"nom exact ou vide","dates":["AAAA-MM-JJ"],"heure":"HH:MM ou vide","lieu":"","statut":"valide|possible","pourquoi":"1 phrase qui cite ce qui a été dit","source":"l'identifiant (msg …)"}.
 Morceaux : ${ms.map(m => m.nom + ((m.alias || []).length ? ' (' + m.alias.join(', ') + ')' : '')).join(', ')}.`;
     const r = await BK.ia.demander(`Messages Discord des 45 derniers jours :\n${BK.discord.texte(recents.slice(-800))}`, { systeme, json: true, temperature: 0.1, vite: true, delai: 90 });
     const brut = (Array.isArray(r) ? r : Array.isArray(r && r.dates) ? r.dates : Array.isArray(r && r.planning) ? r.planning : []).filter(e => e && Array.isArray(e.dates));
     BK.discord.rangerPlanning(doc, brut, auj);
+    // les absences dites sur Discord → le Calendrier (pastille « pas là » de Miette, à valider par le groupe)
+    try { await BK.discord.rangerAbsences((r && Array.isArray(r.absences)) ? r.absences : [], auj); } catch (e) { console.warn('absences', e); }
     // ce que Miette a lu : pour comprendre quand une date n'apparaît pas
     const mails = recents.filter(l => /^🤖/.test(l.qui || ''));
     doc.lu = { messages: recents.length, mails: mails.length, de: (recents[0] || {}).t || '', a: (recents[recents.length - 1] || {}).t || '', trouvees: brut.length,
@@ -480,6 +500,41 @@ Réponds en JSON : un tableau de {"texte":"…","qui":"Yacine|Pierre|Baptiste|BE
     const l = (Array.isArray(r) ? r : (r && r.taches) || []).filter(t => t && t.texte).map(t => ({ ...t, type: 'tache' }));
     const avant = props.length; await BK.discord.rangerPropositions(l);
     return (await BK.db.liste('propositions')).length - avant;
+  },
+
+  // ---------- les dépenses dont on a parlé (bouton Miette du Budget) : des propositions, à valider ----------
+  async depensesProposer() {
+    if (!(await BK.ia.pret())) throw new Error('Il faut la clé Gemini et l\'AI allumée');
+    const j = await BK.discord.journal(3), depuis = new Date(Date.now() - 60 * 864e5).toISOString(), recents = j.filter(l => l.t >= depuis);
+    if (!recents.length) return 0;
+    const [ds, props] = await Promise.all([BK.db.liste('depenses'), BK.db.liste('propositions')]);
+    const deja = [...ds.map(d => `${d.date} ${d.titre} ${d.montant}$ (${d.payePar})`), ...props.filter(p => p.type === 'depense').map(p => `${p.date} ${p.titre} ${p.montant}$`)];
+    const systeme = `Tu tiens le budget du groupe de musique BEESKOT à partir de leurs messages Discord (français familier) et des mails recopiés par un bot.
+Trouve les PAIEMENTS faits pour le groupe : location de studio, matériel, pub, mix/master, distribution, transport, nourriture en session… (« j'ai payé », « j'ai avancé 40 $ », facture réglée, reçu).
+Pas les prix seulement envisagés, pas ce qui est déjà dans la liste.
+Réponds en JSON : un tableau de {"titre":"court","montant":nombre,"payePar":"Yacine|Pierre|Baptiste","pour":["Yacine","Pierre","Baptiste"],"date":"AAAA-MM-JJ","source":"l'identifiant (msg …) du message","pourquoi":"1 phrase courte qui cite ce qui a été dit"}.
+Membres : Yacine (Yaya, Dari, pseudo Discord « sneakers »), Pierre (« pierrec1. »), Baptiste (Bat, Drumblebee).`;
+    const r = await BK.ia.demander(`Déjà dans le budget (ne pas reproposer) :\n${deja.slice(-150).join('\n') || 'rien'}\n\nMessages Discord des 60 derniers jours :\n${BK.discord.texte(recents.slice(-700))}`,
+      { systeme, json: true, temperature: 0.2, vite: true, delai: 90, prio: true });
+    const l = (Array.isArray(r) ? r : (r && r.depenses) || []).filter(d => d && d.titre && +d.montant > 0).map(d => ({ ...d, montant: +d.montant, type: 'depense' }));
+    const avant = props.length; await BK.discord.rangerPropositions(l);
+    return (await BK.db.liste('propositions')).length - avant;
+  },
+
+  // ---------- les reels dont on a parlé (bouton Miette de l'onglet Reels) ----------
+  async reelsTrouver() {
+    if (!(await BK.ia.pret())) throw new Error('Il faut la clé Gemini et l\'AI allumée');
+    const j = await BK.discord.journal(4);
+    if (!j.length) return [];
+    const [rs, ms] = await Promise.all([BK.db.liste('reels'), BK.db.liste('morceaux')]);
+    const systeme = `Tu aides le groupe de musique BEESKOT à suivre leurs REELS (vidéos courtes Instagram / TikTok) à partir de leurs messages Discord (français familier).
+Trouve chaque idée de reel dont ils ont parlé : un reel prévu, à tourner, à monter ou à poster (teaser, extrait, coulisses, live, tendance…).
+Pas ce qui est déjà dans la liste. Regroupe les messages qui parlent du même reel.
+Réponds en JSON : un tableau de {"titre":"très court, 18 caractères maximum, ex. Refrain Mother","morceau":"nom exact ou vide","idee":"1 phrase : ce qu'on voit / ce qu'on fait","statut":"idee|tournage|montage|publie","pourquoi":"1 phrase courte qui cite ce qui a été dit"}.
+Morceaux : ${ms.map(m => m.nom + ((m.alias || []).length ? ' (' + m.alias.join(', ') + ')' : '')).join(', ')}.`;
+    const r = await BK.ia.demander(`Reels déjà dans la liste (ne pas reproposer) :\n${rs.map(x => x.titre).join('\n') || 'aucun'}\n\nMessages Discord :\n${BK.discord.texte(j.slice(-900))}`,
+      { systeme, json: true, temperature: 0.2, vite: true, delai: 90, prio: true });
+    return (Array.isArray(r) ? r : (r && r.reels) || []).filter(x => x && x.titre);
   },
 
   // ---------- GRAND RANGEMENT : relire TOUT l'historique des salons, puis tout faire analyser ----------

@@ -131,6 +131,10 @@ BK.module('ecoute', function (page) {
       if (dans >= 0) { if (dans < buf.duration) s.start(now, dans); } else s.start(now - dans, 0); E.srcs.push(s); };
     lancer(E.bufA, E.gA, E.pos); lancer(E.bufB, E.gB, E.pos + E.decal);
     E.t0 = now - E.pos; E.joue = true; $('#ecPlay').textContent = '⏸'; boucle();
+    BK.mini.lance(E.mini = E.mini || { page: 'ecoute',                  // en bas : ce qu'on écoute ici (et la Bibliothèque s'arrête)
+      titre: () => 'Écoute · ' + (E.m ? E.m.nom : '') + ' · version ' + E.cote,
+      temps: () => E.joue && E.ctx ? E.ctx.currentTime - E.t0 : E.pos, duree: () => duree(), joue: () => E.joue,
+      jouer: () => jouer(), pause: () => stop(), aller: t => { if (E.joue) jouer(t); else { E.pos = t; majTete(); } } });
   }
   function stop() { E.srcs.forEach(s => { try { s.stop(); } catch (e) {} }); E.srcs = []; if (E.joue && E.ctx) E.pos = E.ctx.currentTime - E.t0; E.joue = false; $('#ecPlay') && ($('#ecPlay').textContent = '▶'); }
   function boucle() {
@@ -178,8 +182,8 @@ BK.module('ecoute', function (page) {
     const trace = (buf, y0, h, c, decal) => { if (!buf) return;
       const px = Math.round(W * buf.duration / D), p = BK.audio.pics(buf, Math.max(10, px)), x0 = -decal / D * W;
       x.fillStyle = c; for (let i = 0; i < px; i++) { const mn = p[i * 2], mx = p[i * 2 + 1]; x.fillRect(x0 + i, y0 + h / 2 - mx * h / 2, 1, Math.max(1, (mx - mn) * h / 2)); } };
-    trace(E.bufA, 4, 66, '#4f9bd0', 0); trace(E.bufB, 80, 66, '#d0574f', E.decal);
-    x.fillStyle = 'rgba(239,230,210,.15)'; x.fillRect(0, 75, W, 1);
+    if (E.bufA && E.bufB) { trace(E.bufA, 4, 66, '#4f9bd0', 0); trace(E.bufB, 80, 66, '#d0574f', E.decal); x.fillStyle = 'rgba(239,230,210,.15)'; x.fillRect(0, 75, W, 1); }
+    else trace(E.bufA || E.bufB, 6, 138, E.bufA ? '#4f9bd0' : '#d0574f', E.bufA ? 0 : E.decal);      // un seul mix : il prend toute la hauteur
     dessinerNotes(); majTete();
   }
   function majTete() { const D = duree(); if (!D) return; $('#ecTete').style.left = (E.pos / D * 100) + '%'; $('#ecTemps').textContent = tps(E.pos) + ' / ' + tps(D);
@@ -258,7 +262,7 @@ BK.module('ecoute', function (page) {
     const b = $('#ecTraduire'); b.disabled = true; const avant = b.textContent; b.innerHTML = '<span class="spin"></span>Miette traduit…';
     try {
       const entree = l.map(n => ({ id: n.id, texte: n.texte, reponses: (n.reponses || []).map(r => r.texte) }));
-      const r = await BK.ia.demander(JSON.stringify(entree), { json: true, temperature: 0.2, vite: true,
+      const r = await BK.ia.demander(JSON.stringify(entree), { prio: true, json: true, temperature: 0.2, vite: true,
         systeme: 'Tu traduis en anglais des notes de mixage écrites en français par un groupe de musique, pour un ingénieur du son anglophone. Traduis de façon naturelle, comme un musicien parlerait à un ingé son (vocabulaire de studio : vocal, low end, punch, reverb tail, sidechain…), sans rien ajouter. Réponds en JSON : {"l":[{"id":"…","en":"…","reponses":["…"]}]} dans le même ordre.' });
       let n = 0;
       for (const x of (r && r.l) || []) { const note = E.notes.find(y => y.id === x.id); if (!note || !x.en) continue;

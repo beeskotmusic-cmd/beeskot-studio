@@ -310,19 +310,42 @@ BK.galerieDrive = async function (el, { type = 'video', choisir, source = null, 
 BK.etiquettes.RUBRIQUES = {
   tournage: [{ k: 'c:tournage', nom: 'Tournage (général)' }, { k: 'c:outfits', nom: 'Tenues' }, { k: 'c:moodboard', nom: 'Moodboard' }],
   live: [{ k: 'c:live', nom: 'Live / concert' }, { k: 'c:lumiere', nom: 'Light show' }, { k: 'c:scenographie', nom: 'Scénographie' }],
-  reseaux: [{ k: 'c:cover', nom: 'Covers' }, { k: 'c:insta', nom: 'Posts Instagram' }, { k: 'c:story', nom: 'Stories' }, { k: 'c:reel', nom: 'Reels / TikTok' }, { k: 'c:affiche', nom: 'Affiches / flyers' }, { k: 'c:presse', nom: 'Presse / EPK' }],
+  reseaux: [{ k: 'c:cover', nom: 'Covers' }, { k: 'c:insta', nom: 'Posts Instagram' }, { k: 'c:story', nom: 'Stories' }, { k: 'c:reel', nom: 'Reels / TikTok' }, { k: 'c:affiche', nom: 'Affiches / flyers' }, { k: 'c:presse', nom: 'Presse / EPK' }, { k: 'c:inspi', nom: 'Références / inspiration' }],
+  membres: [{ k: 'c:m-yacine', nom: 'Yacine' }, { k: 'c:m-pierre', nom: 'Pierre' }, { k: 'c:m-baptiste', nom: 'Baptiste' }],
+};
+// les étiquettes créées par le groupe (Réglages › Drive) : partagées, rangées dans une rubrique ('tournage', 'live' ou 'reseaux')
+BK.etiquettes.PERSO = [];
+BK.etiquettes.chargerPerso = async function () {
+  let l = []; try { l = await BK.partage.lire('etiquettes.perso', []); } catch (e) {}
+  BK.etiquettes.PERSO = Array.isArray(l) ? l.filter(x => x && x.k && x.nom) : [];
+  for (const r of Object.keys(BK.etiquettes.RUBRIQUES)) BK.etiquettes.RUBRIQUES[r] = BK.etiquettes.RUBRIQUES[r].filter(x => !x.perso)
+    .concat(BK.etiquettes.PERSO.filter(x => (x.rub || 'reseaux') === r).map(x => ({ k: x.k, nom: x.nom, perso: true })));
+  return BK.etiquettes.PERSO;
+};
+BK.etiquettes.creerPerso = async function (nom, rub) {
+  nom = String(nom || '').trim().slice(0, 40); if (!nom) throw new Error('Écris un nom');
+  await BK.etiquettes.chargerPerso();
+  const tous = Object.values(BK.etiquettes.RUBRIQUES).flat();
+  if (tous.some(x => x.nom.toLowerCase() === nom.toLowerCase())) throw new Error('Cette étiquette existe déjà');
+  const k = 'c:p-' + nom.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') + '-' + Date.now().toString(36).slice(-3);
+  const l = [...BK.etiquettes.PERSO, { k, nom, rub: rub || 'reseaux' }]; await BK.partage.ecrire('etiquettes.perso', l); await BK.etiquettes.chargerPerso(); return k;
+};
+BK.etiquettes.retirerPerso = async function (k) {          // la retire de la liste ; les fichiers ne sont pas touchés
+  await BK.etiquettes.chargerPerso(); await BK.partage.ecrire('etiquettes.perso', BK.etiquettes.PERSO.filter(x => x.k !== k)); await BK.etiquettes.chargerPerso();
 };
 // une couleur par étiquette, toujours la même partout (palette rétro du logiciel)
 BK.PALETTE_TAGS = ['#d2722e', '#2f7377', '#d9a93c', '#a8432a', '#5f8a9a', '#8a8a4a', '#7a2430', '#c98a5a', '#4e7c59', '#6a4e8a', '#b8691f', '#2a6f8a'];
 BK.couleurTag = k => { let h = 0; for (const c of String(k)) h = (h * 31 + c.charCodeAt(0)) >>> 0; return BK.PALETTE_TAGS[h % BK.PALETTE_TAGS.length]; };
 BK.nomTag = k => { for (const l of Object.values(BK.etiquettes.RUBRIQUES)) { const x = l.find(c => c.k === k); if (x) return x.nom; } return null; };
 BK.etiquettes.sujets = async function () {
+  await BK.etiquettes.chargerPerso();
   const [ms, ts] = await Promise.all([BK.db.liste('morceaux'), BK.db.liste('tournages')]);
   return [
     { groupe: '♪ Morceaux', l: ms.sort((a, b) => a.nom.localeCompare(b.nom)).map(m => ({ k: m.id, nom: m.nom, morceau: m })) },
     { groupe: '🎬 Tournages', l: [...BK.etiquettes.RUBRIQUES.tournage, ...ts.map(t => ({ k: 't:' + t.id, nom: t.titre || 'Tournage' }))] },
     { groupe: '🎤 Live / concert', l: BK.etiquettes.RUBRIQUES.live },
     { groupe: '📣 Promo, réseaux et tout le reste', l: BK.etiquettes.RUBRIQUES.reseaux },
+    { groupe: '◉ Membres', l: BK.etiquettes.RUBRIQUES.membres },
   ];
 };
 // les fichiers du Drive qui portent une étiquette (un morceau : aussi ceux devinés par le nom)
@@ -396,8 +419,12 @@ BK.trierMedias = async function (fichiers, { avancement = () => {}, max = 40 } =
     ['c:live', 'Live / concert', 'une scène, un concert, le groupe en train de jouer devant du public'],
     ['c:tournage', 'Tournage', 'un tournage en cours : caméra, trépied, équipe, clap, coulisses'],
     ['c:insta', 'Post Instagram', 'une photo du groupe posée, un portrait, une image faite pour les réseaux'],
+    ['c:affiche', 'Affiches / flyers', 'une affiche de concert, un flyer, une annonce avec du texte et une date'],
+    ['c:inspi', 'Références / inspiration', 'le travail d\'un autre artiste montré en exemple : clip, pochette, photo, capture d\'écran'],
   ];
-  const aTrier = fichiers.filter(f => /^image\//.test(f.mimeType || '') && !BK.etiquettes.liste(tags, f.id).length).slice(0, max);
+  // une photo de Discord : déjà étiquetée si sa copie dans le Drive l'est
+  const etiq = f => BK.etiquettes.liste(tags, f.dc ? (BK.etiquettes.copieDe(f.id) || f.id) : f.id).length;
+  const aTrier = fichiers.filter(f => /^image\//.test(f.mimeType || '') && !etiq(f)).slice(0, max);
   if (!aTrier.length) return [];
   const sys = `Tu ranges les photos du groupe de musique BEESKOT. Pour CHAQUE image, choisis UNE case :
 ${CASES.map(([k, n, d]) => `- ${k} (${n}) : ${d}`).join('\n')}
@@ -409,7 +436,11 @@ Réponds en JSON : un tableau d'objets {"i":<numéro de l'image, à partir de 1>
     const lot = aTrier.slice(d, d + 6);
     avancement(d, aTrier.length);
     const imgs = [];
-    for (const f of lot) { try { const u = await BK.drive.vignette(f); imgs.push(u ? await BK.ia.enBase64(u) : null); } catch (e) { imgs.push(null); } }
+    for (const f of lot) { try {
+      let u = null;
+      if (f.dc) { const r = await BK.discord.fetch((f.dc.apercu || f.dc.url) + (f.dc.apercu ? '?width=400&height=400' : '')); if (r.ok) u = URL.createObjectURL(await r.blob()); }   // photo de Discord
+      else u = await BK.drive.vignette(f);
+      imgs.push(u ? await BK.ia.enBase64(u) : null); } catch (e) { imgs.push(null); } }
     const bons = lot.filter((f, i) => imgs[i]);
     if (!bons.length) continue;
     try {

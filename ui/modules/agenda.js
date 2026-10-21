@@ -106,7 +106,8 @@ BK.module('agenda', function (page) {
     A.taches = (await BK.db.liste('taches')).filter(t => t.date && !t.fait).map(t => ({ type: 'autre', tache: true, titre: '☐ ' + t.texte + (t.qui ? ' · ' + t.qui : ''), morceau: t.morceau, qui: t.qui, debut: new Date(t.date + 'T12:00'), journee: true }));
     A.sorties = ms.filter(m => m.sortie).map(m => ({ type: 'sortie', titre: 'Sortie · ' + m.nom, morceau: m.nom, debut: new Date(m.sortie + 'T12:00'), journee: true, fiche: true }));
     const pl = (await BK.db.liste('veille')).find(d => d.id === 'planning'); A.planning = pl;
-    A.dispos = await lireDispos();                                    // { 'AAAA-MM-JJ': { Yacine: 'oui', Pierre: 'non' } } — partagé avec tout le groupe
+    A.dispos = await lireDispos();
+    A.dispMiette = await BK.partage.lire('dispos.miette', {}).catch(() => ({}));   // les absences lues par Miette sur Discord (à valider)                                    // { 'AAAA-MM-JJ': { Yacine: 'oui', Pierre: 'non' } } — partagé avec tout le groupe
     const cfgM = (await BK.db.liste('config')).find(c => c.id === 'membres');
     A.membres = (cfgM && cfgM.liste && cfgM.liste.length ? cfgM.liste : ['Yacine', 'Pierre', 'Baptiste']).map(m => m === 'Dari' ? 'Yacine' : m).filter(m => m && m !== 'BEESKOT');
     A.miette = (pl && pl.l || []).flatMap(e => (e.dates || []).map(d => ({ ...e, debut: new Date(d + 'T' + (e.heure || '12:00')), journee: !e.heure, miette: true, date: d })))
@@ -143,16 +144,17 @@ BK.module('agenda', function (page) {
     for (let i = 0; i < decal; i++) h += '<div class="cal-c vide"></div>';
     for (let d = 1; d <= nb; d++) {
       const k = `${an}-${String(mo + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`, evs = parJour[k] || [];
-      const dj = (A.dispos || {})[k] || {}, qui = (A.membres || []).filter(m => dj[m]);
+      const dj = (A.dispos || {})[k] || {}, dmi = BK.ia.active() ? (A.dispMiette || {})[k] || {} : {};
+      const qui = (A.membres || []).filter(m => dj[m] || dmi[m]);
       const tousD = A.membres && A.membres.length && A.membres.every(m => dj[m] === 'oui');
-      const titreD = qui.map(m => m + (dj[m] === 'oui' ? ' : dispo' : ' : pas dispo')).join(' · ');
-      const pastilles = qui.length ? `<span class="cal-dispo" title="${esc(titreD)}">${qui.map(m => `<i class="${dj[m] === 'oui' ? 'oui' : 'non'}" style="--m:${couleurM(m)}">${esc(m[0])}</i>`).join('')}</span>` : '';
+      const titreD = qui.map(m => dj[m] ? m + (dj[m] === 'oui' ? ' : dispo' : ' : pas là') : m + ' : pas là, d\'après Discord (à valider) — « ' + (dmi[m].pourquoi || '') + ' »').join(' · ');
+      const pastilles = qui.length ? `<span class="cal-dispo" title="${esc(titreD)}">${qui.map(m => `<i class="${dj[m] ? (dj[m] === 'oui' ? 'oui' : 'non') : 'non miette'}" style="--m:${couleurM(m)}">${esc(m[0])}</i>`).join('')}</span>` : '';
       h += `<div class="cal-c${k === auj ? ' auj' : ''}${tousD ? ' tous-dispo' : ''}${(A.sel || new Set()).has(k) ? ' sel' : ''}" data-d="${k}"><span class="cal-n">${d}</span>${pastilles}${evs.slice(0, 3).map(e =>
-        `<span class="cal-ev${e.tache ? ' tache' : ''}${e.fin ? ' periode' + (e.suite ? ' suite' : '') : ''}${e.miette ? ' miette ' + (e.statut === 'valide' ? 'valide' : 'possible') : ''}${e.type === 'sortie' ? ' sortie' : ''}" style="--c:${(TYPES[e.type] || TYPES.autre).c}" title="${esc((e.miette ? '🍞 ' + (e.statut === 'valide' ? 'Décidé sur Discord' : 'Possible (pas encore confirmé)') + ' · ' : '') + (TYPES[e.type] || TYPES.autre).nom + ' · ' + (e.titre || '') + (e.pourquoi ? ' — « ' + e.pourquoi + ' »' : ''))}"${e.miette ? ` data-mi="${esc(e.cle)}"` : ''}>${e.miette && e.statut !== 'valide' ? '? ' : ''}${e.suite ? '↔ ' : e.journee || e.fin ? '' : e.debut.toTimeString().slice(0, 5) + ' '}${esc(e.titre || TYPES[e.type].nom)}</span>`).join('')}${evs.length > 3 ? `<span class="nt cal-plus">+${evs.length - 3}</span>` : ''}</div>`;
+        `<span class="cal-ev${e.tache ? ' tache' : ''}${e.fin ? ' periode' + (e.suite ? ' suite' : '') : ''}${e.miette ? ' miette ' + (e.statut === 'valide' ? 'valide' : 'possible') : ''}${e.local && e.miette ? ' mi-ev' : ''}${e.type === 'sortie' ? ' sortie' : ''}" style="--c:${(TYPES[e.type] || TYPES.autre).c}" title="${esc((e.miette ? '🍞 ' + (e.statut === 'valide' ? 'Décidé sur Discord' : 'Possible (pas encore confirmé)') + ' · ' : '') + (TYPES[e.type] || TYPES.autre).nom + ' · ' + (e.titre || '') + (e.pourquoi ? ' — « ' + e.pourquoi + ' »' : ''))}"${e.miette ? ` data-mi="${esc(e.cle)}"` : ''}>${e.miette && e.statut !== 'valide' ? '? ' : ''}${e.suite ? '↔ ' : e.journee || e.fin ? '' : e.debut.toTimeString().slice(0, 5) + ' '}${esc(e.titre || TYPES[e.type].nom)}</span>`).join('')}${evs.length > 3 ? `<span class="nt cal-plus">+${evs.length - 3}</span>` : ''}</div>`;
     }
     $('#agCal').innerHTML = h;
     $('#agLeg').innerHTML = (A.membres || []).map(m => `<span><i style="--m:${couleurM(m)}">${esc(m[0])}</i>${esc(m)}</span>`).join('')
-      + '<span><i class="oui"></i>dispo</span><span><i class="non"></i>pas dispo</span><span class="nt">clic droit sur un jour · Maj + clic pour une période</span>';
+      + '<span><i class="oui"></i>dispo</span><span><i class="non"></i>pas là</span>' + (BK.ia.active() ? '<span><i class="non miette" style="background:transparent;border:1px dashed #d0574f"></i>pas là, lu par Miette (à valider)</span>' : '') + '<span class="nt">clic droit sur un jour · Maj + clic pour une période</span>';
     $$('.cal-c[data-d]').forEach(c => { c.onclick = e => { const mi = e.target.closest('[data-mi]');
       if (mi) return remplirDepuis(A.miette.find(x => x.cle === mi.dataset.mi && x.date === c.dataset.d));
       choisirJours(c.dataset.d, e.shiftKey);
@@ -183,10 +185,15 @@ BK.module('agenda', function (page) {
     const n = jours.length, court = d => new Date(d + 'T12:00').toLocaleDateString('fr-CA', { day: 'numeric', month: 'short' });
     const titre = n > 1 ? `${n} jours · ${court(jours[0])} → ${court(jours[n - 1])}` : new Date(jours[0] + 'T12:00').toLocaleDateString('fr-CA', { weekday: 'long', day: 'numeric', month: 'long' });
     const dejaLa = (A.membres || []).filter(m => jours.some(j => ((A.dispos || {})[j] || {})[m]));     // qui a déjà dit quelque chose ces jours-là (pour l'enlever)
+    const autres = (A.membres || []).filter(m => !qui.includes(m));                                     // les autres : on peut les marquer aussi (ex. « Baptiste n'est pas là »)
+    const deMiette = BK.ia.active() ? (A.membres || []).filter(m => jours.some(j => ((A.dispMiette || {})[j] || {})[m] && !((A.dispos || {})[j] || {})[m])) : [];
     const menu = document.createElement('div'); menu.className = 'md-menu';
     menu.style.left = Math.min(x, innerWidth - 250) + 'px'; menu.style.top = Math.min(y, innerHeight - 300) + 'px';
     menu.innerHTML = `<span class="md-menu-t">${esc(titre)}</span>`
-      + qui.map(m => `<button data-dis="${esc(m)}|oui"><i class="ag-pt oui"></i>${qui.length > 1 ? esc(m) + ' dispo' : 'Je suis dispo'}</button><button data-dis="${esc(m)}|non"><i class="ag-pt non"></i>${qui.length > 1 ? esc(m) + ' pas dispo' : 'Pas dispo'}</button>`).join('')
+      + qui.map(m => `<button data-dis="${esc(m)}|oui"><i class="ag-pt oui"></i>${qui.length > 1 ? esc(m) + ' dispo' : 'Je suis dispo'}</button><button data-dis="${esc(m)}|non"><i class="ag-pt non"></i>${qui.length > 1 ? esc(m) + ' pas là' : 'Je ne suis pas là'}</button>`).join('')
+      + (deMiette.length ? '<span class="md-menu-sep"></span>' + deMiette.map(m => `<button data-dis="${esc(m)}|non" class="ag-valider"><i class="ag-pt non"></i>✓ Valider : ${esc(m)} pas là (lu sur Discord)</button>`).join('') : '')
+      + (qui.length === 1 && autres.length ? '<span class="md-menu-sep"></span><button data-autres="1"><i class="ag-pt" style="background:linear-gradient(90deg,#6fbf5a 50%,#c8553d 50%)"></i>Autres disponibilités ▸</button>' : '')
+      + (() => { const l = (A.locaux || []).filter(e => e.miette && jours.includes(e.date)); return l.length ? '<span class="md-menu-sep"></span>' + l.map(e => `<button data-evval="${e.id}" class="ag-valider"><i class="ag-pt" style="background:#7fc26a"></i>✓ Valider : ${esc(e.titre || 'rendez-vous')} (rangé par Miette)</button>`).join('') : ''; })()
       + (dejaLa.length ? '<span class="md-menu-sep"></span>' + dejaLa.map(m => `<button data-dis="${esc(m)}|"><i class="ag-pt" style="background:${couleurM(m)}"></i>Enlever ${m === moi ? 'ma dispo' : 'la dispo de ' + esc(m)}</button>`).join('') : '')
       + `<span class="md-menu-sep"></span><button data-rdv="1">＋ ${n > 1 ? 'Ajouter un événement sur cette période' : 'Ajouter un rendez-vous ici'}</button>`;
     document.body.appendChild(menu);
@@ -195,15 +202,23 @@ BK.module('agenda', function (page) {
     menu.onclick = async e => { const b = e.target.closest('button'); if (!b) return; menu.remove(); document.removeEventListener('pointerdown', fermer, true);
       if (b.dataset.rdv) { $('#agDate').value = jours[0]; $('#agFin').value = n > 1 ? jours[n - 1] : ''; $('#agTitre').focus();
         return msg(n > 1 ? `Période du ${court(jours[0])} au ${court(jours[n - 1])} : remplis à droite, puis « + Ajouter »` : 'Remplis le rendez-vous à droite, puis « + Ajouter »'); }
-      const [m, etat] = b.dataset.dis.split('|');
+      if (b.dataset.evval) { const e = (await BK.db.liste('evenements')).find(x => x.id === b.dataset.evval); if (e) { delete e.miette; await BK.db.ecrire('evenements', e); } await BK.agendaRecharger(); return msg('Rendez-vous validé'); }
+      if (b.dataset.autres) {                                         // « Autres disponibilités » ▸ Dispo / Pas dispo ▸ Pierre, Baptiste, Tout le monde
+        const noms = e => autres.map(m => ({ k: m + '|' + e, nom: m, couleur: couleurM(m) })).concat(autres.length > 1 ? [{ k: '*|' + e, nom: 'Tout le monde', couleur: e === 'oui' ? '#6fbf5a' : '#c8553d' }] : []);
+        return BK.menuCascade({ x, y }, [{ nom: 'Dispo', l: noms('oui') }, { nom: 'Pas dispo', l: noms('non') }],
+          k => { if (!k) return; const [m, etat] = k.split('|'); poser(m === '*' ? autres : [m], etat); });
+      }
+      const [m, etat] = b.dataset.dis.split('|'); poser([m], etat); };
+    async function poser(ms, etat) {
+      const m = ms.join(', ');
       const d = await lireDispos();                                   // on relit juste avant : on n'efface pas ce que les autres viennent de cocher
-      for (const j of jours) { const o = d[j] || {}; if (etat) o[m] = etat; else delete o[m]; if (Object.keys(o).length) d[j] = o; else delete d[j]; }
+      for (const j of jours) { const o = d[j] || {}; for (const q of ms) if (etat) o[q] = etat; else delete o[q]; if (Object.keys(o).length) d[j] = o; else delete d[j]; }
       const auj = jour(new Date()); for (const j of Object.keys(d)) if (j < auj) delete d[j];   // les jours passés s'en vont
       await BK.partage.ecrire('dispos2', d); A.dispos = d;
       const vieux = {}; for (const [j, o] of Object.entries(d)) { const l = Object.keys(o).filter(k => o[k] === 'oui'); if (l.length) vieux[j] = l; }
       BK.partage.ecrire('dispos', vieux).catch(() => {});             // pour les PC pas encore à jour : l'ancienne liste (seulement les « dispo »)
       rendre();
-      msg(`${m} ${etat === 'oui' ? 'dispo' : etat === 'non' ? 'pas dispo' : ': dispo enlevée'} · ${n} jour(s)`); };
+      msg(`${m} ${etat === 'oui' ? 'dispo' : etat === 'non' ? 'pas là' : ': dispo enlevée'} · ${n} jour(s)`); }
   }
 
   // ---------- ce que Miette a repéré sur Discord ----------

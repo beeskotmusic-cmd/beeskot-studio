@@ -36,7 +36,8 @@ BK.module('budget', function (page) {
         <div class="box bu-qui"><div class="ligne-titre"><span class="lb">Remboursements</span></div><div id="buVir" class="bu-vir"></div><div id="buSoldes" class="bu-soldes"></div></div>
         <div class="box" id="buMiette"></div>
         <div class="box grow"><div class="ligne-titre"><span class="lb">Dépenses</span>
-            <select class="fld" id="buMois" style="margin-left:auto;width:auto"></select></div>
+            <select class="fld" id="buMois" style="margin-left:auto;width:auto"></select>
+            <button class="btn sm miette-aide" id="buChercher" title="Miette relit Discord (et les mails) des 2 derniers mois et propose les paiements dont vous avez parlé">Chercher les dépenses</button></div>
           <div id="buListe" class="bu-liste"></div></div>
       </section>
       <section class="pane reg" style="width:320px"><span class="ptitle">② Ajouter</span>
@@ -108,9 +109,9 @@ BK.module('budget', function (page) {
     // 🍞 les paiements dont on a parlé sur Discord (le bouton jaune)
     const pr = B.props || [];
     $('#buMiette').style.display = pr.length ? '' : 'none';
-    $('#buMiette').innerHTML = pr.length ? `<span class="lb">🍞 Miette a vu ces paiements sur Discord</span>${pr.map(p => `<div class="bu-d ta-prop"><span class="bu-d-c"><b>${esc(p.titre)}</b>
+    $('#buMiette').innerHTML = pr.length ? `<span class="lb"><img class="mi-ic" src="look/patch-miette.png" alt=""> Miette a vu ces paiements : à valider</span>${pr.map(p => `<div class="bu-d mi-prop"><span class="bu-d-c"><b>${esc(p.titre)}</b>
         <span class="nt">${esc(p.date || '')} · payé par ${esc(p.payePar || '?')}${p.pourquoi ? ' — « ' + esc(p.pourquoi) + ' »' : ''}</span></span><span class="vfd">${argent(p.montant)}</span>
-        <button class="btn xs pri" data-pok="${p.id}">✓</button><button class="btn xs" data-pnon="${p.id}">✕</button></div>`).join('')}` : '';
+        <button class="mi-val" data-pok="${p.id}" title="C'est bon : ajouter au budget">✓</button><button class="btn xs" data-pnon="${p.id}" title="Ignorer">✕</button></div>`).join('')}` : '';
     const { solde, virements } = BK.budgetSoldes(B.dep, B.membres);
     $('#buVir').innerHTML = virements.length ? virements.map(v => `<div class="bu-v"><b>${esc(v.de)}</b><span>→</span><b>${esc(v.a)}</b><span class="vfd">${argent(v.montant)}</span>
         <button class="btn xs pri" data-remb="${esc(v.de)}|${esc(v.a)}|${v.montant}" style="margin-left:auto">✓ Virement fait</button></div>`).join('')
@@ -132,11 +133,11 @@ BK.module('budget', function (page) {
       : (() => {
         const pr = partsRestantes(d), part = pr.part, ouvert = B.rOuvert.has(d.id);
         const aPayer = moi && pr.doivent.includes(moi);
-        return `<div class="bu-d"><span class="bu-d-c"><b>${esc(d.titre)}</b><span class="nt">${esc(d.date || '')} · payé par ${esc(d.payePar)} · pour ${esc((d.pour && d.pour.length && d.pour.length < B.membres.length ? d.pour : ['tout le monde']).join(', '))} · ${esc(d.cat || '')}${d.abo ? ' · ↻ revient tout seul' : ''}${pr.payes.length ? ' · part payée par ' + esc(pr.payes.join(', ')) : ''}</span></span>
+        return `<div class="bu-d${d.miette ? ' mi-prop' : ''}"${d.miette ? ' title="Ajoutée par Miette (lue sur Discord) : vérifie, puis ✓"' : ''}><span class="bu-d-c"><b>${esc(d.titre)}</b><span class="nt">${esc(d.date || '')} · payé par ${esc(d.payePar)} · pour ${esc((d.pour && d.pour.length && d.pour.length < B.membres.length ? d.pour : ['tout le monde']).join(', '))} · ${esc(d.cat || '')}${d.abo ? ' · ↻ revient tout seul' : ''}${pr.payes.length ? ' · part payée par ' + esc(pr.payes.join(', ')) : ''}</span></span>
           <span class="vfd">${argent(d.montant)}</span>
           ${aPayer ? `<button class="btn xs pri" data-part="${d.id}|${esc(moi)}" title="Tu fais le virement à ${esc(d.payePar)}">↩ Ma part · ${argent(part)}</button>` : ''}
           ${pr.doivent.filter(m => m !== moi).length ? `<button class="btn xs" data-rp="${d.id}" title="Noter la part de quelqu'un d'autre">${ouvert ? '▾' : '↩'}</button>` : ''}
-          <button class="btn xs" data-x="${d.id}" title="Retirer">✕</button>
+          ${d.miette ? `<button class="mi-val" data-mival="${d.id}" title="C'est bon : valider">✓</button>` : ''}<button class="btn xs" data-x="${d.id}" title="Retirer">✕</button>
           ${ouvert ? `<div class="bu-parts"><span class="lb">Qui a déjà remboursé sa part ?</span>${pr.doivent.filter(m => m !== moi).map(m => `<button class="chip" data-part="${d.id}|${esc(m)}" title="${esc(m)} a remboursé ${esc(d.payePar)}">${esc(m)} · ${argent(part)}</button>`).join('')}<button class="btn xs" data-rp="${d.id}" style="margin-left:auto">✕ Annuler</button></div>` : ''}</div>`;
       })()).join('')
       : '<span class="nt">Aucune dépense ce mois-ci.</span>';
@@ -165,8 +166,16 @@ BK.module('budget', function (page) {
   $('#buAboAn').onclick = () => poserAbo('an');
   ['#buTitre', '#buMontant'].forEach(s => $(s).addEventListener('keydown', e => { e.stopPropagation(); if (e.key === 'Enter') $('#buAjout').click(); }));
   $('#buMois').onchange = e => { B.mois = e.target.value; rendre(); };
+  $('#buChercher').onclick = async () => { const b = $('#buChercher'), avant = b.innerHTML; b.disabled = true; b.innerHTML = '<span class="spin"></span>Miette cherche…';
+    try { await BK.discord.ronde(() => {}, true).catch(() => {}); const n = await BK.discord.depensesProposer();
+      B.props = (await BK.db.liste('propositions')).filter(p => p.type === 'depense' && p.statut === 'attente'); rendre();
+      msg(n ? `Miette a trouvé ${n} paiement(s) : vérifie-les en vert` : 'Miette n\'a pas trouvé de nouveau paiement'); }
+    catch (e) { msg(e.message || 'Miette n\'a pas pu chercher'); }
+    finally { b.disabled = false; b.innerHTML = avant; } };
   page.addEventListener('click', async e => {
     const x = e.target.closest('[data-x]'), r = e.target.closest('[data-remb]'), ab = e.target.closest('[data-ab]'), ok = e.target.closest('[data-pok]'), non = e.target.closest('[data-pnon]');
+    const mv = e.target.closest('[data-mival]');
+    if (mv) { const d = B.dep.find(y => y.id === mv.dataset.mival); if (d) { delete d.miette; await BK.db.ecrire('depenses', d); msg('Validée'); rendre(); } return; }
     const pt = e.target.closest('[data-part]'), rp = e.target.closest('[data-rp]');
     if (rp) { B.rOuvert.has(rp.dataset.rp) ? B.rOuvert.delete(rp.dataset.rp) : B.rOuvert.add(rp.dataset.rp); return rendre(); }
     if (pt) { const [id, qui] = pt.dataset.part.split('|'); const d = B.dep.find(y => y.id === id); if (!d) return;

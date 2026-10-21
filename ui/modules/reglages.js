@@ -54,6 +54,12 @@ BK.module('reglages', function (page) {
             </button>`).join('')}
           </div></div>
         <div data-rgo="drive" class="box"><span class="lb">Drive BEESKOT</span><div id="rgDriveZone"></div></div>
+        <div data-rgo="drive" class="box rg-etiq"><span class="lb">Étiquettes des Médias</span>
+          <span class="nt">Crée une étiquette pour tout le groupe. Elle apparaît dans Médias, dans la rubrique choisie.</span>
+          <div class="rg-etiq-l"><input class="fld" id="rgEtNom" placeholder="ex. Pochettes vinyle" maxlength="40">
+            <select class="fld" id="rgEtRub"><option value="reseaux">Promo, réseaux et le reste</option><option value="tournage">Tournage</option><option value="live">Live / lumière</option></select>
+            <button class="btn sm pri" id="rgEtCreer">+ Créer l'étiquette</button></div>
+          <div class="chips" id="rgEtListe" style="margin-top:8px"></div></div>
         <div data-rgo="drive" class="box grow rg-dos"><div class="ligne-titre"><span class="lb">Vos dossiers du Drive</span>
             <button class="btn xs" id="rgDetecter" style="margin-left:auto">↻ Chercher à nouveau</button><button class="btn xs" id="rgPlan">Copier le plan du Drive</button></div>
           <span class="nt">Le logiciel lit ces dossiers (il ne déplace et ne renomme rien). « Changer… » si un dossier n'est pas le bon. Pour tout le groupe.</span>
@@ -200,7 +206,19 @@ BK.module('reglages', function (page) {
     try { const t = await BK.dossiers.plan(); await navigator.clipboard.writeText(t); rmsg('Plan copié (noms des dossiers seulement)'); } catch (e) { rmsg('Problème : ' + e.message); }
   };
   BK.surOuvrir = BK.surOuvrir || {};
-  BK.surOuvrir.reglages = async () => { if (BK.drive.relie()) await BK.dossiers.assurer(); rendreDossiers(); };
+  // ---------- étiquettes créées par le groupe ----------
+  const escE = x => String(x ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+  async function rendreEtiq() {
+    const l = await BK.etiquettes.chargerPerso().catch(() => []), z = $('#rgEtListe', page); if (!z) return;
+    const rub = { reseaux: 'réseaux', tournage: 'tournage', live: 'live' };
+    z.innerHTML = l.length ? l.map(x => `<span class="chip" style="--c:${BK.couleurTag(x.k)}"><i class="rg-et-pt" style="background:${BK.couleurTag(x.k)}"></i>${escE(x.nom)} <small class="nt" style="margin:0 4px">${rub[x.rub] || ''}</small><button class="md-x" data-etx="${escE(x.k)}" title="Retirer l'étiquette (les fichiers ne sont pas touchés)">✕</button></span>`).join('')
+      : '<span class="nt">Pas encore d\'étiquette créée par le groupe.</span>';
+    $$('[data-etx]', z).forEach(b => b.onclick = async () => { if (!(await BK.confirmer('Retirer cette étiquette ? (Les fichiers ne sont pas supprimés.)'))) return;
+      await BK.etiquettes.retirerPerso(b.dataset.etx); rmsg('Étiquette retirée'); rendreEtiq(); });
+  }
+  $('#rgEtCreer', page).onclick = async () => { try { await BK.etiquettes.creerPerso($('#rgEtNom', page).value, $('#rgEtRub', page).value); $('#rgEtNom', page).value = ''; rmsg('Étiquette créée : elle est dans Médias'); rendreEtiq(); } catch (e) { rmsg(e.message); } };
+  $('#rgEtNom', page).addEventListener('keydown', e => { e.stopPropagation(); if (e.key === 'Enter') $('#rgEtCreer', page).click(); });
+  BK.surOuvrir.reglages = async () => { if (BK.drive.relie()) await BK.dossiers.assurer(); rendreDossiers(); rendreEtiq(); };
   rendreDossiers();
   $('#rgAbleton', page).onclick = async () => {
     if (!BK.estExe) { $('#rgMsg', page).textContent = 'DISPONIBLE DANS LE LOGICIEL INSTALLÉ'; return; }

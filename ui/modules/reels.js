@@ -160,7 +160,7 @@ BK.module('reels', function (page) {
       else { if (!BK.estExe) return msg('Disponible dans le logiciel installé'); msg('Lecture…'); await charger(new File([await BK.fichier.lireOctets(p)], p.split(/[\\/]/).pop())); }
     } catch (e) { msg('Fichier illisible'); }
   }
-  $('#reMorceau').onchange = async () => { BK.regler('reel.morceau', $('#reMorceau').value); BK.regler('reel.version', '');
+  $('#reMorceau').onchange = async () => { BK.regler('reel.morceau', $('#reMorceau').value); BK.regler('reel.version', ''); remplirPrevus().catch(() => {});
     const o = await remplirVersions(); if (o && o.length) chargerVersion(); };     // on choisit le morceau : il se charge tout seul
   $('#reVersion').onchange = () => { BK.regler('reel.version', $('#reVersion').value); chargerVersion(); };
   $('#reCharger').onclick = chargerVersion;
@@ -192,7 +192,7 @@ BK.module('reels', function (page) {
       ['#rePlay', '#reEcouteT', '#reEcouteT2', '#reExport'].forEach(s => $(s).disabled = false);
       R.vue = { a: 0, b: R.buffer.duration };
       dessiner(); maj(); msg('Prêt · ' + BK.audio.temps(R.buffer.duration));
-      lierTempo();
+      lierTempo(); remplirPrevus().catch(() => {});                    // les passages déjà trouvés pour ce morceau sont là tout de suite
     } catch (e) { msg('Fichier illisible'); console.error(e); }
   }
   BK.reelsCharger = charger;                       // la Bibliothèque peut envoyer un morceau ici
@@ -230,10 +230,9 @@ BK.module('reels', function (page) {
   async function remplirPrevus() {
     const { m, l } = await passagesPrevus(), sel = $('#rePrevus'); R.prevus = l;
     sel.innerHTML = `<option value="">${!m ? '📋 Choisis d\'abord un morceau' : l.length ? '📋 ' + l.length + ' passage(s) prévu(s) pour ' + m.nom + '…' : '📋 Aucun passage prévu pour ' + m.nom}</option>`
-      + l.map((p, i) => `<option value="${i}">${BK.audio.temps(p.debut).replace(/\.\d$/, '')} → ${BK.audio.temps(p.fin).replace(/\.\d$/, '')} · ${p.nom.replace(/</g, '&lt;').slice(0, 70)}</option>`).join('');
+      + l.map((p, i) => `<option value="${i}"${/Discord/.test(p.nom) ? ' style="color:#9bd986"' : ''}>${BK.audio.temps(p.debut).replace(/\.\d$/, '')} → ${BK.audio.temps(p.fin).replace(/\.\d$/, '')} · ${p.nom.replace(/</g, '&lt;').slice(0, 70)}</option>`).join('');
   }
   $('#rePrevus').addEventListener('focus', remplirPrevus);
-  $('#rePrevus').addEventListener('pointerdown', remplirPrevus);
   $('#rePrevus').onchange = async e => { const p = (R.prevus || [])[+e.target.value]; e.target.value = ''; if (!p) return;
     const { m } = await morceauActuel();
     if (R.buffer && m && ($('#reMorceau').value === m.id || R.source !== 'biblio')) { R.debut = p.debut; R.duree = Math.min(p.fin - p.debut, R.buffer.duration - p.debut); suivreDuree(); maj(); msg(`Passage ${BK.audio.temps(p.debut)} → ${BK.audio.temps(p.fin)} placé`); }
@@ -241,8 +240,11 @@ BK.module('reels', function (page) {
   $('#reMiettePass').onclick = async () => {
     const b = $('#reMiettePass'), { ms, m } = await morceauActuel(); if (!m) return msg('Choisis d\'abord un morceau');
     b.disabled = true; b.innerHTML = '<span class="spin"></span>Miette cherche…';
-    try { const l = await BK.discord.passages(m, ms), tout = await BK.partage.lire('passages.discord', {}); tout[m.id] = l; await BK.partage.ecrire('passages.discord', tout);
-      msg(l.length ? l.length + ' passage(s) trouvé(s) sur Discord : ouvre « Passages prévus »' : 'Aucun timing trouvé sur Discord pour ' + m.nom); await remplirPrevus(); }
+    try { const l = await BK.discord.passages(m, ms), tout = await BK.partage.lire('passages.discord', {});
+      // on AJOUTE aux passages déjà trouvés (une nouvelle recherche n'efface jamais les anciens)
+      const avant = tout[m.id] || [], cle = p => p.debut + '-' + p.fin, neufs = l.filter(p => !avant.some(a => cle(a) === cle(p)));
+      tout[m.id] = [...avant, ...neufs]; if (neufs.length) await BK.partage.ecrire('passages.discord', tout);
+      msg(neufs.length ? neufs.length + ' nouveau(x) passage(s) trouvé(s) : ouvre « Passages prévus »' : avant.length ? 'Rien de nouveau : les ' + avant.length + ' passage(s) déjà trouvé(s) sont dans « Passages prévus »' : 'Aucun timing trouvé sur Discord pour ' + m.nom); await remplirPrevus(); }
     catch (e) { msg(e.message); }
     b.disabled = false; b.textContent = 'Trouver les passages';
   };
@@ -349,7 +351,7 @@ BK.module('reels', function (page) {
       for (let k = 0; k < d.length; k++) v.setInt16(44 + k * 2, Math.max(-1, Math.min(1, d[k])) * 32767, true);
       let bin = ''; const u = new Uint8Array(wav); for (let k = 0; k < u.length; k += 0x8000) bin += String.fromCharCode.apply(null, u.subarray(k, k + 0x8000));
       const r = await BK.ia.demander(`Voici les paroles du morceau « ${m.nom} », une phrase par ligne, numérotées :\n${L.map((l, k) => k + ': ' + l).join('\n')}\n\nÉcoute le morceau et donne, pour chaque ligne, la seconde où elle commence à être chantée.`,
-        { systeme: 'Tu cales des paroles sur un morceau. Réponds en JSON : [{"i": numéro de ligne, "t": secondes (avec 1 décimale)}], dans l\'ordre, une entrée par ligne chantée. N\'invente pas de ligne.', json: true, temperature: 0, audio: { mime: 'audio/wav', base64: btoa(bin) }, delai: 180 });
+        { prio: true, systeme: 'Tu cales des paroles sur un morceau. Réponds en JSON : [{"i": numéro de ligne, "t": secondes (avec 1 décimale)}], dans l\'ordre, une entrée par ligne chantée. N\'invente pas de ligne.', json: true, temperature: 0, audio: { mime: 'audio/wav', base64: btoa(bin) }, delai: 180 });
       const cal = (Array.isArray(r) ? r : r.lignes || []).filter(x => L[x.i] != null && +x.t >= 0 && +x.t <= R.buffer.duration).map(x => ({ i: +x.i, t: +x.t }));
       if (!cal.length) throw new Error('Miette n\'a pas réussi à caler les paroles');
       m.parolesCalees = cal; await BK.db.ecrire('morceaux', m); msg(cal.length + ' phrase(s) calée(s) par Miette · clique une ligne pour vérifier');
@@ -463,6 +465,9 @@ BK.module('reels', function (page) {
     src.onended = () => { R.src = null; stop(); };
     const tic = () => { const e = ctx.currentTime - t0 - f.decal; if (e >= 0) montrerTete(R.debut + e * v); R.lecture = requestAnimationFrame(tic); };
     R.lecture = requestAnimationFrame(tic);
+    BK.mini.lance({ page: 'reels', titre: () => 'Reels Audio · ' + (tournage ? 'version tournage ×' + x2(R.v) : 'version montage') + ' · ' + (($('#reFich') || {}).textContent || ''),
+      temps: () => Math.max(0, ctx.currentTime - t0), duree: () => ab.duration, joue: () => R.src === src,
+      jouer: () => ecouter(tournage), pause: () => { if (R.src === src) stop(); } });
   }
   $('#rePlay').onclick = () => ecouter(false);
   $('#reEcouteT').onclick = () => ecouter(true);

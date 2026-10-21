@@ -25,6 +25,11 @@ BK.module('taches', function (page) {
           <input class="fld" id="taDate" type="date" title="Pour quand ?">
           <button class="btn pri" id="taAjout">+ Ajouter</button>
         </div>
+        <div class="box todo-ajout todo-mi miette-seul">
+          <img class="mi-ic" src="look/patch-miette.png" alt="">
+          <input class="fld" id="taMiTexte" placeholder="Dis-le à Miette : « Pierre réserve le studio avant vendredi, Baptiste envoie les stems »" autocomplete="off">
+          <button class="btn miette-aide" id="taMiAjout" title="Miette comprend qui fait quoi et pour quand, et ajoute les tâches">Miette l'ajoute</button>
+        </div>
         <div class="box grow todo-vrac zone" data-zone="">
           <span class="lb">Tâches en vrac</span>
           <div class="vrac-cartes" id="taVrac"></div>
@@ -96,10 +101,10 @@ BK.module('taches', function (page) {
   const tri = (a, b) => (a.fait - b.fait) || (a.ordre ?? 0) - (b.ordre ?? 0);
   function carte(t, auj) {
     const meta = [t.morceau, t.date && 'pour le ' + new Date(t.date + 'T12:00').toLocaleDateString('fr-CA', { day: 'numeric', month: 'short' })].filter(Boolean);
-    return `<div class="carte${t.fait ? ' faite' : ''}${!t.fait && t.date && t.date < auj ? ' retard' : ''}${T.choisie === t.id ? ' choisie' : ''}" data-id="${t.id}">
+    return `<div class="carte${t.fait ? ' faite' : ''}${!t.fait && t.date && t.date < auj ? ' retard' : ''}${T.choisie === t.id ? ' choisie' : ''}${t.miette ? ' mi-prop' : ''}" data-id="${t.id}"${t.miette ? ' title="Ajoutée par Miette : vérifie-la, puis ✓ Valider"' : ''}>
       <button class="ta-case${t.fait ? ' on' : ''}" data-case="${t.id}" title="Fait">${t.fait ? '✓' : ''}</button>
       <div class="carte-c"><span class="carte-t">${esc(t.texte)}</span>${meta.length ? `<span class="carte-m">${meta.map(esc).join(' · ')}</span>` : ''}</div>
-      <button class="carte-x" data-x="${t.id}" title="Retirer">✕</button></div>`;
+      ${t.miette ? `<button class="mi-val" data-mival="${t.id}" title="C'est bon : valider">✓</button>` : ''}<button class="carte-x" data-x="${t.id}" title="Retirer">✕</button></div>`;
   }
 
   function rendre() {
@@ -139,6 +144,30 @@ BK.module('taches', function (page) {
     T.taches.push(n); $('#taTexte').value = ''; $('#taTexte').focus(); msg('Tâche ajoutée'); rendre();
   }
   $('#taAjout').onclick = ajouter;
+  // ---------- on demande à Miette : elle comprend qui, quoi, quand, et ajoute ----------
+  async function parMiette() {
+    const champ = $('#taMiTexte'), b = $('#taMiAjout'), texte = champ.value.trim(); if (!texte) return champ.focus();
+    if (!(await BK.ia.pret().catch(() => false))) return msg('Il faut la clé Gemini (Réglages) et l\'interrupteur AI allumé');
+    b.disabled = true; const avant = b.innerHTML; b.innerHTML = '<span class="spin"></span>Miette réfléchit…';
+    try {
+      const auj = new Date().toISOString().slice(0, 10);
+      const r = await BK.ia.demander(`Aujourd'hui : ${auj} (${new Date().toLocaleDateString('fr-CA', { weekday: 'long' })}).
+Membres du groupe : ${T.membres.join(', ')}. « ${GROUPE} » = tout le groupe. Morceaux : ${T.morceaux.join(', ') || '(aucun)'}.
+Transforme cette demande en tâches pour la to-do list : « ${texte} »
+Réponds en JSON : {"taches":[{"texte":"phrase courte, commence par un verbe","qui":"un membre, ${GROUPE}, ou vide","date":"AAAA-MM-JJ ou vide","morceau":"un morceau de la liste ou vide"}]}`,
+        { prio: true, json: true, vite: true, temperature: 0.2 });
+      const l = ((r && (r.taches || (Array.isArray(r) ? r : []))) || []).filter(x => x && x.texte);
+      if (!l.length) return msg('Miette n\'a pas compris : essaie avec « qui » + « quoi »');
+      for (const p of l) {
+        const qui = p.qui === GROUPE || T.membres.includes(p.qui) ? p.qui : '';
+        T.taches.push(await BK.db.ecrire('taches', { texte: String(p.texte).slice(0, 200), qui, morceau: T.morceaux.includes(p.morceau) ? p.morceau : '', date: /^\d{4}-\d\d-\d\d$/.test(p.date || '') ? p.date : '', fait: false, ordre: Date.now(), miette: true }));
+      }
+      champ.value = ''; rendre(); msg(l.length > 1 ? `Miette a ajouté ${l.length} tâches` : 'Miette a ajouté la tâche');
+    } catch (e) { msg(e.message || 'Miette n\'a pas pu répondre'); }
+    finally { b.disabled = false; b.innerHTML = avant; }
+  }
+  $('#taMiAjout').onclick = parMiette;
+  $('#taMiTexte').addEventListener('keydown', e => { if (e.key === 'Enter') parMiette(); });
   $('#taTexte').addEventListener('keydown', e => { e.stopPropagation(); if (e.key === 'Enter') { e.preventDefault(); ajouter(); } });
 
   // ---------- déplacer une tâche vers un panier ----------
@@ -184,6 +213,8 @@ BK.module('taches', function (page) {
 
   // ---------- cocher, retirer, modifier ----------
   vit.addEventListener('click', async e => {
+    const v = e.target.closest('[data-mival]');
+    if (v) { const t = T.taches.find(y => y.id === v.dataset.mival); if (t) { delete t.miette; rendre(); await BK.db.ecrire('taches', t); msg('Validée'); } return; }
     const b = e.target.closest('[data-case]'), x = e.target.closest('[data-x]');
     if (b) { const t = T.taches.find(y => y.id === b.dataset.case); t.fait = !t.fait; if (t.fait) { t.faitLe = new Date().toISOString(); t.faitPar = BK.reglage('nomPc', '') || 'ce PC'; } else { delete t.faitLe; delete t.faitPar; }
       rendre(); await BK.db.ecrire('taches', t); msg(t.fait ? 'Bravo ! (rangée dans « Déjà fait »)' : 'Remise à faire'); }

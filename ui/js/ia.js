@@ -54,21 +54,37 @@ BK.ia = {
     let v = document.getElementById('bkReflexion');
     if (!v) { v = document.createElement('div'); v.id = 'bkReflexion'; v.className = 'bk-reflexion'; document.body.appendChild(v); }
     clearInterval(BK.ia.tic);
+    document.body.classList.toggle('miette-pense', !!BK.ia.enCours);       // le patch de Miette (en haut) tourne tant qu'elle réfléchit
     if (!BK.ia.enCours) { v.classList.remove('on'); return; }
     const t0 = BK.ia.debut, maj = () => { v.innerHTML = `<span class="spin"></span>🍞 Miette réfléchit… <b>${Math.round((Date.now() - t0) / 1000)} s</b>`; };
     maj(); v.classList.add('on'); BK.ia.tic = setInterval(maj, 1000);
   },
+  // ---------- la file d'attente : ce que TU demandes passe avant ce que Miette fait en fond ----------
+  //   clic sur un bouton  ──► passe tout de suite
+  //   Miette en fond (Discord, résumés…) ──► une seule à la fois, et elle attend quand tu demandes quelque chose
+  dernierGeste: 0, _prio: 0, _fond: 0,
   async demander(texte, opts = {}) {
+    const prio = opts.prio ?? (Date.now() - BK.ia.dernierGeste < 5000);
+    if (!prio) while (BK.ia._prio > 0 || BK.ia._fond >= 1) await new Promise(ok => setTimeout(ok, 400));
+    prio ? BK.ia._prio++ : BK.ia._fond++;
     if (!BK.ia.enCours++) BK.ia.debut = Date.now(); BK.ia.voyant();
-    try { return await BK.ia._demander(texte, opts); } finally { BK.ia.enCours--; BK.ia.voyant(); }
+    try { return await BK.ia._demander(texte, opts); }
+    finally { prio ? BK.ia._prio-- : BK.ia._fond--; BK.ia.enCours--; BK.ia.voyant(); }
   },
+  // un modèle saturé est mis de côté une minute : les demandes suivantes vont directement sur un autre
+  occupe: {},
+  // l'ordre des modèles à essayer : celui du niveau choisi, puis les autres (le plus léger répond presque toujours)
+  chaine: n => ({ puissant: ['puissant', 'normal', 'rapide'], normal: ['normal', 'rapide', 'puissant'], rapide: ['rapide', 'normal', 'puissant'] }[n] || ['normal', 'rapide', 'puissant']),
   async _demander(texte, { systeme = '', json = false, temperature = 0.4, niveau = '', vite = false, delai = 90, audio = null, fichiers = null } = {}) {
     if (!BK.ia.active()) throw new Error('L\'AI est coupée (interrupteur en bas du menu)');
     const c = await BK.ia.config(); if (!c.gemini) throw new Error('Pas de clé Gemini (Réglages › Miette)');
     niveau = niveau || c.niveau || 'normal';
-    let sansReflexion = false;
-    for (let essai = 0; essai < 4; essai++) {
-      const modele = await BK.ia.modele(niveau);
+    let sansReflexion = false, derniere = '';
+    const essais = [...BK.ia.chaine(niveau), ...BK.ia.chaine(niveau)];      // 2 tours au plus : chaque modèle, puis encore une fois
+    for (let i = 0; i < essais.length; i++) {
+      const modele = await BK.ia.modele(essais[i]);
+      if (i < 3 && (BK.ia.occupe[modele] || 0) > Date.now()) continue;       // saturé il y a peu : on passe au suivant sans attendre
+      if (i === 3) await new Promise(ok => setTimeout(ok, 2500));              // tout est saturé : une petite pause avant le 2e tour
       const parts = [{ text: texte }];
       if (audio) parts.push({ inlineData: { mimeType: audio.mime, data: audio.base64 } });
       for (const f of fichiers || []) parts.push({ inlineData: { mimeType: f.mime, data: f.base64 } });
@@ -77,21 +93,22 @@ BK.ia = {
       if (json) corps.generationConfig.responseMimeType = 'application/json';
       const th = !sansReflexion && BK.ia.reflexion(modele, vite); if (th) corps.generationConfig.thinkingConfig = th;
       const arret = new AbortController(), minuteur = setTimeout(() => arret.abort(), delai * 1000);
-      const r = await BK.ia.fetch(`${BK.ia.BASE}/models/${modele}:generateContent`,          // la clé passe dans l'en-tête (marche avec les clés AIza… et AQ.…)
-        { method: 'POST', headers: { 'Content-Type': 'application/json', 'x-goog-api-key': c.gemini }, body: JSON.stringify(corps), signal: arret.signal })
-        .catch(e => { throw new Error(arret.signal.aborted ? 'Gemini met trop de temps à répondre, réessaie' : 'Gemini injoignable (Internet ?)'); }).finally(() => clearTimeout(minuteur));
-      if (r.status === 429 || r.status === 503) {                        // trop de demandes : on patiente (ou on passe à un modèle moins demandé)
-        if (niveau === 'puissant' && essai >= 1) { niveau = 'normal'; continue; }
-        await new Promise(ok => setTimeout(ok, 6000 * (essai + 1))); continue; }
-      if (r.status === 404) { await BK.ia.enregistrer({ modeles: { ...(c.modeles || {}), [niveau]: null } }); continue; }   // modèle retiré : on en choisit un autre
+      let r;
+      try { r = await BK.ia.fetch(`${BK.ia.BASE}/models/${modele}:generateContent`,          // la clé passe dans l'en-tête (marche avec les clés AIza… et AQ.…)
+        { method: 'POST', headers: { 'Content-Type': 'application/json', 'x-goog-api-key': c.gemini }, body: JSON.stringify(corps), signal: arret.signal }); }
+      catch (e) { if (!arret.signal.aborted) throw new Error('Gemini injoignable (Internet ?)'); derniere = 'Gemini met trop de temps à répondre'; BK.ia.occupe[modele] = Date.now() + 60e3; continue; }
+      finally { clearTimeout(minuteur); }
+      if (r.status === 429 || r.status === 503 || r.status === 500) {          // saturé : on essaie tout de suite un autre modèle
+        BK.ia.occupe[modele] = Date.now() + 60e3; derniere = 'Gemini est occupé'; continue; }
+      if (r.status === 404) { await BK.ia.enregistrer({ modeles: { ...(c.modeles || {}), [essais[i]]: null } }); continue; }   // modèle retiré : on en choisit un autre
       const j = await r.json();
-      if (r.status === 400 && th && /think/i.test(JSON.stringify(j))) { sansReflexion = true; continue; }
+      if (r.status === 400 && th && /think/i.test(JSON.stringify(j))) { sansReflexion = true; i--; continue; }
       if (!r.ok) throw new Error('Gemini : ' + ((j.error && j.error.message) || r.status));
       const t = ((((j.candidates || [])[0] || {}).content || {}).parts || []).filter(p => !p.thought).map(p => p.text || '').join('');
       if (!json) return t.trim();
       try { return JSON.parse(t.replace(/^```(?:json)?\s*|\s*```$/g, '')); } catch (e) { throw new Error('Réponse illisible, réessaie'); }
     }
-    throw new Error('Gemini est occupé, réessaie dans une minute');
+    throw new Error((derniere || 'Gemini est occupé') + ' : réessaie dans une minute');
   },
 
   // ce que le groupe sait déjà (envoyé avec chaque demande pour que la réponse colle à BEESKOT)
@@ -152,3 +169,5 @@ BK.ia.reduireImage = async function (blob, max) {
 
 // au démarrage : la couleur de Miette suit le niveau choisi (partagé avec tout le groupe)
 setTimeout(async () => { try { BK.ia.couleur((await BK.ia.config()).niveau); } catch (e) {} }, 2000);
+// ce que TU fais (clic, touche) : tes demandes à Miette passent avant celles qu'elle fait en fond
+['pointerdown', 'keydown'].forEach(t => document.addEventListener(t, () => { BK.ia.dernierGeste = Date.now(); }, true));

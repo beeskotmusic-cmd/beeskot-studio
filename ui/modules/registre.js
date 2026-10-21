@@ -7,7 +7,7 @@
 //   defaut  : visible par défaut sur un nouveau PC (chaque PC peut changer dans Réglages)
 // =====================================================================
 BK.onglets = [
-  { id: 'accueil',  cote: 'general', titre: 'Accueil',        sous: 'Next et à faire',               couleur: 'var(--mus)',  pret: true,  defaut: true },
+  { id: 'accueil',  cote: 'general', titre: 'Accueil',        sous: 'Next, résumé, à faire',         couleur: 'var(--mus)',  pret: true,  defaut: true },
   { id: 'renforts', cote: 'general', titre: 'Miette AI',      sous: 'Questions, Discord, aides',     couleur: 'var(--olv)', pret: true,  defaut: true },
 
   { id: 'biblio',   cote: 'audio',   titre: 'Bibliothèque',   sous: 'Morceaux, exports, projets',    couleur: 'var(--org)',  pret: true , defaut: true },
@@ -26,6 +26,8 @@ BK.onglets = [
   { id: 'reelvis',  cote: 'assist',  titre: 'Reels Vidéo',    sous: 'Montage, sous-titres, MP4',     couleur: 'var(--teal)', pret: true , defaut: true },
 
   { id: 'lumieres', cote: 'show',    titre: 'Lumières',       sous: 'Light Show, lampes Globe',      couleur: 'var(--olv)',  pret: true, defaut: true },
+  { id: 'repete',   cote: 'show',    titre: 'Répète',         sous: 'Incoming',                      couleur: 'var(--rust)', pret: false, defaut: true },
+  { id: 'concert',  cote: 'show',    titre: 'Concert',        sous: 'Incoming',                      couleur: 'var(--ox)',   pret: false, defaut: true },
 
   { id: 'reglages', cote: 'reglages', titre: 'Réglages',      sous: '',                              couleur: '#555',        pret: true,  defaut: true, mini: true, fixe: true },
 ];
@@ -35,6 +37,6 @@ BK.cotes = [
   { id: 'audio',    titre: 'Audiovisuel' },
   { id: 'outils',   titre: 'Organisation' },
   { id: 'assist',   titre: 'Assistant tools' },
-  { id: 'show',     titre: 'Show et tournage' },
+  { id: 'show',     titre: 'Show' },
   { id: 'reglages', titre: '' },
 ];

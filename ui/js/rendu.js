@@ -59,13 +59,31 @@ BK.rendu = {
     ['vintage', 'Vintage'], ['delave', 'Délavé années 70'], ['kodak', 'Pellicule couleur chaude'], ['polaroid', 'Polaroid'], ['super8', 'Super 8'],
     ['sepia', 'Sépia ancien'], ['nb', 'Noir et blanc argentique'],
     ['lumiere', 'Fuite de lumière orange'], ['lumiere2', 'Fuite de lumière dorée'], ['lumiere3', 'Fuite de lumière rose'], ['brulure', 'Pellicule brûlée'], ['halo', 'Halo doux'],
-    ['grain', 'Grain de film'], ['poussiere', 'Poussière et rayures'], ['vhs', 'VHS'], ['vignette', 'Vignettage']],
+    ['grain', 'Grain de film'], ['poussiere', 'Poussière et rayures'], ['papier', 'Papier poster'], ['vhs', 'VHS'], ['vignette', 'Vignettage']],
   _bruit: null,
   bruit() {
     if (BK.rendu._bruit) return BK.rendu._bruit;
     const c = document.createElement('canvas'); c.width = c.height = 256; const x = c.getContext('2d'), d = x.createImageData(256, 256);
     for (let i = 0; i < d.data.length; i += 4) { const v = Math.random() * 255; d.data[i] = d.data[i + 1] = d.data[i + 2] = v; d.data[i + 3] = 255; }
     x.putImageData(d, 0, 0); return BK.rendu._bruit = c;
+  },
+  // ---------- le papier d'affiche : fond crème, fibres, taches et un pli (dessiné une fois, gardé) ----------
+  _papier: null,
+  papier() {
+    if (BK.rendu._papier) return BK.rendu._papier;
+    const N = 512, c = document.createElement('canvas'); c.width = c.height = N; const x = c.getContext('2d');
+    let g = 7; const r = () => (g = (g * 16807) % 2147483647) / 2147483647;               // toujours le même papier
+    x.fillStyle = '#ece2cb'; x.fillRect(0, 0, N, N);
+    const d = x.getImageData(0, 0, N, N); for (let i = 0; i < d.data.length; i += 4) { const v = (r() - 0.5) * 26; d.data[i] += v; d.data[i + 1] += v; d.data[i + 2] += v * 0.9; } x.putImageData(d, 0, 0);
+    for (let i = 0; i < 40; i++) { const px = r() * N, py = r() * N, rr = 20 + r() * 70, t = x.createRadialGradient(px, py, 0, px, py, rr);
+      t.addColorStop(0, `rgba(${r() > 0.5 ? '150,115,70' : '255,250,235'},${0.05 + r() * 0.07})`); t.addColorStop(1, 'rgba(150,115,70,0)'); x.fillStyle = t; x.fillRect(0, 0, N, N); }
+    x.lineCap = 'round';
+    for (let i = 0; i < 1400; i++) { const px = r() * N, py = r() * N, a = r() * 6.3, l = 3 + r() * 16;
+      x.strokeStyle = r() > 0.35 ? `rgba(110,85,55,${0.05 + r() * 0.12})` : `rgba(255,252,240,${0.15 + r() * 0.2})`; x.lineWidth = 0.4 + r() * 0.8;
+      x.beginPath(); x.moveTo(px, py); x.quadraticCurveTo(px + Math.cos(a + 0.6) * l / 2, py + Math.sin(a + 0.6) * l / 2, px + Math.cos(a) * l, py + Math.sin(a) * l); x.stroke(); }
+    const pli = (y0, y1, a) => { x.strokeStyle = `rgba(90,70,45,${a})`; x.lineWidth = 1.2; x.beginPath(); x.moveTo(0, y0); x.lineTo(N, y1); x.stroke();
+      x.strokeStyle = `rgba(255,252,240,${a * 1.6})`; x.beginPath(); x.moveTo(0, y0 + 1.5); x.lineTo(N, y1 + 1.5); x.stroke(); };
+    pli(N * 0.38, N * 0.41, 0.12); return BK.rendu._papier = c;
   },
   // t : le temps (s) — en vidéo le grain et la poussière bougent ; en photo t = 0 (toujours le même dessin)
   // inten : l'intensité de l'effet (0 = rien, 1 = plein effet) — on garde l'image d'avant et on la remet par-dessus, plus ou moins transparente
@@ -92,19 +110,25 @@ BK.rendu = {
       g.addColorStop(0, `rgba(255,140,50,${a})`); g.addColorStop(0.5, `rgba(255,70,30,${a * 0.45})`); g.addColorStop(1, 'rgba(255,60,20,0)'); cx.fillStyle = g; cx.fillRect(0, 0, L, H);
       const g2 = cx.createRadialGradient(L, H * 0.85, 0, L, H * 0.85, H * 0.4); g2.addColorStop(0, `rgba(255,190,90,${a * 0.6})`); g2.addColorStop(1, 'rgba(255,190,90,0)');
       cx.fillStyle = g2; cx.fillRect(0, 0, L, H); cx.globalCompositeOperation = 'source-over'; };
+    const teinte = (mode, c) => { cx.globalCompositeOperation = mode; cx.fillStyle = c; cx.fillRect(0, 0, L, H); cx.globalCompositeOperation = 'source-over'; };
     if (type === 'vintage') {                                     // chaud, noirs délavés, grain, poussière, coins sombres
       cx.globalCompositeOperation = 'multiply'; cx.fillStyle = 'rgba(255,222,170,.55)'; cx.fillRect(0, 0, L, H);
       cx.globalCompositeOperation = 'screen'; cx.fillStyle = 'rgba(46,32,20,.55)'; cx.fillRect(0, 0, L, H); cx.globalCompositeOperation = 'source-over';
       grain(0.35); poussiere(14); vignette(0.5);
     }
     if (type === 'grain') grain(0.5);
+    if (type === 'papier') {                                      // imprimé sur une affiche : noirs un peu délavés, encre qui boit le papier
+      teinte('screen', 'rgba(45,35,22,.35)');
+      const pat = cx.createPattern(BK.rendu.papier(), 'repeat'); pat.setTransform && pat.setTransform(new DOMMatrix().scale(Math.max(1, 1.4 * s)));
+      cx.globalCompositeOperation = 'multiply'; cx.fillStyle = pat; cx.fillRect(0, 0, L, H);
+      cx.globalCompositeOperation = 'soft-light'; cx.globalAlpha = 0.5; cx.fillRect(0, 0, L, H); cx.globalAlpha = 1; cx.globalCompositeOperation = 'source-over';
+      grain(0.12); vignette(0.18); }
     if (type === 'poussiere') { poussiere(28); grain(0.18); }
     if (type === 'lumiere') { lumiere(0.85); grain(0.15); }
     if (type === 'vignette') vignette(0.7);
     // une fuite de lumière : une tache colorée qui « brûle » un bord de l'image
     const fuite = (x, y, r, c1, c2, a) => { cx.globalCompositeOperation = 'screen'; const g = cx.createRadialGradient(x, y, 0, x, y, r);
       g.addColorStop(0, `rgba(${c1},${a})`); g.addColorStop(0.45, `rgba(${c2},${a * 0.5})`); g.addColorStop(1, `rgba(${c2},0)`); cx.fillStyle = g; cx.fillRect(0, 0, L, H); cx.globalCompositeOperation = 'source-over'; };
-    const teinte = (mode, c) => { cx.globalCompositeOperation = mode; cx.fillStyle = c; cx.fillRect(0, 0, L, H); cx.globalCompositeOperation = 'source-over'; };
     if (type === 'lumiere2') { fuite(L * 1.02, H * (0.3 + 0.05 * Math.sin(t * 0.6)), H * 0.75, '255,224,140', '255,170,40', 1); fuite(L * 1.02, H * 0.3, H * 0.75, '255,224,140', '255,170,40', 0.5); fuite(0, H, H * 0.4, '255,200,110', '240,140,40', 0.5); grain(0.15); }
     if (type === 'lumiere3') { fuite(L * 0.85, -H * 0.02, H * 0.8, '255,170,190', '235,70,120', 1); fuite(L * 0.85, -H * 0.02, H * 0.5, '255,190,200', '235,70,120', 0.5);
       cx.globalCompositeOperation = 'screen'; const g = cx.createLinearGradient(0, 0, L, 0); g.addColorStop(0, 'rgba(255,90,140,.45)'); g.addColorStop(0.25, 'rgba(255,90,140,0)'); cx.fillStyle = g; cx.fillRect(0, 0, L, H); cx.globalCompositeOperation = 'source-over'; grain(0.15); }
@@ -353,3 +377,6 @@ BK.rendu = {
     return memo[nom] = BK.rendu.lireCube(lignes.join('\n'));
   };
 })();
+
+// la même texture papier, pour les cartes de l'onglet Reels (CSS : var(--papier))
+try { document.documentElement.style.setProperty('--papier', `url(${BK.rendu.papier().toDataURL('image/png')})`); } catch (e) {}

@@ -58,7 +58,7 @@ BK.module('renforts', function (page) {
           <div class="chips" style="margin-top:8px"><button class="chip" id="raSalonsB">Enregistrer et chercher les salons</button></div>
           <div class="ra-salons" id="raSalons"></div></div>
         <div class="box"><span class="lb">Miette sur Discord</span>
-          <span class="nt">🍞 sous un message, ou « Miette, … » : Miette range l'info dans le logiciel (✅). « Miette ? … » : elle répond à la question, sous le message.</span>
+          <span class="nt">Réaction 🍞 (tape <code>bread</code> dans la recherche des réactions) ou 🥖 (<code>baguette</code>) sous un message, ou « Miette, … » : Miette range l'info dans le logiciel (✅). « Miette ? … » : elle répond à la question, sous le message.</span>
           <div class="chips" style="margin-top:8px"><button class="chip" id="raRepond">Miette répond aux questions</button></div></div>
         <div class="box"><span class="lb">À savoir</span><span class="nt">Avec la clé gratuite, Google peut se servir des messages envoyés pour améliorer Gemini. N'y mettez rien de secret.</span></div>
 `;
@@ -129,6 +129,12 @@ BK.module('renforts', function (page) {
           <button class="btn sm pri" id="raRonde" style="margin-left:auto"${!d.jeton || !(d.salons || []).length ? ' disabled' : ''}>↻ Lire Discord maintenant</button>
           <button class="btn sm" id="raTout"${!d.jeton || !(d.salons || []).length ? ' disabled' : ''} title="Relit TOUT l'historique des salons, puis Gemini range tout : rendez-vous, exports, tâches, et un résumé dans chaque fiche">🧹 Grand rangement</button></div>
         <span class="nt">${manque || `Miette lit ${d.salons.length} salon(s) toutes les 30 min quand le logiciel est ouvert, et te propose ce qui a été décidé.${sansGemini}${verrou && verrou.passage ? ` Dernière lecture : ${new Date(verrou.passage).toLocaleString('fr-CA', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })} (${esc(verrou.par || '')}).` : ''}`}</span></div>
+      <div class="box ra-aide-dc"><span class="lb">Parler à Miette sur Discord</span>
+        <div class="ra-aide-l"><b class="ra-emo">🍞</b><span><b>Réaction « pain »</b> sous un message → Miette range l'info dans le logiciel.<br>
+          <span class="nt">Sous le message : bouton « Ajouter une réaction » (le petit visage +), puis tape <code>bread</code> dans la recherche (Discord cherche en anglais). La baguette 🥖 marche aussi (tape <code>baguette</code>). Après 2 ou 3 fois, elle reste dans tes réactions rapides.</span></span></div>
+        <div class="ra-aide-l"><b class="ra-emo ra-txt">Aa</b><span><b>« Miette, … »</b> au début du message → pareil, elle range l'info.</span></div>
+        <div class="ra-aide-l"><b class="ra-emo ra-txt">?</b><span><b>« Miette ? … »</b> → elle répond à ta question, sous le message.</span></div>
+        <div class="ra-aide-l"><b class="ra-emo">✅</b><span>Elle met ✅ quand c'est rangé, ❓ si elle n'a pas compris.</span></div></div>
       <div class="box ra-lu" id="raLu"><div class="ligne-titre"><span class="lb">👁 Ce que Miette a lu</span>
           <button class="btn xs" id="raLuPli" style="margin-left:auto">${BK.reglage('ra.luOuvert', true) ? '▾' : '▸'}</button></div>
         <div id="raLuC"></div></div>
@@ -309,7 +315,7 @@ BK.module('renforts', function (page) {
       if (!await BK.ia.pret()) { if (note) return msg('Note enregistrée telle quelle : Dari la verra'); return sansCle(`${await BK.ia.contexte()}\n\n${demande}`); }
       $('#raRep').innerHTML = '<span class="nt"><span class="spin"></span>Miette réfléchit…</span>';
       try {
-        const r = await BK.ia.demander(`${await BK.ia.contexte()}\n\n${demande}`, { json: !!a.json, systeme: 'Tu aides le groupe de musique BEESKOT. Réponds en français, simplement.' });
+        const r = await BK.ia.demander(`${await BK.ia.contexte()}\n\n${demande}`, { prio: true, json: !!a.json, systeme: 'Tu aides le groupe de musique BEESKOT. Réponds en français, simplement.' });
         if (a.json) {
           const plans = Array.isArray(r) ? r : r.plans || [];
           $('#raRep').innerHTML = `<table class="to-plans"><tr><th>#</th><th>Cadrage</th><th>Ce qu'on voit</th><th>Durée</th><th>Notes</th></tr>${plans.map((p, i) => `<tr><td>${i + 1}</td><td>${esc(p.cadrage)}</td><td>${esc(p.action)}</td><td>${esc(p.duree)}</td><td>${esc(p.notes)}</td></tr>`).join('')}</table>`;
@@ -363,7 +369,7 @@ BK.module('renforts', function (page) {
     const k = $('#raCle').value.trim(); if (!k && !(await BK.ia.pret())) return msg('Colle d\'abord la clé');
     if (k) await BK.ia.enregistrer({ gemini: k, modeles: {} }); $('#raCle').value = '';
     msg('Test de Gemini…');
-    try { const r = await BK.ia.demander('Réponds seulement : OK', { temperature: 0 }); msg(/ok/i.test(r) ? 'Gemini répond ✓ (' + (await BK.ia.modele()) + ')' : 'Réponse : ' + r); BK.discord.resume().catch(() => {}); }
+    try { const r = await BK.ia.demander('Réponds seulement : OK', { prio: true, temperature: 0 }); msg(/ok/i.test(r) ? 'Gemini répond ✓ (' + (await BK.ia.modele()) + ')' : 'Réponse : ' + r); BK.discord.resume().catch(() => {}); }
     catch (e) { msg(e.message); }
     await majEtat(); if (R.volet === 'veilleur') rendreVeilleur();
   };
