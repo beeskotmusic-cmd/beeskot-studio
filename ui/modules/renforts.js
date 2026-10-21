@@ -320,7 +320,10 @@ BK.module('renforts', function (page) {
   function rendreSalons() {
     const d = R.discord || {}, choisis = new Set((d.salons || []).map(s => s.id));
     const liste = R.salons.length ? R.salons : (d.salons || []);
-    $('#raSalons').innerHTML = liste.map(s => `<label class="ra-salon"><input type="checkbox" data-s="${s.id}"${choisis.has(s.id) ? ' checked' : ''}><span>#${esc(s.nom)}</span><em>${esc(s.serveur || '')}</em></label>`).join('');
+    const utile = n => /mail|fiverr|ing|annonce|g[ée]n[ée]ral|vrac|[ée]v[ée]nement|logistique|tournage|projet|maquette|id[ée]e/i.test(n);
+    const oublies = liste.filter(s => !choisis.has(s.id) && /mail|fiverr/i.test(s.nom));
+    $('#raSalons').innerHTML = (oublies.length ? `<span class="nt" style="color:#ffb23e">⚠ Coche ${oublies.map(s => '#' + esc(s.nom)).join(', ')} : c'est là qu'arrivent les mails (ingé son, factures). Miette en a besoin pour les résumés et le calendrier.</span>` : '')
+      + liste.map(s => `<label class="ra-salon${utile(s.nom) ? ' utile' : ''}"><input type="checkbox" data-s="${s.id}"${choisis.has(s.id) ? ' checked' : ''}><span>#${esc(s.nom)}</span><em>${esc(s.serveur || '')}</em></label>`).join('');
     $$('#raSalons [data-s]').forEach(c => c.onchange = async () => {
       const tous = R.salons.length ? R.salons : (d.salons || []);
       const sel = $$('#raSalons [data-s]').filter(x => x.checked).map(x => tous.find(s => s.id === x.dataset.s)).filter(Boolean);

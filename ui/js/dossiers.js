@@ -362,3 +362,52 @@ BK.choisirImages = function ({ titre = 'Choisir', items, charger, bouton = 'Ajou
     })();
   });
 };
+
+// =====================================================================
+// 🍞 TRIER AVEC MIETTE — elle regarde les photos qui n'ont pas d'étiquette
+// et propose où les ranger : tenues, scénographie, moodboard, covers, live…
+// Rien n'est appliqué sans validation. Par petits paquets : léger en crédits.
+// =====================================================================
+BK.trierMedias = async function (fichiers, { avancement = () => {}, max = 40 } = {}) {
+  if (!(await BK.ia.pret())) throw new Error('Il faut la clé Gemini et l\'AI allumée');
+  const tags = await BK.etiquettes.tous(), morceaux = await BK.db.liste('morceaux');
+  const CASES = [
+    ['c:outfits', 'Tenues', 'des vêtements, des looks, quelqu\'un qui montre sa tenue, un portant, des chaussures'],
+    ['c:scenographie', 'Scénographie', 'un décor, un lieu, une salle, des meubles, un plateau, une installation'],
+    ['c:moodboard', 'Moodboard', 'une image d\'inspiration : photo d\'ambiance, référence visuelle, capture Pinterest, palette, film'],
+    ['c:lumiere', 'Light show', 'des lumières, des LED, des projecteurs, un écran vidéo'],
+    ['c:cover', 'Cover', 'une pochette de morceau ou une image carrée qui ressemble à une couverture d\'album'],
+    ['c:live', 'Live / concert', 'une scène, un concert, le groupe en train de jouer devant du public'],
+    ['c:tournage', 'Tournage', 'un tournage en cours : caméra, trépied, équipe, clap, coulisses'],
+    ['c:insta', 'Post Instagram', 'une photo du groupe posée, un portrait, une image faite pour les réseaux'],
+  ];
+  const aTrier = fichiers.filter(f => /^image\//.test(f.mimeType || '') && !BK.etiquettes.liste(tags, f.id).length).slice(0, max);
+  if (!aTrier.length) return [];
+  const sys = `Tu ranges les photos du groupe de musique BEESKOT. Pour CHAQUE image, choisis UNE case :
+${CASES.map(([k, n, d]) => `- ${k} (${n}) : ${d}`).join('\n')}
+- "-" si l'image ne va dans aucune de ces cases, ou si tu n'es pas sûr.
+Si on reconnaît clairement un morceau du groupe (pochette, titre écrit), dis-le dans "morceau". Morceaux : ${morceaux.map(m => m.nom).join(', ')}.
+Réponds en JSON : un tableau d'objets {"i":<numéro de l'image, à partir de 1>,"case":"c:…ou -","morceau":"nom exact ou vide","pourquoi":"3 à 6 mots"}. Une entrée par image, dans l'ordre.`;
+  const out = [];
+  for (let d = 0; d < aTrier.length; d += 6) {
+    const lot = aTrier.slice(d, d + 6);
+    avancement(d, aTrier.length);
+    const imgs = [];
+    for (const f of lot) { try { const u = await BK.drive.vignette(f); imgs.push(u ? await BK.ia.enBase64(u) : null); } catch (e) { imgs.push(null); } }
+    const bons = lot.filter((f, i) => imgs[i]);
+    if (!bons.length) continue;
+    try {
+      const r = await BK.ia.demander(`Voici ${bons.length} image(s), dans l'ordre. Leurs noms de fichier : ${bons.map((f, i) => (i + 1) + ') ' + f.name).join(' ; ')}.`,
+        { systeme: sys, json: true, temperature: 0.1, vite: true, delai: 120, fichiers: imgs.filter(Boolean) });
+      for (const x of (Array.isArray(r) ? r : [])) {
+        const f = bons[(+x.i || 0) - 1]; if (!f || !x.case || x.case === '-') continue;
+        const c = CASES.find(([k]) => k === x.case); if (!c) continue;
+        const m = x.morceau && morceaux.find(y => y.nom.toLowerCase() === String(x.morceau).toLowerCase());
+        out.push({ f, cle: c[0], nom: c[1], morceau: m || null, pourquoi: x.pourquoi || '' });
+      }
+    } catch (e) { console.warn(e); }
+    await new Promise(r => setTimeout(r, 30));
+  }
+  avancement(aTrier.length, aTrier.length);
+  return out;
+};

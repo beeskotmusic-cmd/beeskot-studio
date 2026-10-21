@@ -28,6 +28,7 @@ BK.module('medias', function (page) {
           <span class="nt">Glisse des fichiers sur la page, ou « + » : ils vont dans le dossier ouvert.</span>
           <button class="btn sm" id="mdAjout" style="margin-top:10px">+ Choisir des fichiers…</button>
           <button class="btn sm" id="mdDossier" style="margin-top:8px">+ Nouveau dossier ici…</button>
+          <button class="btn sm pri" id="mdTrier" style="margin-top:8px" title="Miette regarde les photos sans étiquette et propose où les ranger">🍞 Trier avec Miette</button>
           <input type="file" id="mdInput" multiple hidden></div>
         <div class="box"><span class="lb">Drive</span>
           <span class="nt mono" id="mdChemin">—</span>
@@ -233,6 +234,45 @@ BK.module('medias', function (page) {
     M.envoi = false; charger();
   }
   $('#mdAjout').onclick = () => $('#mdInput').click();
+  // ---------- 🍞 Miette regarde les photos et propose une case ----------
+  $('#mdTrier').onclick = async () => {
+    if (!BK.drive.relie()) return msg('Relie d\'abord le Drive');
+    if (!await BK.ia.pret()) return msg('Allume l\'AI et ajoute la clé Gemini (Réglages)');
+    if (M.racine === 'discord') return msg('Dans Discord, range d\'abord les fichiers dans le Drive');
+    const sansTag = x => /^image\//.test(x.mimeType || '') && !BK.etiquettes.liste(M.tags, x.id).length;
+    let l = (M.fichiers || []).filter(sansTag);
+    if (!l.length) { msg('Miette cherche les photos sans étiquette…'); await BK.dossiers.assurer(); l = (await BK.dossiers.tousFichiers()).filter(sansTag); }
+    if (!l.length) return msg('Rien à ranger : toutes les photos ont déjà une étiquette');
+    const b = $('#mdTrier'); b.disabled = true; b.innerHTML = '<span class="spin"></span>Miette regarde…';
+    let props = [];
+    try { props = await BK.trierMedias(l, { avancement: (k, n) => msg(`Miette regarde ${k}/${n} photo(s)…`) }); }
+    catch (e) { msg(e.message); }
+    b.disabled = false; b.textContent = '🍞 Trier avec Miette';
+    if (!props.length) return msg('Rien à ranger : tout est déjà étiqueté');
+    montrerPropositions(props);
+  };
+  function montrerPropositions(props) {
+    const v = document.createElement('div'); v.className = 'voile ex-voile';
+    v.innerHTML = `<div class="ex-box"><div class="ex-tete"><span class="lb">🍞 Miette propose de ranger ${props.length} photo(s)</span><button class="btn xs" data-tr="x">✕</button></div>
+      <div class="ex-liste md-dc" id="trL">${props.map((p, i) => `<button class="md-dc-t on" data-tri="${i}" title="${esc(p.f.name)}">
+          <span class="md-dc-img"><span class="spin"></span></span>
+          <span class="md-nom">${esc(p.nom)}${p.morceau ? ' · ' + esc(p.morceau.nom) : ''}</span>
+          <span class="nt">${esc(p.pourquoi)}</span></button>`).join('')}</div>
+      <div class="ex-pied"><span class="nt" id="trInfo">Décoche ce qui ne va pas, puis « Ranger ».</span><button class="btn" data-tr="x">Annuler</button><button class="btn pri" data-tr="ok">Ranger</button></div></div>`;
+    document.body.appendChild(v);
+    const non = new Set();
+    (async () => { for (let i = 0; i < props.length; i++) { const u = await BK.drive.vignette(props[i].f), el = v.querySelector(`[data-tri="${i}"] .md-dc-img`); if (el) el.innerHTML = u ? `<img src="${u}" draggable="false">` : '🖼'; } })();
+    v.addEventListener('click', async e => {
+      const t = e.target.closest('[data-tri]'), a = e.target.closest('[data-tr]');
+      if (t) { const i = t.dataset.tri; non.has(i) ? non.delete(i) : non.add(i); t.classList.toggle('on', !non.has(i));
+        v.querySelector('#trInfo').textContent = (props.length - non.size) + ' photo(s) à ranger'; return; }
+      if (!a) return; if (a.dataset.tr === 'x') return v.remove();
+      const garde = props.filter((p, i) => !non.has(String(i)));
+      v.remove(); let n = 0;
+      for (const p of garde) { try { await BK.etiquettes.basculer(p.f.id, p.cle, true); if (p.morceau) await BK.etiquettes.basculer(p.f.id, p.morceau.id, true); n++; } catch (er) {} }
+      M.tags = await BK.etiquettes.tous(); msg(n + ' photo(s) rangée(s) ✓'); paniers(); rendre(!!M.filtre);
+    });
+  }
   // « + Ajouter ici » : depuis ce PC, depuis le Drive ou depuis Discord
   function menuAjout(el) {
     $$('.md-menu').forEach(x => x.remove());

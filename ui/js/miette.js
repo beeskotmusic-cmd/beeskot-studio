@@ -54,6 +54,7 @@ BK.miette = {
 Membres : Yacine (Yaya, Dari, pseudo « sneakers »), Pierre (« pierrec1. »), Baptiste (Bat, « drumbli.scott »). « BEESKOT » = tout le groupe.
 Morceaux (nom exact, puis surnoms) : ${ms.map(m => m.nom + ((m.alias || []).length ? ' (' + m.alias.join(', ') + ')' : '')).join(' ; ')}.
 Tu lis leurs messages Discord (français familier) et tu PRÉPARES leur organisation dans le logiciel. Sois concret et complet, n'invente rien.
+Un bot recopie aussi les MAILS reçus par le groupe (ingé son sur Fiverr, distributeur, salles, factures) : ce sont des infos réelles, cite-les dans le résumé, et tires-en des tâches, des dates et des dépenses comme pour le reste.
 Réponds en JSON, un seul objet :
 {
  "semaine": "ce qu'on s'est dit ces 7 derniers jours, 3 à 6 phrases courtes et simples",

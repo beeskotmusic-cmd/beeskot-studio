@@ -60,14 +60,16 @@ BK.ia = {
     if (!BK.ia.enCours++) BK.ia.debut = Date.now(); BK.ia.voyant();
     try { return await BK.ia._demander(texte, opts); } finally { BK.ia.enCours--; BK.ia.voyant(); }
   },
-  async _demander(texte, { systeme = '', json = false, temperature = 0.4, niveau = '', vite = false, delai = 90, audio = null } = {}) {
+  async _demander(texte, { systeme = '', json = false, temperature = 0.4, niveau = '', vite = false, delai = 90, audio = null, fichiers = null } = {}) {
     if (!BK.ia.active()) throw new Error('L\'AI est coupée (interrupteur en bas du menu)');
     const c = await BK.ia.config(); if (!c.gemini) throw new Error('Pas de clé Gemini (Réglages › Miette)');
     niveau = niveau || c.niveau || 'normal';
     let sansReflexion = false;
     for (let essai = 0; essai < 4; essai++) {
       const modele = await BK.ia.modele(niveau);
-      const parts = [{ text: texte }]; if (audio) parts.push({ inlineData: { mimeType: audio.mime, data: audio.base64 } });
+      const parts = [{ text: texte }];
+      if (audio) parts.push({ inlineData: { mimeType: audio.mime, data: audio.base64 } });
+      for (const f of fichiers || []) parts.push({ inlineData: { mimeType: f.mime, data: f.base64 } });
       const corps = { contents: [{ role: 'user', parts }], generationConfig: { temperature } };
       if (systeme) corps.systemInstruction = { parts: [{ text: systeme }] };
       if (json) corps.generationConfig.responseMimeType = 'application/json';
@@ -129,4 +131,19 @@ BK.dicter = {
     return BK.ia.demander('Écris exactement ce qui est dit dans cet enregistrement, en français, sans rien ajouter ni commenter.',
       { audio: { mime: blob.type || 'audio/webm', base64: b64 }, temperature: 0, vite: true, delai: 120 });
   },
+};
+
+// une image (ou une vignette) prête à être envoyée à Gemini
+BK.ia.enBase64 = async function (url) {
+  const b = await (await fetch(url)).blob();
+  const petit = await BK.ia.reduireImage(b, 420);
+  return { mime: 'image/jpeg', base64: await new Promise(ok => { const f = new FileReader(); f.onload = () => ok(String(f.result).split(',')[1]); f.readAsDataURL(petit); }) };
+};
+BK.ia.reduireImage = async function (blob, max) {
+  try {
+    const img = await createImageBitmap(blob), k = Math.min(1, max / Math.max(img.width, img.height));
+    const c = document.createElement('canvas'); c.width = Math.round(img.width * k); c.height = Math.round(img.height * k);
+    c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
+    return await new Promise(ok => c.toBlob(ok, 'image/jpeg', 0.75));
+  } catch (e) { return blob; }
 };

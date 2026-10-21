@@ -103,7 +103,7 @@ BK.discord = {
       await BK.db.ecrire('veille', d);
     }
   },
-  texte: ls => (ls.some(l => /^🤖/.test(l.qui || '')) ? '(Les messages « 🤖 » viennent de bots : l\'un d\'eux résume les mails reçus par le groupe — ingés son sur Fiverr, distributeur, salles… Ce sont des infos fiables : tiens-en compte comme des messages du groupe.)\n' : '') + ls.map(l => `[${l.t.slice(0, 16).replace('T', ' ')}] #${l.salon} ${l.qui} : ${l.txt}${l.pj ? ' [fichiers : ' + l.pj + ']' : ''} (msg ${l.id})`).join('\n'),
+  texte: ls => (ls.some(l => /^🤖/.test(l.qui || '')) ? '(IMPORTANT : les messages « 🤖 » viennent de bots. L\'un d\'eux recopie les MAILS reçus par le groupe : ingés son (Fiverr), distributeur, salles, factures, devis, livraisons de mix. Ce sont des informations réelles et fiables : traite-les exactement comme des messages du groupe, cite les noms et les montants qui s\'y trouvent, et tiens-en compte pour le résumé, les tâches, les dates et les dépenses.)\n' : '') + ls.map(l => `[${l.t.slice(0, 16).replace('T', ' ')}] #${l.salon} ${l.qui} : ${l.txt}${l.pj ? ' [fichiers : ' + l.pj + ']' : ''} (msg ${l.id})`).join('\n'),
 
   // ---------- une ronde du Veilleur ----------
   enCours: false,
@@ -187,7 +187,7 @@ Si rien n'est décidé, réponds [].`;
     try {
       const systeme = 'Tu es l\'assistant du groupe BEESKOT. Écris en français simple, comme un message à un ami. Pas de titre, pas de blabla.';
       const r = await BK.ia.demander(`${await BK.ia.contexte()}\n\nMessages Discord des 7 derniers jours :\n${BK.discord.texte(recents.slice(-600))}\n\n`
-        + 'Réponds en JSON : {"semaine": "ce qu\'on s\'est dit cette semaine, en 3 à 6 phrases courtes (décisions, dates, nouveautés)", "afaire": ["les choses à faire qui ressortent, 3 à 6 lignes courtes, avec qui si on le sait"]}',
+        + 'Réponds en JSON : {"semaine": "ce qu\'on s\'est dit cette semaine, en 3 à 6 phrases courtes (décisions, dates, nouveautés). Cite aussi les MAILS reçus (ingé son, Fiverr, distributeur, factures, livraison d\'un mix) : qui a écrit et ce qu\'il dit.", "afaire": ["les choses à faire qui ressortent, 3 à 6 lignes courtes, avec qui si on le sait (répondre à un mail et payer une facture en font partie)"]}',
         { systeme, json: true, temperature: 0.3, vite: true, delai: 90 });
       Object.assign(doc, { texte: r.semaine || '', afaire: Array.isArray(r.afaire) ? r.afaire : [], dernier, t: Date.now(), nb: recents.length });
       await BK.db.ecrire('veille', doc);
@@ -232,6 +232,7 @@ Si rien n'est décidé, réponds [].`;
     const ms = await BK.db.liste('morceaux'), auj = new Date().toISOString().slice(0, 10);
     const systeme = `Tu tiens le calendrier du groupe de musique BEESKOT à partir de leurs messages Discord (français familier). Aujourd'hui : ${auj}.
 Trouve TOUTES les dates à venir dont on parle : tournages, shootings photo, enregistrements, répétitions, mixages, sorties de morceaux, publications, concerts.
+Les MAILS recopiés par un bot comptent autant : livraison d'un mix promise par l'ingé son, échéance de paiement, date de rendez-vous, délai annoncé par le distributeur.
 Pour chacune, dis si c'est « valide » (décidé, confirmé) ou « possible » (proposé, hésitation entre plusieurs jours, « peut-être », pas encore confirmé).
 Si on hésite entre plusieurs jours (« le 24 ou le 25 »), mets toutes les dates possibles dans "dates".
 Les dates relatives se calculent depuis la date du message. Ne garde que les dates à partir d'aujourd'hui.
@@ -269,6 +270,7 @@ Morceaux : ${ms.map(m => m.nom + ((m.alias || []).length ? ' (' + m.alias.join('
     const deja = [...ts.map(t => t.texte + (t.fait ? ' (fait)' : '')), ...props.filter(p => p.type === 'tache').map(p => p.texte)];
     const systeme = `Tu prépares la to-do list du groupe de musique BEESKOT à partir de leurs messages Discord (français familier).
 Trouve TOUT ce que quelqu'un doit faire : promis (« je m'en occupe », « faut que je… »), demandé (« tu peux… ? »), ou évident (une date validée → préparer, réserver, envoyer…).
+Les MAILS recopiés par un bot en donnent aussi : répondre à l'ingé son, écouter un mix livré, payer ou relancer une facture, envoyer des fichiers.
 Une tâche = une action concrète et courte qui commence par un verbe (ex. « Envoyer le mix v4 de Mother à Nico »).
 Ne propose PAS ce qui est déjà fait dans les messages, ni ce qui est déjà dans la liste existante.
 Réponds en JSON : un tableau de {"texte":"…","qui":"Yacine|Pierre|Baptiste|BEESKOT|","morceau":"nom exact ou vide","date":"AAAA-MM-JJ si une échéance est dite, sinon vide","source":"l'identifiant (msg …) du message","pourquoi":"1 phrase courte qui cite ce qui a été dit"}.
