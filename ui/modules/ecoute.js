@@ -31,7 +31,7 @@ BK.module('ecoute', function (page) {
         </div>
         <div class="box ec-onde-box">
           <div class="ec-onde" id="ecOnde"><canvas id="ecCanvas"></canvas><div class="ec-tete" id="ecTete"></div><div class="ec-selz hidden" id="ecSelz"></div>
-            <span class="nt ec-vide" id="ecVide">Choisis un morceau et deux versions</span></div>
+            <span class="nt ec-vide" id="ecVide">Choisis un morceau et une version (B = « Aucun » pour écouter un seul mix)</span></div>
           <div class="ec-marques" id="ecMarques"></div>
           <div class="ec-transport">
             <button class="btn sm pri" id="ecPlay" disabled>▶</button><span class="vfd" id="ecTemps">0:00 / 0:00</span>
@@ -43,7 +43,8 @@ BK.module('ecoute', function (page) {
           <div class="ec-form"><span class="vfd" id="ecQuand">0:00</span><span class="ec-sur" id="ecSur">sur A</span>
             <input class="fld" id="ecTexte" placeholder="Ta note à cet endroit… (Entrée pour ajouter)"><button class="btn sm pri" id="ecAjout">＋ Note</button></div>
           <div class="ec-filtres"><button class="chip on" data-f="tout">Toutes</button><button class="chip" data-f="ouvertes">À régler</button><button class="chip" data-f="A">Seulement A</button><button class="chip" data-f="B">Seulement B</button>
-            <button class="btn xs" id="ecCopier" style="margin-left:auto">📋 Copier pour l'ingé son</button></div>
+            <button class="btn xs miette-aide" id="ecTraduire" style="margin-left:auto" title="Miette traduit les notes en anglais, naturellement (pour l'ingé son). Le français reste.">Traduire en anglais</button>
+            <button class="btn xs" id="ecCopier" title="Copie les notes à régler (en anglais si elles sont traduites)">📋 Copier pour l'ingé son</button></div>
           <div class="ec-liste" id="ecListe"><span class="nt">Pas encore de note.</span></div></div>
       </section>
     </div>
@@ -78,11 +79,11 @@ BK.module('ecoute', function (page) {
     $('#ecA').innerHTML = $('#ecB').innerHTML = '<option>recherche…</option>';
     E.opts = await versions(E.m);
     const html = E.opts.length ? E.opts.map(o => `<option value="${esc(o.v)}">${o.v === E.m.exportPrincipal ? '★ ' : ''}${o.ou} ${esc(o.nom)}</option>`).join('') : '<option value="">aucun export trouvé</option>';
-    $('#ecA').innerHTML = $('#ecB').innerHTML = html;
+    $('#ecA').innerHTML = html; $('#ecB').innerHTML = '<option value="">— Aucun (un seul mix)</option>' + (E.opts.length ? html : '');
     // par défaut : B = la plus récente, A = la précédente (ou la ★)
     const parDate = [...E.opts].sort((a, b) => (b.t || '').localeCompare(a.t || ''));
     const b0 = parDate[0], a0 = E.opts.find(o => o.v === E.m.exportPrincipal && o !== b0) || parDate[1] || parDate[0];
-    if (a0) $('#ecA').value = a0.v; if (b0) $('#ecB').value = b0.v;
+    if (a0) $('#ecA').value = a0.v; $('#ecB').value = b0 && a0 && b0 !== a0 ? b0.v : '';      // une seule version : B = aucun
     await Promise.all([chargerCote('A'), chargerCote('B')]);
     chargerNotes();
   }
@@ -92,14 +93,17 @@ BK.module('ecoute', function (page) {
     return BK.fichier.lireOctets(v);
   }
   async function chargerCote(c) {
-    const v = $('#ec' + c).value; if (!v) return;
+    const v = $('#ec' + c).value;
+    if (!v) { E[c] = null; E['buf' + c] = null; solo(); dessiner(); $('#ecPlay').disabled = !(E.bufA || E.bufB); return; }
     E[c] = v; msg('Chargement de la version ' + c + '…');
     try { E['buf' + c] = await BK.audio.decoder(await octetsDe(v)); }
     catch (e) { E['buf' + c] = null; msg('Version ' + c + ' illisible'); }
     E.decal = (BK.reglage('ecoute.decal', {})[E.A + '|' + E.B]) || 0; majDecal();
     $('#ecPlay').disabled = !(E.bufA || E.bufB); $('#ecVide').classList.toggle('hidden', !!(E.bufA || E.bufB));
-    dessiner(); msg(E.bufA && E.bufB ? 'Prêt : A et B · Tab pour passer de l\'une à l\'autre' : 'Prêt');
+    solo(); dessiner(); msg(E.bufA && E.bufB ? 'Prêt : A et B · Tab pour passer de l\'une à l\'autre' : 'Prêt');
   }
+  // un seul mix (B = aucun) : pas de bouton A/B, pas de recalage, pas de filtres A/B
+  function solo() { const un = !E.B; page.classList.toggle('ec-solo', un); if (un && E.cote === 'B') basculer('A'); }
   $('#ecMorceau').onchange = choisirMorceau;
   $('#ecA').onchange = async () => { stop(); await chargerCote('A'); dessinerNotes(); };
   $('#ecB').onchange = async () => { stop(); await chargerCote('B'); dessinerNotes(); };
@@ -146,7 +150,7 @@ BK.module('ecoute', function (page) {
   document.addEventListener('keydown', e => {
     if (page.classList.contains('hidden') || /INPUT|TEXTAREA|SELECT/.test(document.activeElement.tagName) || document.querySelector('.voile')) return;
     if (e.code === 'Space') { e.preventDefault(); E.joue ? stop() : jouer(); }
-    if (e.key === 'Tab') { e.preventDefault(); basculer(); }
+    if (e.key === 'Tab') { e.preventDefault(); if (E.B) basculer(); }
   });
 
   // ---------- recaler B (si les deux versions ne commencent pas pareil) ----------
@@ -214,8 +218,8 @@ BK.module('ecoute', function (page) {
       style="left:${Math.min(100, n.t / D * 100)}%;${n.fin ? `width:${Math.max(0.6, (n.fin - n.t) / D * 100)}%;` : ''}--pc:${couleur(n.par)};top:${n.version === E.B ? 12 : 0}px"></span>`).join('') : '';
     $('#ecListe').innerHTML = l.length ? l.map(n => `<div class="ec-n${n.regle ? ' regle' : ''}" data-n="${n.id}" style="--pc:${couleur(n.par)}">
         <button class="ec-n-t mono" data-aller="${n.id}" title="Écouter à cet endroit">${tps(n.t)}${n.fin ? ' → ' + tps(n.fin) : ''}</button>
-        <div class="ec-n-c"><div class="ec-n-l"><b>${esc(n.par)}</b><span class="ec-v ${n.version === E.B ? 'b' : 'a'}" title="${esc(nomVersion(n.version))}">${n.version === E.B ? 'B' : 'A'}</span><span class="ec-n-txt">${esc(n.texte)}</span></div>
-          ${(n.reponses || []).map(r => `<div class="ec-rep" style="--pc:${couleur(r.par)}"><b>${esc(r.par)}</b> ${esc(r.texte)}</div>`).join('')}
+        <div class="ec-n-c"><div class="ec-n-l"><b>${esc(n.par)}</b><span class="ec-v ${n.version === E.B ? 'b' : 'a'}" title="${esc(nomVersion(n.version))}">${n.version === E.B ? 'B' : 'A'}</span><span class="ec-n-txt">${esc(n.texte)}</span></div>${n.texteEn ? `<div class="ec-en"><span>EN</span>${esc(n.texteEn)}</div>` : ''}
+          ${(n.reponses || []).map(r => `<div class="ec-rep" style="--pc:${couleur(r.par)}"><b>${esc(r.par)}</b> ${esc(r.texte)}${r.texteEn ? `<em class="ec-en-r"> · EN : ${esc(r.texteEn)}</em>` : ''}</div>`).join('')}
           <div class="ec-rep-f hidden"><input class="fld" placeholder="Ta réponse… (Entrée)"></div></div>
         <div class="ec-n-o"><button class="btn xs" data-rep="${n.id}" title="Répondre">💬 ${(n.reponses || []).length || ''}</button>
           <button class="btn xs${n.regle ? ' on' : ''}" data-ok="${n.id}" title="Réglé / pas réglé">${n.regle ? '✓ réglé' : '○'}</button>
@@ -244,10 +248,30 @@ BK.module('ecoute', function (page) {
   // la liste pour l'ingé son : les notes à régler de la version écoutée (B en général : le nouveau mix)
   $('#ecCopier').onclick = async () => {
     const v = E[E.cote], l = E.notes.filter(n => n.version === v && !n.regle); if (!l.length) return msg('Aucune note à régler sur ' + E.cote);
-    const txt = `${E.m.nom} — ${nomVersion(v)}\n\n` + l.map(n => `${tps(n.t)}${n.fin ? '–' + tps(n.fin) : ''} : ${n.texte}${(n.reponses || []).length ? ' (' + n.reponses.map(r => r.texte).join(' / ') + ')' : ''}`).join('\n');
-    try { await navigator.clipboard.writeText(txt); msg(l.length + ' note(s) copiée(s) : colle-les à l\'ingé son'); } catch (e) { msg('Copie impossible'); }
+    const en = l.every(n => n.texteEn);                                 // tout est traduit : on copie l'anglais (sinon le français)
+    const txt = `${E.m.nom} — ${nomVersion(v)}\n\n` + l.map(n => `${tps(n.t)}${n.fin ? '–' + tps(n.fin) : ''} : ${en ? n.texteEn : n.texte}${(n.reponses || []).length ? ' (' + n.reponses.map(r => en && r.texteEn ? r.texteEn : r.texte).join(' / ') + ')' : ''}`).join('\n');
+    try { await navigator.clipboard.writeText(txt); msg(l.length + ' note(s) copiée(s)' + (en ? ' en anglais' : '') + ' : colle-les à l\'ingé son'); } catch (e) { msg('Copie impossible'); }
+  };
+  // ---------- Miette traduit les notes en anglais (naturel, vocabulaire d'ingé son). On garde les deux textes. ----------
+  $('#ecTraduire').onclick = async () => {
+    const l = E.notes.filter(n => !n.texteEn || (n.reponses || []).some(r => !r.texteEn)); if (!l.length) return msg('Tout est déjà traduit');
+    const b = $('#ecTraduire'); b.disabled = true; const avant = b.textContent; b.innerHTML = '<span class="spin"></span>Miette traduit…';
+    try {
+      const entree = l.map(n => ({ id: n.id, texte: n.texte, reponses: (n.reponses || []).map(r => r.texte) }));
+      const r = await BK.ia.demander(JSON.stringify(entree), { json: true, temperature: 0.2, vite: true,
+        systeme: 'Tu traduis en anglais des notes de mixage écrites en français par un groupe de musique, pour un ingénieur du son anglophone. Traduis de façon naturelle, comme un musicien parlerait à un ingé son (vocabulaire de studio : vocal, low end, punch, reverb tail, sidechain…), sans rien ajouter. Réponds en JSON : {"l":[{"id":"…","en":"…","reponses":["…"]}]} dans le même ordre.' });
+      let n = 0;
+      for (const x of (r && r.l) || []) { const note = E.notes.find(y => y.id === x.id); if (!note || !x.en) continue;
+        note.texteEn = String(x.en).trim(); (note.reponses || []).forEach((rp, i) => { if (x.reponses && x.reponses[i]) rp.texteEn = String(x.reponses[i]).trim(); });
+        await BK.db.ecrire('notesmix', note); n++; }
+      dessinerNotes(); msg(n + ' note(s) traduite(s) en anglais');
+    } catch (e) { msg('Traduction impossible : ' + (e.message || e)); }
+    b.disabled = false; b.textContent = avant;
   };
 
+  // depuis la Bibliothèque (Retours) : ouvrir Écoute sur ce morceau et cette version (en A)
+  BK.ecouteOuvrir = async (id, version) => { BK.ouvrir('ecoute'); await remplirMorceaux(); $('#ecMorceau').value = id; await choisirMorceau();
+    if (version && [...$('#ecA').options].some(o => o.value === version)) { $('#ecA').value = version; if ($('#ecB').value === version) $('#ecB').value = ''; await Promise.all([chargerCote('A'), chargerCote('B')]); dessinerNotes(); } };
   (BK.surOuvrir = BK.surOuvrir || {}).ecoute = async () => { await remplirMorceaux(); if (!E.m && $('#ecMorceau').value) choisirMorceau(); else { dessiner(); chargerNotes(); } };
   remplirMorceaux();
 });

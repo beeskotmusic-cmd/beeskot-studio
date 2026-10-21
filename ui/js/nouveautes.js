@@ -3,6 +3,21 @@
 // Pour une nouvelle version : ajouter un bloc EN HAUT de la liste. Une ligne courte par point : « Onglet : ce qui change. »
 // =====================================================================
 BK.NOUVEAUTES = [
+  { v: '0.9.57', titre: '', l: [
+    ['⌂', 'Médias : bouton Maison, les étiquettes du bas filtrent le dossier ouvert.'],
+    ['🔍', 'Médias : « Voir tout ▾ » montre une étiquette dans tout Médias.'],
+    ['📅', 'Calendrier : dispo en vert, pas dispo en rouge, contour à la couleur de chacun.'],
+    ['📅', 'Calendrier : enlever une dispo, et un événement sur toute une période.'],
+    ['🎧', 'Écoute : un seul mix possible (B = Aucun).'],
+    ['🇬🇧', 'Écoute : Miette traduit les notes en anglais pour l\'ingé son (le français reste).'],
+    ['📚', 'Bibliothèque : fiche rangée en Fichiers, Orga, Retours (les notes du mix par version).'],
+    ['🍞', 'Bibliothèque : bouton « Faire le point Discord » dans Notes du groupe.'],
+    ['🎵', 'Reels Vidéo : la musique peut venir d\'un morceau de la Bibliothèque.'],
+    ['🔧', 'Calendrier : « Planning de promo seulement » refiltre bien.'],
+    ['☁', 'Bibliothèque : le Drive d\'abord ; « Scanner ce PC » passe dans les dossiers de ce PC.'],
+    ['🔌', 'Ableton Live : les plugins manquants du projet, PC par PC, et « Envoyer dans les tâches ».'],
+    ['📱', 'Réglages : le QR code de BEESKOT Studio Mobile (l\'appli arrive avec la V1).'],
+  ] },
   { v: '0.9.56', titre: '', l: [
     ['🎧', 'Nouvel onglet Écoute : mix A/B, notes minutées pour tout le groupe.'],
     ['🔍', 'Social Photo et Reels Vidéo : zoom possible sous 0 %.'],
@@ -136,7 +151,9 @@ BK.TUTO = [
       'Il faut la clé Gemini (gratuite) et l\'interrupteur « AI Miette activée » allumé en bas du menu.' ] },
   { o: 'Bibliothèque', ic: '🎵', quoi: 'Une fiche par morceau : ses exports audio, ses projets Ableton, ses paroles, sa photo, son tempo et son avancement (maquette → sortie).',
     comment: [
-      ['Créer une fiche', '« + Fiche » en haut, ou « Scanner ce PC » / Drive : le logiciel trouve les fichiers pas encore reliés et propose de créer les fiches.'],
+      ['S\'y retrouver dans une fiche', 'Avancement tout en haut. Puis 3 ensembles : FICHIERS (Exports, Projets Ableton), ORGA (Paroles, Infos, Étiquettes, Notes du groupe), RETOURS (Notes du mix : les notes laissées dans Écoute, rangées par version, en français et en anglais ; ▶ Écoute pour les réécouter).'],
+      ['Faire le point Discord sur un morceau', 'Orga › Notes du groupe → bouton biscotte « Faire le point Discord » : Miette relit tout ce que le groupe a dit sur ce morceau et résume où il en est.'],
+      ['Créer une fiche', '« + Créer la fiche » à droite. Les fichiers du Drive se relient tout seuls (↻ Relire le Drive en bas pour les voir tout de suite) ; « À ranger » propose ce qui n\'est pas encore relié. Les dossiers de ce PC (Scanner ce PC) ne servent que pour ce qui n\'est pas encore dans le Drive.'],
       ['Choisir le bon export d\'un morceau', 'Ouvre la fiche → clique ☆ à côté de l\'export : il devient ★. C\'est lui qu\'utilisent Reels Audio et les autres onglets.'],
       ['Changer l\'avancement', 'Ouvre la fiche → clique l\'étape (maquette, enregistrement, mixage, master, sortie, promo).'],
       ['Changer la photo', 'Clique la photo de la fiche → la fenêtre Médias s\'ouvre sur les photos du morceau → double-clic sur la photo. Elle reste dans le Drive : la fiche garde juste son adresse.'],
@@ -144,17 +161,19 @@ BK.TUTO = [
       ['Copier les paroles pour le distributeur', 'Ouvre la fiche → Paroles → Copier pour le distributeur.'] ],
     astuces: [
       'Next release, Work in progress, Sortis : glisse une fiche pour changer son statut ou son ordre. Quand un morceau passe en Sorti, tous les PC le fêtent 🎉.',
-      '🏷 Étiqueté BEESKOT : tout ce qui concerne le morceau (audio, projets, photos), rangé par type.',
+      'Orga › Étiquettes : tout ce qui concerne le morceau (audio, projets, photos), rangé par type.',
       'Une couleur par étape : maquette rouge, enregistrement orange, mixage jaune, master bleu-vert, sortie bleu, promo vert.' ] },
   { o: 'Médias', ic: '🖼', quoi: 'Toutes les photos et vidéos du groupe : les dossiers du Drive, plus celles postées sur Discord. Partout dans le logiciel, on importe une photo ou une vidéo depuis une fenêtre Médias. On les range avec des étiquettes (un morceau, un tournage, Instagram…), sans jamais déplacer les fichiers.',
     comment: [
       ['Étiqueter des photos', 'Choisis les photos (clic, Ctrl+clic pour en ajouter, Maj+clic pour une suite) → clic droit → Morceaux ▸ / Tournage ▸ / Réseaux ▸ → l\'étiquette. Ou glisse-les sur une étiquette dans la barre du bas.'],
-      ['Retrouver les photos d\'un morceau', 'Menu « Voir » en haut → choisis le morceau ou l\'étiquette.'],
+      ['Filtrer le dossier ouvert', 'Barre du bas « Filtrer » : clic sur Morceaux = tout ce qui a une étiquette de morceau dans ce dossier ; clic sur Moon Blue = seulement Moon Blue. Pareil pour Tournage (tenues, moodboard…), Lumière (light show, scénographie, live), Réseaux. Re-clic sur ce qui est allumé = on enlève le filtre. Tout en haut (« Tous les dossiers »), le filtre cherche dans tout Médias.'],
+      ['Retrouver les photos d\'un morceau partout', '« Voir tout ▾ » en haut → Morceaux ▸ Moon Blue : tout ce qui est étiqueté Moon Blue dans TOUT Médias, quel que soit le dossier. « — Rien » pour revenir au dossier.'],
       ['Ajouter des photos de ce PC', 'Ouvre le dossier du Drive voulu → glisse les fichiers sur la page, ou « + Choisir des fichiers ». Ils partent dans ce dossier du Drive.'],
       ['Faire le ménage du Drive', 'Bouton biscotte « Faire le ménage » (à droite) : Miette cherche les fichiers en double (même nom, même taille) et les fichiers vides. Tu coches ce qui part : ça va dans la corbeille de BEESKOT Studio, rien n\'est effacé.'],
       ['Laisser Miette étiqueter', 'Bouton biscotte « Étiqueter les photos » (à droite) : elle regarde les photos sans étiquette et propose où les ranger.'] ],
     astuces: [
-      'Médias s\'ouvre toujours sur « Tous les dossiers ». ↰ Retour revient au dossier d\'avant.',
+      'Médias s\'ouvre toujours sur « Tous les dossiers ». ⌂ = tout en haut d\'un coup, ↰ Retour = le dossier d\'avant.',
+      'Avec des photos choisies, un clic sur une étiquette du bas les étiquette (au lieu de filtrer). Glisser des photos sur une étiquette marche toujours.',
       'Discord (pas sur le Drive) : chargé une fois, puis ↻ Actualiser Discord pour les nouvelles images.',
       '− + : taille des vignettes. 🙈 : voir les fichiers masqués. ▾ : replier la barre des étiquettes.' ] },
   { o: 'Reels', ic: '🎬', quoi: 'Le suivi de chaque reel : un poster par reel, avec son audio, ses médias, son moodboard, son tournage et où il en est (Idée → Publié).',
@@ -167,8 +186,10 @@ BK.TUTO = [
   { o: 'Calendrier', ic: '📅', quoi: 'Les rendez-vous du groupe (tournages, shootings, enregistrements, sorties…), les tâches avec une date, et les dates que Miette a repérées sur Discord et dans les mails.',
     comment: [
       ['Ajouter un rendez-vous', 'Clique le jour → remplis type, titre, heure, lieu → + Ajouter. « Ajouter à Google Agenda ↗ » le met aussi dans Google.'],
+      ['Ajouter un événement sur plusieurs jours', 'Clic sur le 1er jour, Maj + clic sur le dernier → clic droit → ＋ Ajouter un événement sur cette période → remplis à droite → + Ajouter. Il s\'étale sur tous les jours (↔). Tu peux aussi remplir « Jusqu\'au » à la main.'],
       ['Garder une date repérée par Miette', 'Dans « Repéré par Miette » : ✎ remplit le formulaire → vérifie → + Ajouter. ✕ l\'ignore pour de bon.'],
-      ['Dire quand je suis dispo', 'Clic sur un jour (Maj + clic sur un autre jour = toute la période) → clic droit → ✅ Je suis dispo (ou ❌ Pas dispo). Les initiales de chacun s\'affichent sur le jour ; il devient vert quand tout le monde est dispo.'],
+      ['Dire quand je suis dispo', 'Clic sur un jour (Maj + clic sur un autre jour = toute la période) → clic droit → Je suis dispo, ou Pas dispo. L\'initiale de chacun s\'affiche sur le jour : pastille verte = dispo, rouge = pas dispo, et le contour a la couleur de la personne (voir la légende sous le calendrier). Le jour devient vert quand tout le monde est dispo.'],
+      ['Enlever une dispo', 'Choisis le ou les jours → clic droit → « Enlever ma dispo » (ou celle de quelqu\'un d\'autre, si besoin).'],
       ['Comprendre pourquoi une date manque', 'Regarde la ligne « 🍞 Dernière lecture » : combien de messages et de mails Miette a lus, combien de dates elle a trouvées. 0 mail = le salon des mails n\'est pas coché dans Réglages.'] ],
     astuces: [ 'Pointillés = date possible (pas encore décidée). Trait plein = décidé.', 'Bouton biscotte « Trouver les dates » (en haut) : relit Discord et les mails tout de suite, sans attendre la biscotte.' ] },
   { o: 'To-do list', ic: '✅', quoi: 'Qui fait quoi : un panier par membre, plus « BEESKOT » (tout le groupe) et « Déjà fait ».',
@@ -186,13 +207,15 @@ BK.TUTO = [
     astuces: [ 'Les petites sommes (moins de 0,50 $) sont ignorées.' ] },
   { o: 'Écoute', ic: '🎧', quoi: 'Comparer deux versions d\'un mix (A en bleu, B en rouge) au même endroit, et laisser des notes minutées que tout le groupe voit, comme sur Frame.io.',
     comment: [
+      ['Écouter un seul mix', 'Choisis le morceau et la version A, et mets B sur « — Aucun ». Tu écoutes et tu laisses tes notes, sans comparaison.'],
       ['Comparer deux mix', 'Choisis le morceau, puis la version A et la version B (les exports de la fiche et du Drive) → ▶ → Tab (ou les boutons A / B) pour passer de l\'une à l\'autre au même endroit, sans coupure.'],
       ['Les deux versions ne commencent pas pareil', '« Caler tout seul » cherche le décalage. Sinon, glisse la souris sur la case « Recaler B » (en secondes).'],
       ['Laisser une note', 'Clique sur la forme du son à l\'endroit voulu (ou cliquer-glisser pour un passage) → écris ta note → Entrée. Elle est attachée à la version que tu écoutes (A ou B), avec ta couleur.'],
       ['Répondre ou dire que c\'est réglé', '💬 pour répondre sous une note, ○ / ✓ réglé quand c\'est fait.'],
-      ['Envoyer les retours à l\'ingé son', 'Écoute la bonne version (B en général) → 📋 Copier pour l\'ingé son → colle dans le mail ou sur Fiverr.'],
+      ['Traduire pour un ingé son anglais', 'Bouton biscotte « Traduire en anglais » : Miette traduit les notes (et les réponses) naturellement, en langage de studio. Le français reste, l\'anglais s\'affiche dessous.'],
+      ['Envoyer les retours à l\'ingé son', 'Écoute la bonne version (B en général) → 📋 Copier pour l\'ingé son → colle dans le mail ou sur Fiverr. Si les notes sont traduites, c\'est l\'anglais qui est copié.'],
       ['Garder la meilleure version', '★ à côté de A ou B : elle devient l\'export principal du morceau (Bibliothèque, Reels…).'] ],
-    astuces: [ 'Espace = lecture / pause. Un clic sur une note = l\'écouter à cet endroit.', 'Couleurs : Yacine jaune, Pierre vert, Baptiste violet (le nom vient de la case « PC : » en haut).' ] },
+    astuces: [ 'Espace = lecture / pause. Un clic sur une note = l\'écouter à cet endroit.', 'Toutes les notes se retrouvent aussi dans la Bibliothèque : fiche du morceau › Retours › Notes du mix, rangées par version.', 'Couleurs : Yacine jaune, Pierre vert, Baptiste violet (le nom vient de la case « PC : » en haut).' ] },
   { o: 'Tournages', ic: '🎥', quoi: 'Une fiche par tournage ou shooting : l\'idée, le moodboard, des références, le découpage plan par plan, les tenues, le matériel. On l\'imprime en PDF pour l\'équipe.',
     comment: [
       ['Créer un tournage', '+ Nouveau tournage (à droite) → titre, type (Clip, Reel, Shooting), morceau, date, lieu. 📅 Mettre au Calendrier pour la date.'],
@@ -204,6 +227,7 @@ BK.TUTO = [
     astuces: [ 'Chaque encadré se replie d\'un clic sur son titre.', 'Les images restent dans le Drive : la fiche garde juste leur adresse.' ] },
   { o: 'Ableton Live', ic: '🎛', quoi: 'Prépare un projet Ableton pour l\'envoyer au mixeur : noms des pistes, couleurs, gel, puis zip daté dans le Drive.',
     comment: [
+      ['Voir les plugins qui manquent', 'Ouvre le projet dans Ableton, puis l\'onglet Ableton Live : la case « Plugins manquants » (à droite) dit, pour chaque PC du groupe, ce qui manque pour ce projet (« Chez Pierre : Serum · Soothe2 », « Au Studio : rien ne manque ✓ »). « Envoyer dans les tâches » crée une tâche par PC, au nom de la personne. « Autre projet… » pour choisir un autre .als. « Pas encore vérifié » = ce PC n\'a pas encore ouvert BEESKOT Studio depuis la mise à jour.'],
       ['Relier Ableton (une fois par PC)', 'Réglages › Ableton › Relier Ableton → dans Ableton : Préférences › Link/Tempo/MIDI › Control Surface → choisis « BEESKOT ».'],
       ['Les sauvegardes automatiques', 'Toutes les 30 min, les projets Ableton de ce PC qui ont changé sont copiés dans le Drive (BEESKOT Studio / Sauvegardes Ableton), avec la date et l\'heure dans le nom. Seulement le fichier .als, rien n\'est effacé. Case « 💾 Sauvegardes automatiques » pour couper ou sauvegarder tout de suite.'],
       ['Préparer pour le mixage', 'Ouvre le projet dans Ableton → Lire les pistes → Trier / Couleurs par groupe / Geler automatiquement → Appliquer dans Ableton → Zipper le projet → Envoyer dans le Drive.'] ],
@@ -226,7 +250,7 @@ BK.TUTO = [
     comment: [
       ['Importer', 'De quoi parle la vidéo ? ▾ → ＋ Importer… → la fenêtre Médias (ou Ce PC) → choisis. 1 vidéo seule : elle se charge directement. Des photos ou plusieurs fichiers : la fenêtre du montage s\'ouvre déjà remplie.'],
       ['Faire une vidéo avec des photos et des vidéos', '＋ Importer… → choisis plusieurs fichiers → 🖼 Depuis Médias… ou 💻 Ce PC… → pour chacun : durée et animation (zoom avant, zoom arrière, glisser, fixe) → Transition et Effet → Importer ces fichiers.'],
-      ['Mettre la musique', 'À droite, Musique : un export de Reels Audio, le passage ouvert dans Reels Audio, ou une musique de ce PC.'],
+      ['Mettre la musique', 'À droite, Musique : un export de Reels Audio, le passage ouvert dans Reels Audio, un morceau de la Bibliothèque (Morceau ▸ la version ; ★ = l\'export principal), ou une musique de ce PC.'],
       ['Ajouter des sous-titres', 'Choisis les paroles d\'un morceau → ⏺ Caler en écoutant → appuie sur Espace au début de chaque phrase.'],
       ['Exporter', 'Exporter en MP4 → 📂 Ouvrir le dossier ou ⇪ Upload Drive.'] ],
     astuces: [ 'Le son des vidéos importées n\'est pas gardé : la musique se choisit à droite.', 'Gabarit Instagram / TikTok : les zones hachurées seront cachées par l\'appli.' ] },

@@ -1404,3 +1404,58 @@ body.menu-etroit .navfoot .eng{display:none}
 .bk-conf-t{font-size:14px!important;line-height:1.45;text-align:center;color:var(--ink)!important;margin:0}
 .bk-conf-b{display:flex;gap:10px;justify-content:center}
 .bk-conf-b .btn{min-width:110px;justify-content:center}
+/* Médias : bouton Maison, « Voir tout ▾ », rubrique affichée mais pas filtrée */
+.md-maison{padding:0 9px!important;font-size:14px!important;line-height:24px}
+.md-voir{height:24px!important;min-height:0!important;padding:0 10px!important;font-size:11px!important;cursor:pointer;min-width:150px;text-align:left;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:240px}
+.md-voir.on{color:#ffb23e;box-shadow:inset 0 0 0 1px #ffb23e}
+#mdRub button.vue:not(.on){box-shadow:inset 0 -2px 0 rgba(255,178,62,.45)}
+/* Calendrier : dispos en couleur (vert = dispo, rouge = pas dispo ; le contour = la couleur du membre), périodes */
+.cal-dispo i{box-shadow:0 0 0 2px var(--m,#d9b67a);color:#1d140e}
+.cal-dispo i.oui{background:#6fbf5a}
+.cal-dispo i.non{background:#d0574f;color:#fff3e6}
+.ag-legende{display:flex;flex-wrap:wrap;align-items:center;gap:14px;margin-top:10px;font-size:11px;color:var(--ink2)}
+.ag-legende span{display:flex;align-items:center;gap:5px}
+.ag-legende i{width:12px;height:12px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font:700 8px/1 Jost,sans-serif;font-style:normal;color:#1d140e;background:#3a2c20;box-shadow:0 0 0 2px var(--m,transparent)}
+.ag-legende i.oui{background:#6fbf5a}.ag-legende i.non{background:#d0574f}
+.ag-legende .nt{margin:0 0 0 auto;font-size:10.5px}
+.ag-pt{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:8px;vertical-align:-1px}
+.ag-pt.oui{background:#6fbf5a}.ag-pt.non{background:#d0574f}
+.cal-ev.periode{border-radius:2px 0 0 2px}
+.cal-ev.periode.suite{border-left-color:transparent;border-radius:0;opacity:.85}
+/* Calendrier : dispos en couleur (vert = dispo, rouge = pas dispo ; le contour = la couleur du membre), périodes */
+.cal-dispo i{box-shadow:0 0 0 2px var(--m,#d9b67a);color:#1d140e}
+.cal-dispo i.oui{background:#6fbf5a}
+.cal-dispo i.non{background:#d0574f;color:#fff3e6}
+.ag-legende{display:flex;flex-wrap:wrap;align-items:center;gap:14px;margin-top:10px;font-size:11px;color:var(--ink2)}
+.ag-legende span{display:flex;align-items:center;gap:5px}
+.ag-legende i{width:12px;height:12px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font:700 8px/1 Jost,sans-serif;font-style:normal;color:#1d140e;background:#3a2c20;box-shadow:0 0 0 2px var(--m,transparent)}
+.ag-legende i.oui{background:#6fbf5a}.ag-legende i.non{background:#d0574f}
+.ag-legende .nt{margin:0 0 0 auto;font-size:10.5px}
+.ag-pt{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:8px;vertical-align:-1px}
+.ag-pt.oui{background:#6fbf5a}.ag-pt.non{background:#d0574f}
+.cal-ev.periode{border-radius:2px 0 0 2px}
+.cal-ev.periode.suite{border-left-color:transparent;border-radius:0;opacity:.85}
+.cal-dispo{gap:4px;top:5px;right:6px}
+.cal-dispo i{width:16px!important;height:16px!important;font-size:9.5px!important}
+/* Écoute : un seul mix (B = aucun), et les notes traduites en anglais */
+.ec-solo .ec-ab,.ec-solo .ec-recal,.ec-solo .ec-filtres [data-f="A"],.ec-solo .ec-filtres [data-f="B"],.ec-solo #ecStarB{display:none!important}
+.ec-en{margin-top:3px;font-size:11.5px;color:#cfc4ae;font-style:italic;display:flex;gap:6px;align-items:baseline}
+.ec-en span{font:700 8.5px/1 Jost,sans-serif;font-style:normal;letter-spacing:.12em;padding:2px 4px;border-radius:3px;background:rgba(79,155,208,.25);color:#9cc8ea}
+.ec-en-r{color:#b8ad98;font-size:11px}
+/* Bibliothèque : la fiche rangée en ensembles (Fichiers, Orga, Retours) */
+.fiche-grp{display:block;margin:14px 0 4px 2px;font-size:10px;letter-spacing:.24em;color:#d9b67a;border-bottom:1px solid rgba(217,182,122,.25);padding-bottom:3px}
+.ret-v{padding:8px 0;border-bottom:1px solid rgba(239,230,210,.08)}
+.ret-nom{font-size:12px;color:var(--ink)}
+.ret-n{display:grid;grid-template-columns:70px 1fr;gap:8px;padding:5px 0 5px 6px;font-size:12.5px;line-height:1.35}
+.ret-n.regle{opacity:.55}
+.ret-t{color:#ffb23e;font-size:11.5px}
+.ret-rep{font-size:11.5px;color:var(--ink2);margin-top:2px;padding-left:10px;border-left:2px solid rgba(239,230,210,.15)}
+/* Réglages : BEESKOT Studio Mobile (grisé en attendant) */
+.rg-mobile .dymo.sm{margin-left:auto}
+.rg-qrs{display:flex;gap:16px;margin-top:12px;flex-wrap:wrap}
+.rg-qr{flex:1;min-width:150px;display:flex;flex-direction:column;align-items:center;gap:6px;text-align:center;padding:12px;border-radius:6px;background:rgba(0,0,0,.18);box-shadow:inset 0 0 0 1px rgba(239,230,210,.08)}
+.rg-qr .nt{margin:0;font-size:11px}
+.rg-qr-img{width:120px;height:120px;padding:6px;border-radius:6px;background:#efe4cc;opacity:.35;filter:grayscale(1) blur(.6px)}
+.rg-qr-img svg{width:100%;height:100%;display:block}
+.rg-qr b{font-size:12px;color:var(--ink)}
+.rg-qr-img.vrai{opacity:1;filter:none}

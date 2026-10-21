@@ -1,6 +1,22 @@
 // =====================================================================
 // RÉGLAGES — propres à CE PC (onglets visibles, nom du PC, taille)
 // =====================================================================
+// le lien de l'appli Android : la dernière version publiée sur GitHub (le fichier s'appellera toujours pareil)
+BK.LIEN_APK = 'https://github.com/beeskotmusic-cmd/beeskot-studio/releases/latest/download/BEESKOT-Studio-Mobile.apk';
+// un vrai QR code, dans les couleurs du logiciel (brun sur crème)
+function qrVrai(texte) {
+  try { const q = qrcode(0, 'M'); q.addData(texte); q.make();
+    return q.createSvgTag({ cellSize: 4, margin: 2, scalable: true }).replace(/fill="#ffffff"/gi, 'fill="#efe4cc"').replace(/fill="#000000"/gi, 'fill="#2a1d12"'); }
+  catch (e) { return qrFactice(7); }
+}
+// un faux QR code (gris) en attendant l'appli mobile : juste pour la place
+function qrFactice(graine) {
+  let h = graine * 99991; const r = () => (h = (h * 16807) % 2147483647) / 2147483647, n = 25, c = [];
+  const coin = (x, y) => (x < 7 && y < 7) || (x >= n - 7 && y < 7) || (x < 7 && y >= n - 7);
+  for (let y = 0; y < n; y++) for (let x = 0; x < n; x++) if (!coin(x, y) && r() > 0.52) c.push(`<rect x="${x}" y="${y}" width="1" height="1"/>`);
+  const oeil = (x, y) => `<rect x="${x}" y="${y}" width="7" height="7"/><rect x="${x + 1}" y="${y + 1}" width="5" height="5" fill="#efe4cc"/><rect x="${x + 2}" y="${y + 2}" width="3" height="3"/>`;
+  return `<svg viewBox="-2 -2 29 29" shape-rendering="crispEdges"><rect x="-2" y="-2" width="29" height="29" fill="#efe4cc"/><g fill="#2a1d12">${c.join('')}${oeil(0, 0)}${oeil(n - 7, 0)}${oeil(0, n - 7)}</g></svg>`;
+}
 BK.module('reglages', function (page) {
   $('.sub', page).textContent = 'Ce qui est réglé ici ne concerne que cet ordinateur';
   const choix = BK.onglets.filter(o => !o.fixe);
@@ -14,6 +30,13 @@ BK.module('reglages', function (page) {
           <span class="vfd" style="margin-top:6px;align-self:flex-start">${String(BK.version || '').replace(/[<>&]/g, '')}</span>
           <button class="btn sm" id="rgMaj" style="margin-top:8px">🔍 Vérifier les mises à jour</button>
           <span class="nt" id="rgMajTxt">Le logiciel regarde tout seul au démarrage, puis toutes les 20 minutes.</span></div>
+        <div data-rgo="aide" class="box rg-mobile"><div class="ligne-titre"><span class="lb">BEESKOT Studio Mobile</span><span class="dymo sm">Arrive avec la V1</span></div>
+          <span class="nt">L'appli Android du groupe : Bibliothèque, Calendrier, To-do, Médias, Miette… synchronisée avec le Drive, avec des notifications.</span>
+          <div class="rg-qrs">
+            <div class="rg-qr"><div class="rg-qr-img vrai">${qrVrai(BK.LIEN_APK)}</div><b>1. Télécharger l'appli</b><span class="nt">Scanne avec l'appareil photo du téléphone (marchera à la sortie de la bêta, avec la V1)</span></div>
+            <div class="rg-qr"><div class="rg-qr-img">${qrFactice(13)}</div><b>2. Relier au groupe</b><span class="nt">À scanner dans l'appli : elle se branche au Drive BEESKOT (aucun fichier, aucun mot de passe)</span>
+              <button class="btn xs" disabled>Relier un téléphone</button></div>
+          </div></div>
         <div data-rgo="pc" class="box"><span class="lb">Qui utilise cet ordinateur ?</span>
           <span class="nt">Ton prénom (Yacine, Pierre, Baptiste) ou « Studio ». C'est à ce nom que partent les tâches que tu coches et les reels que tu fais avancer.</span>
           <input class="fld" id="rgNom" style="margin-top:10px" maxlength="16" placeholder="ton prénom, ou Studio" value="${BK.reglage('nomPc', '')}">

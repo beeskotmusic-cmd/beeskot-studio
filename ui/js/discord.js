@@ -499,6 +499,15 @@ Réponds en JSON : un tableau de {"texte":"…","qui":"Yacine|Pierre|Baptiste|BE
     if (tout.length) await BK.discord.ajouterAuJournal(tout);
     return tout.length;
   },
+  // le point sur UN morceau, d'après tout ce que le groupe en a dit sur Discord → fiche (Orga › Notes du groupe)
+  async resumerMorceau(m, j) {
+    j = j || await BK.discord.journal(999);
+    const cles = [m.nom, ...(m.alias || [])].map(x => BK.inv.normaliser(x).replace(/ /g, '')).filter(x => x.length >= 3);
+    const lignes = j.filter(l => cles.some(k => BK.inv.normaliser(l.txt + ' ' + l.pj + ' ' + l.salon).replace(/ /g, '').includes(k)));
+    if (lignes.length < 3) throw new Error(lignes.length ? 'Trop peu de messages sur « ' + m.nom + ' » dans Discord' : 'Rien sur « ' + m.nom + ' » dans Discord (Miette a-t-elle déjà lu l\'historique ?)');
+    m.resumeDiscord = { texte: await BK.ia.demander(`Voici les messages Discord du groupe BEESKOT qui parlent du morceau « ${m.nom} » :\n${BK.discord.texte(lignes.slice(-500))}\n\nFais le point en français simple, en 5 à 10 lignes : où en est le morceau, les dernières versions / exports, ce qui a été décidé, ce qui reste à faire (avec qui).`, { temperature: 0.3, vite: true }), t: new Date().toISOString(), nb: lignes.length };
+    await BK.db.ecrire('morceaux', m); return m.resumeDiscord;
+  },
   async ranger(progression = () => {}) {
     const j = await BK.discord.journal(999), ms = await BK.db.liste('morceaux');
     let props = BK.discord.depuisBot(j, ms);
@@ -510,12 +519,8 @@ Réponds en JSON : un tableau de {"texte":"…","qui":"Yacine|Pierre|Baptiste|BE
     for (const p of props) { const l = j.find(x => x.id === String(p.source || '').replace(/\D/g, '')); if (l) { p.lien = p.lien || l.lien; p.date = p.date || l.t.slice(0, 10); } }
     // un résumé par morceau, rangé dans sa fiche (tiroir « Notes du groupe »)
     if (await BK.ia.pret()) for (const m of ms) {
-      const cles = [m.nom, ...(m.alias || [])].map(x => BK.inv.normaliser(x).replace(/ /g, '')).filter(x => x.length >= 3);
-      const lignes = j.filter(l => cles.some(k => BK.inv.normaliser(l.txt + ' ' + l.pj + ' ' + l.salon).replace(/ /g, '').includes(k)));
-      if (lignes.length < 3) continue;
       progression('Résumé de ' + m.nom + '…');
-      try { m.resumeDiscord = { texte: await BK.ia.demander(`Voici les messages Discord du groupe BEESKOT qui parlent du morceau « ${m.nom} » :\n${BK.discord.texte(lignes.slice(-500))}\n\nFais le point en français simple, en 5 à 10 lignes : où en est le morceau, les dernières versions / exports, ce qui a été décidé, ce qui reste à faire (avec qui).`, { temperature: 0.3, vite: true }), t: new Date().toISOString(), nb: lignes.length };
-        await BK.db.ecrire('morceaux', m); } catch (e) {}
+      try { await BK.discord.resumerMorceau(m, j); } catch (e) {}
     }
     await BK.discord.rangerPropositions(props);
     return props.length;

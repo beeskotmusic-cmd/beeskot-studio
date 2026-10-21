@@ -29,16 +29,16 @@ BK.module('biblio', function (page) {
         <div class="box"><span class="lb">Nouveau morceau</span>
           <input class="fld" id="biNom" style="margin-top:10px" placeholder="nom du morceau">
           <div class="chips" style="margin-top:10px"><button class="chip" id="biAjout">+ Créer la fiche</button></div></div>
-        <div class="box"><span class="lb">Dossiers de ce PC à fouiller</span>
-          <span class="nt">Pour chaque dossier, clique sur l'étiquette pour choisir : exports audio (WAV / MP3) ou projets Ableton.</span>
+        <div class="box"><span class="lb">Dossiers de ce PC à fouiller <small class="nt" style="margin:0">(facultatif)</small></span>
+          <span class="nt">Le Drive est lu tout seul : c'est là que tout devrait être. Ce PC sert seulement pour des fichiers pas encore dans le Drive. Clique l'étiquette d'un dossier pour choisir : exports audio ou projets Ableton.</span>
           <div id="biDossiers" class="bi-dossiers"></div>
-          <div class="chips" style="margin-top:10px"><button class="chip" id="biAjDos">+ Ajouter un dossier</button></div></div>
-        <div class="box"><span class="lb">Dernier inventaire</span><span class="nt" id="biScanInfo">—</span></div>
+          <div class="chips" style="margin-top:10px"><button class="chip" id="biAjDos">+ Ajouter un dossier</button><button class="chip" id="biScan" title="Cherche les exports et les projets Ableton dans les dossiers ci-dessus">Scanner ce PC</button></div>
+          <span class="nt" id="biScanInfo" style="margin-top:6px">—</span></div>
       </section>
     </div>
     <div class="pane abar" aria-label="Barre">
       <span class="vfd" id="biMsg">PRÊT</span>
-      <div class="right"><button class="btn pri" id="biScan">Scanner ce PC ▶</button></div></div>`;
+      <div class="right"><button class="btn" id="biDrive" title="Relit les dossiers du Drive BEESKOT (exports, projets)">↻ Relire le Drive</button></div></div>`;
 
   const msg = t => $('#biMsg').textContent = String(t).toUpperCase();
 
@@ -79,6 +79,7 @@ BK.module('biblio', function (page) {
   async function charger() {
     B.morceaux = await BK.db.liste('morceaux');
     B.fichiers = await BK.inv.tous();
+    B.notesmix = await BK.db.liste('notesmix').catch(() => []);      // les retours d'Écoute (notes minutées), rangés par version dans chaque fiche
     rendre();
   }
   BK.biblioRecharger = charger;
@@ -106,7 +107,7 @@ BK.module('biblio', function (page) {
         || (Math.min(b.fait || 0, 5) - Math.min(a.fait || 0, 5))   // …sinon le morceau le plus avancé en haut
         || (b.maj || '').localeCompare(a.maj || ''));
     B.affiches = l;
-    liste.innerHTML = l.length ? l.map(fiche).join('') : `<span class="nt" style="padding:20px">${B.vue === 'sorti' ? 'Aucun morceau sorti pour l\'instant.' : B.vue === 'prochaine' ? 'Aucun morceau prévu pour la prochaine sortie. Ouvre une fiche et clique « ⭐ Next release ».' : 'Aucun morceau en chantier. Crée une fiche à droite, ou lance « Scanner ce PC ».'}</span>`;
+    liste.innerHTML = l.length ? l.map(fiche).join('') : `<span class="nt" style="padding:20px">${B.vue === 'sorti' ? 'Aucun morceau sorti pour l\'instant.' : B.vue === 'prochaine' ? 'Aucun morceau prévu pour la prochaine sortie. Ouvre une fiche et clique « ⭐ Next release ».' : 'Aucun morceau en chantier. Crée une fiche à droite (les fichiers du Drive se relient tout seuls).'}</span>`;
     brancherFiches(); lecteur.maj();
     remplirDrive();
   }
@@ -253,6 +254,20 @@ BK.module('biblio', function (page) {
     const pc = Math.round(BK.pourcent(m));
     const t = (id, titre, resume, corps) => { const o = (B.tiroirs[m.id] || []).includes(id);
       return `<div class="tiroir${o ? ' ouvert' : ''}" data-t="${id}"><button class="tiroir-tete"><span class="fleche">${o ? '▾' : '▸'}</span><span class="lb">${titre}</span><span class="nt tiroir-resume">${resume}</span></button>${o ? `<div class="tiroir-corps">${corps()}</div>` : ''}</div>`; };
+    const tAvance = () => `${t('avance', 'Avancement', `${BK.etapes[Math.min(m.fait || 0, 5)].nom} · ${pc} %`, () => `
+          <div class="etapes-clic">${BK.etapes.map((e, i) => `<button class="etape-b ${i < (m.fait || 0) ? 'fait' : i === (m.fait || 0) ? 'encours' : ''}" style="--sc:${e.c}" data-etape="${i}">${e.nom}</button>`).join('')}</div>
+          `)}`;
+    // RETOURS : les notes d'Écoute, par version (le fichier), en français et en anglais
+    const tRetours = () => { const ns = (B.notesmix || []).filter(n => n.morceau === m.id), parV = {};
+      for (const n of ns) (parV[n.version] ||= []).push(n);
+      const vs = Object.entries(parV).sort((a, b) => (b[1][0].quand || '').localeCompare(a[1][0].quand || ''));
+      const ouverts = ns.filter(n => !n.regle).length, tps = x => { x = +x || 0; return Math.floor(x / 60) + ':' + String(Math.floor(x % 60)).padStart(2, '0'); };
+      return t('retours', 'Notes du mix', ns.length ? `${ns.length} note(s) · ${ouverts} à régler · ${vs.length} version(s)` : 'aucune (onglet Écoute)', () => vs.length ? vs.map(([v, l]) => `
+          <div class="ret-v"><div class="ligne-titre"><span class="mono ret-nom">${esc(l[0].versionNom || 'version')}</span><button class="btn xs" data-retv="${esc(v)}" title="Ouvrir dans Écoute">▶ Écoute</button></div>
+            ${l.sort((a, b) => a.t - b.t).map(n => `<div class="ret-n${n.regle ? ' regle' : ''}"><span class="mono ret-t">${tps(n.t)}${n.fin ? '–' + tps(n.fin) : ''}</span>
+              <div><b>${esc(n.par)}</b> ${esc(n.texte)}${n.regle ? ' <em>✓ réglé</em>' : ''}${n.texteEn ? `<div class="ec-en"><span>EN</span>${esc(n.texteEn)}</div>` : ''}
+              ${(n.reponses || []).map(r => `<div class="ret-rep"><b>${esc(r.par)}</b> ${esc(r.texte)}</div>`).join('')}</div></div>`).join('')}</div>`).join('')
+        : '<span class="nt">Pas encore de note. Dans l\'onglet Écoute, choisis ce morceau et une version, puis laisse des notes minutées : elles arrivent ici, rangées par version.</span>'); };
     return `<article class="fiche${ouvert ? ' ouverte' : ''}" data-id="${m.id}" style="--av:${BK.couleurAvance(m)}">
       <div class="fiche-haut">
         <button class="fiche-photo${m.photo ? '' : ' vide'}" data-act="photo" title="Choisir la photo du morceau" ${BK.img.bg(m.photo)}>${m.photo ? '' : '🖼'}</button>
@@ -266,6 +281,8 @@ BK.module('biblio', function (page) {
         </div>
       </div>
       ${ouvert ? `<div class="fiche-corps">
+        ${tAvance()}
+        <span class="eng fiche-grp">Fichiers</span>
         ${t('exports', 'Exports', exps.length ? `${exps.length} fichier(s) · principal : ${esc(exps[0].nom)}` : BK.drive.relie() ? 'voir ceux du Drive' : 'aucun', () => (exps.length ? exps.map((x, i) => `
           <div class="ligne-f${i === 0 ? ' recent' : ''}"><button class="etoile etoile-b${i === 0 ? ' on' : ''}" data-princ="${esc(x.chemin)}" title="${i === 0 ? 'Version principale' : 'En faire la version principale'}">${i === 0 ? '★' : '☆'}</button>
             <span class="mono f-nom" title="${esc(x.chemin)}">${esc(x.nom)}</span>
@@ -274,7 +291,7 @@ BK.module('biblio', function (page) {
             ${x.drive ? `<button class="btn xs" data-ecoute="${esc(x.driveId)}" data-nom="${esc(x.nom)}" title="Écouter">▶</button><button class="btn xs" data-dreel="${esc(x.driveId)}" data-nom="${esc(x.nom)}">→ Reel</button>`
               : x.ici ? `<button class="btn xs" data-reel="${esc(x.chemin)}" data-nom="${esc(x.nom)}">→ Reel</button>` : ''}
             <button class="btn xs" data-remplacer="${esc(x.chemin)}" title="Choisir une autre version à la place">Remplacer…</button>
-            <button class="btn xs" data-expx="${esc(x.chemin)}" title="Retirer de la fiche (le fichier n'est pas effacé)">✕</button></div>`).join('') : '<span class="nt">Aucun export trouvé. Lance « Scanner ce PC », ou ajoute-le à la main.</span>')
+            <button class="btn xs" data-expx="${esc(x.chemin)}" title="Retirer de la fiche (le fichier n'est pas effacé)">✕</button></div>`).join('') : '<span class="nt">Aucun export relié. Range-le dans le Drive (dossier du morceau), ou « + Ajouter un export ».</span>')
           + ((m.exportsDiscord || []).length ? `<span class="nt" style="margin-top:8px">Vu sur Discord (Miette) :</span>` + m.exportsDiscord.slice(0, 5).map(x => `<div class="ligne-f"><span class="etoile">💬</span><span class="mono f-nom">${esc(x.fichier || '—')}</span>
             <span class="nt f-meta">${x.date ? date(x.date) : ''}${x.detail ? ' · ' + esc(x.detail) : ''}</span>${x.lien ? `<a href="#" class="lien btn xs" data-url="${esc(x.lien)}">voir</a>` : ''}</div>`).join('') : '')
           + (BK.drive.relie() ? `<div class="exp-drive" data-m="${m.id}"><span class="nt"><span class="spin"></span>Exports dans le Drive…</span></div>` : '')
@@ -282,7 +299,8 @@ BK.module('biblio', function (page) {
         ${t('projets', 'Projets Ableton', als.length ? `${als.filter(x => !x.sauvegarde).length} version(s) · ${als.some(x => !x.ici && als[0] === x) ? '⚠ la plus récente n\'est pas sur ce PC' : 'à jour'}` : 'aucun', () => als.length ? als.map((x, i) => `
           <div class="ligne-f${i === 0 ? ' recent' : ''}"><span class="etoile">${i === 0 ? '★' : ''}</span><span class="mono f-nom" title="${esc(x.chemin)}">${esc(x.nom)}${x.sauvegarde ? ' <em>(sauvegarde auto)</em>' : ''}</span>
             <span class="nt f-meta">${date(x.modif)} · ${esc(x.pc)}${/[\\/]my drive[\\/]|[\\/]mon drive[\\/]|^g:/i.test(x.chemin) ? ' · Drive ✓' : ''}</span>
-            ${x.ici ? `<button class="btn xs" data-ouvrir="${esc(x.chemin)}">Ouvrir</button>` : '<span class="nt f-meta">sur un autre PC</span>'}</div>`).join('') : '<span class="nt">Aucun projet trouvé. Ajoute ton dossier de projets Ableton à droite, puis « Scanner ce PC ».</span>')}
+            ${x.ici ? `<button class="btn xs" data-ouvrir="${esc(x.chemin)}">Ouvrir</button>` : '<span class="nt f-meta">sur un autre PC</span>'}</div>`).join('') : '<span class="nt">Aucun projet trouvé. Range-le dans le Drive (Recording › Ableton Project), ou ajoute un dossier de ce PC à droite.</span>')}
+        <span class="eng fiche-grp">Orga</span>
         ${t('paroles', 'Paroles', m.paroles ? m.paroles.split('\n').filter(Boolean).length + ' lignes' : 'vides', () => `
           <textarea class="fld paroles" data-champ="paroles" placeholder="[COUPLET 1]&#10;…&#10;[REFRAIN]&#10;…">${esc(m.paroles || '')}</textarea>
           <div class="chips" style="margin-top:8px"><button class="chip" data-act="plein">Plein écran</button><button class="chip" data-act="copier">Copier pour le distributeur</button><button class="chip" data-act="paroles" title="Ouvre la recherche dans ton navigateur : copie-colle les paroles ici">🔎 Chercher les paroles</button></div>`)}
@@ -298,16 +316,16 @@ BK.module('biblio', function (page) {
           </div>
           <div class="chips" style="margin-top:8px"><button class="chip" data-act="analyser" title="Lit l'export principal et remplit la durée, le BPM et la tonalité">🎚 Analyser l'export (durée, BPM, tonalité)</button></div>
           <span class="nt">La tonalité est une estimation : vérifie à l'oreille.</span>`)}
-        ${t('avance', 'Avancement', `${BK.etapes[Math.min(m.fait || 0, 5)].nom} · ${pc} %`, () => `
-          <div class="etapes-clic">${BK.etapes.map((e, i) => `<button class="etape-b ${i < (m.fait || 0) ? 'fait' : i === (m.fait || 0) ? 'encours' : ''}" style="--sc:${e.c}" data-etape="${i}">${e.nom}</button>`).join('')}</div>
-          `)}
-        ${t('liens', '🏷 Étiqueté BEESKOT', ((m.liens || []).length ? m.liens.length + ' lien(s) · ' : '') + (BK.drive.relie() ? 'tout ce qui concerne ce morceau' : 'Drive non relié'), () => `
+        ${t('liens', 'Étiquettes', ((m.liens || []).length ? m.liens.length + ' lien(s) · ' : '') + (BK.drive.relie() ? 'tout ce qui concerne ce morceau' : 'Drive non relié'), () => `
           ${BK.drive.relie() ? `<button class="btn xs etq-plus" data-act="etiqueter">🏷 Étiqueter d'autres fichiers pour ${esc(m.nom)}</button>
             <div class="drive-res" data-m="${m.id}"><span class="nt"><span class="spin"></span>Recherche…</span></div>` : ''}
           ${(m.liens || []).map((l, i) => `<div class="ligne-f"><span class="etoile">🔗</span><a href="#" class="f-nom lien" data-url="${esc(l.url)}" title="${esc(l.url)}">${esc(l.titre || l.url)}</a><button class="btn xs" data-lienx="${i}">✕</button></div>`).join('')}
           <div class="lien-aj"><input class="fld" data-lien="titre" placeholder="ex. Projet Ableton v8 (zipper)"><input class="fld" data-lien="url" placeholder="colle le lien Google Drive…"><button class="btn xs" data-act="lien">+ Ajouter</button></div>
           ${BK.drive.relie() ? '' : '<span class="nt">Relie le Drive (Réglages) : les fichiers déposés dans le Drive, par ex. par le zipper Discord, apparaîtront ici tout seuls.</span>'}`)}
-        ${t('notes', 'Notes du groupe', m.resumeDiscord ? '🍞 résumé Discord · ' + date(m.resumeDiscord.t) : m.notes ? m.notes.split('\n')[0].slice(0, 50) : '—', () => `${m.resumeDiscord ? `<div class="box" style="margin-bottom:8px"><span class="lb">🍞 Ce que Miette a compris de Discord (${m.resumeDiscord.nb} messages, ${date(m.resumeDiscord.t)})</span><p class="ac-texte" style="white-space:pre-wrap">${esc(m.resumeDiscord.texte)}</p></div>` : ''}<textarea class="fld" data-champ="notes" placeholder="ex. attention au break à 2:10">${esc(m.notes || '')}</textarea>`)}
+        ${t('notes', 'Notes du groupe', m.resumeDiscord ? '🍞 résumé Discord · ' + date(m.resumeDiscord.t) : m.notes ? m.notes.split('\n')[0].slice(0, 50) : '—', () => `${m.resumeDiscord ? `<div class="box" style="margin-bottom:8px"><span class="lb">🍞 Ce que Miette a compris de Discord (${m.resumeDiscord.nb} messages, ${date(m.resumeDiscord.t)})</span><p class="ac-texte" style="white-space:pre-wrap">${esc(m.resumeDiscord.texte)}</p></div>` : ''}<textarea class="fld" data-champ="notes" placeholder="ex. attention au break à 2:10">${esc(m.notes || '')}</textarea>
+          <div class="chips" style="margin-top:8px"><button class="btn xs miette-aide" data-act="resumeDiscord" title="Miette relit tout ce que le groupe a dit sur ce morceau dans Discord et fait le point">${m.resumeDiscord ? 'Refaire le point Discord' : 'Faire le point Discord'}</button></div>`)}
+        <span class="eng fiche-grp">Retours</span>
+        ${tRetours()}
         <div class="fiche-actions">
           ${[['prochaine', '⭐ Next release'], ['chantier', '🔧 Work in progress'], ['sorti', '✓ Sorti']].map(([k, t]) => `<button class="btn sm${(m.statut || 'chantier') === k ? ' pri' : ''}" data-act="st-${k}">${t}</button>`).join('')}
           <button class="btn sm" data-act="renommer">Renommer</button>
@@ -421,6 +439,7 @@ BK.module('biblio', function (page) {
         m.exportsManuels = (m.exportsManuels || []).filter(x => x.chemin !== c && x.chemin !== f.chemin);
         if (B.fichiers.some(x => x.chemin === c)) (m.exportsCaches = m.exportsCaches || []).push(c);
         m.exportsManuels.push(f); m.exportPrincipal = f.chemin; await sauver(m); msg('Export remplacé'); rendre(); }, m));
+      $$('[data-retv]', el).forEach(b => b.onclick = () => BK.ecouteOuvrir ? BK.ecouteOuvrir(m.id, b.dataset.retv) : BK.ouvrir('ecoute'));
       $$('[data-lienx]', el).forEach(b => b.onclick = async () => { m.liens.splice(+b.dataset.lienx, 1); await sauver(m); rendre(); });
       $$('[data-act]', el).forEach(b => b.onclick = async () => {
         const a = b.dataset.act;
@@ -430,6 +449,8 @@ BK.module('biblio', function (page) {
         if (a === 'ajexport') menuExport(b, async f => { m.exportsManuels = (m.exportsManuels || []).filter(x => x.chemin !== f.chemin); m.exportsManuels.push(f);
           m.exportsCaches = (m.exportsCaches || []).filter(c => c !== f.chemin); if (f.drive) m.exportPrincipal = f.chemin; await sauver(m); msg('Export ajouté'); rendre(); }, m);
         if (a === 'photo') photo(m);
+        if (a === 'resumeDiscord') { b.disabled = true; b.innerHTML = '<span class="spin"></span>Miette relit Discord…';
+          try { await BK.discord.resumerMorceau(m); msg('Point Discord fait pour ' + m.nom); } catch (e) { msg(e.message || 'Impossible'); } rendre(); return; }
         if (a === 'paroles') BK.ouvrirLien('https://www.google.com/search?q=' + encodeURIComponent(['paroles', m.artiste, m.nom, 'lyrics'].filter(Boolean).join(' ')));
         if (a === 'analyser') {
           const src = await lecteur.source(m); if (!src) return msg('Aucun export à analyser : ajoute-le dans la fiche');
@@ -559,8 +580,13 @@ BK.module('biblio', function (page) {
     const b = $('#biScan'); b.disabled = true; b.innerHTML = '<span class="spin"></span>Scan…';
     try { const inv = await BK.inv.scanner((d, n) => msg(`${d} dossiers · ${n} fichiers`)); msg(inv.fichiers.length + ' fichiers trouvés'); await charger(); rendreDossiers(); }
     catch (e) { msg('Erreur pendant le scan'); console.error(e); }
-    b.disabled = false; b.textContent = 'Scanner ce PC ▶';
+    b.disabled = false; b.textContent = 'Scanner ce PC';
   };
+  // le Drive d'abord : on relit ses dossiers (pas besoin de scanner un PC)
+  $('#biDrive').onclick = async () => { if (!BK.drive.relie()) return msg('Relie d\'abord le Drive (Réglages)');
+    const b = $('#biDrive'); b.disabled = true; b.innerHTML = '<span class="spin"></span>Lecture du Drive…';
+    try { BK.dossiers.oublier && BK.dossiers.oublier(); await charger(); msg('Drive relu ✓'); } catch (e) { msg('Drive injoignable'); }
+    b.disabled = false; b.textContent = '↻ Relire le Drive'; };
 
   rendreDossiers(); charger();
 });

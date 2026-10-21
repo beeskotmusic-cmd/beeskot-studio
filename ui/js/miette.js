@@ -348,7 +348,7 @@ BK.synchro = {
       morceaux:     ['biblioRecharger', 'suiviRecharger'],
       veille:       ['agendaRecharger'],
       config:       ['mediasTags', 'agendaRecharger'],
-      notesmix:     ['ecouteRecharger'],      // étiquettes, dispos du Calendrier…
+      notesmix:     ['ecouteRecharger', 'biblioRecharger'],      // étiquettes, dispos du Calendrier…
       renforts:     ['veilleurMaj'],
       ameliorations:['veilleurMaj'],
     };

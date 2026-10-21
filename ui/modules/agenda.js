@@ -43,6 +43,18 @@ BK.lireIcs = function (txt) {
   return out.concat(plus);
 };
 
+// la couleur de chaque membre (la même que dans l'onglet Écoute)
+const COUL_M = { Yacine: '#f1c453', Pierre: '#7ee08a', Baptiste: '#c58af0' };
+const couleurM = m => COUL_M[m] || BK.couleurTag('m:' + m);
+// les dispos partagées : { jour: { nom: 'oui' | 'non' } }. Les anciennes (une liste de noms dispo) sont reprises telles quelles.
+async function lireDispos() {
+  const d = await BK.partage.lire('dispos2', null);
+  if (d) return d;
+  const vieux = await BK.partage.lire('dispos', {}), out = {};
+  for (const [j, l] of Object.entries(vieux || {})) if (Array.isArray(l)) { out[j] = {}; for (const m of l) out[j][m] = 'oui'; }
+  return out;
+}
+
 BK.module('agenda', function (page) {
   $('.sub', page).textContent = 'Les rendez-vous du groupe et le planning de promo';
   $('.hdr .right', page).innerHTML = `<div><span class="eng" style="font-size:9px">Mois</span><span class="vfd" id="agMoisH" style="width:170px">—</span></div>`;
@@ -55,6 +67,7 @@ BK.module('agenda', function (page) {
           <div class="chips" style="margin-left:auto"><button class="chip" id="agPromo">Planning de promo seulement</button><button class="btn xs miette-aide" id="agMiette" title="Miette relit Discord et les mails, et place les dates dont vous parlez">Trouver les dates</button></div>
         </div>
         <div class="cal" id="agCal"></div>
+        <div class="ag-legende" id="agLeg"></div>
       </section>
       <section class="pane reg" aria-label="Réglages"><span class="ptitle">② Nouveau rendez-vous</span>
         <div class="box">
@@ -64,6 +77,7 @@ BK.module('agenda', function (page) {
             <label><span class="eng">Morceau</span><select class="fld" id="agMorceau"><option value="">—</option></select></label>
             <div class="deux"><label><span class="eng">Date</span><input class="fld" type="date" id="agDate"></label>
               <label><span class="eng">Heure</span><input class="fld" type="time" id="agHeure" value="19:00"></label></div>
+            <label><span class="eng">Jusqu'au (période, facultatif)</span><input class="fld" type="date" id="agFin"></label>
             <label><span class="eng">Lieu / réseau</span><input class="fld" id="agLieu" placeholder="studio, Instagram…"></label>
           </div>
           <div class="chips" style="margin-top:12px"><button class="chip" id="agAjout">+ Ajouter</button><button class="chip" id="agGoogle">Ajouter à Google Agenda ↗</button></div></div>
@@ -84,7 +98,7 @@ BK.module('agenda', function (page) {
   window.addEventListener('bk:annule', () => charger());
   window.addEventListener('bk:ia', () => A.locaux && rendre());       // Miette allumée / coupée : ses dates apparaissent / disparaissent
   async function charger() {
-    A.locaux = (await BK.db.liste('evenements')).map(e => ({ ...e, debut: new Date(e.date + 'T' + (e.heure || '00:00')), local: true }));
+    A.locaux = (await BK.db.liste('evenements')).map(e => ({ ...e, debut: new Date(e.date + 'T' + (e.heure || '00:00')), local: true, journee: e.journee || !!e.fin }));
     const cfg = (await BK.db.liste('config')).find(c => c.id === 'agenda');
     if (cfg && cfg.ics) { $('#agIcs').value = cfg.ics; await lireGoogle(cfg.ics, true); }
     const ms = await BK.db.liste('morceaux');
@@ -92,7 +106,7 @@ BK.module('agenda', function (page) {
     A.taches = (await BK.db.liste('taches')).filter(t => t.date && !t.fait).map(t => ({ type: 'autre', tache: true, titre: '☐ ' + t.texte + (t.qui ? ' · ' + t.qui : ''), morceau: t.morceau, qui: t.qui, debut: new Date(t.date + 'T12:00'), journee: true }));
     A.sorties = ms.filter(m => m.sortie).map(m => ({ type: 'sortie', titre: 'Sortie · ' + m.nom, morceau: m.nom, debut: new Date(m.sortie + 'T12:00'), journee: true, fiche: true }));
     const pl = (await BK.db.liste('veille')).find(d => d.id === 'planning'); A.planning = pl;
-    A.dispos = await BK.partage.lire('dispos', {});                  // { 'AAAA-MM-JJ': ['Yacine', 'Pierre'] } — partagé avec tout le groupe
+    A.dispos = await lireDispos();                                    // { 'AAAA-MM-JJ': { Yacine: 'oui', Pierre: 'non' } } — partagé avec tout le groupe
     const cfgM = (await BK.db.liste('config')).find(c => c.id === 'membres');
     A.membres = (cfgM && cfgM.liste && cfgM.liste.length ? cfgM.liste : ['Yacine', 'Pierre', 'Baptiste']).map(m => m === 'Dari' ? 'Yacine' : m).filter(m => m && m !== 'BEESKOT');
     A.miette = (pl && pl.l || []).flatMap(e => (e.dates || []).map(d => ({ ...e, debut: new Date(d + 'T' + (e.heure || '12:00')), journee: !e.heure, miette: true, date: d })))
@@ -118,19 +132,27 @@ BK.module('agenda', function (page) {
     const m = A.mois, an = m.getFullYear(), mo = m.getMonth();
     const nomMois = m.toLocaleDateString('fr-CA', { month: 'long', year: 'numeric' }).toUpperCase();
     $('#agMois').textContent = nomMois; $('#agMoisH').textContent = nomMois;
-    const tous = [...BK.agendaTous(), ...(BK.ia.active() ? A.miette || [] : []), ...(A.taches || [])]   // Miette coupée : ses dates pas encore validées disparaissent.filter(e => !A.promoSeule || e.type === 'promo');
-    const parJour = {}; for (const e of tous) (parJour[jour(new Date(e.debut.getTime() - e.debut.getTimezoneOffset() * 6e4))] ||= []).push(e);
+    const tous = [...BK.agendaTous(), ...(BK.ia.active() ? A.miette || [] : []), ...(A.taches || [])]   // Miette coupée : ses dates pas encore validées disparaissent
+      .filter(e => !A.promoSeule || e.type === 'promo');
+    const parJour = {}; for (const e of tous) { const d0 = jour(new Date(e.debut.getTime() - e.debut.getTimezoneOffset() * 6e4));
+      (parJour[d0] ||= []).push(e);
+      if (e.fin && e.fin > d0) for (let x = new Date(d0 + 'T12:00'), i = 0; i < 120; i++) { x.setDate(x.getDate() + 1); const k = jour(x); if (k > e.fin) break;   // une période : elle continue les jours suivants
+        (parJour[k] ||= []).push({ ...e, suite: true }); } }
     const premier = new Date(an, mo, 1), decal = (premier.getDay() + 6) % 7, nb = new Date(an, mo + 1, 0).getDate(), auj = jour(new Date());
     let h = ['L', 'M', 'M', 'J', 'V', 'S', 'D'].map(j => `<span class="cal-j">${j}</span>`).join('');
     for (let i = 0; i < decal; i++) h += '<div class="cal-c vide"></div>';
     for (let d = 1; d <= nb; d++) {
       const k = `${an}-${String(mo + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`, evs = parJour[k] || [];
-      const dis = ((A.dispos || {})[k] || []).filter(m => (A.membres || []).includes(m)), tousD = A.membres && A.membres.length && dis.length === A.membres.length;
-      const pastilles = dis.length ? `<span class="cal-dispo${tousD ? ' tous' : ''}" title="Dispo : ${esc(dis.join(', '))}">${dis.map(m => `<i>${esc(m[0])}</i>`).join('')}</span>` : '';
+      const dj = (A.dispos || {})[k] || {}, qui = (A.membres || []).filter(m => dj[m]);
+      const tousD = A.membres && A.membres.length && A.membres.every(m => dj[m] === 'oui');
+      const titreD = qui.map(m => m + (dj[m] === 'oui' ? ' : dispo' : ' : pas dispo')).join(' · ');
+      const pastilles = qui.length ? `<span class="cal-dispo" title="${esc(titreD)}">${qui.map(m => `<i class="${dj[m] === 'oui' ? 'oui' : 'non'}" style="--m:${couleurM(m)}">${esc(m[0])}</i>`).join('')}</span>` : '';
       h += `<div class="cal-c${k === auj ? ' auj' : ''}${tousD ? ' tous-dispo' : ''}${(A.sel || new Set()).has(k) ? ' sel' : ''}" data-d="${k}"><span class="cal-n">${d}</span>${pastilles}${evs.slice(0, 3).map(e =>
-        `<span class="cal-ev${e.tache ? ' tache' : ''}${e.miette ? ' miette ' + (e.statut === 'valide' ? 'valide' : 'possible') : ''}${e.type === 'sortie' ? ' sortie' : ''}" style="--c:${(TYPES[e.type] || TYPES.autre).c}" title="${esc((e.miette ? '🍞 ' + (e.statut === 'valide' ? 'Décidé sur Discord' : 'Possible (pas encore confirmé)') + ' · ' : '') + (TYPES[e.type] || TYPES.autre).nom + ' · ' + (e.titre || '') + (e.pourquoi ? ' — « ' + e.pourquoi + ' »' : ''))}"${e.miette ? ` data-mi="${esc(e.cle)}"` : ''}>${e.miette && e.statut !== 'valide' ? '? ' : ''}${e.journee ? '' : e.debut.toTimeString().slice(0, 5) + ' '}${esc(e.titre || TYPES[e.type].nom)}</span>`).join('')}${evs.length > 3 ? `<span class="nt cal-plus">+${evs.length - 3}</span>` : ''}</div>`;
+        `<span class="cal-ev${e.tache ? ' tache' : ''}${e.fin ? ' periode' + (e.suite ? ' suite' : '') : ''}${e.miette ? ' miette ' + (e.statut === 'valide' ? 'valide' : 'possible') : ''}${e.type === 'sortie' ? ' sortie' : ''}" style="--c:${(TYPES[e.type] || TYPES.autre).c}" title="${esc((e.miette ? '🍞 ' + (e.statut === 'valide' ? 'Décidé sur Discord' : 'Possible (pas encore confirmé)') + ' · ' : '') + (TYPES[e.type] || TYPES.autre).nom + ' · ' + (e.titre || '') + (e.pourquoi ? ' — « ' + e.pourquoi + ' »' : ''))}"${e.miette ? ` data-mi="${esc(e.cle)}"` : ''}>${e.miette && e.statut !== 'valide' ? '? ' : ''}${e.suite ? '↔ ' : e.journee || e.fin ? '' : e.debut.toTimeString().slice(0, 5) + ' '}${esc(e.titre || TYPES[e.type].nom)}</span>`).join('')}${evs.length > 3 ? `<span class="nt cal-plus">+${evs.length - 3}</span>` : ''}</div>`;
     }
     $('#agCal').innerHTML = h;
+    $('#agLeg').innerHTML = (A.membres || []).map(m => `<span><i style="--m:${couleurM(m)}">${esc(m[0])}</i>${esc(m)}</span>`).join('')
+      + '<span><i class="oui"></i>dispo</span><span><i class="non"></i>pas dispo</span><span class="nt">clic droit sur un jour · Maj + clic pour une période</span>';
     $$('.cal-c[data-d]').forEach(c => { c.onclick = e => { const mi = e.target.closest('[data-mi]');
       if (mi) return remplirDepuis(A.miette.find(x => x.cle === mi.dataset.mi && x.date === c.dataset.d));
       choisirJours(c.dataset.d, e.shiftKey);
@@ -140,7 +162,7 @@ BK.module('agenda', function (page) {
     const venir = tous.filter(e => e.debut >= new Date(Date.now() - 36e5)).slice(0, 8);
     $('#agVenir').innerHTML = venir.length ? venir.map(e => `<div class="surv-l"><span class="nchip" style="width:5px;height:30px;border-radius:3px;background:${(TYPES[e.type] || TYPES.autre).c}"></span>
       <div><span class="nt" style="margin:0;color:var(--ink)">${esc(e.titre || TYPES[e.type].nom)}${e.morceau ? ' · ' + esc(e.morceau) : ''}</span>
-      <span class="nt" style="margin:0;font-size:11px">${e.debut.toLocaleDateString('fr-CA', { weekday: 'short', day: 'numeric', month: 'short' })}${e.journee ? '' : ' · ' + e.debut.toTimeString().slice(0, 5)} · ${(TYPES[e.type] || TYPES.autre).nom}${e.local ? '' : ' · Google'}</span></div>
+      <span class="nt" style="margin:0;font-size:11px">${e.debut.toLocaleDateString('fr-CA', { weekday: 'short', day: 'numeric', month: 'short' })}${e.fin ? ' → ' + new Date(e.fin + 'T12:00').toLocaleDateString('fr-CA', { day: 'numeric', month: 'short' }) : e.journee ? '' : ' · ' + e.debut.toTimeString().slice(0, 5)} · ${(TYPES[e.type] || TYPES.autre).nom}${e.local ? '' : ' · Google'}</span></div>
       ${e.local ? `<button class="btn xs" data-suppr="${e.id}" style="margin-left:auto">✕</button>` : ''}</div>`).join('') : '<span class="nt">Rien de prévu.</span>';
     $$('[data-suppr]', page).forEach(b => b.onclick = async () => { await BK.db.supprimer('evenements', b.dataset.suppr); await charger(); });
   }
@@ -158,23 +180,30 @@ BK.module('agenda', function (page) {
   function menuJours(x, y) {
     $$('.md-menu').forEach(m => m.remove());
     const jours = [...A.sel].sort(), moi = BK.reglage('nomPc', ''), qui = (A.membres || []).includes(moi) ? [moi] : (A.membres || []);
-    const n = jours.length, titre = n > 1 ? `${n} jours` : new Date(jours[0] + 'T12:00').toLocaleDateString('fr-CA', { weekday: 'long', day: 'numeric', month: 'long' });
+    const n = jours.length, court = d => new Date(d + 'T12:00').toLocaleDateString('fr-CA', { day: 'numeric', month: 'short' });
+    const titre = n > 1 ? `${n} jours · ${court(jours[0])} → ${court(jours[n - 1])}` : new Date(jours[0] + 'T12:00').toLocaleDateString('fr-CA', { weekday: 'long', day: 'numeric', month: 'long' });
+    const dejaLa = (A.membres || []).filter(m => jours.some(j => ((A.dispos || {})[j] || {})[m]));     // qui a déjà dit quelque chose ces jours-là (pour l'enlever)
     const menu = document.createElement('div'); menu.className = 'md-menu';
-    menu.style.left = Math.min(x, innerWidth - 230) + 'px'; menu.style.top = Math.min(y, innerHeight - 260) + 'px';
+    menu.style.left = Math.min(x, innerWidth - 250) + 'px'; menu.style.top = Math.min(y, innerHeight - 300) + 'px';
     menu.innerHTML = `<span class="md-menu-t">${esc(titre)}</span>`
-      + qui.map(m => `<button data-dis="${esc(m)}|1">✅ ${qui.length > 1 ? esc(m) + ' dispo' : 'Je suis dispo'}</button><button data-dis="${esc(m)}|0">❌ ${qui.length > 1 ? esc(m) + ' pas dispo' : 'Pas dispo'}</button>`).join('')
-      + `<span class="md-menu-sep"></span><button data-rdv="1">＋ Ajouter un rendez-vous ${n > 1 ? 'le ' + new Date(jours[0] + 'T12:00').toLocaleDateString('fr-CA', { day: 'numeric', month: 'short' }) : 'ici'}</button>`;
+      + qui.map(m => `<button data-dis="${esc(m)}|oui"><i class="ag-pt oui"></i>${qui.length > 1 ? esc(m) + ' dispo' : 'Je suis dispo'}</button><button data-dis="${esc(m)}|non"><i class="ag-pt non"></i>${qui.length > 1 ? esc(m) + ' pas dispo' : 'Pas dispo'}</button>`).join('')
+      + (dejaLa.length ? '<span class="md-menu-sep"></span>' + dejaLa.map(m => `<button data-dis="${esc(m)}|"><i class="ag-pt" style="background:${couleurM(m)}"></i>Enlever ${m === moi ? 'ma dispo' : 'la dispo de ' + esc(m)}</button>`).join('') : '')
+      + `<span class="md-menu-sep"></span><button data-rdv="1">＋ ${n > 1 ? 'Ajouter un événement sur cette période' : 'Ajouter un rendez-vous ici'}</button>`;
     document.body.appendChild(menu);
     const fermer = e => { if (!menu.contains(e.target)) { menu.remove(); document.removeEventListener('pointerdown', fermer, true); } };
     setTimeout(() => document.addEventListener('pointerdown', fermer, true));
     menu.onclick = async e => { const b = e.target.closest('button'); if (!b) return; menu.remove(); document.removeEventListener('pointerdown', fermer, true);
-      if (b.dataset.rdv) { $('#agDate').value = jours[0]; $('#agTitre').focus(); return msg('Remplis le rendez-vous à droite, puis « + Ajouter »'); }
-      const [m, oui] = b.dataset.dis.split('|');
-      const d = await BK.partage.lire('dispos', {});                  // on relit juste avant : on n'efface pas ce que les autres viennent de cocher
-      for (const j of jours) { const l = new Set(d[j] || []); oui === '1' ? l.add(m) : l.delete(m); if (l.size) d[j] = [...l]; else delete d[j]; }
+      if (b.dataset.rdv) { $('#agDate').value = jours[0]; $('#agFin').value = n > 1 ? jours[n - 1] : ''; $('#agTitre').focus();
+        return msg(n > 1 ? `Période du ${court(jours[0])} au ${court(jours[n - 1])} : remplis à droite, puis « + Ajouter »` : 'Remplis le rendez-vous à droite, puis « + Ajouter »'); }
+      const [m, etat] = b.dataset.dis.split('|');
+      const d = await lireDispos();                                   // on relit juste avant : on n'efface pas ce que les autres viennent de cocher
+      for (const j of jours) { const o = d[j] || {}; if (etat) o[m] = etat; else delete o[m]; if (Object.keys(o).length) d[j] = o; else delete d[j]; }
       const auj = jour(new Date()); for (const j of Object.keys(d)) if (j < auj) delete d[j];   // les jours passés s'en vont
-      await BK.partage.ecrire('dispos', d); A.dispos = d; rendre();
-      msg(`${m} ${oui === '1' ? 'dispo' : 'pas dispo'} · ${n} jour(s)`); };
+      await BK.partage.ecrire('dispos2', d); A.dispos = d;
+      const vieux = {}; for (const [j, o] of Object.entries(d)) { const l = Object.keys(o).filter(k => o[k] === 'oui'); if (l.length) vieux[j] = l; }
+      BK.partage.ecrire('dispos', vieux).catch(() => {});             // pour les PC pas encore à jour : l'ancienne liste (seulement les « dispo »)
+      rendre();
+      msg(`${m} ${etat === 'oui' ? 'dispo' : etat === 'non' ? 'pas dispo' : ': dispo enlevée'} · ${n} jour(s)`); };
   }
 
   // ---------- ce que Miette a repéré sur Discord ----------
@@ -199,13 +228,14 @@ BK.module('agenda', function (page) {
     try { const d = await BK.discord.planning(); msg((d.l || []).length + ' date(s) repérée(s)'); } catch (e) { msg(e.message); }
     b.disabled = false; b.textContent = 'Trouver les dates'; await charger(); };
   const lireForm = () => ({ type: $('#agType').value, titre: $('#agTitre').value.trim() || TYPES[$('#agType').value].nom, morceau: $('#agMorceau').value,
-    date: $('#agDate').value, heure: $('#agHeure').value, lieu: $('#agLieu').value.trim() });
-  $('#agAjout').onclick = async () => { const f = lireForm(); if (!f.date) return msg('Choisis une date'); await BK.db.ecrire('evenements', f); $('#agTitre').value = ''; msg('Rendez-vous ajouté'); await charger(); };
+    date: $('#agDate').value, heure: $('#agHeure').value, lieu: $('#agLieu').value.trim(), fin: $('#agFin').value > $('#agDate').value ? $('#agFin').value : '' });
+  $('#agAjout').onclick = async () => { const f = lireForm(); if (!f.date) return msg('Choisis une date'); if (!f.fin) delete f.fin; await BK.db.ecrire('evenements', f); $('#agTitre').value = ''; $('#agFin').value = ''; msg(f.fin ? 'Période ajoutée' : 'Rendez-vous ajouté'); await charger(); };
   $('#agGoogle').onclick = () => {           // ouvre Google Agenda pré-rempli : on n'a qu'à cliquer « Enregistrer »
     const f = lireForm(); if (!f.date) return msg('Choisis une date');
     const d = new Date(f.date + 'T' + (f.heure || '19:00')), fin = new Date(d.getTime() + 2 * 36e5), z = x => x.toISOString().replace(/[-:]/g, '').replace(/\.\d+/, '');
+    const jf = x => x.replace(/-/g, ''), lendemain = x => { const t = new Date(x + 'T12:00'); t.setDate(t.getDate() + 1); return jour(t); };
     const url = 'https://calendar.google.com/calendar/render?action=TEMPLATE&text=' + encodeURIComponent(`${TYPES[f.type].nom} · ${f.titre}${f.morceau ? ' · ' + f.morceau : ''}`) +
-      `&dates=${z(d)}/${z(fin)}&location=` + encodeURIComponent(f.lieu) + '&details=' + encodeURIComponent('Ajouté depuis BEESKOT Studio');
+      `&dates=${f.fin ? jf(f.date) + '/' + jf(lendemain(f.fin)) : z(d) + '/' + z(fin)}&location=` + encodeURIComponent(f.lieu) + '&details=' + encodeURIComponent('Ajouté depuis BEESKOT Studio');
     BK.estExe ? BK.T.opener.openUrl(url) : window.open(url, '_blank');
     msg('Google Agenda ouvert');
   };

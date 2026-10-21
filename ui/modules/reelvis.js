@@ -87,7 +87,7 @@ BK.module('reelvis', function (page) {
           <div class="chips" style="margin-top:8px"><button class="chip on" id="rvZonesB">Montrer les zones à éviter</button></div>
           <span class="nt">Les zones hachurées sont cachées par l'appli : n'y mets rien d'important.</span></div>
         <div class="box"><span class="lb">Musique</span>
-          <div class="chips" style="margin-top:10px" id="rvMus"><button class="chip" data-m="video">Son de la vidéo</button><button class="chip" data-m="export">Un export de l'Assistant audio</button><button class="chip" data-m="reel">Le passage ouvert dans l'Assistant audio</button><button class="chip" data-m="pc">🎵 Une musique de ce PC…</button></div>
+          <div class="chips" style="margin-top:10px" id="rvMus"><button class="chip" data-m="video">Son de la vidéo</button><button class="chip" data-m="export">Un export de l'Assistant audio</button><button class="chip" data-m="reel">Le passage ouvert dans l'Assistant audio</button><button class="chip" data-m="biblio">Un morceau de la Bibliothèque ▾</button><button class="chip" data-m="pc">🎵 Une musique de ce PC…</button></div>
           <input type="file" id="rvMusIn" accept="audio/*" hidden>
           <select class="fld hidden" id="rvExp" style="margin-top:8px"></select>
           <span class="nt" id="rvMusTxt"></span></div>
@@ -416,7 +416,7 @@ BK.module('reelvis', function (page) {
 
   // ---------- musique ----------
   // la musique du reel : le son de la vidéo, un export de l'Assistant audio, ou le passage ouvert là-bas
-  const musique = () => V.musique === 'reel' ? (BK.reelAudio && BK.reelAudio()) : V.musique === 'export' ? V.exp || null : V.musique === 'pc' ? V.pc || null : null;
+  const musique = () => V.musique === 'reel' ? (BK.reelAudio && BK.reelAudio()) : V.musique === 'export' ? V.exp || null : V.musique === 'pc' ? V.pc || null : V.musique === 'biblio' ? V.bib || null : null;
   let EXPORTS = [];
   async function chargerExports() { try { EXPORTS = await BK.exportsAudio.tous(); } catch (e) { EXPORTS = BK.exportsAudio.local(); } remplirExports(); }
   function remplirExports() {
@@ -441,12 +441,32 @@ BK.module('reelvis', function (page) {
   function majMusique() {
     $$('#rvMus .chip').forEach(c => c.classList.toggle('on', c.dataset.m === V.musique));
     $('#rvExp').classList.toggle('hidden', V.musique !== 'export');
+    if (V.musique === 'biblio') { $('#rvMusTxt').textContent = V.bib ? `« ${V.bib.nom} » (${t2(V.bib.duree)}) · clique le bouton pour en changer` : 'Choisis un morceau et sa version.'; return; }
     if (V.musique === 'pc') { $('#rvMusTxt').textContent = V.pc ? `« ${V.pc.nom} » (${t2(V.pc.duree)}) · clique « 🎵 » pour en changer` : ''; return; }
     if (V.musique === 'export') { const l = remplirExports(); if (!V.exp && l[0]) { choisirExport(l[0].id); return; } }
     const a = BK.reelAudio && BK.reelAudio();
     $('#rvMusTxt').textContent = V.musique === 'export' ? (V.exp ? `« ${V.exp.nom} » (${t2(V.exp.duree)}) remplace le son de la vidéo.` : '') : V.musique === 'reel' ? (a ? `Passage de « ${a.nom} » : ${t2(a.debut)} → ${t2(a.debut + a.duree)}` : 'Choisis d\'abord un passage dans l\'Assistant audio Reel.') : 'Le son d\'origine de la vidéo.';
   }
-  $$('#rvMus .chip').forEach(c => c.onclick = () => { if (c.dataset.m === 'pc' && (!V.pc || V.musique === 'pc')) return $('#rvMusIn').click(); V.musique = c.dataset.m; majMusique(); });
+  $$('#rvMus .chip').forEach(c => c.onclick = () => { if (c.dataset.m === 'pc' && (!V.pc || V.musique === 'pc')) return $('#rvMusIn').click();
+    if (c.dataset.m === 'biblio') return menuBiblio(c);
+    V.musique = c.dataset.m; majMusique(); });
+  // ---------- une musique de la Bibliothèque : morceau ▸ ses exports (★ = l'export principal en premier) ----------
+  async function menuBiblio(bouton) {
+    const r = bouton.getBoundingClientRect(); msg('Les morceaux de la Bibliothèque…');
+    const ms = (await BK.db.liste('morceaux')).sort((a, b) => a.nom.localeCompare(b.nom)), tous = await BK.inv.tous(), vus = {};
+    const groupes = ms.map(m => { const l = BK.inv.exportsDe(m, tous, ms).filter(x => x.drive || (x.ici && BK.estExe));
+      l.sort((a, b) => (b.chemin === m.exportPrincipal) - (a.chemin === m.exportPrincipal));
+      return { nom: m.nom, l: l.map(x => { const k = x.drive ? 'drive:' + x.driveId : x.chemin; vus[k] = { ...x, morceau: m.nom }; return { k, nom: (x.chemin === m.exportPrincipal ? '★ ' : '') + x.nom }; }) }; });
+    msg('Choisis le morceau, puis la version');
+    BK.menuCascade({ x: r.left, y: r.bottom + 4 }, groupes, async k => { const x = vus[k]; if (!x) return;
+      try { msg('Chargement de « ' + x.nom + ' »…');
+        const oct = x.drive ? await BK.drive.telecharger(x.driveId) : await BK.fichier.lireOctets(x.chemin);
+        const url = URL.createObjectURL(new Blob([oct], { type: /\.mp3$/i.test(x.nom) ? 'audio/mpeg' : 'audio/wav' }));
+        const d = await new Promise(ok => { const a = new Audio(url); a.onloadedmetadata = () => ok(a.duration); a.onerror = () => ok(0); });
+        if (!d) return msg('Musique illisible');
+        V.bib = { nom: x.morceau + ' · ' + x.nom, url, debut: 0, duree: d }; V.musique = 'biblio'; majMusique(); msg('Musique : ' + x.morceau);
+      } catch (e) { msg('Impossible de lire ce fichier : ' + (e.message || e)); } }, { actuel: '' });
+  }
   $('#rvMusIn').onchange = async e => { const f = e.target.files[0]; e.target.value = ''; if (!f) return;
     const url = URL.createObjectURL(f), d = await new Promise(ok => { const a = new Audio(url); a.onloadedmetadata = () => ok(a.duration); a.onerror = () => ok(0); });
     if (!d) return msg('Musique illisible');

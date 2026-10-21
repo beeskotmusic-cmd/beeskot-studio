@@ -36,10 +36,9 @@ async function donnees() {
   const props = (await BK.db.liste('propositions')).filter(p => p.statut === 'attente').length;
   if (props) alertes.unshift({ led: 'amb', txt: `Miette a ${props} proposition(s) à valider` });
   const demarrer = [
-    { ok: !!BK.reglage('dernierScan', ''), txt: 'Scanner ce PC', va: 'biblio' },
+    { ok: BK.drive.relie(), txt: 'Relier le Drive BEESKOT', va: 'reglages' },          // le Drive d'abord : tout passe par lui
     { ok: morceaux.length > BK.FICHES_DEPART.length, txt: 'Créer les fiches de vos morceaux', va: 'biblio' },
     { ok: !!BK.ableton.relie, txt: 'Relier Ableton', va: 'mixprep' },
-    { ok: BK.drive.relie(), txt: 'Relier le Drive BEESKOT', va: 'reglages' },
   ];
   return { next, afaire, release, morceaux: morceaux.filter(m => m.statut !== 'sorti'), alertes, demarrer, auj };
 }

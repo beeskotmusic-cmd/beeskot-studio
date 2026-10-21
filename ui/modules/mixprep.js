@@ -46,6 +46,9 @@ function ordreIdeal(pistes) {
 
 BK.module('mixprep', function (page) {
   setTimeout(() => { const z = document.getElementById('mpSauv'); if (z) BK.sauvegardes.case(z); }, 0);
+  // les plugins manquants du projet ouvert, PC par PC (relu à chaque ouverture de l'onglet)
+  BK.surOuvrir = BK.surOuvrir || {}; const avantOuv = BK.surOuvrir.mixprep;
+  BK.surOuvrir.mixprep = () => { avantOuv && avantOuv(); BK.plugins && BK.plugins.case(document.getElementById('mpPlug')); };
   $('.sub', page).textContent = 'Préparer le projet Ableton pour l\'envoyer au mixeur';
   $('.hdr .right', page).innerHTML = `<div><span class="eng" style="font-size:9px">Ableton</span><span class="vfd" id="mpEtatH">—</span></div>
     <div><span class="eng" style="font-size:9px">Tempo</span><span class="vfd" id="mpTempoH">—</span></div>`;
@@ -61,6 +64,7 @@ BK.module('mixprep', function (page) {
           <input class="fld" id="mpModele" style="margin-top:8px" value="${esc(M.modele)}">
           <span class="nt">Mots magiques : {PREFIXE} {MORCEAU} {PISTE} {BPM}</span>
           <div class="chips" style="margin-top:8px"><button class="chip on" id="mpCoul">Couleurs par groupe</button></div></div>
+        <div class="box" id="mpPlug"></div>
         <div class="box" id="mpSauv"></div>
         <div class="box"><span class="lb">Clic</span>
           <div class="chips" style="margin-top:8px"><button class="chip" id="mpClic" disabled title="Arrive bientôt">＋ Ajouter un clic au projet</button></div>
