@@ -253,7 +253,10 @@ BK.module('reels', function (page) {
   $('#reInput').onchange = e => e.target.files[0] && charger(e.target.files[0]);
   page.addEventListener('dragover', e => { e.preventDefault(); document.body.classList.add('dropping'); });
   page.addEventListener('dragleave', e => { if (e.target === page) document.body.classList.remove('dropping'); });
-  page.addEventListener('drop', e => { e.preventDefault(); document.body.classList.remove('dropping'); const f = e.dataTransfer.files[0]; if (f) { source('fichier'); charger(f); } });
+  page.addEventListener('drop', async e => { e.preventDefault(); document.body.classList.remove('dropping'); let f = e.dataTransfer.files[0];
+    if (!f && BK.glisse.actif()) { if (!BK.glisse.items.some(x => /^audio\//.test(x.mime || '') || /\.(wav|mp3|aiff?|flac|m4a|ogg)$/i.test(x.nom || ''))) return msg('Ici, il faut un son');
+      const l = await BK.glisse.fichiers(msg); f = l.find(x => /^audio\//.test(x.type) || /\.(wav|mp3|aiff?|flac|m4a|ogg)$/i.test(x.name)); }   // venu de Médias
+    if (f) { source('fichier'); charger(f); } });
 
   // ---------- forme d'onde ----------
   // la partie visible (zoom) : de R.vue.a à R.vue.b secondes

@@ -57,7 +57,11 @@ BK.module('postvis', function (page) {
             <div class="box"><span class="lb">Recadrer et couleur</span>
               <div class="pv-tab">
                 <span class="eng">Cadrage</span>
-                <div class="pv-seg"><button id="pvEntier" title="Voir toute la photo, avec des bandes noires">⤢ Entière</button><button id="pvRemplir" title="La photo remplit le cadre, les bords sont coupés">⤡ Remplir</button><button id="pvCentre" title="Remettre au centre, sans zoom">⊙ Centrer</button><button id="pvTourner" title="Tourner la photo d'un quart de tour">⟳ Tourner</button><button id="pvTous" title="Applique le cadrage de cette photo à toutes les photos du carrousel">↻ Pour toutes</button></div>
+                <div class="pv-seg"><button id="pvEntier" title="Voir toute la photo, avec des bandes noires">⤢ Entière</button><button id="pvRemplir" title="La photo remplit le cadre, les bords sont coupés">⤡ Remplir</button><button id="pvCentre" title="Remettre au centre, sans zoom">⊙ Centrer</button></div>
+                <span class="eng">Tourner</span>
+                <div class="pv-ligne pv-rot"><button class="btn xs" id="pvRotG" title="Un quart de tour à gauche">⟲ 90°</button>
+                  <input type="range" id="pvRot" min="-180" max="180" step="1" value="0" title="Pencher la photo (double-clic : remettre droit)"><span class="vfd" id="pvRotV">0°</span>
+                  <button class="btn xs" id="pvRotD" title="Un quart de tour à droite">90° ⟳</button></div>
                 <span class="eng">Preset</span>
                 <div class="pv-ligne"><select class="fld" id="pvPreset" title="Couleur, effet et réglages d'un coup (tu peux tout retoucher après)"><option value="">Choisir un preset…</option>${PRESETS.map((x, i) => `<option value="${i}">${x.nom}</option>`).join('')}</select></div>
                 <span class="eng">Réglages</span>
@@ -98,11 +102,18 @@ BK.module('postvis', function (page) {
   let r = null;
   const F = () => FORMATS[P.format], S = () => P.slides[P.i];
 
+  // le téléphone tient toujours dans la fenêtre (story 9:16 comprise) : la hauteur libre décide de la taille de l'écran
+  function taille() {
+    const f = F(), sc = $('.rv-scene', page), dispo = Math.max(220, (sc ? sc.clientHeight : 600) - 150);
+    const h = Math.min(520, dispo), w = Math.min(380, Math.round(h * f.L / f.H));
+    ecran.style.maxHeight = 'none'; ecran.style.maxWidth = 'none'; ecran.style.width = w + 'px'; ecran.style.height = Math.round(w * f.H / f.L) + 'px'; const tel = $('.pv-tel', page); if (tel) tel.style.width = Math.max(300, w + 20) + 'px';
+  }
+  window.addEventListener('resize', () => { if (!page.classList.contains('hidden')) taille(); });
   function moteur() {
     const f = F(), k = 0.5; cv.width = Math.round(f.L * k); cv.height = Math.round(f.H * k);
     r = BK.rendu.creer(cv.width, cv.height); r.lut(P.lut); r.reglages(P.regl);
     ecran.style.aspectRatio = `${f.L} / ${f.H}`;
-    ecran.style.maxWidth = Math.round(520 * f.L / f.H) + 'px';     // sinon la hauteur est bridée à 520 px et la photo s'allonge (story 9:16)
+    taille();
     $('#pvFmtH').textContent = f.nom.split(' ').pop(); $$('#pvFmt .chip').forEach(c => c.classList.toggle('on', c.dataset.f === P.format));
   }
   // « photo entière » : le moteur remplit le cadre par défaut ; ce zoom-là montre toute la photo
@@ -110,8 +121,9 @@ BK.module('postvis', function (page) {
   function tournee(s) {
     const rot = ((s.rot || 0) % 360 + 360) % 360; if (!rot) return s.img;
     if (s._tour && s._tour.rot === rot) return s._tour.c;
-    const w = s.img.naturalWidth || s.img.width, h = s.img.naturalHeight || s.img.height, c = document.createElement('canvas');
-    c.width = rot % 180 ? h : w; c.height = rot % 180 ? w : h;
+    const w = s.img.naturalWidth || s.img.width, h = s.img.naturalHeight || s.img.height, c = document.createElement('canvas'), a = rot * Math.PI / 180;
+    // n'importe quel angle : la toile s'agrandit pour garder toute la photo (les coins vides restent noirs)
+    c.width = Math.round(Math.abs(w * Math.cos(a)) + Math.abs(h * Math.sin(a))); c.height = Math.round(Math.abs(w * Math.sin(a)) + Math.abs(h * Math.cos(a)));
     const x = c.getContext('2d'); x.translate(c.width / 2, c.height / 2); x.rotate(rot * Math.PI / 180); x.drawImage(s.img, -w / 2, -h / 2);
     s._tour = { rot, c }; return c;
   }
@@ -132,6 +144,7 @@ BK.module('postvis', function (page) {
     $('#pvZoom').value = (s.zoom - 100) + ' %';
   }
   function majTout() {
+    try { majRot(); } catch (e) {}
     $('#pvNb').textContent = String(P.slides.length).padStart(2, '0');
     $('#pvExport').disabled = !P.slides.length;
     $('#pvNum').textContent = P.slides.length > 1 ? `${P.i + 1}/${P.slides.length}` : '';
@@ -189,7 +202,9 @@ BK.module('postvis', function (page) {
   $('#pvGalB').onclick = e => { e.stopPropagation(); $('#pvAjout').click(); };
     page.addEventListener('dragover', e => { e.preventDefault(); ecran.classList.add('survol'); });
   page.addEventListener('dragleave', e => { if (e.target === page) ecran.classList.remove('survol'); });
-  page.addEventListener('drop', e => { e.preventDefault(); ecran.classList.remove('survol'); const fs = [...e.dataTransfer.files]; if (!fs.length) return;
+  page.addEventListener('drop', async e => { e.preventDefault(); ecran.classList.remove('survol'); let fs = [...e.dataTransfer.files];
+    if (!fs.length && BK.glisse.actif()) { fs = (await BK.glisse.fichiers(msg)).filter(f => /^image\//.test(f.type)); if (!fs.length) return msg('Seules les photos vont ici'); }   // venu de Médias
+    if (!fs.length) return;
     const cube = fs.find(f => /\.cube$/i.test(f.name)); if (cube) return chargerLut(cube); ajouter(fs); });
 
   // ---------- navigation dans le carrousel ----------
@@ -228,9 +243,17 @@ BK.module('postvis', function (page) {
   $('#pvEntier').onclick = () => { const s = S(); if (!s) return; s.zoom = zoomEntier(tournee(s)); s.x = 0; s.y = 0; dessiner(); majTout(); msg('Photo entière'); };
   $('#pvRemplir').onclick = () => { const s = S(); if (!s) return; s.zoom = 100; s.x = 0; s.y = 0; dessiner(); majTout(); msg('La photo remplit le cadre'); };
   $('#pvCentre').onclick = () => { const s = S(); if (!s) return; s.x = s.y = 0; s.zoom = 100; dessiner(); };
-  $('#pvTourner').onclick = () => { const s = S(); if (!s) return; s.rot = ((s.rot || 0) + 90) % 360;
-    if (s.zoom < 100) s.zoom = zoomEntier(tournee(s)); s.x = 0; s.y = 0; dessiner(); majTout(); msg('Photo tournée : ' + s.rot + '°'); };
-  $('#pvTous').onclick = () => { const s = S(); if (!s) return; P.slides.forEach(x => { x.zoom = s.zoom; x.x = s.x; x.y = s.y; }); msg('Même cadrage partout'); };
+  const angle = s => { let a = ((s.rot || 0) % 360 + 360) % 360; return a > 180 ? a - 360 : a; };
+  const majRot = () => { const s = S(), a = s ? angle(s) : 0; $('#pvRot').value = a; $('#pvRotV').textContent = a + '°'; };
+  const poserRot = (a, quart) => { const s = S(); if (!s) return; s.rot = ((Math.round(a) % 360) + 360) % 360; s._tour = null;
+    if (quart) { if (s.zoom < 100) s.zoom = zoomEntier(tournee(s)); s.x = 0; s.y = 0; }
+    majRot(); dessiner(); };
+  $('#pvRot').oninput = e => poserRot(+e.target.value);
+  $('#pvRot').onchange = () => { majTout(); msg('Photo penchée : ' + angle(S() || {}) + '°'); };
+  $('#pvRot').ondblclick = () => { poserRot(0, true); majTout(); };
+  $('#pvRotG').onclick = () => { const s = S(); if (!s) return; poserRot(angle(s) - 90, true); majTout(); msg('Quart de tour à gauche'); };
+  $('#pvRotD').onclick = () => { const s = S(); if (!s) return; poserRot(angle(s) + 90, true); majTout(); msg('Quart de tour à droite'); };
+
 
   // ---------- couleur : LUT ----------
   async function chargerLut(f) {

@@ -36,7 +36,7 @@ BK.module('medias', function (page) {
         <div class="box"><span class="lb">Ajouter</span>
           <span class="nt" id="mdAjoutTxt">Glisse des fichiers sur la page, ou « + » : ils vont dans le dossier ouvert.</span>
           <button class="btn sm" id="mdAjout" style="margin-top:10px">+ Choisir des fichiers…</button>
-          <button class="btn sm" id="mdDossier" style="margin-top:8px">+ Nouveau dossier ici…</button>
+          <button class="btn sm" id="mdDossier" style="margin-top:8px">+ Créer un dossier</button>
           <button class="btn sm miette-aide" id="mdTrier" style="margin-top:8px" title="Miette regarde les photos sans étiquette d'ici (ce dossier, ou Discord) et propose où les ranger">Étiqueter les photos</button>
           <button class="btn sm miette-aide" id="mdMenage" style="margin-top:8px" title="Miette cherche les fichiers en double (même nom, même taille) et les fichiers vides. Elle propose, vous validez. Rien n'est effacé : tout va dans la corbeille de BEESKOT Studio.">Faire le ménage</button>
           <input type="file" id="mdInput" multiple hidden></div>
@@ -132,7 +132,7 @@ BK.module('medias', function (page) {
     const h = $('#mdFil [data-i="-1"]'); if (h) h.onclick = () => $('#mdMaison').click();
     $('#mdGrille').innerHTML = '<span class="nt md-vide"><span class="spin"></span>Recherche dans le Drive…</span>';
     try { const l = await BK.dossiers.tousFichiers(); if (!enHaut() || !(M.ff && M.ff.rub)) return;
-      M.fichiers = l.filter(f => /^(image|video)\//.test(f.mimeType) || /\.pdf$/i.test(f.name)); rendre(true); }
+      M.fichiers = l.filter(f => /^(image|video|audio)\//.test(f.mimeType) || /\.(pdf|wav|mp3|aiff?|flac|m4a)$/i.test(f.name)); rendre(true); }
     catch (e) { vide('Drive injoignable pour l\'instant.'); }
   }
   // ce fichier passe-t-il le filtre du bas ?
@@ -194,7 +194,7 @@ BK.module('medias', function (page) {
     $('#mdFil').innerHTML = `<span class="ex-miette">🏷 Tout ce qui est dans « ${esc((m || c).nom)} »</span>`; $('#mdChemin').textContent = 'Plusieurs dossiers';
     $('#mdGrille').innerHTML = '<span class="nt md-vide"><span class="spin"></span>Recherche dans le Drive…</span>';
     try { const l = m ? await BK.dossiers.duMorceau(m, M.morceaux) : (await BK.dossiers.tousFichiers()).filter(f => BK.etiquettes.liste(M.tags, f.id).includes(id));
-      M.fichiers = l.filter(f => /^(image|video)\//.test(f.mimeType) || /\.pdf$/i.test(f.name)); if (M.filtre === id) rendre(true); }
+      M.fichiers = l.filter(f => /^(image|video|audio)\//.test(f.mimeType) || /\.(pdf|wav|mp3|aiff?|flac|m4a)$/i.test(f.name)); if (M.filtre === id) rendre(true); }
     catch (e) { vide('Drive injoignable pour l\'instant.'); }
   }
   // ---------- le dossier « Discord » : toutes les photos et vidéos postées sur le serveur ----------
@@ -205,11 +205,15 @@ BK.module('medias', function (page) {
     $('#mdAjout').disabled = $('#mdDossier').disabled = $('#mdOuvrirDos').disabled = true; aideAjout(false);
     $('#mdMajDc').classList.remove('hidden');
     $('#mdGrille').innerHTML = '<span class="nt md-vide"><span class="spin"></span>Ouverture…</span>';
-    const pose = (l, garde) => { M.fichiers = l.map(x => ({ id: 'dc:' + x.id, name: x.nom, mimeType: x.video ? 'video/mp4' : 'image/jpeg',
+    const pose = (l, garde) => { M.fichiers = [...l, ...(M.dcSons || [])].map(x => ({ id: 'dc:' + x.id, name: x.nom, mimeType: x.son ? 'audio/mpeg' : x.video ? 'video/mp4' : 'image/jpeg',
         thumbnailLink: x.apercu, webViewLink: x.lien, modifiedTime: x.t, size: x.taille, dc: x, dossiers: ['Discord', '#' + x.salon] }));
       if (M.racine === 'discord') { rendre(); if (garde) msg('Miette regarde s\'il y a du nouveau…'); } };
     try {
       if (!M.morceaux.length) await etiquettes();
+      if (!M.dcSons || M.majDiscord) (async () => {                   // les sons postés sur Discord (maquettes, mix…) : en plus, sans faire attendre les photos
+        try { const g = M.majDiscord ? null : await BK.discord.mediasGardes('audio').catch(() => null);
+          const l = g && g.l && g.l.length && Date.now() - (g.t || 0) < 6 * 3600e3 ? g.l : await BK.discord.mediasVite('audio', { rafraichir: !!M.majDiscord });
+          M.dcSons = (l || []).map(x => ({ ...x, son: true })); if (M.racine === 'discord' && M.dc) pose(M.dc, false); } catch (e) { M.dcSons = []; } })();
       if (M.dc && !M.majDiscord) { pose(M.dc, false); return msg(M.dc.length + ' fichier(s) · ↻ Actualiser pour voir les nouveaux'); }   // déjà chargé : on ne bouge plus
       if (!M.majDiscord) {                                              // 1re fois : la liste gardée sur le Drive, si elle est récente, sans rien recharger
         const g = await BK.discord.mediasGardes('media').catch(() => null);
@@ -221,6 +225,41 @@ BK.module('medias', function (page) {
       pose(l, false);
       if (M.racine === 'discord') msg(l.length + ' fichier(s) · à jour');
     } catch (e) { if (!M.fichiers.length) vide(e.message || 'Discord injoignable'); else msg(e.message || 'Discord injoignable'); }
+  }
+
+  // ---------- « Ajouter un dossier du Drive » : on parcourt le Drive et on choisit un dossier qui existe déjà ----------
+  async function choisirDossierDrive() {
+    if (!BK.drive.relie()) return msg('Relie d\'abord le Drive');
+    const v = document.createElement('div'); v.className = 'voile';
+    v.innerHTML = `<div class="stopbox md-lier-box"><span class="dymo" style="align-self:center">Ajouter un dossier du Drive</span>
+      <span class="nt">Choisis un dossier qui existe déjà (ex. Musiques, Exports). Il apparaîtra dans Médias pour tout le groupe. Rien n'est copié ni déplacé.</span>
+      <div class="md-lier-fil" id="lFil"></div><div class="md-lier-l" id="lL"><span class="nt"><span class="spin"></span>Lecture du Drive…</span></div>
+      <div class="stopbox-btns"><button class="btn" data-l="non">Annuler</button><button class="btn pri" data-l="ok" disabled>Ajouter ce dossier</button></div></div>`;
+    document.body.appendChild(v);
+    const fil = [];                                                     // [{ id, name }] : où on est
+    const ouvrir = async () => {
+      const L = v.querySelector('#lL'), ici = fil[fil.length - 1]; L.innerHTML = '<span class="nt"><span class="spin"></span>Lecture…</span>';
+      v.querySelector('#lFil').innerHTML = `<button data-f="-1">Drive</button>` + fil.map((x, i) => `<span>›</span><button data-f="${i}">${esc(x.name)}</button>`).join('');
+      v.querySelector('[data-l="ok"]').disabled = !ici;
+      try {
+        let l;
+        if (!ici) { const pa = await (await BK.drive.api('/files?' + new URLSearchParams({ q: `sharedWithMe and mimeType='${DOSSIER}' and trashed=false`, fields: 'files(id,name)', pageSize: '200', orderBy: 'name' }))).json();
+          l = [{ id: 'root', name: 'Mon Drive' }, ...(pa.files || []).map(x => ({ ...x, partage: true }))]; }
+        else l = (await BK.dossiers.enfants(ici.id, true)).map(x => ({ id: x.id, name: x.name }));
+        L.innerHTML = l.length ? l.map(x => `<button class="md-lier-d" data-id="${x.id}" data-nom="${esc(x.name)}">📁 ${esc(x.name)}${x.partage ? ' <small class="nt">partagé</small>' : ''}</button>`).join('') : '<span class="nt">Pas de sous-dossier ici. Tu peux ajouter celui-ci.</span>';
+      } catch (e) { L.innerHTML = '<span class="nt">Drive injoignable pour l\'instant.</span>'; }
+    };
+    v.addEventListener('click', async e => {
+      const d = e.target.closest('.md-lier-d'), f = e.target.closest('[data-f]'), b = e.target.closest('[data-l]');
+      if (d) { fil.push({ id: d.dataset.id, name: d.dataset.nom }); return ouvrir(); }
+      if (f) { fil.length = +f.dataset.f + 1; return ouvrir(); }
+      if (e.target === v || (b && b.dataset.l === 'non')) return v.remove();
+      if (b && b.dataset.l === 'ok') { const x = fil[fil.length - 1]; if (!x || x.id === 'root') return msg('Choisis un dossier');
+        const l = await BK.partage.lire('medias.dossiersLies', []).catch(() => []), l2 = Array.isArray(l) ? l : [];
+        if (!l2.some(y => y.id === x.id)) l2.push({ id: x.id, name: x.name }); await BK.partage.ecrire('medias.dossiersLies', l2);
+        v.remove(); msg('« ' + x.name + ' » ajouté à Médias'); racineCloud(); }
+    });
+    ouvrir();
   }
 
   window.addEventListener('bk:annule', () => charger());   // après « ↶ Annuler » : on relit
@@ -282,7 +321,7 @@ BK.module('medias', function (page) {
       if (sujet) { const sel = $('#mdFiltre'); sel.value = sujet; if (sel.value === sujet) { sel.onchange({ target: sel }); return paniers(); } }
       if (!M.fichiers.length || M.filtre) allerRacine('cloud'); else rendre(!!M.filtre); })();
   });
-  BK.mediasTags = async () => { BK.etiquettes.doc = null; M.tags = await BK.etiquettes.tous(); majTags(); paniers(); };
+  BK.mediasTags = async () => { if (!BK.etiquettes._min) BK.etiquettes.doc = null; M.tags = await BK.etiquettes.tous(); majTags(); paniers(); };
   function majTags(force) {
     if (!force && $$('.md-menu').length) return;                        // un menu est ouvert : on ne touche à rien
     const grille = $('#mdGrille'), y = grille.parentElement.scrollTop;
@@ -300,6 +339,9 @@ BK.module('medias', function (page) {
     const l = [];
     for (const [k, n] of DOSSIERS_CLOUD) { try { const d = await BK.dossiers.get(k); if (d) l.push({ id: d.id, name: n, mimeType: DOSSIER }); } catch (e) {} }
     l.push({ id: 'discord', name: '🍞 Discord', mimeType: DOSSIER, badge: 'pas sur le Drive' });      // Discord est un dossier comme les autres, juste pas dans le Drive
+    const lies = await BK.partage.lire('medias.dossiersLies', []).catch(() => []);                  // les dossiers du Drive ajoutés par le groupe (Musiques, Exports…)
+    for (const d of (Array.isArray(lies) ? lies : [])) l.push({ id: d.id, name: d.name, mimeType: DOSSIER, lie: true });
+    l.push({ id: '__lier', name: 'Ajouter un dossier du Drive', mimeType: DOSSIER, lier: true });
     M.fichiers = l;
     rendre();
   }
@@ -324,16 +366,17 @@ BK.module('medias', function (page) {
       const main = l.some(BK.etiquettes.estMorceau), noms = [...ms.map(m => m.nom), ...l.filter(k => /^[a-z]:/.test(k)).map(k => (nomCase(k) || {}).nom).filter(Boolean)];
       return `<button class="md-tag${l.length ? ' main' : noms.length ? '' : ' vide'}" data-tag="${f.id}" title="${main || l.length ? 'Étiquettes choisies à la main' : noms.length ? 'Devinée par le nom' : 'Étiqueter'}">🏷 ${esc(noms.length ? noms.join(' · ') : 'Étiqueter')}</button>`; };
     $('#mdNb').textContent = String(fs.length).padStart(2, '0');
-    $('#mdGrille').innerHTML = ds.map(d => `<button class="md-tuile md-dos${d.badge ? ' md-dos-dc' : ''}" data-dos="${d.id}" data-nom="${esc(d.name)}"><span class="md-dos-ic">${d.badge ? '💬' : '📁'}</span><span class="md-nom">${esc(d.name)}</span>${d.badge ? `<span class="md-dos-badge">${esc(d.badge)}</span>` : ''}</button>`).join('')
+    $('#mdGrille').innerHTML = ds.map(d => d.lier ? `<button class="md-tuile md-dos md-lier" id="mdLier" title="Montrer ici un dossier qui existe déjà sur le Drive (rien n'est copié)"><span class="md-dos-ic">＋</span><span class="md-nom">Ajouter un dossier du Drive</span></button>`
+        : `<button class="md-tuile md-dos${d.badge ? ' md-dos-dc' : ''}${d.lie ? ' md-dos-lie' : ''}" data-dos="${d.id}" data-nom="${esc(d.name)}"><span class="md-dos-ic">${d.badge ? '💬' : '📁'}</span><span class="md-nom">${esc(d.name)}</span>${d.badge ? `<span class="md-dos-badge">${esc(d.badge)}</span>` : ''}${d.lie ? `<span class="md-dos-badge">du Drive</span><span class="md-x" data-delie="${d.id}" title="Ne plus montrer ce dossier ici (rien n'est supprimé du Drive)">✕</span>` : ''}</button>`).join('')
       + (filtre || M.racine === 'discord' || !M.pile.length ? '' : `<button class="md-tuile md-plus" id="mdPlus"><span>+</span><span class="nt">Ajouter ici</span></button>`)
       + fs.map(f => {
-        const video = /^video\//.test(f.mimeType), d = f.videoMediaMetadata && f.videoMediaMetadata.durationMillis;
+        const video = /^video\//.test(f.mimeType), son = /^audio\//.test(f.mimeType || '') || /\.(wav|mp3|aiff?|flac|m4a|ogg)$/i.test(f.name || ''), d = f.videoMediaMetadata && f.videoMediaMetadata.durationMillis;
         const lf = BK.etiquettes.liste(M.tags, idTags(f));
         const etqs = (() => { const ms = BK.etiquettes.morceauxDe({ ...f, id: idTags(f), dossiers: f.dossiers || M.pile.map(p => p.nom) }, M.morceaux, M.tags);
           return [...ms.map(m => ({ n: m.nom, k: m.id })), ...lf.filter(k => /^[a-z]:/.test(k)).map(k => ({ n: (nomCase(k) || {}).nom, k })).filter(x => x.n)]; })();
         const main = lf.length;
         return `<div class="md-tuile${M.choisi === f.id ? ' choisie' : ''}" data-id="${f.id}" title="${esc(f.name)}" draggable="true">
-          <div class="md-img${video ? ' video' : ''}"${M.vign[f.id] ? ` style="background-image:url(${M.vign[f.id]})"` : ''}>${M.vign[f.id] ? '' : f.thumbnailLink ? '<span class="spin"></span>' : `<span class="md-ext">${esc((f.name.split('.').pop() || '').toUpperCase())}</span>`}
+          <div class="md-img${video ? ' video' : ''}${son ? ' son' : ''}"${M.vign[f.id] && !son ? ` style="background-image:url(${M.vign[f.id]})"` : ''}>${son ? `<button class="md-ecoute" data-ecoute="${f.id}" title="Écouter">${M.joue === f.id ? '❚❚' : '▶'}</button><span class="md-ext">♪ ${esc((f.name.split('.').pop() || '').toUpperCase())}</span>` : M.vign[f.id] ? '' : f.thumbnailLink ? '<span class="spin"></span>' : `<span class="md-ext">${esc((f.name.split('.').pop() || '').toUpperCase())}</span>`}
             ${video ? `<span class="md-duree">${d ? BK.audio.temps(d / 1000).replace(/\.\d$/, '') : '▶'}</span>` : ''}
             ${etqs.length ? `<span class="md-sur">${etqs.slice(0, 3).map(x => `<em class="${main ? 'main' : ''}" style="--tc:${couleurTag(x.k)}">${esc(x.n)}</em>`).join('')}${etqs.length > 3 ? `<em>+${etqs.length - 3}</em>` : ''}</span>`
               : '<span class="md-sur vide"><em>sans étiquette</em></span>'}</div>
@@ -341,7 +384,19 @@ BK.module('medias', function (page) {
           <button class="md-x" data-x="${f.id}" title="Ranger dans la corbeille">✕</button></div>`;
       }).join('')
       + (!fs.length && tous.length && M.ff && M.ff.rub ? '<span class="nt md-vide">Rien avec ce filtre dans ce dossier · re-clique l\'étiquette allumée pour l\'enlever</span>' : '');
-    $$('.md-dos').forEach(b => b.onclick = () => { if (b.dataset.dos === 'discord') return allerRacine('discord'); M.pile.push({ id: b.dataset.dos, nom: b.dataset.nom }); charger(); });
+    $$('.md-dos[data-dos]').forEach(b => b.onclick = async e => {
+      if (e.target.closest('[data-delie]')) { e.stopPropagation(); const id = e.target.closest('[data-delie]').dataset.delie;
+        if (!(await BK.confirmer('Ne plus montrer ce dossier dans Médias ? (Rien n\'est supprimé du Drive.)'))) return;
+        const l = await BK.partage.lire('medias.dossiersLies', []).catch(() => []); await BK.partage.ecrire('medias.dossiersLies', (l || []).filter(x => x.id !== id)); return racineCloud(); }
+      if (b.dataset.dos === 'discord') return allerRacine('discord'); M.pile.push({ id: b.dataset.dos, nom: b.dataset.nom }); charger(); });
+    const lier = $('#mdLier'); if (lier) lier.onclick = () => choisirDossierDrive();
+    // écouter un son : dans le lecteur du bas (la Bibliothèque s'arrête)
+    $$('[data-ecoute]').forEach(b => b.onclick = async e => { e.stopPropagation(); const id = b.dataset.ecoute, f = M.fichiers.find(x => x.id === id); if (!f) return;
+      M.audio = M.audio || (() => { const a = new Audio(); BK.mini.suivre(a, { page: 'medias', titre: () => 'Médias · ' + (M.audioNom || '') }); a.onpause = a.onplay = () => rendre(!!M.filtre); return a; })();
+      if (M.joue === id && !M.audio.paused) return M.audio.pause();
+      if (M.joue !== id) { b.textContent = '…'; try { const r = f.dc ? await BK.discord.fetch(f.dc.url) : await BK.drive.api(`/files/${id}?alt=media`); if (!r.ok) throw 0;
+        if (M.audioUrl) URL.revokeObjectURL(M.audioUrl); M.audioUrl = URL.createObjectURL(await r.blob()); M.audio.src = M.audioUrl; M.joue = id; M.audioNom = f.name; } catch (er) { b.textContent = '▶'; return msg('Son illisible'); } }
+      M.audio.play().catch(() => {}); });
     if (!filtre && M.racine !== 'discord' && M.pile.length) $('#mdPlus').onclick = e => menuAjout(e.currentTarget);
     // les étiquettes en couleur sur l'image : un clic dessus = le menu des étiquettes (comme le clic droit)
     $$('.md-tuile[data-id] .md-sur').forEach(b => b.onclick = e => { if (M.choix) return; e.stopPropagation(); const t = b.closest('.md-tuile');
@@ -349,7 +404,8 @@ BK.module('medias', function (page) {
       const r = b.getBoundingClientRect(); menuTag(t, { x: r.left, y: r.bottom + 4 }); });
     $$('.md-tuile[data-id]').forEach(t => { t.ondragstart = e => {
       const pris = M.sel.has(t.dataset.id) ? [...M.sel] : [t.dataset.id];           // on glisse toute la sélection
-      e.dataTransfer.setData('text/bk-media', pris.join(',')); e.dataTransfer.effectAllowed = 'link'; $('#mdPaniers').classList.add('actif');
+      e.dataTransfer.setData('text/bk-media', pris.join(',')); e.dataTransfer.effectAllowed = 'copyLink'; $('#mdPaniers').classList.add('actif');
+      BK.glisse.debut(pris.map(id => { const f = M.fichiers.find(x => x.id === id) || {}; return { id, nom: f.name, mime: f.mimeType, dc: f.dc || null }; }));   // pour les autres onglets
       if (pris.length > 1) msg(pris.length + ' fichiers : lâche-les sur une étiquette'); };
       t.ondragend = () => $('#mdPaniers').classList.remove('actif'); });
     $$('.md-tuile[data-id]').forEach(t => t.ondblclick = e => { const f = M.fichiers.find(x => x.id === t.dataset.id); f && BK.ouvrirLien(f.webViewLink); });
@@ -597,7 +653,7 @@ BK.module('medias', function (page) {
   }
   $('#mdInput').onchange = e => { envoyer(e.target.files); e.target.value = ''; };
   $('#mdDossier').onclick = async () => {
-    const cur = ici(); if (!cur) return; const n = prompt('Nom du nouveau dossier'); if (!n || !n.trim()) return;
+    const cur = ici(); if (!cur) return; const n = await BK.saisir('Nom du dossier à créer ici', '', { oui: 'Créer le dossier' }); if (!n || !n.trim()) return;
     try { await BK.drive.dossier(n.trim(), cur.id); msg('Dossier créé'); charger(); } catch (e) { msg('Impossible pour l\'instant'); }
   };
   page.addEventListener('dragover', e => { e.preventDefault(); if (!e.dataTransfer.types.includes('text/bk-media')) $('#mdZone').classList.add('survol'); });

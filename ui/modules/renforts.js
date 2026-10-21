@@ -144,7 +144,7 @@ BK.module('renforts', function (page) {
     $('#raLuPli').onclick = () => { BK.regler('ra.luOuvert', !BK.reglage('ra.luOuvert', true)); rendreVeilleur(); };
     journalLu();
     const rt = $('#raTout'); if (rt) rt.onclick = async () => {
-      if (!confirm('Grand rangement : Miette relit TOUT l\'historique des salons cochés, puis Gemini range tout (ça peut prendre plusieurs minutes, le logiciel reste utilisable). On y va ?')) return;
+      if (!await BK.confirmer('Grand rangement : Miette relit TOUT l\'historique des salons cochés, puis Gemini range tout (ça peut prendre plusieurs minutes, le logiciel reste utilisable). On y va ?')) return;
       rt.disabled = true; rt.innerHTML = '<span class="spin"></span>Rangement…';
       try { const n = await BK.discord.toutRelire(msg); msg(n + ' ancien(s) message(s) ajoutés au journal'); const p = await BK.discord.ranger(msg);
         await BK.discord.resume(true); msg(`Rangement fini ✓ · ${p} proposition(s) · résumé ajouté dans les fiches`); }

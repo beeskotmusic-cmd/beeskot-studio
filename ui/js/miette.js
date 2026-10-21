@@ -354,7 +354,7 @@ BK.synchro = {
     };
     window.addEventListener('bk:distant', e => {
       const a = document.activeElement; if (a && (/^(INPUT|TEXTAREA)$/.test(a.tagName) || a.isContentEditable)) return;
-      if (e.detail.cols.includes('config') && BK.etiquettes) BK.etiquettes.doc = null;
+      if (e.detail.cols.includes('config') && BK.etiquettes && !BK.etiquettes._min) BK.etiquettes.doc = null;   // (pas pendant un envoi en cours)
       if (e.detail.cols.includes('config')) BK.partageCache = {};        // PLAN.xlsx, passages Discord… relus
       const f = new Set(e.detail.cols.flatMap(c => QUI[c] || []));
       for (const n of f) try { BK[n] && BK[n](); } catch (er) {}

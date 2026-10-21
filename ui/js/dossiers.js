@@ -230,7 +230,12 @@ BK.etiquettes = {
   async charger() { if (!BK.etiquettes.doc) BK.etiquettes.doc = (await BK.db.liste('config')).find(x => x.id === 'etiquettes') || { id: 'etiquettes', map: {} }; return BK.etiquettes.doc; },
   async tous() { return (await BK.etiquettes.charger()).map; },
   // un média Discord rangé dans le Drive : on se souvient de sa copie, pour afficher ses étiquettes dans la vue Discord
-  async noterCopie(dcId, driveId) { const d = await BK.etiquettes.charger(); d.copies = d.copies || {}; d.copies[dcId] = driveId; await BK.db.ecrire('config', d); },
+  async noterCopie(dcId, driveId) { const d = await BK.etiquettes.charger(); d.copies = d.copies || {}; d.copies[dcId] = driveId; BK.etiquettes.envoyer(); },
+  // l'étiquette s'affiche TOUT DE SUITE ; l'envoi au Drive part derrière, groupé (10 photos = 1 envoi).
+  // Drive injoignable : rien à faire, l'envoi attend dans la file et repart tout seul quand le Drive revient (aucun message).
+  _min: null,
+  envoyer() { const d = BK.etiquettes.doc; clearTimeout(BK.etiquettes._min);
+    BK.etiquettes._min = setTimeout(() => { BK.etiquettes._min = null; if (d) BK.db.ecrire('config', d).catch(() => {}); }, 400); },
   copieDe(dcId) { return ((BK.etiquettes.doc || {}).copies || {})[dcId] || null; },
   // un fichier peut avoir PLUSIEURS étiquettes : des morceaux (leur id) et des rubriques (« c:tournage », « t:<fiche tournage> », « c:lumiere »…)
   // '-' = « aucun morceau » (on ne devine plus par le nom)
@@ -240,13 +245,13 @@ BK.etiquettes = {
     const d = await BK.etiquettes.charger(), autres = BK.etiquettes.liste(d.map, fileId).filter(k => /^[a-z]:/.test(k));
     const l = morceauId ? [morceauId, ...autres] : autres;
     if (l.length) d.map[fileId] = l; else delete d.map[fileId];
-    await BK.db.ecrire('config', d);
+    BK.etiquettes.envoyer();
   },
   async basculer(fileId, cle, forcer) {                  // ajoute (ou retire) une étiquette, sans toucher aux autres
     const d = await BK.etiquettes.charger(); let l = BK.etiquettes.liste(d.map, fileId).filter(k => k !== '-');
     const a = forcer ?? !l.includes(cle); l = l.filter(k => k !== cle); if (a) l.push(cle);
     if (l.length) d.map[fileId] = l; else delete d.map[fileId];
-    await BK.db.ecrire('config', d); return a;
+    BK.etiquettes.envoyer(); return a;
   },
   // les morceaux d'un fichier : à la main d'abord, sinon devinés (nom du fichier, puis dossiers)
   morceauxDe(f, morceaux, tags) {

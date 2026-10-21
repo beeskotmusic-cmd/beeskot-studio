@@ -3,6 +3,21 @@
 // Pour une nouvelle version : ajouter un bloc EN HAUT de la liste. Une ligne courte par point : « Onglet : ce qui change. »
 // =====================================================================
 BK.NOUVEAUTES = [
+  { v: '0.9.59', titre: '', l: [
+    ['🎬', 'Tournages : un tournage = une journée ; dedans, les reels qu\'on y tourne, qui se déplient (infos, moodboard, découpage, tenues).'],
+    ['👕', 'Tournages : glisse une photo sur la tenue de Pierre ou de Yacine : elle est étiquetée toute seule (tenue, membre, morceau).'],
+    ['👕', 'Tenues et matériel du tournage = pour tous ses reels ; dans un reel = rien que pour lui.'],
+    ['📋', 'Le PLAN.xlsx crée le tournage et un reel par ligne.'],
+    ['♪', 'Bibliothèque : la barre du haut se remplit à moitié pour une étape en cours, et le bout brille.'],
+    ['⟳', 'Social Photo : une molette pour pencher la photo, et des quarts de tour.'],
+    ['📱', 'Social Photo : en Story et en Portrait, le téléphone tient en entier dans la fenêtre.'],
+    ['🏷', 'Médias : les étiquettes s\'affichent tout de suite (le Drive enregistre derrière, même s\'il est coupé un moment).'],
+    ['✋', 'Médias : glisse un média sur un onglet du menu (Social Photo, Reels Vidéo, Tournages, Écoute, Reels, Bibliothèque), il s\'ouvre : lâche-la là où elle va.'],
+    ['＋', 'Médias : « + Créer un dossier », et les questions s\'ouvrent dans le logiciel (plus de fenêtre Windows bizarre).'],
+    ['📁', 'Médias : « Ajouter un dossier du Drive » montre un dossier qui existe déjà (Musiques, Exports…), pour tout le groupe.'],
+    ['♪', 'Médias : les sons aussi (Drive et Discord), avec un bouton pour les écouter.'],
+    ['✋', 'On peut aussi glisser un média dans Écoute, Reels Audio, Reels (affiche) et la Bibliothèque (photo ou export).'],
+  ] },
   { v: '0.9.58', titre: '', l: [
     ['⟳', 'Social Photo : bouton « Tourner » (quart de tour).'],
     ['⚡', 'Miette répond plus vite : si Gemini est saturé, elle passe tout de suite par un autre modèle.'],
@@ -202,6 +217,7 @@ BK.TUTO = [
       'Une couleur par étape : maquette rouge, enregistrement orange, mixage jaune, master bleu-vert, sortie bleu, promo vert.' ] },
   { o: 'Médias', ic: '🖼', quoi: 'Toutes les photos et vidéos du groupe : les dossiers du Drive, plus celles postées sur Discord. Partout dans le logiciel, on importe une photo ou une vidéo depuis une fenêtre Médias. On les range avec des étiquettes (un morceau, un tournage, Instagram…), sans jamais déplacer les fichiers.',
     comment: [
+      ['Envoyer un média vers un autre outil', 'Attrape la photo (ou plusieurs), garde-la une demi-seconde sur l\'onglet voulu dans le menu (Social Photo, Reels Vidéo, Tournages) : il s\'ouvre. Lâche-la là où elle va. Les onglets grisés ne prennent pas de média.'],
       ['Créer une étiquette', 'Réglages › Drive › « Étiquettes des Médias » : écris le nom, choisis la rubrique, « + Créer l\'étiquette ». Elle apparaît pour tout le groupe.'],
       ['Étiqueter des photos', 'Choisis les photos (clic, Ctrl+clic pour en ajouter, Maj+clic pour une suite) → clic droit → Morceaux ▸ / Tournage ▸ / Réseaux ▸ → l\'étiquette. Ou glisse-les sur une étiquette dans la barre du bas.'],
       ['Filtrer le dossier ouvert', 'Barre du bas « Filtrer » : clic sur Morceaux = tout ce qui a une étiquette de morceau dans ce dossier ; clic sur Moon Blue = seulement Moon Blue. Pareil pour Tournage (tenues, moodboard…), Lumière (light show, scénographie, live), Réseaux. Re-clic sur ce qui est allumé = on enlève le filtre. Tout en haut (« Tous les dossiers »), le filtre cherche dans tout Médias.'],
@@ -262,11 +278,10 @@ BK.TUTO = [
     astuces: [ 'Espace = lecture / pause. Un clic sur une note = l\'écouter à cet endroit.', 'Toutes les notes se retrouvent aussi dans la Bibliothèque : fiche du morceau › Retours › Notes du mix, rangées par version.', 'Couleurs : Yacine jaune, Pierre vert, Baptiste violet (le nom vient de la case « PC : » en haut).' ] },
   { o: 'Tournages', ic: '🎥', quoi: 'Une fiche par tournage ou shooting : l\'idée, le moodboard, des références, le découpage plan par plan, les tenues, le matériel. On l\'imprime en PDF pour l\'équipe.',
     comment: [
-      ['Tournage fini', 'Bouton « Tournage fini » sur la carte ou la fiche : le reel relié passe à « Tourné ». Le titre, le morceau et l\'idée changés ici se retrouvent dans le reel.'],
-      ['Les Assets de la journée', 'Glisse un média sur une journée : il va dans ses Assets, rangé par étiquette (Tenues, Moodboard, Audio, Vidéo…). Ce qui est déjà étiqueté pour ses tournages dans Médias arrive en vert : ✓ pour valider.'],
-      ['Ajouter des images', '« ＋ Ajouter un média » (à droite) : choisis dans Médias. Les images arrivent dans « Médias à ranger » : glisse-les sur un tournage (son moodboard) ou sur une journée.'],
-      ['Grouper par journée', 'La page s\'ouvre sur les journées de tournage. « + Nouvelle journée » → choisis la date. Glisse les tournages dedans : ils prennent la date, et un rendez-vous « Tournage · … » se met tout seul dans le Calendrier.'],
-      ['Envoyer dans les Reels', 'Sur une carte (ou en haut de la fiche) : « → Reels ». Ça crée la carte dans l\'onglet Reels, déjà reliée au tournage.'],
+      ['Un tournage, ses reels', 'Un tournage = une journée (date, heure, lieu : il va dans le Calendrier). Clique son affiche : tu vois ses reels. Chaque reel se déplie (infos, moodboard, découpage, tenues, matériel). Glisse un reel sur l\'affiche d\'un tournage pour l\'y mettre.'],
+      ['Les tenues', 'Glisse une photo (« Médias à ranger », Assets, ou une autre tenue) sur la ligne d\'un membre : elle est étiquetée tenue + ce membre + le morceau. Dans le tournage = pour tous les reels ; dans un reel = rien que pour lui. Une même photo peut aller à Pierre ET à Yacine.'],
+      ['Ce qui est déjà dans Médias', 'Les photos déjà étiquetées pour ce tournage ou ce reel arrivent en vert à leur place : ✓ pour valider.'],
+      ['Envoyer dans les Reels', '« → Reels » sur un reel : la carte est créée dans l\'onglet Reels, déjà reliée. « Tournage fini » : ses reels passent à « Tourné ».'],
       ['Créer un tournage', '+ Nouveau tournage (à droite) → titre, type (Clip, Reel, Shooting), morceau, date, lieu. 📅 Mettre au Calendrier pour la date.'],
       ['Remplir le moodboard', '＋ Ajouter des images → la fenêtre Médias s\'ouvre sur l\'étiquette Moodboard (clique une autre étiquette ou un dossier si besoin) → choisis → Ajouter au moodboard. Elles sont étiquetées « moodboard » et « ce tournage » toutes seules.'],
       ['Ajouter les tenues', '＋ Photo sous le nom de chacun (la fenêtre Médias s\'ouvre sur l\'étiquette Tenues), ou le bouton biscotte « Qui porte quoi ? » pour que Miette trouve les photos de tenues sur Discord.'],

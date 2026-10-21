@@ -276,7 +276,8 @@ BK.module('biblio', function (page) {
           <button class="fiche-tete">
             <span class="fiche-nom">${esc(m.nom)}</span>
             <span class="dymo sm">${m.statut === 'sorti' ? 'Sorti' : BK.etapes[Math.min(m.fait || 0, 5)].nom}</span>
-            <span class="mini-etapes">${BK.etapes.map((e, i) => `<i class="${i < (m.fait || 0) ? 'fait' : i === (m.fait || 0) ? 'encours' : ''}" style="flex:${e.poids};--sc:${e.c}"></i>`).join('')}</span>
+            <span class="mini-etapes">${(() => { const f = m.fait || 0, demi = (m.enCours || 0) > 0, bout = demi ? f : f - 1;   // le bout : là où on en est (il brille)
+              return BK.etapes.map((e, i) => `<i class="${i < f ? 'fait' : i === f ? (demi ? 'demi' : 'suivante') : ''}${i === bout ? ' bout' : ''}" style="flex:${e.poids};--sc:${e.c}"></i>`).join(''); })()}</span>
             <span class="vfd fiche-pc">${pc} %</span><span class="fleche">${ouvert ? '▾' : '▸'}</span></button>
           <div class="lecteur" data-lect="${m.id}"><button class="lect-play" title="Écouter l'export principal">▶</button><div class="lect-barre"><i></i></div><span class="lect-t mono"></span><span class="nt lect-src"></span></div>
         </div>
@@ -403,6 +404,20 @@ BK.module('biblio', function (page) {
 
   // ---------- actions ----------
   async function sauver(m) { await BK.db.ecrire('morceaux', m); }
+  // glissé depuis Médias sur une fiche : une image devient sa photo, un son devient un de ses exports
+  page.addEventListener('dragover', e => { if (BK.glisse.actif() && e.target.closest('.fiche[data-id]')) { e.preventDefault(); e.target.closest('.fiche').classList.add('survol-media'); } });
+  page.addEventListener('dragleave', e => { const f = e.target.closest && e.target.closest('.fiche'); if (f && !f.contains(e.relatedTarget)) f.classList.remove('survol-media'); });
+  page.addEventListener('drop', async e => { const fi = e.target.closest('.fiche[data-id]'); if (!BK.glisse.actif() || !fi) return; e.preventDefault(); fi.classList.remove('survol-media');
+    const m = B.morceaux.find(y => y.id === fi.dataset.id); if (!m) return;
+    const l = BK.glisse.items.filter(y => !y.dc); if (!l.length) return msg('Range d\'abord ce média de Discord dans le Drive (Médias)');
+    let n = 0;
+    for (const x of l) {
+      if (/^image\//.test(x.mime || '')) { m.photo = BK.img.ref(x.id); n++; }
+      else if (/^audio\//.test(x.mime || '') || /\.(wav|mp3|aiff?|flac|m4a)$/i.test(x.nom || '')) { const ex = { chemin: 'drive:' + x.id, driveId: x.id, drive: true, nom: x.nom, pc: 'Drive', modif: new Date().toISOString() };
+        m.exportsManuels = (m.exportsManuels || []).filter(y => y.chemin !== ex.chemin); m.exportsManuels.push(ex); n++; }
+    }
+    if (!n) return msg('Ici : une image (photo du morceau) ou un son (export)');
+    await sauver(m); msg(n + ' média(s) ajouté(s) à « ' + m.nom + ' »'); rendre(); });
   async function choisirExport() {                 // choisir un WAV / MP3 sur ce PC
     if (!BK.estExe) { msg('Disponible dans le logiciel installé'); return null; }
     const p = await BK.fichier.choisirFichier('Choisis l\'export (WAV ou MP3)', [{ name: 'Audio', extensions: ['wav', 'mp3', 'WAV', 'MP3'] }]); if (!p) return null;
@@ -465,8 +480,8 @@ BK.module('biblio', function (page) {
         if (/^val-/.test(a)) { const k = a.slice(4); if (k === 'resume') { if (m.resumeDiscord) m.resumeDiscord.ok = true; } else if (m.aValider) delete m.aValider[k];
           await sauver(m); msg('Validé'); rendre(); return; }
         if (/^st-/.test(a)) { m.statut = a.slice(3); await sauver(m); rendre(); }
-        if (a === 'renommer') { const n = prompt('Nouveau nom du morceau', m.nom); if (n && n.trim()) { (m.alias = m.alias || []).push(m.nom); m.nom = n.trim(); await sauver(m); rendre(); } }
-        if (a === 'suppr') { if (confirm(`Retirer « ${m.nom} » de la Bibliothèque ?\n(La fiche est rangée dans la corbeille du Drive, et aucun fichier audio ou Ableton n'est touché.)`)) { await BK.db.supprimer('morceaux', m.id); await charger(); } }
+        if (a === 'renommer') { const n = await BK.saisir('Nouveau nom du morceau', m.nom); if (n && n.trim()) { (m.alias = m.alias || []).push(m.nom); m.nom = n.trim(); await sauver(m); rendre(); } }
+        if (a === 'suppr') { if (await BK.confirmer(`Retirer « ${m.nom} » de la Bibliothèque ?\n(La fiche est rangée dans la corbeille du Drive, et aucun fichier audio ou Ableton n'est touché.)`)) { await BK.db.supprimer('morceaux', m.id); await charger(); } }
         if (a === 'ajexport') menuExport(b, async f => { m.exportsManuels = (m.exportsManuels || []).filter(x => x.chemin !== f.chemin); m.exportsManuels.push(f);
           m.exportsCaches = (m.exportsCaches || []).filter(c => c !== f.chemin); if (f.drive) m.exportPrincipal = f.chemin; await sauver(m); msg('Export ajouté'); rendre(); }, m);
         if (a === 'photo') photo(m);
@@ -487,7 +502,7 @@ BK.module('biblio', function (page) {
         if (a === 'bpmAbleton') {
           if (!BK.ableton.relie) return msg('Ableton n\'est pas relié (ouvre Ableton avec le projet du morceau)');
           try { const r = await BK.ableton.req({ cmd: 'ping' }); const t = Math.round((r.tempo || 0) * 100) / 100; if (!t) return msg('Ableton ne donne pas de tempo');
-            if ((m.bpmSource === 'nous' || m.bpmSource === 'discord') && m.bpm && String(m.bpm) !== String(t) && !confirm(`Vous aviez dit ${m.bpm} BPM. Remplacer par ${t} lu dans Ableton ?`)) return;
+            if ((m.bpmSource === 'nous' || m.bpmSource === 'discord') && m.bpm && String(m.bpm) !== String(t) && !await BK.confirmer(`Vous aviez dit ${m.bpm} BPM. Remplacer par ${t} lu dans Ableton ?`)) return;
             m.bpm = String(t); m.bpmSource = 'ableton'; await sauver(m); msg(`${t} BPM lu dans Ableton`); rendre(); }
           catch (e) { msg('Ableton ne répond pas : ' + (e.message || e)); } }
         if (a === 'plein') BK.pleinEcran(m.nom, m.paroles);
@@ -507,7 +522,7 @@ BK.module('biblio', function (page) {
         BK.regler('biblio.ignores', [...new Set([...BK.reglage('biblio.ignores', []), nom])]);
         if (f && f.chemin) BK.regler('plugins.ignores', [...new Set([...BK.reglage('plugins.ignores', []), f.chemin])]);   // les plugins manquants l'oublient aussi
         el.remove(); msg('Retiré : ' + nom + ' (le fichier n\'est pas touché)'); const n = orphelins().length; $('#biNbR').textContent = n ? `(${n})` : ''; };
-      $('[data-act="creer"]', el).onclick = async () => { const n = prompt('Nom du morceau', BK.inv.normaliser(nom).replace(/\b\w/g, c => c.toUpperCase())); if (!n) return;
+      $('[data-act="creer"]', el).onclick = async () => { const n = await BK.saisir('Nom du morceau', BK.inv.normaliser(nom).replace(/\b\w/g, c => c.toUpperCase())); if (!n) return;
         B.morceaux.push(await BK.db.ecrire('morceaux', { nom: n.trim(), statut: 'chantier', fait: 0 })); msg('Fiche créée'); rendre(); };
     });
   }

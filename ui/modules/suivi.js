@@ -56,6 +56,11 @@ BK.module('suivi', function (page) {
     rendre();
   }
   BK.suiviRecharger = charger;
+  // une image glissée depuis Médias sur la carte d'un reel : elle devient son affiche
+  page.addEventListener('dragover', e => { if (BK.glisse.actif() && e.target.closest('.su-aff')) e.preventDefault(); });
+  page.addEventListener('drop', async e => { const c = e.target.closest('.su-aff[data-id]'); if (!BK.glisse.actif() || !c) return; e.preventDefault();
+    const x = BK.glisse.items.find(y => /^image\//.test(y.mime || '')); if (!x) return msg('Ici, il faut une image'); if (x.dc) return msg('Range d\'abord cette image de Discord dans le Drive (Médias)');
+    const r = R.l.find(y => y.id === c.dataset.id); if (!r) return; r.affiche = BK.img.ref(x.id); await BK.db.ecrire('reels', r); msg('Nouvelle affiche pour « ' + (r.titre || 'ce reel') + ' »'); rendre(); });
   BK.suiviOuvrir = async id => { R.ouvert = id; BK.regler('suivi.ouvert', id); R.filtre = 'tout'; BK.ouvrir('suivi'); await charger(); };
 
   const morceauDe = r => R.morceaux.find(m => m.id === r.morceau);
@@ -107,6 +112,7 @@ BK.module('suivi', function (page) {
     const m = morceauDe(r), t = tournageDe(r), a = audioDe(r), md = mediasDe(r);
     const vid = md.filter(f => /^video\//.test(f.mimeType || '')).length, ph = md.length - vid;
     const i = ETAPES.findIndex(e => e.k === (r.statut || 'idee'));
+    const tp = t && t.parent ? R.tournages.find(x => x.id === t.parent) : null;     // le tournage (la journée) où ce reel est tourné
     const tenues = t && t.tenues ? Object.entries(t.tenues).filter(([, v]) => v && String(v).trim()).map(([k, v]) => k + ' : ' + v) : [];
     const pas = r.passage || (a && a.duree ? { debut: a.debut || 0, fin: (a.debut || 0) + a.duree } : null);
     return `<div class="su-c ouverte" data-id="${r.id}">
@@ -134,7 +140,7 @@ BK.module('suivi', function (page) {
           ${md.length ? `<span class="su-mini">${md.slice(0, 6).map(f => `<i${BK.img.bg(BK.img.ref(f.id))}></i>`).join('')}</span>` : '<span class="nt">étiquetés pour ce reel</span>'}
           <span class="su-bb"><button class="btn xs" data-medins="${r.id}" title="Choisir des photos ou vidéos dans Médias : elles sont étiquetées pour ce reel">＋ Insérer</button></span></div>
         <div class="su-b${t ? ' fait' : ''}"><span class="eng">🎬 Tournage</span>
-          ${t ? `<b>${esc(t.titre || 'Tournage')}${t.fini ? ' <span class="su-tourne">✓ tourné</span>' : ''}</b><span class="nt">${[date(t.date), t.heure, t.lieu].filter(Boolean).map(esc).join(' · ') || 'date à fixer'}</span>
+          ${t ? `<b>${esc(tp ? tp.titre || 'Tournage' : t.titre || 'Tournage')}${t.fini ? ' <span class="su-tourne">✓ tourné</span>' : ''}</b><span class="nt">${[date((tp || t).date), (tp || t).heure, (tp || t).lieu].filter(Boolean).map(esc).join(' · ') || 'date à fixer'}</span>
               ${t.idee ? `<span class="nt su-idee">« ${esc(t.idee)} »</span>` : ''}<span class="nt">${(t.plans || []).length} plan(s)${t.materiel ? ' · matériel noté' : ''}</span>`
               : '<span class="nt">Pas de fiche de tournage</span>'}
           <span class="su-bb"><button class="btn xs" data-to="${r.id}">${t ? 'Ouvrir' : 'Créer la fiche'}</button>${t ? `<button class="btn xs${t.fini ? ' on' : ''}" data-tfini="${r.id}">${t.fini ? '✓ Tourné' : 'Tournage fini'}</button>` : ''}</span></div>
@@ -258,7 +264,7 @@ BK.module('suivi', function (page) {
       try { fin((await BK.img.depuisChoix(l[0], 'photovideo')).ref); } catch (e) { msg('Image illisible'); }
     });
     $$('[data-sx]', z).forEach(b => b.onclick = async () => { const r = R.l.find(x => x.id === b.dataset.sx);
-      if (!confirm(`Retirer « ${r.titre || 'ce reel'} » du suivi ?`)) return;
+      if (!await BK.confirmer(`Retirer « ${r.titre || 'ce reel'} » du suivi ?`)) return;
       R.l = R.l.filter(x => x !== r); await BK.db.supprimer('reels', r.id); msg('Retiré'); rendre(); });
     $$('[data-au]', z).forEach(b => b.onclick = async () => { const r = R.l.find(x => x.id === b.dataset.au), m = morceauDe(r);
       if (!m) return msg('Choisis d\'abord le morceau');

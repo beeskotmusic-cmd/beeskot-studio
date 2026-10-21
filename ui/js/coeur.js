@@ -7,7 +7,7 @@ const $ = (s, r = document) => r.querySelector(s);
 const $$ = (s, r = document) => [...r.querySelectorAll(s)];
 
 const BK = {
-  version: '0.9.58 bêta',
+  version: '0.9.59 bêta',
   modules: {},
   onglets: [],
   cotes: [],
@@ -93,6 +93,19 @@ const BK = {
   // ou tranquillement en arrière-plan quand le PC n'a rien d'autre à faire. Démarrage plus rapide, moins de mémoire.
   // le nom de CE PC dans le bandeau (Yacine, Pierre, Baptiste, Studio) — à régler une fois dans Réglages › Ce PC
   // ---------- petite fenêtre « Es-tu sûr ? » (Oui / Non), dans le style du logiciel ----------
+  // une question avec une case à remplir, dans le logiciel (plus la fenêtre Windows « tauri.localhost indique »)
+  saisir(texte, defaut = '', { oui = 'OK', non = 'Annuler', long = false } = {}) {
+    return new Promise(ok => {
+      const v = document.createElement('div'); v.className = 'voile';
+      v.innerHTML = `<div class="stopbox bk-conf" role="dialog"><span class="nt bk-conf-t"></span>${long ? '<textarea class="fld bk-saisie" rows="6"></textarea>' : '<input class="fld bk-saisie">'}<div class="bk-conf-b"><button class="btn sm" data-r="0"></button><button class="btn sm warm" data-r="1"></button></div></div>`;
+      v.querySelector('.bk-conf-t').textContent = texte; v.querySelector('[data-r="0"]').textContent = non; v.querySelector('[data-r="1"]').textContent = oui;
+      const ch = v.querySelector('.bk-saisie'); ch.value = defaut;
+      const fin = r => { document.removeEventListener('keydown', k, true); v.remove(); ok(r ? ch.value : null); };
+      const k = e => { if (e.key === 'Escape') { e.stopPropagation(); fin(false); } else if (e.key === 'Enter' && !long) { e.stopPropagation(); fin(true); } else e.stopPropagation(); };
+      v.onclick = e => { if (e.target === v) fin(false); const b = e.target.closest('[data-r]'); if (b) fin(b.dataset.r === '1'); };
+      document.addEventListener('keydown', k, true); document.body.appendChild(v); ch.focus(); ch.select && ch.select();
+    });
+  },
   confirmer(texte, { oui = 'Oui', non = 'Non' } = {}) {
     return new Promise(ok => {
       const v = document.createElement('div'); v.className = 'voile';

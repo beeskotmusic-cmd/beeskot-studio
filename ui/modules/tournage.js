@@ -34,15 +34,17 @@ BK.module('tournage', function (page) {
   window.addEventListener('bk:annule', () => charger());   // après « ↶ Annuler » : on relit
   async function charger() {
     T.liste = (await BK.db.liste('tournages')).sort((a, b) => (b.date || '').localeCompare(a.date || ''));
-    T.jours = await BK.partage.lire('tournage.jours', []).catch(() => []); if (!Array.isArray(T.jours)) T.jours = [];
+    if (await migrer().catch(e => (console.warn('migration tournages', e), false))) T.liste = await BK.db.liste('tournages');
     T.reels = await BK.db.liste('reels').catch(() => []);
     T.exports = await BK.exportsAudio.tous().catch(() => []);
-    if (BK.drive.relie() && !T.fichiers) { BK.etiquettes.tous().then(async tg => { T.tags = tg; T.fichiers = await BK.dossiers.tousFichiers(); if (T.vue !== 'fiche') rendreJours(); }).catch(() => {}); }
+    // les étiquettes et fichiers de Médias (pour proposer en vert) : relus au plus toutes les 2 minutes, sans bloquer l'affichage
+    if (BK.drive.relie() && (!T.fichiersT || Date.now() - T.fichiersT > 120e3)) { T.fichiersT = Date.now();
+      BK.etiquettes.tous().then(async tg => { T.tags = tg; T.fichiers = await BK.dossiers.tousFichiers(); rendreFiche(); }).catch(() => { T.fichiersT = 0; }); }
     const cfg = (await BK.db.liste('config')).find(c => c.id === 'membres'); if (cfg && cfg.liste && cfg.liste.length) T.membres = cfg.liste.map(m => m === 'Dari' ? 'Yacine' : m);
     T.fiches = (await BK.db.liste('morceaux')).sort((a, b) => a.nom.localeCompare(b.nom));
     T.morceaux = T.fiches.map(m => m.nom);
     if (T.courant) T.courant = T.liste.find(x => x.id === T.courant.id) || null;
-    if (!T.courant) T.courant = T.liste.find(x => (x.date || '') >= new Date().toISOString().slice(0, 10)) || T.liste[0] || null;
+    if (T.tour) T.tour = T.liste.find(x => x.id === T.tour.id) || null;
     rendreListe(); rendreFiche(); proposes();
   }
   BK.tournagesRecharger = charger;
@@ -54,36 +56,49 @@ BK.module('tournage', function (page) {
         <span class="carte-m">${esc([p.morceau, p.date, p.lieu].filter(Boolean).join(' · '))}${p.pourquoi ? ' — « ' + esc(p.pourquoi) + ' »' : ''}</span></div>
         <button class="mi-val" data-tok="${p.id}" title="C'est bon : créer la fiche">✓</button><button class="btn xs" data-tnon="${p.id}">✕</button></div>`).join('')}</div>` : '';
     $$('[data-tok]', z).forEach(b => b.onclick = async () => { const p = l.find(x => x.id === b.dataset.tok);
-      const t = await BK.db.ecrire('tournages', { titre: p.titre, type: p.type === 'tournage' ? (p.typeT || 'Clip') : 'Clip', morceau: T.morceaux.includes(p.morceau) ? p.morceau : '', date: p.date || '', heure: p.heure || '', lieu: p.lieu || '',
+      const t = await BK.db.ecrire('tournages', { niveau: 'reel', parent: '', titre: p.titre, type: p.type === 'tournage' ? (p.typeT || 'Clip') : 'Clip', morceau: T.morceaux.includes(p.morceau) ? p.morceau : '', date: p.date || '', heure: p.heure || '', lieu: p.lieu || '',
         idee: p.idee || '', moodboard: [], plans: [], tenues: {}, materiel: p.materiel || '', notes: [p.tenues && 'Tenues : ' + p.tenues, p.pourquoi && 'Discord : « ' + p.pourquoi + ' »'].filter(Boolean).join('\n'), discord: p.source || '' });
-      p.statut = 'ok'; await BK.db.ecrire('propositions', p); T.courant = t; msg('Fiche créée : elle est dans les journées (glisse-la dans un jour)'); if (t.date) await synchroJour(t.date); await charger();
+      p.statut = 'ok'; await BK.db.ecrire('propositions', p); msg('Reel créé : glisse-le sur un tournage'); await charger();
       if (BK.drive.relie()) { msg('Miette cherche le moodboard dans le Drive…'); try { await BK.miette.moodboards(); } catch (e) {} await charger(); msg('Fiche prête'); } });
     $$('[data-tnon]', z).forEach(b => b.onclick = async () => { const p = l.find(x => x.id === b.dataset.tnon); p.statut = 'non'; await BK.db.ecrire('propositions', p); proposes(); });
   }
 
   function rendreListe() {
-    const auj = new Date().toISOString().slice(0, 10), proch = T.liste.filter(x => (x.date || '') >= auj).sort((a, b) => a.date.localeCompare(b.date))[0];
+    const auj = new Date().toISOString().slice(0, 10), proch = T.liste.filter(x => estTour(x) && (x.date || '') >= auj).sort((a, b) => a.date.localeCompare(b.date))[0];
     $('#toProchain').textContent = proch ? `${new Date(proch.date + 'T12:00').toLocaleDateString('fr-CA', { day: 'numeric', month: 'short' }).toUpperCase()} · ${(proch.titre || '').toUpperCase()}` : '—';
-    $('#toListe').innerHTML = T.liste.length ? T.liste.map(x => `<button class="to-item${T.courant && T.courant.id === x.id ? ' on' : ''}${(x.date || '') < auj ? ' passe' : ''}" data-id="${x.id}">
-        <b>${esc(x.titre || 'Sans titre')}</b><span class="nt">${x.date ? new Date(x.date + 'T12:00').toLocaleDateString('fr-CA', { day: 'numeric', month: 'short', year: 'numeric' }) : 'date à fixer'}${x.morceau ? ' · ' + esc(x.morceau) : ''}</span></button>`).join('')
-      : '<span class="nt">Aucun tournage. Clique sur « + Nouveau tournage ».</span>';
-    $$('.to-item').forEach(b => b.onclick = () => { T.courant = T.liste.find(x => x.id === b.dataset.id); T.vue = 'fiche'; rendreListe(); rendreFiche(); });
+    const trs = tournagesL(), seuls = T.liste.filter(x => !estTour(x) && !x.parent);
+    $('#toListe').innerHTML = (trs.length ? trs.map(x => `<button class="to-item${T.tour && T.tour.id === x.id ? ' on' : ''}${(x.date || '9') < auj ? ' passe' : ''}" data-tour="${x.id}">
+        <b>${esc(x.titre || 'Tournage')}</b><span class="nt">${esc(jourFr(x.date))} · ${reelsDe(x).length} reel(s)</span></button>`).join('') : '<span class="nt">Aucun tournage. Clique sur « + Nouveau tournage ».</span>')
+      + (seuls.length ? `<span class="eng" style="font-size:9px;margin:8px 0 2px">Reels sans tournage</span>` + seuls.map(x => `<button class="to-item${T.courant && T.courant.id === x.id ? ' on' : ''}" data-id="${x.id}"><b>${esc(x.titre || 'Sans titre')}</b><span class="nt">${esc(x.morceau || '—')}</span></button>`).join('') : '');
+    $$('.to-item[data-tour]').forEach(b => b.onclick = () => ouvrirTour(b.dataset.tour));
+    $$('.to-item[data-id]').forEach(b => b.onclick = () => { T.courant = T.liste.find(x => x.id === b.dataset.id); T.vue = 'fiche'; rendreListe(); rendreFiche(); });
   }
 
   // ---------- la fiche ----------
   function rendreFiche() {
     const t = T.courant, z = $('#toFiche');
-    $('#toPdf').disabled = $('#toCal').disabled = !t || T.vue !== 'fiche';
-    if (T.vue !== 'fiche') return rendreJours();
-    if (!t) { z.innerHTML = '<div class="to-vide"><span class="dymo">Aucun tournage</span><span class="nt">Crée une fiche avec « + Nouveau tournage » à droite.</span></div>'; return; }
+    $('#toPdf').disabled = !t || T.vue !== 'fiche'; $('#toCal').disabled = T.vue !== 'tournage';
+    if (T.vue === 'tournage') return rendreTournage();
+    if (T.vue !== 'fiche' || !t) { T.vue = 'jours'; return rendreTournages(); }
+    z.innerHTML = corpsFiche(t, false);
+    $('#toRetour').onclick = () => { T.vue = 'jours'; rendreFiche(); };
+    const vr = $('#toVersReels'); if (vr) vr.onclick = async () => { await versReels(t); rendreFiche(); };
+    const vo = $('#toVoirReel'); if (vo) vo.onclick = () => { const r = T.reels.find(x => x.tournage === t.id); BK.suiviOuvrir ? BK.suiviOuvrir(r.id) : BK.ouvrir('suivi'); };
+    $('#toFini').onclick = () => finir(t);
+    const ouvert = (BK.reglage('tournage.ouvert', {}))[t.id] ?? true;
+    $('#toAffiche').onclick = () => { const o = BK.reglage('tournage.ouvert', {}); o[t.id] = !ouvert; BK.regler('tournage.ouvert', o); rendreFiche(); };
+    brancher(t); glisser(z);
+  }
+  // la fiche d'un reel : seule (affiche + barre), ou dépliée dans son tournage (inline : juste le contenu)
+  function corpsFiche(t, inline) {
     t.plans = t.plans || []; t.tenues = t.tenues || {}; t.moodboard = t.moodboard || [];
     // ---------- l'affiche du projet : l'image du morceau, le titre, la date ----------
     const m = (T.fiches || []).find(x => x.nom === t.morceau);
     const img = (m && m.photo) || (t.moodboard || [])[0] || '';
     const ouvert = (BK.reglage('tournage.ouvert', {}))[t.id] ?? true;
     const quand = t.date ? new Date(t.date + 'T12:00').toLocaleDateString('fr-CA', { weekday: 'long', day: 'numeric', month: 'long' }) : 'date à fixer';
-    z.innerHTML = `
-      <div class="to-fiche-barre"><button class="btn sm" id="toRetour">← Toutes les journées</button>
+    return (inline ? '' : `
+      <div class="to-fiche-barre"><button class="btn sm" id="toRetour">← Tous les tournages</button>
         <button class="btn sm to-fini${t.fini ? ' on' : ''}" id="toFini" style="margin-left:auto">${t.fini ? '✓ Tourné' : 'Tournage fini'}</button>
         ${(T.reels || []).some(r => r.tournage === t.id) ? `<button class="btn sm" id="toVoirReel">Voir le reel · ${esc(etapeReel(t))}</button>` : '<button class="btn sm" id="toVersReels" title="Crée une carte dans l\'onglet Reels avec les infos de ce tournage">→ Envoyer dans les Reels</button>'}</div>
       <button class="to-affiche${img ? '' : ' sans'}${ouvert ? ' ouverte' : ''}" id="toAffiche"${BK.img.bg(img)}>
@@ -94,16 +109,14 @@ BK.module('tournage', function (page) {
           <span class="nt">${esc(quand)}${t.heure ? ' · ' + esc(t.heure) : ''}${t.lieu ? ' · ' + esc(t.lieu) : ''}</span>
           <span class="nt to-af-chiffres">🖼 ${(t.moodboard || []).length} · 🎬 ${(t.plans || []).length} plan(s)${Object.values(t.tenues || {}).filter(Boolean).length ? ' · 👕 tenues notées' : ''}</span>
         </span>
-        <span class="to-af-pli">${ouvert ? '▾ Replier' : '▸ Tout voir'}</span></button>
-      <div class="to-corps${ouvert ? '' : ' replie'}" id="toCorps">
+        <span class="to-af-pli">${ouvert ? '▾ Replier' : '▸ Tout voir'}</span></button>`) + `
+      <div class="to-corps${ouvert || inline ? '' : ' replie'}" id="toCorps">
       <div class="box"><span class="lb">Infos</span>
         <div class="to-infos">
           <label class="large"><span class="eng">Titre</span><input class="fld" data-c="titre" value="${esc(t.titre)}" placeholder="ex. Clip Mother – scène du salon"></label>
           <label><span class="eng">Type</span><select class="fld" data-c="type">${TYPES.map(x => `<option${t.type === x ? ' selected' : ''}>${x}</option>`).join('')}</select></label>
           <label><span class="eng">Morceau</span><select class="fld" data-c="morceau"><option value="">—</option>${T.morceaux.map(m => `<option${t.morceau === m ? ' selected' : ''}>${esc(m)}</option>`).join('')}</select></label>
-          <label><span class="eng">Date</span><input class="fld" type="date" data-c="date" value="${esc(t.date)}"></label>
-          <label><span class="eng">Heure</span><input class="fld" type="time" data-c="heure" value="${esc(t.heure)}"></label>
-          <label class="large"><span class="eng">Lieu</span><input class="fld" data-c="lieu" value="${esc(t.lieu)}" placeholder="ex. Studio BEESKOT"></label>
+          ${inline ? '' : `<label class="large"><span class="eng">Lieu</span><input class="fld" data-c="lieu" value="${esc(t.lieu)}" placeholder="ex. Studio BEESKOT"></label>`}
           <label class="large"><span class="eng">L'idée en une phrase</span><input class="fld" data-c="idee" value="${esc(t.idee)}" placeholder="ex. ambiance VHS, lumière rouge, plans serrés sur les mains"></label>
         </div></div>
       <div class="box"><div class="ligne-titre"><span class="lb">Moodboard</span><button class="btn xs miette-aide" id="toMoodMiette" style="margin-left:auto" title="Miette cherche les images de moodboard de ce tournage dans le Drive et sur Discord">Trouver</button></div>
@@ -126,33 +139,24 @@ BK.module('tournage', function (page) {
             <td class="to-btns"><button class="btn xs" data-haut="${i}" title="Monter">↑</button><button class="btn xs" data-px="${i}" title="Retirer">✕</button></td></tr>`).join('')}</tbody></table>
         <button class="btn xs" id="toPlan" style="margin-top:8px">+ Ajouter un plan</button></div>
       <div class="deux-box">
-        <div class="box"><div class="ligne-titre"><span class="lb">Tenues</span><button class="btn xs miette-aide" id="toTenuesMiette" style="margin-left:auto" title="Miette cherche sur Discord les photos de tenues, et qui les porte">Qui porte quoi ?</button></div>
-          ${T.membres.map(m => `<div class="to-tenue2"><span class="eng">${esc(m)}</span>
-            <div class="to-tenue-ph">${((t.tenuesPhotos || {})[m] || []).map((u, i) => `<div class="to-tph"${BK.img.bg(u)}><button class="md-x" data-tpx="${esc(m)}|${i}">✕</button></div>`).join('')}
-              <button class="to-tph to-tph-plus" data-tph="${esc(m)}" title="Une photo de Médias, du cloud ou de Discord">＋<small>Photo</small></button></div>
-            <input class="fld to-tenue-txt" data-tenue="${esc(m)}" value="${esc(t.tenues[m])}" placeholder="en quelques mots (facultatif) : chemise noire, jean brut"></div>`).join('')}</div>
+        ${zoneTenues(t, 'Tenues · rien que pour ce reel').replace('<span class="lb">', '<div class="ligne-titre"><span class="lb">').replace('</span>', '</span><button class="btn xs miette-aide" id="toTenuesMiette" style="margin-left:auto" title="Miette cherche sur Discord les photos de tenues, et qui les porte">Qui porte quoi ?</button></div>')}
         <div class="box"><span class="lb">Matériel et notes</span>
           <textarea class="fld" data-c="materiel" rows="3" placeholder="ex. 2 caméras, trépied, lampes Globe en rouge, machine à fumée">${esc(t.materiel)}</textarea>
           <textarea class="fld" data-c="notes" rows="3" placeholder="Notes pour l'équipe…" style="margin-top:8px">${esc(t.notes)}</textarea>
-          <button class="btn xs" id="toSuppr" style="margin-top:8px;align-self:flex-start">Retirer ce tournage</button></div>
+          <button class="btn xs" id="toSuppr" style="margin-top:8px;align-self:flex-start">Retirer ce reel</button></div>
       </div></div>`;
-    $('#toRetour').onclick = () => { T.vue = 'jours'; rendreFiche(); };
-    const vr = $('#toVersReels'); if (vr) vr.onclick = async () => { await versReels(t); rendreFiche(); };
-    const vo = $('#toVoirReel'); if (vo) vo.onclick = () => { const r = T.reels.find(x => x.tournage === t.id); BK.suiviOuvrir ? BK.suiviOuvrir(r.id) : BK.ouvrir('suivi'); };
-    $('#toFini').onclick = () => finir(t);
-    $('#toAffiche').onclick = () => { const o = BK.reglage('tournage.ouvert', {}); o[t.id] = !ouvert; BK.regler('tournage.ouvert', o); rendreFiche(); };
-    brancher(t);
   }
 
   let minuteur = null;
   const sauver = (t, tout = false) => { if (tout) rendreListe(); clearTimeout(minuteur); minuteur = setTimeout(async () => { await BK.db.ecrire('tournages', t); msg('Enregistré'); }, 500); };
 
   function brancher(t) {
-    const z = $('#toFiche');
+    const z = T.zone || $('#toFiche');
+    if (!T.zone) brancherMedias(z);
     let dateAvant = t.date || '';                                     // pour déplacer le rendez-vous de la journée si la date change
     $$('[data-c]', z).forEach(c => c.oninput = c.onchange = e => { const k = c.dataset.c; t[k] = c.value; sauver(t, /titre|date|morceau/.test(k));
       if (e.type === 'change' && /titre|morceau|idee/.test(k)) setTimeout(() => versReelLie(t), 900);
-      if (e.type === 'change' && /date|titre|heure|lieu|type/.test(k)) setTimeout(async () => { const a = dateAvant; dateAvant = t.date || ''; if (a !== dateAvant) await synchroJour(a); await synchroJour(t.date); }, 1200); });
+      if (e.type === 'change' && /titre/.test(k) && t.parent) setTimeout(() => synchroTour(T.liste.find(x => x.id === t.parent)), 1200); });
     $$('[data-tenue]', z).forEach(c => c.oninput = () => { t.tenues[c.dataset.tenue] = c.value; sauver(t); });
     // ---------- tenues : des photos (Médias, cloud, Discord), rangées dans la fiche et étiquetées « Tenues » + ce tournage ----------
     const image = f => /^image\//.test(f.mimeType || '');
@@ -268,7 +272,7 @@ BK.module('tournage', function (page) {
     $$('.to-ref a[data-url]', z).forEach(a => a.onclick = e => { e.preventDefault(); BK.ouvrirLien(a.dataset.url); });
     $$('[data-audio]', z).forEach(b => b.onclick = () => versAudio(t.plans[+b.dataset.audio]));
     $('#toMoodIn').onchange = e => { ajouterImages(t, e.target.files); e.target.value = ''; };
-    $('#toSuppr').onclick = async () => { if (!confirm(`Retirer « ${t.titre || 'ce tournage'} » ? (rangé dans la corbeille du Drive)`)) return; await BK.db.supprimer('tournages', t.id); T.courant = null; T.vue = 'jours'; msg('Retiré'); await synchroJour(t.date); charger(); };
+    $('#toSuppr').onclick = async () => { if (!(await BK.confirmer(`Retirer « ${t.titre || 'ce reel'} » ? (rangé dans la corbeille du Drive)`))) return; await BK.db.supprimer('tournages', t.id); T.liste = T.liste.filter(x => x.id !== t.id); T.courant = null; if (T.vue !== 'tournage') T.vue = 'jours'; msg('Retiré'); if (t.parent) await synchroTour(T.liste.find(x => x.id === t.parent)); charger(); };
     $('#toRenfort').onclick = () => BK.renfortDemander ? BK.renfortDemander('decoupage', { tournage: t }) : msg('Miette pas encore disponible');
     $$('input,textarea', z).forEach(c => c.addEventListener('keydown', e => e.stopPropagation()));
   }
@@ -326,11 +330,15 @@ BK.module('tournage', function (page) {
     $$('[data-jour]', page).forEach(b => b.onclick = async () => {
       const j = b.dataset.jour, rs = rows.filter(r => r.jour === j);
       let t = T.liste.find(x => x.source === 'plan-' + j);
-      const plans = rs.map(r => ({ reel: r.reel, audio: r.audio, horaire: r.horaire, lieu: r.lieu.split(/\n/)[0], camera: r.camera, cadrage: '', action: r.plans, duree: '', notes: [r.action, r.enjeux].filter(Boolean).join(' — ') }));
-      if (t) { t.plans = plans; }
-      else t = { titre: 'Tournage ' + j + ' (PLAN)', type: 'Reel', morceau: '', date: '', heure: (rs[0].horaire.match(/\d{1,2}h\d{0,2}/) || [''])[0].replace('h', ':').replace(/:$/, ':00').padStart(5, '0'), lieu: [...new Set(rs.map(r => r.lieu.split(/\n/)[0]))].join(' / '),
-        idee: '', moodboard: [], plans, tenues: {}, materiel: [...new Set(rs.map(r => r.enjeux).filter(Boolean))].join('\n'), notes: '', source: 'plan-' + j };
-      t = await BK.db.ecrire('tournages', t); msg('Fiche du tournage ' + j + ' prête'); T.courant = t; await charger();
+      if (!t) t = await BK.db.ecrire('tournages', { niveau: 'tournage', titre: 'Tournage ' + j + ' (PLAN)', type: 'Reel', morceau: '', date: '', heure: (rs[0].horaire.match(/\d{1,2}h\d{0,2}/) || [''])[0].replace('h', ':').replace(/:$/, ':00').padStart(5, '0'), lieu: [...new Set(rs.map(r => r.lieu.split(/\n/)[0]))].join(' / '),
+        idee: '', moodboard: [], plans: [], tenues: {}, materiel: [...new Set(rs.map(r => r.enjeux).filter(Boolean))].join('\n'), notes: '', source: 'plan-' + j });
+      let k = 0;                                                         // chaque ligne du PLAN = un reel de ce tournage (mis à jour, jamais en double)
+      for (const r of rs) { const src = 'plan-' + j + '-' + r.reel, m = BK.inv.trouverMorceau(r.reel, T.fiches || []);
+        const ex = T.liste.find(x => x.source === src) || { niveau: 'reel', moodboard: [], tenues: {}, materiel: '', idee: '' };
+        Object.assign(ex, { parent: t.id, ordre: k++, titre: ex.titre || r.reel, type: 'Reel', morceau: ex.morceau || (m ? m.nom : ''), source: src, notes: ex.notes || [r.audio && 'Audio : ' + r.audio, r.action, r.enjeux].filter(Boolean).join('\n'),
+          plans: (ex.plans || []).length ? ex.plans : [{ cadrage: '', action: r.plans, duree: '', notes: [r.horaire, r.camera ? 'cameraman' : ''].filter(Boolean).join(' · ') }] });
+        await BK.db.ecrire('tournages', ex); }
+      msg('Tournage ' + j + ' prêt, avec ses ' + rs.length + ' reels'); T.tour = t; T.vue = 'tournage'; await charger(); await synchroTour(T.tour);
     });
     msg('PLAN lu ✓');
   }
@@ -353,77 +361,275 @@ BK.module('tournage', function (page) {
         if (d.id) for (const k of ['t:' + t.id, 'c:moodboard', 'c:tournage']) await BK.etiquettes.basculer(d.id, k, true); } catch (e) { console.warn(e); } await BK.audio.pause(); }
     await BK.db.ecrire('tournages', t); msg('Moodboard enregistré'); rendreFiche();
   }
-  page.addEventListener('dragover', e => { if (T.courant) e.preventDefault(); });
-  page.addEventListener('drop', e => { e.preventDefault(); if (T.courant && e.dataTransfer.files.length) ajouterImages(T.courant, e.dataTransfer.files); });
+  page.addEventListener('dragover', e => { if (T.courant || BK.glisse.actif()) e.preventDefault(); });
+  page.addEventListener('drop', async e => { e.preventDefault();
+    if (BK.glisse.actif() && !e.dataTransfer.files.length) {           // venu de Médias, lâché ailleurs : dans « Médias à ranger »
+      const v = await BK.partage.lire('tournage.vrac', []).catch(() => []), vrac = Array.isArray(v) ? v : [];
+      for (const x of BK.glisse.items) if (!x.dc && !vrac.some(y => y.id === x.id)) vrac.push({ u: BK.img.ref(x.id), id: x.id, mime: x.mime, nom: x.nom });
+      await BK.partage.ecrire('tournage.vrac', vrac); msg('Dans « Médias à ranger » : glisse-les sur une tenue, un moodboard ou un tournage'); return rendreFiche(); }
+    if (T.courant && e.dataTransfer.files.length) ajouterImages(T.courant, e.dataTransfer.files); });
 
-  $('#toNouveau').onclick = async () => {
-    const t = await BK.db.ecrire('tournages', { titre: 'Nouveau tournage', type: 'Clip', morceau: '', date: '', heure: '', lieu: '', idee: '', moodboard: [], plans: [], tenues: {}, materiel: '', notes: '' });
-    T.liste.unshift(t); T.courant = t; T.vue = 'fiche'; rendreListe(); rendreFiche(); const c = $('[data-c="titre"]'); c && (c.focus(), c.select());
-  };
+  // =====================================================================
+  //  TOURNAGES (v2) : un TOURNAGE = une journée (affiche, date, lieu) → dedans, les REELS qu'on y tourne.
+  //  Chaque reel se déplie : infos, moodboard, découpage, tenues, matériel. Tenues / matériel du tournage = pour tous ses reels.
+  // =====================================================================
+  const estTour = x => x && x.niveau === 'tournage';
+  const tournagesL = () => T.liste.filter(estTour).sort((a, b) => (a.date || '9').localeCompare(b.date || '9'));
+  const reelsDe = tr => T.liste.filter(x => !estTour(x) && x.parent === tr.id).sort((a, b) => (a.ordre || 0) - (b.ordre || 0));
+  const jourFr = d => d ? new Date(d + 'T12:00').toLocaleDateString('fr-CA', { weekday: 'short', day: 'numeric', month: 'short' }) : 'date à fixer';
+  const slug = n => String(n).toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
+  const idDe = u => /^drive:/.test(u || '') ? u.slice(6) : '';
+  const imgDe = t => { const m = (T.fiches || []).find(y => y.nom === t.morceau); return (m && m.photo) || (t.moodboard || [])[0] || (Object.values(t.tenuesPhotos || {}).flat())[0] || ''; };
 
-  // ---------- Calendrier ----------
-  $('#toCal').onclick = async () => {
-    const t = T.courant; if (!t) return; if (!t.date) return msg('Choisis d\'abord une date');
-    await synchroJour(t.date); msg('Journée de tournage dans le Calendrier ✓');
-  };
-
-  // ---------- LES JOURNÉES DE TOURNAGE : un dossier par jour (= la date des tournages qu'il contient) ----------
-  const jourFr = d => new Date(d + 'T12:00').toLocaleDateString('fr-CA', { weekday: 'short', day: 'numeric', month: 'short' });
-  // un seul rendez-vous « Tournage · date » par journée dans le Calendrier ; il suit les tournages du jour
-  async function synchroJour(d) {
-    if (!d) return;
-    const tous = await BK.db.liste('tournages'), du = tous.filter(x => x.date === d), evs = await BK.db.liste('evenements');
-    const ev = evs.find(e => e.tourJour === d);
-    // les anciens rendez-vous faits tournage par tournage : remplacés par celui de la journée
-    for (const t of du) if (t.evenement) { const e = evs.find(x => x.id === t.evenement); if (e) await BK.db.supprimer('evenements', e.id).catch(() => {}); delete t.evenement; await BK.db.ecrire('tournages', t); }
-    if (!du.length) { if (ev) await BK.db.supprimer('evenements', ev.id).catch(() => {}); }
-    else {
-      const heure = du.map(x => x.heure).filter(Boolean).sort()[0] || '', lieu = [...new Set(du.map(x => x.lieu).filter(Boolean))].join(' / ');
-      const shooting = du.every(x => x.type === 'Shooting photo');
-      await BK.db.ecrire('evenements', { ...(ev || {}), type: shooting ? 'shooting' : 'tournage', titre: 'Tournage · ' + du.map(x => x.titre || 'Sans titre').join(', '), morceau: du.length === 1 ? du[0].morceau || '' : '', date: d, heure, lieu, tourJour: d });
+  // ---------- passage à la v2 (une seule fois, pour tout le groupe) ----------
+  async function migrer() {
+    if (T.liste.every(x => x.niveau)) return false;
+    const deja = await BK.partage.lire('tournage.v2', false).catch(() => false);
+    for (const t of T.liste.filter(x => !x.niveau)) {
+      if (!deja && (t.plans || []).some(p => p.reel)) {                // une fiche du PLAN : elle devient le tournage, ses lignes deviennent ses reels
+        t.niveau = 'tournage'; const vus = new Set(); let k = 0;
+        for (const p of t.plans.filter(p => p.reel)) { const n = String(p.reel).trim(); if (vus.has(n.toLowerCase())) continue; vus.add(n.toLowerCase());
+          const m = BK.inv.trouverMorceau(n, T.fiches || []);
+          const r = await BK.db.ecrire('tournages', { niveau: 'reel', parent: t.id, ordre: k++, titre: n, type: 'Reel', morceau: m ? m.nom : '', idee: '', moodboard: [], tenues: {}, materiel: '', notes: [p.audio && 'Audio : ' + p.audio, p.notes].filter(Boolean).join('\n'),
+            plans: t.plans.filter(q => String(q.reel).trim().toLowerCase() === n.toLowerCase()).map(q => ({ cadrage: q.cadrage || '', action: q.action || '', duree: q.duree || '', notes: [q.horaire, q.camera ? 'cameraman' : ''].filter(Boolean).join(' · ') })), source: (t.source || 'plan') + '-' + n });
+          T.liste.push(r); }
+        t.plans = [];
+      } else { t.niveau = 'reel'; t.parent = ''; }
+      await BK.db.ecrire('tournages', t);
     }
+    // les « journées » de la 0.9.58 : chaque date devient un tournage, ses fiches deviennent ses reels
+    if (!deja) {
+      const jm = await BK.partage.lire('tournage.joursMedias', {}).catch(() => ({})) || {};
+      const dates = [...new Set([...(await BK.partage.lire('tournage.jours', []).catch(() => []) || []), ...T.liste.filter(x => !estTour(x) && !x.parent && x.date).map(x => x.date)])];
+      for (const d of dates) { const reels = T.liste.filter(x => !estTour(x) && !x.parent && x.date === d);
+        let tr = T.liste.find(x => estTour(x) && x.date === d);
+        if (!tr) { tr = await BK.db.ecrire('tournages', { niveau: 'tournage', titre: 'Tournage · ' + jourFr(d), type: 'Reel', date: d, heure: reels.map(x => x.heure).filter(Boolean).sort()[0] || '', lieu: [...new Set(reels.map(x => x.lieu).filter(Boolean))].join(' / '), idee: '', moodboard: [], plans: [], tenues: {}, materiel: '', notes: '' }); T.liste.push(tr); }
+        tr.assets = [...(tr.assets || []), ...((jm[d] || []).map(x => typeof x === 'string' ? { u: x } : x))]; await BK.db.ecrire('tournages', tr);
+        for (const r of reels) { r.parent = tr.id; await BK.db.ecrire('tournages', r); } }
+      for (const e of (await BK.db.liste('evenements')).filter(e => e.tourJour)) await BK.db.supprimer('evenements', e.id).catch(() => {});
+      await BK.partage.ecrire('tournage.v2', true);
+      for (const tr of T.liste.filter(estTour)) await synchroTour(tr);
+    }
+    return true;
+  }
+
+  // ---------- Calendrier : un rendez-vous par tournage (sa date), qui cite ses reels ----------
+  async function synchroTour(tr) {
+    if (!tr) return;
+    const evs = await BK.db.liste('evenements'), ev = evs.find(e => e.tourId === tr.id);
+    if (!tr.date || !T.liste.some(x => x.id === tr.id)) { if (ev) await BK.db.supprimer('evenements', ev.id).catch(() => {}); }
+    else { const rs = reelsDe(tr);
+      await BK.db.ecrire('evenements', { ...(ev || {}), type: 'tournage', titre: (tr.titre || 'Tournage') + (rs.length ? ' · ' + rs.map(x => x.titre).join(', ') : ''), morceau: rs.length === 1 ? rs[0].morceau || '' : '', date: tr.date, heure: tr.heure || '', lieu: tr.lieu || '', tourId: tr.id }); }
     BK.agendaRecharger && BK.agendaRecharger();
   }
-  async function poserJours(l) { T.jours = [...new Set(l.filter(Boolean))].sort(); await BK.partage.ecrire('tournage.jours', T.jours); }
-  // ranger un tournage dans une journée ('' = pas encore de jour)
-  async function ranger(id, d) {
-    const t = T.liste.find(x => x.id === id); if (!t || (t.date || '') === d) return;
-    const avant = t.date || ''; t.date = d; await BK.db.ecrire('tournages', t);
-    await synchroJour(avant); await synchroJour(d);
-    msg(d ? `« ${t.titre} » → Tournage · ${jourFr(d)}` : `« ${t.titre} » : pas encore de jour`); rendreListe(); rendreJours();
-  }
+  const synchroJour = async () => {};                                   // (ancien nom, gardé pour les vieux appels)
+
+  $('#toNouveau').onclick = async () => {
+    const t = await BK.db.ecrire('tournages', { niveau: 'tournage', titre: 'Nouveau tournage', type: 'Reel', date: '', heure: '', lieu: '', idee: '', moodboard: [], plans: [], tenues: {}, materiel: '', notes: '' });
+    T.liste.push(t); T.tour = t; T.courant = null; T.vue = 'tournage'; rendreListe(); rendreFiche(); const c = $('[data-tc="titre"]'); c && (c.focus(), c.select());
+  };
+  $('#toCal').onclick = async () => { const tr = T.vue === 'tournage' ? T.tour : null; if (!tr) return; if (!tr.date) return msg('Choisis d\'abord une date'); await synchroTour(tr); msg('Tournage dans le Calendrier ✓'); };
+
+  // ---------- les médias : tenues (qui porte quoi), moodboard, assets — et leurs étiquettes, posées toutes seules ----------
   const meme = (a, b) => (a.id && a.id === b.id) || (a.u && a.u === b.u);
-  async function retirerMedia(src, x) {
+  async function etiqueter(x, cles) { const id = x.id || idDe(x.u); if (!id || /^audio:/.test(id)) return; for (const k of cles.filter(Boolean)) await BK.etiquettes.basculer(id, k, true).catch(() => {}); }
+  const tagsDoc = d => { const m = (T.fiches || []).find(y => y.nom === d.morceau); return ['t:' + d.id, estTour(d) ? 'c:tournage' : '', m ? m.id : '']; };
+  async function retirerDe(src, x) {
     if (src === 'vrac') { T.vrac = (T.vrac || []).filter(y => !meme(y, x)); await BK.partage.ecrire('tournage.vrac', T.vrac); }
-    else if (src.startsWith('jour:')) { const d = src.slice(5), jm = { ...(T.jMed || {}) }; jm[d] = (jm[d] || []).filter(y => !meme(y, x)); if (!jm[d].length) delete jm[d]; T.jMed = jm; await BK.partage.ecrire('tournage.joursMedias', jm); }
+    else if (src.startsWith('as:')) { const d = T.liste.find(y => y.id === src.slice(3)); if (d) { d.assets = (d.assets || []).filter(y => !meme(y, x)); await BK.db.ecrire('tournages', d); } }
   }
-  async function validerAssets(d, l) {
-    const jm = { ...(T.jMed || {}) }; jm[d] = [...(jm[d] || [])]; for (const x of l) if (!jm[d].some(y => meme(y, x))) jm[d].push(x);
-    T.jMed = jm; await BK.partage.ecrire('tournage.joursMedias', jm); msg(l.length > 1 ? l.length + ' assets validés' : 'Asset validé'); rendreJours();
+  // poser un média : sur une tenue (doc + membre), dans un moodboard, ou dans les assets d'un tournage
+  async function poser(item, cible) {
+    const { x, src } = item; if (!x || (!x.u && !x.id)) return;
+    const u = x.u || (x.id && !/^audio:/.test(x.id) ? BK.img.ref(x.id) : ''); const d = T.liste.find(y => y.id === cible.doc); if (!d) return;
+    if (cible.qui) {                                                  // une tenue : « c'est Pierre qui la porte » (une même photo peut aller à plusieurs)
+      if (!u) return; d.tenuesPhotos = d.tenuesPhotos || {}; const l = d.tenuesPhotos[cible.qui] = d.tenuesPhotos[cible.qui] || [];
+      if (!l.includes(u)) l.push(u); await BK.db.ecrire('tournages', d);
+      await etiqueter({ ...x, u }, ['c:outfits', 'c:m-' + slug(cible.qui), ...tagsDoc(d)]);
+      if (src === 'vrac' || src.startsWith('as:')) await retirerDe(src, x);
+      msg(`Tenue de ${cible.qui}${estTour(d) ? ' (pour tous les reels)' : ' · ' + d.titre} ✓ étiquetée`); }
+    else if (cible.mood) { if (!u || /^(audio|video)\//.test(x.mime || '')) return msg('Seules les images vont dans le moodboard');
+      d.moodboard = d.moodboard || []; if (!d.moodboard.includes(u)) d.moodboard.push(u); await BK.db.ecrire('tournages', d);
+      await etiqueter({ ...x, u }, ['c:moodboard', ...tagsDoc(d)]); if (src === 'vrac' || src.startsWith('as:')) await retirerDe(src, x); msg('Ajouté au moodboard de « ' + d.titre + ' »'); }
+    else { if (src === 'as:' + d.id) return; d.assets = d.assets || []; if (!d.assets.some(y => meme(y, x))) d.assets.push(x); await BK.db.ecrire('tournages', d);
+      await etiqueter(x, tagsDoc(d)); await retirerDe(src, x); msg('Rangé dans les Assets de « ' + d.titre + ' »'); }
+    rendreFiche();
   }
-  async function poserMedia({ x, src }, { tournage, jour }) {
-    if (!x || (!x.u && !x.id)) return;
-    const u = x.u || (x.id && !/^audio:/.test(x.id) ? BK.img.ref(x.id) : '');
-    if (tournage) { const t = T.liste.find(y => y.id === tournage); if (!t) return; if (!u || /^audio\//.test(x.mime || '')) return msg('Seules les images vont dans le moodboard');
-      t.moodboard = t.moodboard || []; if (!t.moodboard.includes(u)) t.moodboard.push(u); await BK.db.ecrire('tournages', t);
-      if (x.id && !/^audio:/.test(x.id)) for (const k of ['t:' + t.id, 'c:moodboard', 'c:tournage']) await BK.etiquettes.basculer(x.id, k, true).catch(() => {});
-      await retirerMedia(src, x); msg(`Ajouté au moodboard de « ${t.titre} »`); }
-    else if (jour) { if (src === 'jour:' + jour) return; const jm = { ...(T.jMed || {}) }; jm[jour] = [...(jm[jour] || [])]; if (!jm[jour].some(y => meme(y, x))) jm[jour].push(x);
-      await BK.partage.ecrire('tournage.joursMedias', jm); T.jMed = jm; await retirerMedia(src, x); msg('Média rangé dans les Assets du ' + jourFr(jour)); }
-    rendreJours();
+  // ce que Médias connaît déjà (étiqueté pour ce tournage / ce reel) mais pas encore rangé : proposé en vert
+  const fichiersTag = (...cles) => (T.fichiers || []).filter(f => { const l = BK.etiquettes.liste(T.tags || {}, f.id); return cles.every(k => l.includes(k)); });
+  const propTenues = (d, qui) => fichiersTag('t:' + d.id, 'c:outfits', 'c:m-' + slug(qui)).filter(f => /^image\//.test(f.mimeType || '') && !((d.tenuesPhotos || {})[qui] || []).includes(BK.img.ref(f.id)) && !T.non.has(d.id + '|' + f.id));
+  const propMood = d => fichiersTag('t:' + d.id, 'c:moodboard').filter(f => /^image\//.test(f.mimeType || '') && !(d.moodboard || []).includes(BK.img.ref(f.id)) && !T.non.has(d.id + '|' + f.id));
+  const propAssets = d => { if (!estTour(d)) return []; const ids = new Set((d.assets || []).map(x => x.id || idDe(x.u)));
+    const pris = new Set([...(d.moodboard || []), ...Object.values(d.tenuesPhotos || {}).flat()].map(idDe));
+    return fichiersTag('t:' + d.id).filter(f => !ids.has(f.id) && !pris.has(f.id) && !T.non.has(d.id + '|' + f.id)).map(f => ({ id: f.id, mime: f.mimeType, nom: f.name })); };
+
+  const vign = (x, src, prop) => { const audio = /^audio\//.test(x.mime || '') || x.audio, video = /^video\//.test(x.mime || '');
+    const bg = audio ? '' : x.u ? BK.img.bg(x.u) : x.id ? BK.img.bg(BK.img.ref(x.id)) : '';
+    return `<span class="to-med${prop ? ' mi-prop' : ''}${audio ? ' audio' : ''}" draggable="true" data-med="${esc(JSON.stringify(x))}" data-src="${esc(src)}"${bg} title="${esc(x.nom || '')}${prop ? ' · trouvé dans Médias : ✓ pour valider' : ' · glisse-le sur une tenue, un moodboard ou un tournage'}">${audio ? '♪' : video ? '<i class="to-med-v">▶</i>' : ''}
+      ${prop ? `<button class="mi-val" data-pval="${esc(src)}" title="C'est bon">✓</button>` : ''}<button class="md-x" data-medx="${esc(src)}">✕</button></span>`; };
+  const DOS = ['Tenues', 'Moodboard', 'Lumière / déco', 'Audio', 'Vidéo', 'Divers'];
+  const dossierDe = x => { const tg = x.id ? BK.etiquettes.liste(T.tags || {}, x.id) : [];
+    if (/^audio\//.test(x.mime || '') || x.audio) return 'Audio';
+    if (tg.includes('c:outfits')) return 'Tenues';
+    if (tg.includes('c:moodboard') || tg.includes('c:inspi')) return 'Moodboard';
+    if (tg.includes('c:lumiere') || tg.includes('c:scenographie')) return 'Lumière / déco';
+    if (/^video\//.test(x.mime || '')) return 'Vidéo';
+    return 'Divers'; };
+  // une zone « tenues » : une ligne par membre, on y glisse des photos
+  const zoneTenues = (d, titre) => `<div class="box tt-tenues"><span class="lb">${titre}</span>
+      ${T.membres.map(m => { const l = (d.tenuesPhotos || {})[m] || [], pr = propTenues(d, m);
+        return `<div class="to-tenue2 tt-zone" data-tz="${d.id}|${esc(m)}"><span class="eng">${esc(m)}</span>
+          <div class="to-tenue-ph">${l.map((u, i) => `<div class="to-tph" draggable="true" data-med="${esc(JSON.stringify({ u }))}" data-src="tenue"${BK.img.bg(u)}><button class="md-x" data-ttx="${d.id}|${esc(m)}|${i}">✕</button></div>`).join('')}
+            ${pr.map(f => `<div class="to-tph mi-prop"${BK.img.bg(BK.img.ref(f.id))} title="Étiqueté tenue de ${esc(m)} dans Médias : ✓ pour valider"><button class="mi-val" data-tpv="${d.id}|${esc(m)}|${f.id}">✓</button></div>`).join('')}
+            <button class="to-tph to-tph-plus" data-tph2="${d.id}|${esc(m)}" title="Choisir dans Médias">＋<small>Photo</small></button></div>
+          <input class="fld to-tenue-txt" data-tt="${d.id}|${esc(m)}" value="${esc((d.tenues || {})[m] || '')}" placeholder="en quelques mots (facultatif)"></div>`; }).join('')}</div>`;
+  const zoneAssets = d => { const val = d.assets || [], pr = propAssets(d); if (!val.length && !pr.length) return '';
+    const g = DOS.map(n => ({ n, v: val.filter(x => dossierDe(x) === n), p: pr.filter(x => dossierDe(x) === n) })).filter(x => x.v.length || x.p.length);
+    const ouvert = BK.reglage('tournage.assetsOuverts', {})[d.id];
+    if (!ouvert) return `<button class="to-assets ferme" data-asouv="${d.id}"><span class="eng">▸ Assets</span><b>${val.length + pr.length}</b><span class="nt">${g.map(x => esc(x.n) + ' ' + (x.v.length + x.p.length)).join(' · ')}</span>${pr.length ? `<span class="to-as-nb mi-txt">${pr.length} à valider</span>` : ''}</button>`;
+    return `<div class="to-assets"><button class="to-as-tete" data-asouv="${d.id}"><span class="eng">▾ Assets</span><span class="nt">${val.length + pr.length} média(s) · glisse-les sur une tenue ou un moodboard</span></button><div class="to-as-rang">${g.map(x => `<div class="to-as-dos"><span class="to-as-t">${esc(x.n)} <small>${x.v.length + x.p.length}</small></span>
+      <div class="to-meds">${x.v.map(y => vign(y, 'as:' + d.id)).join('')}${x.p.map(y => vign(y, 'prop:' + d.id, true)).join('')}</div></div>`).join('')}</div></div>`; };
+
+  // ---------- la liste des tournages (les affiches) + les reels qui n'ont pas encore de tournage ----------
+  async function rendreTournages() {
+    const z = $('#toFiche'), auj = new Date().toISOString().slice(0, 10);
+    const vr = await BK.partage.lire('tournage.vrac', []).catch(() => []); T.vrac = Array.isArray(vr) ? vr : [];
+    const nonL = await BK.partage.lire('tournage.assetsNon', []).catch(() => []); T.non = new Set(Array.isArray(nonL) ? nonL : []);
+    const affiche = tr => { const rs = reelsDe(tr), img = imgDe(tr) || rs.map(imgDe).find(Boolean) || '';
+      return `<div class="to-affiche tt-aff${img ? '' : ' sans'}${(tr.date || '9') < auj ? ' passe' : ''}${tr.fini ? ' fini' : ''}" data-tour="${tr.id}"${BK.img.bg(img)} title="Ouvrir ce tournage">
+        <span class="to-af-voile"></span><span class="to-af-txt"><span class="eng">Tournage${tr.fini ? ' · ✓ tourné' : ''}</span><b class="dymo">${esc(tr.titre || 'Tournage')}</b>
+          <span class="nt">${esc(jourFr(tr.date))}${tr.heure ? ' · ' + esc(tr.heure) : ''}${tr.lieu ? ' · ' + esc(tr.lieu) : ''}</span>
+          <span class="nt to-af-chiffres">${rs.length} reel(s)${rs.length ? ' : ' + esc(rs.map(x => x.titre).join(', ')).slice(0, 120) : ''}</span></span>
+        <span class="to-af-pli">Ouvrir ▸</span></div>`; };
+    const sans = T.liste.filter(x => !estTour(x) && !x.parent);
+    const carteReel = x => `<div class="to-carte" draggable="true" data-tid="${x.id}"><span class="to-c-img"${BK.img.bg(imgDe(x))}>${imgDe(x) ? '' : '♪'}</span>
+        <span class="to-c-txt"><span class="eng">${esc(x.type || 'Reel')}${x.morceau ? ' · ' + esc(x.morceau) : ''}</span><b>${esc(x.titre || 'Sans titre')}</b><span class="nt">${(x.plans || []).length} plan(s)</span></span>
+        <span class="to-c-btns"><button class="btn xs" data-ouvre="${x.id}">Ouvrir</button></span></div>`;
+    z.innerHTML = `<div class="to-jours">
+      ${T.vrac.length ? `<div class="to-vrac"><span class="eng">Médias à ranger</span><div class="to-meds">${T.vrac.map(x => vign(x, 'vrac')).join('')}</div></div>` : ''}
+      <div class="ligne-titre"><span class="lb">Tournages</span><span class="nt" style="margin:0 0 0 10px">Un tournage = une journée. Glisse un reel sur un tournage pour l'y mettre.</span>
+        <button class="btn sm pri" id="toNvTour" style="margin-left:auto">+ Nouveau tournage</button></div>
+      ${tournagesL().map(affiche).join('') || '<span class="nt">Pas encore de tournage.</span>'}
+      <div class="to-jour sans" data-sans="1"><div class="to-jour-t"><span class="eng">Reels pas encore dans un tournage</span><span class="nt">${sans.length}</span></div>
+        <div class="to-jour-l">${sans.map(carteReel).join('') || '<span class="nt to-jour-vide">Les reels validés (Miette propose) arrivent ici.</span>'}</div></div></div>`;
+    $('#toNvTour').onclick = () => $('#toNouveau').click();
+    $$('.tt-aff', z).forEach(a => a.onclick = () => ouvrirTour(a.dataset.tour));
+    $$('[data-ouvre]', z).forEach(b => b.onclick = e => { e.stopPropagation(); T.courant = T.liste.find(x => x.id === b.dataset.ouvre); T.vue = 'fiche'; rendreListe(); rendreFiche(); });
+    glisser(z);
+  }
+  function ouvrirTour(id) { T.tour = T.liste.find(x => x.id === id); T.courant = null; T.vue = 'tournage'; rendreListe(); rendreFiche(); }
+
+  // ---------- un tournage ouvert : ses infos, ses tenues et son matériel (pour tous), ses assets, et ses reels qui se déplient ----------
+  async function rendreTournage() {
+    const tr = T.tour, z = $('#toFiche'); if (!tr) { T.vue = 'jours'; return rendreTournages(); }
+    if (!T.non) { const nonL = await BK.partage.lire('tournage.assetsNon', []).catch(() => []); T.non = new Set(Array.isArray(nonL) ? nonL : []); }
+    if (!T.vrac) { const vr = await BK.partage.lire('tournage.vrac', []).catch(() => []); T.vrac = Array.isArray(vr) ? vr : []; }
+    const rs = reelsDe(tr), img = imgDe(tr) || rs.map(imgDe).find(Boolean) || '', ouvert = T.courant && T.courant.parent === tr.id ? T.courant.id : '';
+    const etape = r => { const x = (T.reels || []).find(y => y.tournage === r.id); return x ? ETAPES_R[x.statut || 'idee'] : ''; };
+    z.innerHTML = `
+      <div class="to-fiche-barre"><button class="btn sm" id="toRetour">← Tous les tournages</button>
+        <button class="btn sm to-fini${tr.fini ? ' on' : ''}" id="toFiniT" style="margin-left:auto">${tr.fini ? '✓ Tourné' : 'Tournage fini'}</button></div>
+      <div class="to-affiche ouverte${img ? '' : ' sans'}"${BK.img.bg(img)}><span class="to-af-voile"></span>
+        <span class="to-af-txt"><span class="eng">Tournage · ${rs.length} reel(s)</span><b class="dymo">${esc(tr.titre || 'Tournage')}</b>
+          <span class="nt">${esc(jourFr(tr.date))}${tr.heure ? ' · ' + esc(tr.heure) : ''}${tr.lieu ? ' · ' + esc(tr.lieu) : ''}</span></span></div>
+      ${T.vrac.length ? `<div class="to-vrac"><span class="eng">Médias à ranger</span><div class="to-meds">${T.vrac.map(x => vign(x, 'vrac')).join('')}</div></div>` : ''}
+      <div class="box"><span class="lb">Le tournage</span><div class="to-infos">
+        <label class="large"><span class="eng">Nom</span><input class="fld" data-tc="titre" value="${esc(tr.titre)}"></label>
+        <label><span class="eng">Date</span><input class="fld" type="date" data-tc="date" value="${esc(tr.date)}"></label>
+        <label><span class="eng">Heure</span><input class="fld" type="time" data-tc="heure" value="${esc(tr.heure)}"></label>
+        <label class="large"><span class="eng">Lieu</span><input class="fld" data-tc="lieu" value="${esc(tr.lieu)}" placeholder="ex. Studio BEESKOT"></label>
+        <label class="large"><span class="eng">L'idée de la journée</span><input class="fld" data-tc="idee" value="${esc(tr.idee)}"></label></div></div>
+      <div class="box tt-reels"><div class="ligne-titre"><span class="lb">Les reels de ce tournage</span><button class="btn xs" id="toNvReel" style="margin-left:auto">+ Ajouter un reel</button></div>
+        ${rs.map(r => `<div class="tt-reel${r.id === ouvert ? ' ouvert' : ''}" data-rid="${r.id}">
+          <div class="tt-reel-t to-carte" draggable="true" data-tid="${r.id}"><span class="to-c-img"${BK.img.bg(imgDe(r))}>${imgDe(r) ? '' : '♪'}</span>
+            <span class="to-c-txt"><span class="eng">${esc(r.type || 'Reel')}${r.morceau ? ' · ' + esc(r.morceau) : ''}${etape(r) ? ' · reel : ' + esc(etape(r)) : ''}</span><b>${esc(r.titre || 'Sans titre')}</b>
+              <span class="nt">${(r.plans || []).length} plan(s) · ${(r.moodboard || []).length} image(s) · ${Object.values(r.tenuesPhotos || {}).flat().length} tenue(s)</span></span>
+            <span class="to-c-btns">${(T.reels || []).some(x => x.tournage === r.id) ? `<button class="btn xs" data-voir="${r.id}">Voir le reel</button>` : `<button class="btn xs" data-reel="${r.id}" title="Crée la carte dans l'onglet Reels">→ Reels</button>`}
+              <button class="btn xs" data-sortir="${r.id}" title="Le sortir de ce tournage">↩</button><button class="btn xs tt-pli" data-plir="${r.id}">${r.id === ouvert ? '▾ Replier' : '▸ Déplier'}</button></span></div>
+          ${r.id === ouvert ? '<div class="tt-reel-corps" id="toReelCorps"></div>' : ''}</div>`).join('') || '<span class="nt">Pas encore de reel : « + Ajouter un reel », ou glisse un reel sur ce tournage depuis la liste des tournages.</span>'}</div>
+      ${zoneTenues(tr, 'Tenues · pour tous les reels du tournage')}
+      ${zoneAssets(tr)}
+      <div class="box"><span class="lb">Matériel et notes · tout le tournage</span>
+        <textarea class="fld" data-tc="materiel" rows="3" placeholder="ex. 2 caméras, trépied, lampes Globe en rouge">${esc(tr.materiel)}</textarea>
+        <textarea class="fld" data-tc="notes" rows="2" placeholder="Notes pour l'équipe…" style="margin-top:8px">${esc(tr.notes)}</textarea>
+        <button class="btn xs" id="toSupprT" style="margin-top:8px;align-self:flex-start">Retirer ce tournage</button></div>`;
+    $('#toPdf').disabled = true; $('#toCal').disabled = !tr.date;
+    $('#toRetour').onclick = () => { T.vue = 'jours'; T.tour = null; T.courant = null; rendreListe(); rendreFiche(); };
+    $('#toFiniT').onclick = async () => { tr.fini = !tr.fini; await BK.db.ecrire('tournages', tr); for (const r of rs) if (!!r.fini !== tr.fini) await finir(r, true); msg(tr.fini ? 'Tournage fini ✓ : ses reels passent à « Tourné »' : 'Tournage remis à faire'); rendreFiche(); };
+    let dateAvant = tr.date;
+    $$('[data-tc]', z).forEach(c => c.oninput = c.onchange = e => { tr[c.dataset.tc] = c.value; sauver(tr, c.dataset.tc === 'titre' || c.dataset.tc === 'date');
+      if (e.type === 'change' && /titre|date|heure|lieu/.test(c.dataset.tc)) setTimeout(() => synchroTour(tr), 900);
+      if (e.type === 'change' && c.dataset.tc === 'date' && dateAvant !== tr.date) dateAvant = tr.date; });
+    $('#toNvReel').onclick = async () => { const r = await BK.db.ecrire('tournages', { niveau: 'reel', parent: tr.id, ordre: rs.length, titre: 'Nouveau reel', type: 'Reel', morceau: '', idee: '', moodboard: [], plans: [], tenues: {}, materiel: '', notes: '' });
+      T.liste.push(r); T.courant = r; await synchroTour(tr); rendreFiche(); const c = $('#toReelCorps [data-c="titre"]'); c && (c.focus(), c.select()); };
+    $$('[data-plir]', z).forEach(b => b.onclick = e => { e.stopPropagation(); T.courant = T.courant && T.courant.id === b.dataset.plir ? null : T.liste.find(x => x.id === b.dataset.plir); rendreFiche(); });
+    $$('.tt-reel-t', z).forEach(h => h.onclick = e => { if (e.target.closest('button')) return; h.querySelector('[data-plir]').click(); });
+    $$('[data-sortir]', z).forEach(b => b.onclick = async e => { e.stopPropagation(); const r = T.liste.find(x => x.id === b.dataset.sortir); r.parent = ''; await BK.db.ecrire('tournages', r); if (T.courant === r) T.courant = null; await synchroTour(tr); msg('« ' + r.titre + ' » sorti du tournage'); rendreListe(); rendreFiche(); });
+    $$('[data-reel]', z).forEach(b => b.onclick = async e => { e.stopPropagation(); await versReels(T.liste.find(x => x.id === b.dataset.reel)); rendreFiche(); });
+    $$('[data-voir]', z).forEach(b => b.onclick = e => { e.stopPropagation(); const r = (T.reels || []).find(x => x.tournage === b.dataset.voir); r && BK.suiviOuvrir && BK.suiviOuvrir(r.id); });
+    $('#toSupprT').onclick = async () => { if (!(await BK.confirmer(`Retirer le tournage « ${tr.titre} » ? Ses reels restent (dans « pas encore dans un tournage »).`))) return;
+      for (const r of rs) { r.parent = ''; await BK.db.ecrire('tournages', r); } await BK.db.supprimer('tournages', tr.id); T.liste = T.liste.filter(x => x.id !== tr.id); await synchroTour(tr); T.tour = null; T.vue = 'jours'; msg('Tournage retiré'); charger(); };
+    brancherMedias(z);
+    glisser(z);
+    if (ouvert) { const c = $('#toReelCorps'); c.innerHTML = corpsFiche(T.courant, true); T.zone = c; brancher(T.courant); T.zone = null; brancherMedias(c); glisser(c); }
+  }
+  // les boutons des zones médias (tenues, assets, propositions vertes)
+  function brancherMedias(z) {
+    $$('[data-asouv]', z).forEach(b => b.onclick = () => { const o = BK.reglage('tournage.assetsOuverts', {}); o[b.dataset.asouv] = !o[b.dataset.asouv]; BK.regler('tournage.assetsOuverts', o); rendreFiche(); });
+    $$('[data-tt]', z).forEach(c => c.oninput = () => { const [id, m] = c.dataset.tt.split('|'), d = T.liste.find(x => x.id === id); (d.tenues = d.tenues || {})[m] = c.value; sauver(d); });
+    $$('[data-ttx]', z).forEach(b => b.onclick = async e => { e.stopPropagation(); const [id, m, i] = b.dataset.ttx.split('|'), d = T.liste.find(x => x.id === id); d.tenuesPhotos[m].splice(+i, 1); await BK.db.ecrire('tournages', d); rendreFiche(); });
+    $$('[data-tpv]', z).forEach(b => b.onclick = async e => { e.stopPropagation(); const [id, m, f] = b.dataset.tpv.split('|'); await poser({ x: { id: f }, src: 'prop' }, { doc: id, qui: m }); });
+    $$('[data-tph2]', z).forEach(b => b.onclick = async () => { if (!BK.drive.relie()) return msg('Relie d\'abord le Drive'); const [id, m] = b.dataset.tph2.split('|');
+      const l = await BK.choisirDansMedias({ titre: 'Tenue de ' + m, bouton: 'Ajouter', type: 'image', sujet: 'c:outfits' }); if (!l || !l.length) return;
+      for (const x of l) { try { const d = await BK.img.depuisChoix(x, 'outfits'); await poser({ x: { u: d.ref, id: d.id || '' }, src: 'choix' }, { doc: id, qui: m }); } catch (er) { console.warn(er); } } });
+    $$('[data-medx]', z).forEach(b => b.onclick = async e => { e.stopPropagation(); const x = JSON.parse(b.closest('[data-med]').dataset.med), src = b.dataset.medx;
+      if (src.startsWith('prop:')) { T.non.add(src.slice(5) + '|' + x.id); await BK.partage.ecrire('tournage.assetsNon', [...T.non]); } else await retirerDe(src, x); rendreFiche(); });
+    $$('[data-pval]', z).forEach(b => b.onclick = async e => { e.stopPropagation(); const x = JSON.parse(b.closest('[data-med]').dataset.med), d = T.liste.find(y => y.id === b.dataset.pval.slice(5));
+      d.assets = d.assets || []; d.assets.push(x); await BK.db.ecrire('tournages', d); msg('Asset validé'); rendreFiche(); });
+  }
+  // ---------- glisser-déposer : reels sur un tournage, médias sur une tenue / un moodboard / un tournage ----------
+  function glisser(z) {
+    $$('[draggable="true"]', z).forEach(el => el.addEventListener('dragstart', e => { e.stopPropagation();
+      if (el.dataset.tid && !el.dataset.med) { e.dataTransfer.setData('text/bk-tournage', el.dataset.tid); }
+      else if (el.dataset.med) e.dataTransfer.setData('text/bk-tmedia', JSON.stringify({ x: JSON.parse(el.dataset.med), src: el.dataset.src }));
+      e.dataTransfer.effectAllowed = 'copyMove'; el.classList.add('glisse'); }));
+    $$('[draggable="true"]', z).forEach(el => el.addEventListener('dragend', () => el.classList.remove('glisse')));
+    // (en « capture » : même lâché sur un champ texte de la zone, c'est la zone qui reçoit)
+    const cible = (el, test, faire) => { el.addEventListener('dragover', e => { if (test([...e.dataTransfer.types])) { e.preventDefault(); e.stopPropagation(); el.classList.add('survol'); } }, true);
+      el.addEventListener('dragleave', e => { if (!el.contains(e.relatedTarget)) el.classList.remove('survol'); });
+      el.addEventListener('drop', e => { if (!test([...e.dataTransfer.types]) || e._pris) return; e._pris = true; e.preventDefault(); e.stopPropagation(); el.classList.remove('survol'); faire(e.dataTransfer); }, true); };
+    const med = t => t.includes('text/bk-tmedia') || t.includes('text/bk-media'), tour = t => t.includes('text/bk-tournage');
+    // ce qu'on lâche : un média de cette page, ou un ou plusieurs médias venus de l'onglet Médias
+    const lus = dt => { const j = dt.getData('text/bk-tmedia'); if (j) return [JSON.parse(j)];
+      return BK.glisse.items.map(x => ({ x: x.dc ? { u: '', id: '', nom: x.nom, mime: x.mime, dc: x.dc } : { u: BK.img.ref(x.id), id: x.id, mime: x.mime, nom: x.nom }, src: 'medias' })).filter(y => y.x.u); };
+    const poserTous = async (dt, cible) => { const l = lus(dt); if (!l.length) return msg('Range d\'abord ce média de Discord dans le Drive (Médias)'); for (const it of l) await poser(it, cible); };
+    $$('.tt-aff', z).forEach(a => cible(a, t => tour(t) || med(t), async dt => { const id = dt.getData('text/bk-tournage');
+      if (id) { const r = T.liste.find(x => x.id === id), tr = T.liste.find(x => x.id === a.dataset.tour), avant = T.liste.find(x => x.id === r.parent);
+        r.parent = tr.id; r.ordre = reelsDe(tr).length; await BK.db.ecrire('tournages', r); await synchroTour(tr); if (avant) await synchroTour(avant); msg(`« ${r.titre} » → ${tr.titre}`); rendreListe(); rendreFiche(); }
+      else poserTous(dt, { doc: a.dataset.tour }); }));
+    $$('[data-sans]', z).forEach(s => cible(s, tour, async dt => { const r = T.liste.find(x => x.id === dt.getData('text/bk-tournage')); if (!r || !r.parent) return; const avant = T.liste.find(x => x.id === r.parent);
+      r.parent = ''; await BK.db.ecrire('tournages', r); if (avant) await synchroTour(avant); rendreFiche(); }));
+    $$('[data-tz]', z).forEach(el => cible(el, med, dt => { const [doc, qui] = el.dataset.tz.split('|'); poserTous(dt, { doc, qui }); }));
+    $$('.tt-reel-t', z).forEach(h => cible(h, med, dt => poserTous(dt, { doc: h.dataset.tid, mood: true })));
+    $$('#toMood', z).forEach(m => cible(m, med, dt => poserTous(dt, { doc: (T.courant || {}).id, mood: true })));
+  }
+  async function versReels(t) {
+    const rs = await BK.db.liste('reels'), deja = rs.find(r => r.tournage === t.id);
+    if (deja) { msg('Déjà dans les Reels'); return; }
+    const m = (T.fiches || []).find(x => x.nom === t.morceau);
+    T.reels.push(await BK.db.ecrire('reels', { titre: t.titre || 'Reel', morceau: m ? m.id : '', tournage: t.id, statut: t.fini ? 'tourne' : 'idee', notes: t.idee || '', sortie: '' }));
+    BK.suiviRecharger && BK.suiviRecharger(); msg(`« ${t.titre} » envoyé dans les Reels ✓`);
   }
   // ---------- le pont avec les Reels ----------
   const ETAPES_R = { idee: 'Idée', audio: 'Audio prêt', tourne: 'Tourné', monte: 'Monté', publie: 'Publié' };
   const etapeReel = t => { const r = (T.reels || []).find(x => x.tournage === t.id); return r ? ETAPES_R[r.statut || 'idee'] || 'Idée' : ''; };
-  async function finir(t) {
-    if (!t) return; t.fini = !t.fini; await BK.db.ecrire('tournages', t);
+  async function finir(t, silencieux) {
+    if (!t) return; t.fini = estTour(T.tour) && silencieux ? T.tour.fini : !t.fini; await BK.db.ecrire('tournages', t);
     const ordre = Object.keys(ETAPES_R);
-    for (const r of (T.reels || []).filter(x => x.tournage === t.id)) {
-      if (t.fini && ordre.indexOf(r.statut || 'idee') < ordre.indexOf('tourne')) { r.statut = 'tourne'; await BK.db.ecrire('reels', r); }
-    }
-    BK.suiviRecharger && BK.suiviRecharger(); msg(t.fini ? `« ${t.titre} » : tourné ✓ (le reel passe à « Tourné »)` : 'Tournage remis à faire'); rendreListe(); rendreFiche();
+    for (const r of (T.reels || []).filter(x => x.tournage === t.id)) if (t.fini && ordre.indexOf(r.statut || 'idee') < ordre.indexOf('tourne')) { r.statut = 'tourne'; await BK.db.ecrire('reels', r); }
+    BK.suiviRecharger && BK.suiviRecharger(); if (silencieux) return;
+    msg(t.fini ? `« ${t.titre} » : tourné ✓ (le reel passe à « Tourné »)` : 'Remis à faire'); rendreListe(); rendreFiche();
   }
-  // ce qu'on change dans la fiche (titre, morceau, idée) se retrouve dans le reel lié
   async function versReelLie(t) {
     const m = (T.fiches || []).find(x => x.nom === t.morceau);
     for (const r of (T.reels || []).filter(x => x.tournage === t.id)) {
@@ -432,110 +638,7 @@ BK.module('tournage', function (page) {
     }
     BK.suiviRecharger && BK.suiviRecharger();
   }
-  async function versReels(t) {
-    const rs = await BK.db.liste('reels'), deja = rs.find(r => r.tournage === t.id);
-    if (deja) { msg('Déjà dans les Reels'); return; }
-    const m = (T.fiches || []).find(x => x.nom === t.morceau);
-    T.reels.push(await BK.db.ecrire('reels', { titre: t.titre || 'Reel', morceau: m ? m.id : '', tournage: t.id, statut: t.fini ? 'tourne' : 'idee', notes: t.idee || '', sortie: '' }));
-    BK.suiviRecharger && BK.suiviRecharger(); msg(`« ${t.titre} » envoyé dans les Reels ✓`); rendreJours();
-  }
-  async function rendreJours() {
-    const z = $('#toFiche'), auj = new Date().toISOString().slice(0, 10);
-    const rs = await BK.db.liste('reels').catch(() => []), enReels = new Set(rs.map(r => r.tournage).filter(Boolean));
-    const dates = [...new Set([...T.jours, ...T.liste.map(x => x.date).filter(Boolean)])].sort((a, b) => (a < auj) - (b < auj) || (a < auj ? b.localeCompare(a) : a.localeCompare(b)));
-    const carte = x => { const m = (T.fiches || []).find(y => y.nom === x.morceau), img = (m && m.photo) || (x.moodboard || [])[0] || '';
-      return `<div class="to-carte${T.courant && T.courant.id === x.id ? ' on' : ''}${x.fini ? ' fini' : ''}" draggable="true" data-tid="${x.id}">
-        <span class="to-c-img"${BK.img.bg(img)}>${img ? '' : '♪'}</span>
-        <span class="to-c-txt"><span class="eng">${esc(x.type || 'Tournage')}${x.morceau ? ' · ' + esc(x.morceau) : ''}</span><b>${esc(x.titre || 'Sans titre')}</b>
-          <span class="nt">${esc([x.heure, x.lieu].filter(Boolean).join(' · ') || '—')} · ${(x.plans || []).length} plan(s)</span></span>
-        <span class="to-c-btns"><button class="btn xs" data-ouvre="${x.id}">Ouvrir</button>${enReels.has(x.id) ? `<span class="nt to-c-ok">✓ Reel · ${esc(etapeReel(x))}</span>` : `<button class="btn xs" data-reel="${x.id}" title="Crée une carte dans l'onglet Reels">→ Reels</button>`}
-          <button class="btn xs to-fini${x.fini ? ' on' : ''}" data-fini="${x.id}" title="${x.fini ? 'Tourné ! (clique pour annuler)' : 'Marquer le tournage comme fini'}">${x.fini ? '✓ Tourné' : 'Tournage fini'}</button></span></div>`; };
-    const jour = d => { const l = T.liste.filter(x => x.date === d);
-      const fond = ((jMed[d] || []).find(x => x.u && !/^(audio|video)\//.test(x.mime || '')) || {}).u || l.map(x => ((T.fiches || []).find(y => y.nom === x.morceau) || {}).photo || (x.moodboard || [])[0]).find(Boolean) || '';
-      return `<div class="to-jour${d < auj ? ' passe' : ''}${fond ? ' avec-fond' : ''}" data-jour="${d}"${fond ? BK.img.bg(fond) : ''}><span class="to-jour-voile"></span>
-        <div class="to-jour-t"><button class="dymo to-jour-nom" data-jdb="${d}" title="Changer la date de toute la journée">Tournage · ${esc(jourFr(d))}</button><input class="to-jour-d" type="date" value="${d}" data-jd="${d}" tabindex="-1">
-          <span class="nt">${l.length} tournage(s)</span><button class="md-x" data-jx="${d}" title="Retirer la journée (les tournages reviennent dans « Pas encore de jour »)">✕</button></div>
-        <div class="to-jour-l">${l.map(carte).join('') || '<span class="nt to-jour-vide">Glisse un tournage ou un média ici</span>'}${assets(d)}</div></div>`; };
-    const sans = T.liste.filter(x => !x.date);
-    const vr = await BK.partage.lire('tournage.vrac', []).catch(() => []), vrac = Array.isArray(vr) ? vr : [];
-    const jm = await BK.partage.lire('tournage.joursMedias', {}).catch(() => ({})), jMed = jm && typeof jm === 'object' ? jm : {};
-    for (const k of Object.keys(jMed)) jMed[k] = (jMed[k] || []).map(x => typeof x === 'string' ? { u: x } : x);   // (avant : juste l'adresse)
-    const nonL = await BK.partage.lire('tournage.assetsNon', []).catch(() => []), non = new Set(Array.isArray(nonL) ? nonL : []);
-    T.vrac = vrac; T.jMed = jMed; T.non = non;
-    const vign = (x, src, prop = src.startsWith('prop:')) => { const audio = /^audio\//.test(x.mime || '') || x.audio, video = /^video\//.test(x.mime || '');
-      const bg = audio ? '' : x.u ? BK.img.bg(x.u) : x.id ? BK.img.bg(BK.img.ref(x.id)) : '';
-      return `<span class="to-med${prop ? ' mi-prop' : ''}${audio ? ' audio' : ''}" draggable="${prop ? 'false' : 'true'}" data-med="${esc(JSON.stringify(x))}" data-src="${esc(src)}"${bg} title="${esc(x.nom || '')}${prop ? ' · trouvé dans Médias, à valider' : ' · glisse sur un tournage (moodboard) ou une journée'}">${audio ? '♪' : video ? '<i class="to-med-v">▶</i>' : ''}
-        ${prop ? `<button class="mi-val" data-asv="${esc(src)}" title="C'est bon">✓</button>` : ''}<button class="md-x" data-medx="${esc(src)}">✕</button></span>`; };
-    // le petit dossier d'un asset, selon son étiquette dans Médias
-    const DOS = ['Tenues', 'Moodboard', 'Lumière / déco', 'Audio', 'Vidéo', 'Divers'];
-    const dossierDe = x => { const tg = x.id ? BK.etiquettes.liste(T.tags || {}, x.id) : [];
-      if (/^audio\//.test(x.mime || '') || x.audio) return 'Audio';
-      if (tg.includes('c:outfits')) return 'Tenues';
-      if (tg.includes('c:moodboard') || tg.includes('c:inspi')) return 'Moodboard';
-      if (tg.includes('c:lumiere') || tg.includes('c:scenographie')) return 'Lumière / déco';
-      if (/^video\//.test(x.mime || '')) return 'Vidéo';
-      return x.cat || (x.u && !x.id ? 'Moodboard' : 'Divers'); };
-    // ce que Médias sait déjà de la journée (fichiers étiquetés pour ses tournages, audio des reels liés) : proposé en vert
-    const proposes = d => { const ids = new Set((jMed[d] || []).map(x => x.id || x.u)), l = [];
-      for (const t of T.liste.filter(x => x.date === d)) {
-        for (const f of (T.fichiers || [])) if (BK.etiquettes.liste(T.tags || {}, f.id).includes('t:' + t.id) && !ids.has(f.id) && !non.has(f.id)) { ids.add(f.id); l.push({ id: f.id, mime: f.mimeType, nom: f.name }); }
-        for (const r of (T.reels || []).filter(r => r.tournage === t.id)) {           // l'audio du reel (Reels Audio)
-          const m = (T.fiches || []).find(y => y.id === r.morceau), ex = (T.exports || []).find(e => e.id === r.audio) || (m && (T.exports || []).find(e => BK.inv.normaliser(e.morceau || '') === BK.inv.normaliser(m.nom)));
-          const k = 'audio:' + r.id; if (ex && !ids.has(k) && !non.has(k)) { ids.add(k); l.push({ id: k, audio: true, nom: ex.nom || 'Audio du reel' }); } }
-      }
-      return l; };
-    const assets = d => { const val = jMed[d] || [], pr = proposes(d); if (!val.length && !pr.length) return '';
-      const plis = BK.reglage('tournage.assetsPlis', {});
-      const g = DOS.map(n => ({ n, v: val.filter(x => dossierDe(x) === n), p: pr.filter(x => dossierDe(x) === n) })).filter(x => x.v.length || x.p.length);
-      const ouvert = (BK.reglage('tournage.assetsOuverts', {}))[d], nP = pr.length, nT = val.length + nP;
-      if (!ouvert) return `<button class="to-assets ferme" data-asouv="${d}" title="Ouvrir les Assets de la journée"><span class="eng">▸ Assets</span><b>${nT}</b>
-        <span class="nt">${g.map(x => esc(x.n) + ' ' + (x.v.length + x.p.length)).join(' · ')}</span>${nP ? `<span class="to-as-nb mi-txt">${nP} à valider</span>` : ''}</button>`;
-      return `<div class="to-assets"><button class="to-as-tete" data-asouv="${d}"><span class="eng">▾ Assets</span><span class="nt">${nT} média(s)</span></button><div class="to-as-rang">${g.map(x => { const cle = d + '|' + x.n, ferme = plis[cle];
-        return `<div class="to-as-dos"><button class="to-as-t" data-aspli="${esc(cle)}">${ferme ? '▸' : '▾'} ${esc(x.n)} <small>${x.v.length + x.p.length}</small>${x.p.length ? `<span class="mi-val to-as-tout" data-astout="${esc(d + '|' + x.n)}" title="Tout valider">✓ tout</span>` : ''}</button>
-          ${ferme ? '' : `<div class="to-meds">${x.v.map(y => vign(y, 'jour:' + d)).join('')}${x.p.map(y => vign(y, 'prop:' + d)).join('')}</div>`}</div>`; }).join('')}</div></div>`; };
-    T._proposes = proposes; T._dossierDe = dossierDe;
-    z.innerHTML = `<div class="to-jours">
-      ${vrac.length ? `<div class="to-vrac"><span class="eng">Médias à ranger</span><div class="to-meds">${vrac.map(x => vign(x, 'vrac')).join('')}</div></div>` : ''}
-      <div class="ligne-titre"><span class="lb">Journées de tournage</span><span class="nt" style="margin:0 0 0 10px">Glisse un tournage dans une journée : il prend sa date, et la journée va dans le Calendrier.</span>
-        <button class="btn sm pri" id="toNvJour" style="margin-left:auto">+ Nouvelle journée</button><input type="date" id="toNvJourD" class="fld" style="width:0;padding:0;border:0;opacity:0"></div>
-      ${dates.map(jour).join('')}
-      <div class="to-jour sans" data-jour=""><div class="to-jour-t"><span class="eng">Pas encore de jour</span><span class="nt">${sans.length} tournage(s)</span></div>
-        <div class="to-jour-l">${sans.map(carte).join('') || '<span class="nt to-jour-vide">Les nouveaux tournages arrivent ici.</span>'}</div></div></div>`;
-    // glisser-déposer
-    $$('.to-carte', z).forEach(c => c.addEventListener('dragstart', e => { e.dataTransfer.setData('text/bk-tournage', c.dataset.tid); e.dataTransfer.effectAllowed = 'move'; c.classList.add('glisse'); }));
-    $$('.to-carte', z).forEach(c => c.addEventListener('dragend', () => c.classList.remove('glisse')));
-    $$('.to-jour', z).forEach(j => {
-      j.addEventListener('dragover', e => { if ([...e.dataTransfer.types].includes('text/bk-tournage')) { e.preventDefault(); j.classList.add('survol'); } });
-      j.addEventListener('dragleave', e => { if (!j.contains(e.relatedTarget)) j.classList.remove('survol'); });
-      j.addEventListener('drop', e => { e.preventDefault(); j.classList.remove('survol'); const id = e.dataTransfer.getData('text/bk-tournage'); if (id) ranger(id, j.dataset.jour); }); });
-    // les médias : on les glisse sur un tournage (→ son moodboard) ou sur une journée
-    $$('.to-med[draggable="true"]', z).forEach(m => m.addEventListener('dragstart', e => { e.stopPropagation(); e.dataTransfer.setData('text/bk-tmedia', JSON.stringify({ x: JSON.parse(m.dataset.med), src: m.dataset.src })); e.dataTransfer.effectAllowed = 'move'; }));
-    $$('.to-carte', z).forEach(c => {
-      c.addEventListener('dragover', e => { if ([...e.dataTransfer.types].includes('text/bk-tmedia')) { e.preventDefault(); e.stopPropagation(); c.classList.add('survol'); } });
-      c.addEventListener('dragleave', () => c.classList.remove('survol'));
-      c.addEventListener('drop', e => { const x = e.dataTransfer.getData('text/bk-tmedia'); if (!x) return; e.preventDefault(); e.stopPropagation(); c.classList.remove('survol'); poserMedia(JSON.parse(x), { tournage: c.dataset.tid }); }); });
-    $$('.to-jour', z).forEach(j => {
-      j.addEventListener('dragover', e => { if ([...e.dataTransfer.types].includes('text/bk-tmedia') && j.dataset.jour) { e.preventDefault(); j.classList.add('survol'); } });
-      j.addEventListener('drop', e => { const x = e.dataTransfer.getData('text/bk-tmedia'); if (!x || !j.dataset.jour) return; e.preventDefault(); j.classList.remove('survol'); poserMedia(JSON.parse(x), { jour: j.dataset.jour }); }); });
-    $$('[data-medx]', z).forEach(b => b.onclick = async e => { e.stopPropagation(); const x = JSON.parse(b.closest('.to-med').dataset.med), src = b.dataset.medx;
-      if (src.startsWith('prop:')) { T.non.add(x.id); await BK.partage.ecrire('tournage.assetsNon', [...T.non]); } else await retirerMedia(src, x); rendreJours(); });
-    $$('[data-asv]', z).forEach(b => b.onclick = async e => { e.stopPropagation(); await validerAssets(b.dataset.asv.slice(5), [JSON.parse(b.closest('.to-med').dataset.med)]); });
-    $$('[data-astout]', z).forEach(b => b.onclick = async e => { e.stopPropagation(); const [d, n] = b.dataset.astout.split('|'); await validerAssets(d, T._proposes(d).filter(x => T._dossierDe(x) === n)); });
-    $$('[data-asouv]', z).forEach(b => b.onclick = () => { const o = BK.reglage('tournage.assetsOuverts', {}); o[b.dataset.asouv] = !o[b.dataset.asouv]; BK.regler('tournage.assetsOuverts', o); rendreJours(); });
-    $$('[data-aspli]', z).forEach(b => b.onclick = () => { const p = BK.reglage('tournage.assetsPlis', {}); p[b.dataset.aspli] = !p[b.dataset.aspli]; BK.regler('tournage.assetsPlis', p); rendreJours(); });
-    $$('[data-fini]', z).forEach(b => b.onclick = () => finir(T.liste.find(x => x.id === b.dataset.fini)));
-    $$('[data-ouvre]', z).forEach(b => b.onclick = () => { T.courant = T.liste.find(x => x.id === b.dataset.ouvre); T.vue = 'fiche'; rendreListe(); rendreFiche(); });
-    $$('[data-reel]', z).forEach(b => b.onclick = () => versReels(T.liste.find(x => x.id === b.dataset.reel)));
-    $$('[data-jdb]', z).forEach(b => b.onclick = () => { const i = z.querySelector(`[data-jd="${b.dataset.jdb}"]`); try { i.showPicker(); } catch (e) { i.click(); } });
-    $$('[data-jd]', z).forEach(i => i.onchange = async () => { const de = i.dataset.jd, a = i.value; if (!a || a === de) return;
-      for (const t of T.liste.filter(x => x.date === de)) { t.date = a; await BK.db.ecrire('tournages', t); }
-      await poserJours([...T.jours.filter(x => x !== de), a]); await synchroJour(de); await synchroJour(a); msg('Journée déplacée au ' + jourFr(a)); rendreListe(); rendreJours(); });
-    $$('[data-jx]', z).forEach(b => b.onclick = async () => { const d = b.dataset.jx; if (!(await BK.confirmer(`Retirer la journée du ${jourFr(d)} ? Ses tournages reviennent dans « Pas encore de jour ».`))) return;
-      for (const t of T.liste.filter(x => x.date === d)) { t.date = ''; await BK.db.ecrire('tournages', t); }
-      await poserJours(T.jours.filter(x => x !== d)); await synchroJour(d); msg('Journée retirée'); rendreListe(); rendreJours(); });
-    $('#toNvJour').onclick = () => { const i = $('#toNvJourD'); try { i.showPicker(); } catch (e) { i.style.width = '150px'; i.style.opacity = 1; i.focus(); } };
-    $('#toNvJourD').onchange = async e => { const d = e.target.value; if (!d) return; await poserJours([...T.jours, d]); msg('Journée du ' + jourFr(d) + ' créée : glisse-y des tournages'); rendreJours(); };
-  }
+  const rendreJours = () => rendreTournages();
 
   // ---------- Imprimer / PDF ----------
   $('#toPdf').onclick = () => {

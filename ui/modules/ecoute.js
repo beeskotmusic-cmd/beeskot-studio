@@ -105,6 +105,14 @@ BK.module('ecoute', function (page) {
   // un seul mix (B = aucun) : pas de bouton A/B, pas de recalage, pas de filtres A/B
   function solo() { const un = !E.B; page.classList.toggle('ec-solo', un); if (un && E.cote === 'B') basculer('A'); }
   $('#ecMorceau').onchange = choisirMorceau;
+  // un son glissé depuis Médias : il devient la version A (ou B si A est déjà là)
+  page.addEventListener('dragover', e => { if (BK.glisse.actif()) e.preventDefault(); });
+  page.addEventListener('drop', async e => { if (!BK.glisse.actif()) return; e.preventDefault();
+    const x = BK.glisse.items.find(y => /^audio\//.test(y.mime || '') || /\.(wav|mp3|aiff?|flac|m4a|ogg)$/i.test(y.nom || ''));
+    if (!x) return msg('Ici, il faut un son'); if (x.dc) return msg('Range d\'abord ce son de Discord dans le Drive (Médias)');
+    const v = 'drive:' + x.id, c = E.A && !E.B ? 'B' : E.A && E.B ? 'B' : 'A';
+    for (const s2 of ['#ecA', '#ecB']) if (![...$(s2).options].some(o => o.value === v)) $(s2).insertAdjacentHTML('beforeend', `<option value="${esc(v)}">📂 ${esc(x.nom || 'son')}</option>`);
+    $('#ec' + c).value = v; stop(); await chargerCote(c); dessinerNotes(); msg('« ' + (x.nom || 'son') + ' » en version ' + c); });
   $('#ecA').onchange = async () => { stop(); await chargerCote('A'); dessinerNotes(); };
   $('#ecB').onchange = async () => { stop(); await chargerCote('B'); dessinerNotes(); };
 
@@ -233,7 +241,7 @@ BK.module('ecoute', function (page) {
     $$('[data-aller]', page).forEach(b => b.onclick = () => { const n = trouver(b.dataset.aller); if (n.version === E.B) basculer('B'); else if (n.version === E.A) basculer('A'); jouer(Math.max(0, n.t - 1)); });
     $$('.ec-mq', page).forEach(b => b.onclick = () => { const n = trouver(b.dataset.n); const el = $(`.ec-n[data-n="${n.id}"]`); el && el.scrollIntoView({ block: 'nearest', behavior: 'smooth' }); el && el.classList.add('flash'); setTimeout(() => el && el.classList.remove('flash'), 900); });
     $$('[data-ok]', page).forEach(b => b.onclick = async () => { const n = trouver(b.dataset.ok); n.regle = !n.regle; await BK.db.ecrire('notesmix', n); dessinerNotes(); });
-    $$('[data-x]', page).forEach(b => b.onclick = async () => { const n = trouver(b.dataset.x); if (!confirm('Retirer ta note ?')) return; E.notes = E.notes.filter(x => x !== n); await BK.db.supprimer('notesmix', n.id); dessinerNotes(); });
+    $$('[data-x]', page).forEach(b => b.onclick = async () => { const n = trouver(b.dataset.x); if (!await BK.confirmer('Retirer ta note ?')) return; E.notes = E.notes.filter(x => x !== n); await BK.db.supprimer('notesmix', n.id); dessinerNotes(); });
     $$('[data-rep]', page).forEach(b => b.onclick = () => { const f = b.closest('.ec-n').querySelector('.ec-rep-f'); f.classList.toggle('hidden'); const i = f.querySelector('input'); i.focus();
       i.onkeydown = async e => { e.stopPropagation(); if (e.key !== 'Enter' || !i.value.trim()) return; const n = trouver(b.dataset.rep);
         (n.reponses = n.reponses || []).push({ par: moi(), texte: i.value.trim(), quand: new Date().toISOString() }); await BK.db.ecrire('notesmix', n); dessinerNotes(); }; });

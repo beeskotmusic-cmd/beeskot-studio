@@ -277,7 +277,9 @@ BK.module('reelvis', function (page) {
   $('#rvInput').onchange = e => { importer(dePC(e.target.files)); e.target.value = ''; };
   page.addEventListener('dragover', e => { e.preventDefault(); ecran.classList.add('survol'); });
   page.addEventListener('dragleave', e => { if (e.target === page) ecran.classList.remove('survol'); });
-  page.addEventListener('drop', e => { e.preventDefault(); ecran.classList.remove('survol'); const fs = [...e.dataTransfer.files]; if (!fs.length) return;
+  page.addEventListener('drop', async e => { e.preventDefault(); ecran.classList.remove('survol'); let fs = [...e.dataTransfer.files];
+    if (!fs.length && BK.glisse.actif()) fs = await BK.glisse.fichiers(msg);       // venu de Médias
+    if (!fs.length) return;
     const cube = fs.find(f => /\.cube$/i.test(f.name)); if (cube) return chargerLut(cube); importer(dePC(fs)); });
 
   // ---------- couper : une bande d'images avec un bloc, comme l'Assistant audio ----------
@@ -401,7 +403,7 @@ BK.module('reelvis', function (page) {
     V.sous = m && m.sousTitres ? m.sousTitres.filter(s => V.lignes[s.i]).map(s => ({ ...s, texte: V.lignes[s.i] })) : [];
     majSous(); dessiner();
   };
-  $('#rvSousColler').onclick = () => { const t = prompt('Colle le texte (une phrase par ligne)'); if (!t) return;
+  $('#rvSousColler').onclick = async () => { const t = await BK.saisir('Colle le texte (une phrase par ligne)', '', { long: true }); if (!t) return;
     V.ficheId = null; V.lignes = t.split('\n').map(s => s.trim()).filter(Boolean); V.sous = []; majSous(); };
   $('#rvSousOn').onclick = e => { V.sousOn = !V.sousOn; e.target.classList.toggle('on', V.sousOn); dessiner(); };
   $('#rvCaler').onclick = () => {

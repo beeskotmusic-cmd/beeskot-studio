@@ -125,7 +125,7 @@ BK.module('reglages', function (page) {
       const col = v.querySelector('#rtCol').value, q = v.querySelector('#rtQuand').value;
       if (!q) return v.querySelector('#rtMsg').textContent = 'Choisis une date et une heure';
       const nom = (COLS_RETOUR.find(x => x.c === col) || {}).n;
-      if (!confirm(`Remettre « ${nom} » comme avant le ${new Date(q).toLocaleString('fr-CA')} ?`)) return;
+      if (!await BK.confirmer(`Remettre « ${nom} » comme avant le ${new Date(q).toLocaleString('fr-CA')} ?`)) return;
       const b = v.querySelector('#rtGo'), m = v.querySelector('#rtMsg');
       b.disabled = true; b.innerHTML = '<span class="spin"></span>…';
       try {
@@ -167,10 +167,10 @@ BK.module('reglages', function (page) {
           const [ms, rs, ts] = await Promise.all(['morceaux', 'reels', 'tournages'].map(c => BK.db.liste(c)));
           const n = BK.img.combienDeCopies(ms, rs, ts);
           if (!n) { rmsg('Déjà léger : toutes les photos sont lues depuis le Drive'); return; }
-          if (!confirm(`${n} photo(s) sont recopiées dans les fiches.\n\nOn les range dans le Drive (dossier « BEESKOT Studio / Images des fiches ») et les fiches gardent juste leur adresse.\nUne sauvegarde est faite avant. Rien n'est effacé.\n\nOn y va ?`)) { rmsg('Rien changé'); return; }
+          if (!await BK.confirmer(`${n} photo(s) sont recopiées dans les fiches.\n\nOn les range dans le Drive (dossier « BEESKOT Studio / Images des fiches ») et les fiches gardent juste leur adresse.\nUne sauvegarde est faite avant. Rien n'est effacé.\n\nOn y va ?`)) { rmsg('Rien changé'); return; }
           const k = await BK.img.alleger((p, nom) => rmsg(`Rangement des photos… ${Math.round(p * 100)} %`));
           rmsg(`✓ ${k} photo(s) rangée(s) dans le Drive · fiches allégées`); return; }
-        if (a === 'off') { if (confirm('Déconnecter ce PC du Drive BEESKOT ? (rien n\'est effacé)')) { BK.drive.deconnecter(); rmsg('Déconnecté'); } }
+        if (a === 'off') { if (await BK.confirmer('Déconnecter ce PC du Drive BEESKOT ? (rien n\'est effacé)')) { BK.drive.deconnecter(); rmsg('Déconnecté'); } }
       } catch (e) { console.error(e); rmsg('Problème : ' + (e.message || e)); }
       zoneDrive(); BK.etatDrive();
       if (BK.drive.derniereCarte) { const c = BK.drive.derniereCarte, dos = c.replace(/[\\/][^\\/]+$/, '');

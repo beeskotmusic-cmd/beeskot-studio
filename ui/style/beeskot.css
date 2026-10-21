@@ -1523,7 +1523,7 @@ body.miette-pense .estop.jaune::after,body.miette-scan .estop.jaune::after{opaci
 .todo-mi #taMiTexte{flex:1;min-width:0;font-size:13px}
 .todo-mi #taMiAjout{flex:none;min-width:150px;position:relative}
 /* ===== ce que Miette a proposé : vert et un peu transparent, tant que personne ne l'a validé ===== */
-.mi-prop:not(.su-aff):not(.to-med){background:rgba(111,191,90,.13)!important;box-shadow:inset 0 0 0 1px rgba(111,191,90,.55)!important;opacity:.82;color:#cfe8c2}
+.mi-prop:not(.su-aff):not(.to-med):not(.to-tph){background:rgba(111,191,90,.13)!important;box-shadow:inset 0 0 0 1px rgba(111,191,90,.55)!important;opacity:.82;color:#cfe8c2}
 .mi-prop:hover{opacity:1}
 .mi-val{flex:none;border:0;cursor:pointer;width:22px;height:22px;border-radius:5px;font:700 13px Jost,sans-serif;color:#1d2a14;background:#7fc26a;box-shadow:0 2px 0 #3f6b31}
 .mi-val:hover{background:#9bd986}
@@ -1657,3 +1657,53 @@ body.miette-pense .estop.jaune::after,body.miette-scan .estop.jaune::after{opaci
 .to-as-tete .nt{margin:0}
 .to-as-rang{display:flex;flex-wrap:wrap;gap:6px 22px;margin-top:4px}
 .to-as-dos{min-width:0}
+/* Tournages v2 : les affiches des tournages, les reels qui se déplient */
+.tt-aff{cursor:pointer;margin-bottom:10px;min-height:120px}
+.tt-aff.survol{box-shadow:inset 0 0 0 2px #ffb23e,0 8px 22px rgba(0,0,0,.5)}
+.tt-aff.passe{opacity:.65}
+.tt-reels{display:flex;flex-direction:column;gap:8px}
+.tt-reel{border-radius:7px;background:rgba(0,0,0,.18)}
+.tt-reel.ouvert{box-shadow:0 0 0 1px rgba(255,178,62,.6)}
+.tt-reel-t{cursor:pointer}
+.tt-reel-t .to-c-btns{flex-direction:row;align-items:center}
+.tt-reel-t.survol{box-shadow:0 0 0 2px #7fc26a}
+.tt-reel-corps{padding:10px 10px 4px}
+.tt-zone.survol{background:rgba(255,178,62,.1);box-shadow:inset 0 0 0 1px #ffb23e;border-radius:6px}
+.tt-tenues .to-tenue2{padding:4px}
+.to-tph[draggable="true"]{cursor:grab}
+.to-tph.mi-prop{position:relative;opacity:.85}
+.to-tph.mi-prop::after{content:'';position:absolute;inset:0;border-radius:inherit;background:rgba(111,191,90,.28);box-shadow:inset 0 0 0 1px rgba(127,194,106,.9);pointer-events:none}
+.to-tph .mi-val{position:absolute;left:3px;top:3px;width:20px;height:20px;z-index:1}
+.to-mood.survol{box-shadow:inset 0 0 0 2px #7fc26a;border-radius:6px}
+/* Bibliothèque : la petite barre du haut — l'étape en cours remplie à moitié, et le bout qui brille */
+.mini-etapes i{position:relative}
+.mini-etapes i.fait{background:var(--sc)!important;filter:none!important;opacity:.9}
+.mini-etapes i.suivante{background:rgba(255,178,62,.1)!important;box-shadow:none!important}
+.mini-etapes i.demi{background:linear-gradient(90deg,var(--sc) 0 50%,rgba(255,178,62,.1) 50%)!important;box-shadow:none!important;opacity:1}
+.mini-etapes i.bout{opacity:1}
+.mini-etapes i.bout::after{content:'';position:absolute;top:-2px;bottom:-2px;width:5px;right:-2px;border-radius:2px;background:#fff6dc;box-shadow:0 0 6px 2px var(--sc),0 0 12px 3px var(--sc);animation:boutBrille 2.2s ease-in-out infinite}
+.mini-etapes i.demi.bout::after{right:auto;left:calc(50% - 3px)}
+@keyframes boutBrille{0%,100%{opacity:.55}50%{opacity:1}}
+.pv-rot{display:flex;align-items:center;gap:8px}
+.pv-rot input[type=range]{flex:1;accent-color:#ffb23e}
+.pv-rot .vfd{min-width:48px;text-align:center;font-size:12px;padding:3px 6px}
+.pv-tel{max-height:100%}
+/* glisser un média depuis Médias : les onglets qui ne le prennent pas s'effacent */
+body.glisse-media #nav .tab[data-p]:not(.depot-ok){opacity:.28;filter:grayscale(.8)}
+body.glisse-media #nav .tab.depot-ok{box-shadow:0 0 0 2px #ffb23e,0 0 10px rgba(255,178,62,.45)}
+.bk-conf-t{white-space:pre-line}
+.bk-saisie{width:100%;min-width:320px;margin:10px 0 4px}
+/* Médias : les sons, les dossiers du Drive ajoutés */
+.md-img.son{display:grid;place-items:center;background:linear-gradient(160deg,#2a1d12,#140d08)!important}
+.md-img.son .md-ext{font-size:13px;margin-top:34px}
+.md-ecoute{position:absolute;top:50%;left:50%;transform:translate(-50%,-70%);width:40px;height:40px;border-radius:50%;border:0;cursor:pointer;background:#ffb23e;color:#241709;font:700 14px Jost,sans-serif;box-shadow:0 2px 6px rgba(0,0,0,.6)}
+.md-dos-lie .md-x{position:absolute;bottom:6px;right:6px;display:none}
+.md-dos-lie:hover .md-x{display:block}
+.md-lier{border-style:dashed!important;opacity:.85}
+.md-lier-box{width:560px;align-items:stretch;gap:10px}
+.md-lier-fil{display:flex;flex-wrap:wrap;gap:4px;align-items:center;font-size:12px}
+.md-lier-fil button{border:0;background:none;color:#ffb23e;cursor:pointer;font:600 12px Jost,sans-serif}
+.md-lier-l{display:flex;flex-direction:column;gap:4px;max-height:320px;overflow:auto;padding:4px;border-radius:6px;background:rgba(0,0,0,.25)}
+.md-lier-d{text-align:left;border:0;background:rgba(255,255,255,.03);color:var(--ink);padding:7px 10px;border-radius:4px;cursor:pointer;font:500 13px Jost,sans-serif}
+.md-lier-d:hover{background:rgba(255,178,62,.12)}
+.fiche.survol-media{box-shadow:0 0 0 2px #ffb23e!important}
