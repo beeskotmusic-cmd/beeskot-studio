@@ -24,7 +24,15 @@ BK.fichier = {
   async lireOctets(p)       { return new Uint8Array(await BK.T.fs.readFile(p)); },
   async ecrireOctets(p, o)  { return BK.T.fs.writeFile(p, o); },
   async existe(p)           { try { return await BK.T.fs.exists(p); } catch (e) { return false; } },
-  async creerDossier(p)     { if (!(await BK.fichier.existe(p))) await BK.T.fs.mkdir(p, { recursive: true }); },
+  // créer un dossier, même si tous ses parents manquent (Ableton fraîchement installé, par ex.)
+  async creerDossier(p) {
+    if (await BK.fichier.existe(p)) return;
+    try { await BK.T.fs.mkdir(p, { recursive: true }); if (await BK.fichier.existe(p)) return; } catch (e) {}
+    const bouts = String(p).split('\\'); let cur = bouts.shift();          // « C: », puis un cran à la fois
+    for (const b of bouts) { if (!b) continue; cur += '\\' + b;
+      if (!(await BK.fichier.existe(cur))) { try { await BK.T.fs.mkdir(cur); } catch (e) {} } }
+    if (!(await BK.fichier.existe(p))) throw new Error('Impossible de créer le dossier ' + p);
+  },
   async liste(p)            { try { return await BK.T.fs.readDir(p); } catch (e) { return []; } },
   async infos(p)            { try { return await BK.T.fs.stat(p); } catch (e) { return null; } },
   async deplacer(a, b)      { return BK.T.fs.rename(a, b); },

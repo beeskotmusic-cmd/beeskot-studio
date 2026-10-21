@@ -81,18 +81,27 @@ BK.ableton = {
   },
   // installe le pont dans TOUTES les User Library trouvées (Live 11, Live 12…) : rien à chercher soi-même
   async installerPont() {
-    const ul = await BK.ableton.dossierUserLibrary(); if (!ul) return null;
-    const toutes = [...new Set([ul, ...(await BK.ableton.userLibrariesAbleton())])];
+    let ul = await BK.ableton.dossierUserLibrary(); if (!ul) return null;
+    let toutes = [...new Set([ul, ...(await BK.ableton.userLibrariesAbleton())])];
     const code = await (await fetch('ableton/BEESKOT/__init__.py')).text();
-    let premier = null;
+    let premier = null, souci = null;
     for (const u of toutes) {
       const rs = BK.chemin(u, 'Remote Scripts'), dos = BK.chemin(rs, BK.ableton.NOM_PONT);
-      await BK.fichier.creerDossier(dos);
+      try { await BK.fichier.creerDossier(dos); } catch (e) { souci = e; continue; }
       await BK.fichier.ecrireTexte(BK.chemin(dos, '__init__.py'), code);
       // les anciens dossiers du pont sont mis de côté (un nom qui commence par _ est caché par Ableton) : rien n'est effacé
       for (const nom of BK.ableton.ANCIENS_PONTS) { const ancien = BK.chemin(rs, nom);
         if (await BK.fichier.existe(ancien)) { let k = BK.chemin(rs, '_BEESKOT_ancien'), n = 2; while (await BK.fichier.existe(k)) k = BK.chemin(rs, '_BEESKOT_ancien' + n++); try { await BK.fichier.deplacer(ancien, k); } catch (e) {} } }
       premier = premier || dos;
+    }
+    if (!premier) {            // aucun dossier n'a pu être créé : on demande où est la User Library
+      const d = await BK.fichier.choisirDossier('Ableton n\'a pas de dossier « User Library » ici. Montre-moi où il est (Ableton › Préférences › Library).');
+      if (!d) throw souci || new Error('Dossier Ableton introuvable');
+      BK.regler('ableton.userLibrary', d);
+      const dos = BK.chemin(d, 'Remote Scripts', BK.ableton.NOM_PONT);
+      await BK.fichier.creerDossier(dos);
+      await BK.fichier.ecrireTexte(BK.chemin(dos, '__init__.py'), code);
+      premier = dos;
     }
     return premier;
   },
