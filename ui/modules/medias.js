@@ -34,7 +34,8 @@ BK.module('medias', function (page) {
           <input type="file" id="mdInput" multiple hidden></div>
         <div class="box"><span class="lb">Drive</span>
           <span class="nt mono" id="mdChemin">—</span>
-          <button class="btn sm" id="mdOuvrirDos" style="margin-top:10px">Ouvrir ce dossier dans le Drive</button></div>
+          <button class="btn sm" id="mdOuvrirDos" style="margin-top:10px">Ouvrir ce dossier dans le Drive</button>
+          <button class="btn sm hidden" id="mdMajDc" style="margin-top:8px">↻ Recharger les images Discord</button></div>
         <div class="box"><span class="lb">Rien n'est effacé</span></div>
       </section>
     </div>
@@ -127,15 +128,17 @@ BK.module('medias', function (page) {
     $('#mdFil').innerHTML = '<span class="ex-miette">🍞 Discord · tout ce qui a été posté</span>';
     $('#mdChemin').textContent = 'Discord (pas dans le Drive)';
     $('#mdAjout').disabled = $('#mdDossier').disabled = $('#mdOuvrirDos').disabled = true;
-    $('#mdGrille').innerHTML = '<span class="nt md-vide"><span class="spin"></span>Miette regarde les salons…</span>';
+    $('#mdMajDc').classList.remove('hidden');
+    $('#mdGrille').innerHTML = '<span class="nt md-vide"><span class="spin"></span>Ouverture…</span>';
+    const pose = (l, garde) => { M.fichiers = l.map(x => ({ id: 'dc:' + x.id, name: x.nom, mimeType: x.video ? 'video/mp4' : 'image/jpeg',
+        thumbnailLink: x.apercu, webViewLink: x.lien, modifiedTime: x.t, size: x.taille, dc: x, dossiers: ['Discord', '#' + x.salon] }));
+      if (M.racine === 'discord') { rendre(); if (garde) msg('Miette regarde s\'il y a du nouveau…'); } };
     try {
       if (!M.morceaux.length) await etiquettes();
-      const l = await BK.discord.medias(5);
-      M.fichiers = l.map(x => ({ id: 'dc:' + x.id, name: x.nom, mimeType: x.video ? 'video/mp4' : 'image/jpeg',
-        thumbnailLink: x.apercu, webViewLink: x.lien, modifiedTime: x.t, size: x.taille, dc: x,
-        dossiers: ['Discord', '#' + x.salon] }));
-      if (M.racine === 'discord') rendre();
-    } catch (e) { vide(e.message || 'Discord injoignable'); }
+      const l = await BK.discord.mediasVite('media', { surMaj: pose, rafraichir: M.majDiscord });
+      M.majDiscord = false; pose(l, false);
+      if (M.racine === 'discord') msg(l.length + ' fichier(s) · gardés dans le Drive');
+    } catch (e) { if (!M.fichiers.length) vide(e.message || 'Discord injoignable'); else msg(e.message || 'Discord injoignable'); }
   }
 
   window.addEventListener('bk:annule', () => charger());   // après « ↶ Annuler » : on relit
@@ -147,6 +150,7 @@ BK.module('medias', function (page) {
     $$('#mdFil .ex-miette').forEach(b => b.onclick = () => { M.pile = M.pile.slice(0, +b.dataset.i + 1); charger(); });
     $('#mdChemin').textContent = M.pile.map(p => p.nom).join(' / ');
     $('#mdAjout').disabled = $('#mdDossier').disabled = $('#mdOuvrirDos').disabled = false;
+    $('#mdMajDc').classList.add('hidden');
     $('#mdGrille').innerHTML = '<span class="nt md-vide"><span class="spin"></span>Lecture du Drive…</span>';
     try { M.fichiers = await BK.dossiers.enfants(cur.id); if (ici() === cur) rendre(); }
     catch (e) { vide('Drive injoignable pour l\'instant.'); console.error(e); }
@@ -242,6 +246,7 @@ BK.module('medias', function (page) {
     } catch (e) { msg('Envoi impossible : ' + e.message); console.error(e); }
     M.envoi = false; charger();
   }
+  $('#mdMajDc').onclick = () => { M.majDiscord = true; chargerDiscord(); };
   $('#mdPetit').onclick = () => { M.petit = !M.petit; BK.regler('medias.petit', M.petit); rendre(!!M.filtre); };
   $('#mdCaches').onclick = () => { M.voirCaches = !M.voirCaches; msg(M.voirCaches ? 'Les fichiers masqués · ✕ pour les remettre' : 'PRÊT'); rendre(!!M.filtre); };
   $('#mdAjout').onclick = () => $('#mdInput').click();

@@ -74,6 +74,10 @@ BK.module('renforts', function (page) {
     const d = await BK.discord.config();
     $('#raJeton').placeholder = d.jeton ? '•••••••• (code enregistré)' : 'colle le code du bot ici';
     R.discord = d; rendreSalons();
+    if (d.jeton && !R.salons.length && !R.chargeSalons) {       // on va chercher TOUS les salons tout seul,
+      R.chargeSalons = true;                                     // sinon on ne voit que ceux déjà cochés
+      BK.discord.salons(d.jeton).then(l => { R.salons = l || []; rendreSalons(); }).catch(() => {}).then(() => { R.chargeSalons = false; });
+    }
     const n = (await BK.db.liste('propositions')).filter(p => p.statut === 'attente').length;
     $('#raNb').textContent = String(n).padStart(2, '0');
   }
@@ -321,7 +325,8 @@ BK.module('renforts', function (page) {
     const d = R.discord || {}, choisis = new Set((d.salons || []).map(s => s.id));
     const liste = R.salons.length ? R.salons : (d.salons || []);
     const utile = n => /mail|fiverr|ing|annonce|g[ée]n[ée]ral|vrac|[ée]v[ée]nement|logistique|tournage|projet|maquette|id[ée]e/i.test(n);
-    const oublies = liste.filter(s => !choisis.has(s.id) && /mail|fiverr/i.test(s.nom));
+    const MAIL = /mail|mel|fiverr|facture|ing[eé]|bot|chris|cracotte|miette|boite|bo[iî]te|inbox|courrier/i;
+    const oublies = liste.filter(s => !choisis.has(s.id) && MAIL.test(s.nom));
     $('#raSalons').innerHTML = (oublies.length ? `<span class="nt" style="color:#ffb23e">⚠ Coche ${oublies.map(s => '#' + esc(s.nom)).join(', ')} : c'est là qu'arrivent les mails (ingé son, factures). Miette en a besoin pour les résumés et le calendrier.</span>` : '')
       + liste.map(s => `<label class="ra-salon${utile(s.nom) ? ' utile' : ''}"><input type="checkbox" data-s="${s.id}"${choisis.has(s.id) ? ' checked' : ''}><span>#${esc(s.nom)}</span><em>${esc(s.serveur || '')}</em></label>`).join('');
     $$('#raSalons [data-s]').forEach(c => c.onchange = async () => {

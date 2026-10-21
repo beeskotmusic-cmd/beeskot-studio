@@ -123,7 +123,9 @@ BK.module('reels', function (page) {
     const m = (R.morceaux || []).find(x => x.id === $('#reMorceau').value), v = $('#reVersion'), avant = v.value;
     if (!m) { v.innerHTML = '<option value="">—</option>'; return; }
     // l'export principal de la fiche d'abord, puis ceux de ce PC, puis ceux du Drive (CL, mix, masters…)
+    // l'export ★ de la fiche vient toujours en premier : c'est lui qu'on utilise partout
     const ex = BK.inv.exportsDe(m, await BK.inv.tous(), R.morceaux).filter(f => f.ici || f.drive);
+    const i0 = ex.findIndex(f => f.chemin === m.exportPrincipal); if (i0 > 0) ex.unshift(ex.splice(i0, 1)[0]);
     const opts = ex.map(f => ({ v: f.drive ? 'drive:' + f.driveId : f.chemin, nom: f.nom, ou: f.drive ? '☁' : '💻' }));
     if (BK.drive.relie()) {
       v.innerHTML = '<option value="">recherche dans le Drive…</option>';

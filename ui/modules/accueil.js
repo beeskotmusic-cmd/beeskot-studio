@@ -14,21 +14,20 @@ BK.pourcent = m => BK.etapes.reduce((t, e, i) => t + (i < (m.fait || 0) ? e.poid
 
 (() => {
 const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
-const SUR_DRIVE = /[\\/](my drive|mon drive)[\\/]|^g:/i;
+
 
 async function donnees() {
-  const morceaux = await BK.db.liste('morceaux'), fichiers = await BK.inv.tous(), taches = await BK.db.liste('taches');
+  const morceaux = await BK.db.liste('morceaux'), taches = await BK.db.liste('taches');
   const evs = BK.agendaTous ? BK.agendaTous() : [];
   const maintenant = Date.now(), auj = new Date().toISOString().slice(0, 10);
   const next = evs.find(e => e.debut >= maintenant - 36e5) || null;
   const afaire = taches.filter(t => !t.fait).sort((a, b) => (a.date || '9').localeCompare(b.date || '9'));
   const alertes = [];
-  for (const m of morceaux.filter(m => m.statut !== 'sorti')) {
-    const als = fichiers.filter(f => f.type === 'als' && !f.sauvegarde && BK.inv.trouverMorceau(f.nom, morceaux) === m).sort((a, b) => (b.modif || '').localeCompare(a.modif || ''));
-    if (als[0] && !SUR_DRIVE.test(als[0].chemin) && !als.some(f => f.nom === als[0].nom && SUR_DRIVE.test(f.chemin)))
-      alertes.push({ led: 'red', txt: `${m.nom} : dernier projet Ableton seulement chez ${als[0].pc}, pas sur le Drive` });
+  // (on ne prévient plus « projet Ableton seulement sur ce PC » : c'est normal quand on travaille dessus)
+  for (const m of morceaux.filter(m => m.statut !== 'sorti'))
     if (m.maj && maintenant - new Date(m.maj) > 21 * 864e5) alertes.push({ led: 'amb', txt: `${m.nom} : rien n'a bougé depuis 3 semaines` });
-  }
+  const release = morceaux.filter(m => m.statut === 'prochaine' || (m.statut !== 'sorti' && m.sortie && m.sortie >= auj))
+    .sort((a, b) => (a.sortie || '9').localeCompare(b.sortie || '9') || (a.rang || 0) - (b.rang || 0));
   const ret = afaire.filter(t => t.date && t.date < auj).length;
   if (ret) alertes.push({ led: 'amb', txt: `${ret} tâche(s) en retard` });
   const props = (await BK.db.liste('propositions')).filter(p => p.statut === 'attente').length;
@@ -39,7 +38,7 @@ async function donnees() {
     { ok: !!BK.ableton.relie, txt: 'Relier Ableton', va: 'mixprep' },
     { ok: BK.drive.relie(), txt: 'Relier le Drive BEESKOT', va: 'reglages' },
   ];
-  return { next, afaire, morceaux: morceaux.filter(m => m.statut !== 'sorti'), alertes, demarrer, auj };
+  return { next, afaire, release, morceaux: morceaux.filter(m => m.statut !== 'sorti'), alertes, demarrer, auj };
 }
 
 BK.module('accueil', function (page) {
@@ -65,6 +64,10 @@ BK.module('accueil', function (page) {
               <div><span class="evt-type">${esc(t.nom)}</span><span class="nt" style="margin:2px 0 0;font-size:14px;color:var(--ink)">${esc(n.titre || '')}${n.morceau ? ' · ' + esc(n.morceau) : ''}</span></div></div>`
               : `<span class="nt">Aucun rendez-vous prévu. <a href="#" data-va="agenda">Ajouter dans le Calendrier</a></span>`}</div>
           <div class="box ac-resume" id="acResume"></div>
+          ${d.release.length ? `<div class="box ac-rel"><span class="lb">Prochaine release</span>
+            <div class="ac-rel-l">${d.release.map(m => `<button class="ac-rel-m" data-va="biblio" title="Ouvrir la Bibliothèque">
+              <span class="ac-rel-p${m.photo ? '' : ' vide'}"${m.photo ? ` style="background-image:url(${esc(m.photo)})"` : ''}>${m.photo ? '' : '♪'}</span>
+              <span class="ac-rel-n">${esc(m.nom)}</span></button>`).join('')}</div></div>` : ''}
           <div class="box grow"><div class="ligne-titre"><span class="lb">À faire</span><button class="btn xs" data-va="taches" style="margin-left:auto">Ouvrir la To-do list</button></div>
             <div class="af-liste">${d.afaire.length ? d.afaire.map(x => `<div class="af-l${x.date && x.date < d.auj ? ' retard' : ''}">
                 <button class="ta-case" data-id="${x.id}"></button><span class="af-t">${esc(x.texte)}</span>

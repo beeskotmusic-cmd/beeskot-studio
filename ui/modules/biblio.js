@@ -153,18 +153,11 @@ BK.module('biblio', function (page) {
   const lecteur = {
     audio: new Audio(), id: null, urls: {}, nom: {},
     // ce qu'on écoute : l'export principal (ce PC ou Drive), sinon le plus récent du Drive
-    async source(m) {
+    async source(m) {                                  // l'export ★ de la fiche : le même partout dans le logiciel
       const exps = BK.inv.exportsDe(m, B.fichiers, B.morceaux);
-      const ici = exps.find(x => x.ici && !x.drive), drv = exps.find(x => x.drive);
-      if (exps[0] && exps[0].drive) return { drive: exps[0].driveId, nom: exps[0].nom };
-      if (exps[0] && exps[0].ici) return { chemin: exps[0].chemin, nom: exps[0].nom };
-      if (ici) return { chemin: ici.chemin, nom: ici.nom };
-      if (drv) return { drive: drv.driveId, nom: drv.nom };
-      if (BK.drive.relie()) {
-        const parts = await BK.biblioDrive(m), son = k => ((parts.find(p => p.k === k) || {}).l || []).find(f => /\.(wav|mp3)$/i.test(f.name) && !/tournage/i.test(f.name));
-        const f = son('cl') || son('ableton') || son('ailleurs'); if (f) return { drive: f.id, nom: f.name };
-      }
-      return null;
+      const princ = exps.find(x => x.chemin === m.exportPrincipal) || exps[0];
+      if (princ) return princ.drive ? { drive: princ.driveId, nom: princ.nom } : { chemin: princ.chemin, nom: princ.nom };
+      return BK.sonDuMorceau(m, B.morceaux);
     },
     async octets(src) { return src.drive ? BK.drive.telecharger(src.drive) : BK.fichier.lireOctets(src.chemin); },
     async jouer(m, src) {

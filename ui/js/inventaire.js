@@ -81,3 +81,22 @@ BK.inv = {
     return l;
   },
 };
+
+// ---------- LE son de référence d'un morceau : l'export ★ de la Bibliothèque ----------
+// Tout le logiciel passe par ici (lecteur, Reels, suivi, analyse) : pas de recherche en double.
+BK.sonDuMorceau = async function (m, morceaux) {
+  if (!m) return null;
+  const ms = morceaux || await BK.db.liste('morceaux');
+  const exps = BK.inv.exportsDe(m, await BK.inv.tous(), ms);
+  const princ = exps.find(x => x.chemin === m.exportPrincipal) || exps[0];
+  if (princ) return princ.drive ? { drive: princ.driveId, nom: princ.nom, princ: true }
+    : { chemin: princ.chemin, nom: princ.nom, ici: princ.ici, princ: true };
+  if (!BK.drive || !BK.drive.relie()) return null;
+  // rien d'indiqué dans la fiche : on prend le meilleur export du Drive (CL d'abord)
+  await BK.dossiers.assurer();
+  const l = BK.trierStems(await BK.dossiers.duMorceau(m, ms))
+    .filter(f => !f.groupe && /\.(wav|mp3|aiff?|flac)$/i.test(f.name) && !/tournage/i.test(f.name));
+  const rang = f => ({ cl: 0, recording: 1, ableton: 2 }[f.role] ?? 3);
+  const f = l.sort((a, b) => rang(a) - rang(b) || (b.modifiedTime || '').localeCompare(a.modifiedTime || ''))[0];
+  return f ? { drive: f.id, nom: f.name } : null;
+};

@@ -856,3 +856,18 @@ body.dropping main>section:not(.hidden) .box.pick::after{content:none!important;
 .su-lect .mono{font-size:11px;color:#ffb23e}
 .su-c .su-l{display:none}
 .su-c.ouverte .su-l{display:grid}
+
+/* ---- Accueil : la petite ligne « Prochaine release » ---- */
+.ac-rel-l{display:flex;gap:14px;flex-wrap:wrap;align-items:center;margin-top:6px}
+.ac-rel-m{display:flex;align-items:center;gap:8px;background:none;border:0;padding:0;cursor:pointer;color:var(--ink);font:inherit}
+.ac-rel-p{width:34px;height:34px;flex:0 0 34px;border-radius:4px;background:#1b1713 center/cover no-repeat;
+  box-shadow:inset 0 0 0 1px rgba(255,255,255,.12),0 1px 3px rgba(0,0,0,.5);display:grid;place-items:center;font-size:14px;color:#6b6257}
+.ac-rel-n{font-size:14px;letter-spacing:.01em}
+.ac-rel-m:hover .ac-rel-n{color:var(--jaune)}
+.ac-rel-m:hover .ac-rel-p{box-shadow:inset 0 0 0 1px var(--jaune),0 1px 3px rgba(0,0,0,.5)}
+
+/* ---- Budget : rembourser sa part, mensuel / annuel ---- */
+.bu-parts{flex:0 0 100%;display:flex;flex-wrap:wrap;gap:6px;margin:6px 0 2px;padding-left:2px}
+.bu-cad{display:block;font:600 9px/1 var(--eng,inherit);letter-spacing:.14em;text-transform:uppercase;color:#8a7f70;margin:10px 0 4px}
+.bu-cad:first-child{margin-top:0}
+.bu-v>.vfd{margin-left:4px}

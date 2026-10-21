@@ -223,6 +223,69 @@ Si rien n'est décidé, réponds [].`;
     return out.sort((a, b) => b.t.localeCompare(a.t));
   },
 
+  // ---------- la liste des médias est gardée dans le Drive : l'ouverture est immédiate ----------
+  // On ne redemande à Discord que les messages ARRIVÉS DEPUIS la dernière fois.
+  async mediasGardes(quoi = 'media') {
+    const d = (await BK.db.liste('veille')).find(x => x.id === 'medias-' + quoi);
+    return d || { id: 'medias-' + quoi, l: [], apres: {}, t: 0 };
+  },
+  async mediasNeufs(doc, quoi = 'media') {
+    const c = await BK.discord.config(); if (!c.jeton) throw new Error('Règle d\'abord Miette (code du bot) dans Réglages');
+    let salons = [];
+    try { salons = (await BK.discord.salons(c.jeton)).filter(x => !x.forum); } catch (e) { salons = c.salons || []; }
+    const rangMedia = s => /m[ée]dia/i.test(s.nom) ? 0 : /photo|video|vid[ée]o|outfit|tournage|shoot/i.test(s.nom) ? 1 : 9;
+    const rangAudio = s => /maquette|mix|master|export|able|drum|record|son/i.test(s.nom) ? 0 : /m[ée]dia|projet|vrac|g[ée]n[ée]ral/i.test(s.nom) ? 1 : 9;
+    const rang = quoi === 'audio' ? rangAudio : rangMedia;
+    salons = salons.filter(x => rang(x) < 9).sort((a, b) => rang(a) - rang(b)).slice(0, quoi === 'audio' ? 6 : 4);
+    const estBon = a => quoi === 'audio'
+      ? (/^audio\//.test(a.content_type || '') || /\.(wav|mp3|aiff?|flac|m4a|ogg)$/i.test(a.filename))
+      : (/^(image|video)\//.test(a.content_type || '') || /\.(jpe?g|png|webp|heic|mp4|mov|m4v|webm)$/i.test(a.filename));
+    const out = [], apres = { ...(doc.apres || {}) };
+    for (const s of salons) {
+      const depuis = apres[s.id];
+      let avant = null, tours = depuis ? 1 : 4, vus = 0;
+      for (let p = 0; p < tours; p++) {
+        const l = await BK.discord.api(`/channels/${s.id}/messages?limit=100${depuis && !avant ? '&after=' + depuis : avant ? '&before=' + avant : ''}`, c.jeton).catch(() => []);
+        if (!l.length) break;
+        if (!vus) apres[s.id] = l[0].id;                      // le plus récent vu dans ce salon
+        vus += l.length; avant = l[l.length - 1].id;
+        for (const m of l) for (const a of m.attachments || []) if (estBon(a))
+          out.push({ id: a.id, nom: a.filename, url: a.url, apercu: a.proxy_url, video: /^video|\.(mp4|mov|m4v|webm)$/i.test(a.content_type || a.filename), taille: a.size,
+            t: m.timestamp, salon: s.nom, qui: BK.discord.prenom(m.author, m.member && m.member.nick, c.membres), texte: (m.content || '').slice(0, 120),
+            lien: `https://discord.com/channels/${s.gid || '@me'}/${m.channel_id}/${m.id}` });
+        if (depuis && l.length === 100) tours++;               // beaucoup de nouveautés : on continue
+      }
+    }
+    return { out, apres };
+  },
+  // les liens Discord expirent : on les redemande (1 appel pour 50 fichiers)
+  async rafraichirLiens(l) {
+    const c = await BK.discord.config(); if (!c.jeton || !l.length) return l;
+    for (let i = 0; i < l.length; i += 50) {
+      const lot = l.slice(i, i + 50);
+      try {
+        const r = await BK.discord.fetch(BK.discord.API + '/attachments/refresh-urls',
+          { method: 'POST', headers: { Authorization: 'Bot ' + c.jeton, 'Content-Type': 'application/json' }, body: JSON.stringify({ attachment_urls: lot.map(x => x.url) }) });
+        const j = await r.json();
+        (j.refreshed_urls || []).forEach((u, k) => { if (u && u.refreshed) { lot[k].url = u.refreshed; lot[k].apercu = u.refreshed; } });
+      } catch (e) { /* tant pis : on gardera les anciens liens */ }
+    }
+    return l;
+  },
+  // la liste complète : d'abord ce qui est gardé, puis les nouveautés
+  async mediasVite(quoi = 'media', { surMaj = null, rafraichir = false } = {}) {
+    const doc = await BK.discord.mediasGardes(quoi);
+    const vieux = Date.now() - (doc.t || 0) > 12 * 3600e3;
+    if (doc.l.length && surMaj) surMaj(doc.l, true);                     // tout de suite : la liste gardée
+    const { out, apres } = await BK.discord.mediasNeufs(doc, quoi);
+    const vus = new Set(doc.l.map(x => x.id));
+    const tout = [...out.filter(x => !vus.has(x.id)), ...doc.l].sort((a, b) => (b.t || '').localeCompare(a.t || '')).slice(0, 600);
+    if (rafraichir || vieux || out.length) await BK.discord.rafraichirLiens(tout.slice(0, 150));
+    Object.assign(doc, { l: tout, apres, t: Date.now() });
+    await BK.db.ecrire('veille', doc, { sansAnnuler: true });
+    return tout;
+  },
+
   // ---------- PLANNING : les dates dont on a parlé (validées ou juste possibles) → le Calendrier ----------
   async planning() {
     if (!(await BK.ia.pret())) throw new Error('Il faut la clé Gemini et l\'AI allumée');

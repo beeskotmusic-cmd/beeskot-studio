@@ -128,15 +128,12 @@ BK.module('suivi', function (page) {
       if (!url) {
         const a = audioDe(r);
         if (a && (BK.reelsExports || {})[a.id]) url = BK.reelsExports[a.id];
-        else if (a && a.chemin && BK.estExe) url = URL.createObjectURL(new Blob([await BK.fichier.lireOctets(a.chemin)], { type: 'audio/wav' }));
-        else if (m && BK.drive.relie()) {
-          await BK.dossiers.assurer();
-          const l = BK.trierStems(await BK.dossiers.duMorceau(m, R.morceaux)).filter(f => !f.groupe && /\.(wav|mp3|aiff?|flac)$/i.test(f.name) && !/tournage/i.test(f.name));
-          const rang = f => ({ cl: 0, recording: 1, ableton: 2 }[f.role] ?? 3);
-          const f = l.sort((x, y) => rang(x) - rang(y) || (y.modifiedTime || '').localeCompare(x.modifiedTime || ''))[0];
-          if (!f) return msg('Aucun export à écouter pour ' + (m ? m.nom : 'ce reel'));
-          msg('Téléchargement de ' + f.name + '…');
-          url = URL.createObjectURL(new Blob([await BK.drive.telecharger(f.id)], { type: 'audio/wav' }));
+        else {                                          // sinon : l'export ★ de la fiche du morceau
+          const src = await BK.sonDuMorceau(m, R.morceaux);
+          if (!src) return msg('Aucun export dans la fiche de ' + (m ? m.nom : 'ce morceau'));
+          msg('Chargement de ' + src.nom + '…');
+          const oct = src.drive ? await BK.drive.telecharger(src.drive) : await BK.fichier.lireOctets(src.chemin);
+          url = URL.createObjectURL(new Blob([oct], { type: 'audio/wav' }));
         }
         if (!url) return msg('Aucun son à écouter : choisis le passage dans Reels Audio');
         sources[r.id] = url;
