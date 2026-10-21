@@ -12,7 +12,7 @@ BK.module('reglages', function (page) {
           <button class="btn sm" id="rgGuide" style="margin-top:8px;align-self:flex-start">🍞 Revoir le guide de démarrage</button></div>
         <div data-rgo="aide" class="box"><span class="lb">Version du logiciel</span>
           <span class="vfd" style="margin-top:6px;align-self:flex-start">${String(BK.version || '').replace(/[<>&]/g, '')}</span>
-          <button class="btn sm" id="rgMaj" style="margin-top:8px">⬇ Chercher une mise à jour</button>
+          <button class="btn sm" id="rgMaj" style="margin-top:8px">🔍 Vérifier les mises à jour</button>
           <span class="nt" id="rgMajTxt">Le logiciel regarde tout seul au démarrage, puis toutes les 20 minutes.</span></div>
         <div data-rgo="pc" class="box"><span class="lb">Qui utilise cet ordinateur ?</span>
           <span class="nt">Ton prénom (Yacine, Pierre, Baptiste) ou « Studio ». C'est à ce nom que partent les tâches que tu coches et les reels que tu fais avancer.</span>
@@ -55,15 +55,7 @@ BK.module('reglages', function (page) {
     BK.construireMenu(); BK.ouvrir('reglages');
     $('#rgMsg', page).textContent = (o.titre + (v ? ' AFFICHÉ' : ' CACHÉ')).toUpperCase();
   });
-  $('#rgMaj', page).onclick = async () => {
-    const b = $('#rgMaj', page), t = $('#rgMajTxt', page);
-    b.disabled = true; b.innerHTML = '<span class="spin"></span>Recherche…';
-    const avant = BK.majDispo;
-    try { await BK.verifierMaj(); } catch (e) {}
-    if (BK.majDispo && BK.majDispo !== avant || BK.majDispo) { t.textContent = 'Version ' + BK.majDispo.version + ' trouvée : clique sur le ❓ en haut pour l\'installer.'; t.style.color = '#ffb23e'; }
-    else { t.textContent = 'Tu as déjà la dernière version.'; t.style.color = ''; }
-    b.disabled = false; b.textContent = '⬇ Chercher une mise à jour';
-  };
+  $('#rgMaj', page).onclick = () => BK.verifierMajBouton($('#rgMaj', page), $('#rgMajTxt', page));
   $('#rgNouveau', page).onclick = () => BK.nouveautes.montrer(BK.NOUVEAUTES.slice(0, 3));
   $('#rgTuto', page).onclick = () => BK.nouveautes.tuto();
   $('#rgGuide', page).onclick = () => BK.bienvenue.ouvrir(true);

@@ -1195,3 +1195,18 @@ body.dropping main>section:not(.hidden) .box.pick::after{content:none!important;
 .mt-o button:hover{color:#ffb23e}
 .mt-tab{margin-top:4px}
 .mt-tab .rv-glisse{width:64px}
+
+/* tuto : à quoi ça sert, comment faire (questions qui s'ouvrent), bon à savoir, recherche */
+.tu-box{width:880px}
+.tu-c{max-height:62vh;overflow:auto;padding-right:6px}
+.tu-c p.tu-quoi{font-size:13.5px;color:#e9dcc2;padding:8px 10px;border-radius:6px;background:rgba(255,178,62,.07);border-left:3px solid #ffb23e}
+.tu-t{margin-top:8px;font-size:9.5px;color:#8a7f70}
+.tu-q{border-radius:6px;background:rgba(239,230,210,.05)}
+.tu-q summary{cursor:pointer;padding:7px 10px;font:600 13px Jost,sans-serif;color:var(--ink);list-style:none}
+.tu-q summary::before{content:'▸ ';color:#ffb23e}
+.tu-q[open] summary::before{content:'▾ '}
+.tu-q summary:hover{color:#ffb23e}
+.tu-q p{padding:0 12px 9px 24px;color:#d8ccb4!important}
+.tu-q p b{font:inherit;color:#ffb23e;margin:0}
+.tu-c p.tu-a{font-size:12.5px;color:#cbbfa8}
+.tu-cherche{height:30px;font-size:12px;margin-bottom:6px}

@@ -171,8 +171,12 @@ Si rien n'est décidé, réponds [].`;
     const m = BK.inv.trouverMorceau(q, ms); if (m) mots.push(...[m.nom, ...(m.alias || [])].map(x => n(x).replace(/ /g, '')));
     const pertinents = mots.length ? j.filter(l => { const t = n(l.txt + ' ' + l.pj).replace(/ /g, ''); return mots.some(w => t.includes(w.replace(/ /g, ''))); }) : [];
     const choisis = [...new Map([...pertinents.slice(-250), ...j.slice(-150)].map(l => [l.id, l])).values()].sort((a, b) => a.t.localeCompare(b.t));
-    const systeme = 'Tu es l\'assistant du groupe BEESKOT. Réponds en français, très simplement, en 1 à 5 phrases, en t\'appuyant sur les messages Discord et les infos du logiciel. Donne les dates et qui l\'a dit. Si tu ne trouves pas, dis-le franchement.';
-    return BK.ia.demander(`${await BK.ia.contexte()}\n\nMessages Discord utiles (du plus ancien au plus récent) :\n${BK.discord.texte(choisis) || '(aucun message lu pour l\'instant)'}\n\nQuestion : ${q}`, { systeme, temperature: 0.2, vite: true, delai: 60 });
+    const systeme = 'Tu es Miette, l\'assistante du groupe BEESKOT et du logiciel BEESKOT Studio. Réponds en français, très simplement, en 1 à 6 phrases. '
+      + 'Si la question porte sur le groupe : appuie-toi sur les messages Discord et les infos du logiciel, donne les dates et qui l\'a dit. '
+      + 'Si la question porte sur le LOGICIEL (comment faire, où trouver, à quoi sert un bouton, un problème) : réponds avec le GUIDE DU LOGICIEL ci-dessous, pas à pas (onglet → bouton → …), avec les noms exacts des boutons. '
+      + 'Si tu ne trouves pas, dis-le franchement et propose « 🔧 Améliorer BEESKOT Studio » pour prévenir Dari.';
+    const guide = BK.nouveautes && BK.nouveautes.texteGuide ? '\n\nGUIDE DU LOGICIEL BEESKOT STUDIO (version ' + BK.version + ') :\n' + BK.nouveautes.texteGuide() : '';
+    return BK.ia.demander(`${await BK.ia.contexte()}${guide}\n\nMessages Discord utiles (du plus ancien au plus récent) :\n${BK.discord.texte(choisis) || '(aucun message lu pour l\'instant)'}\n\nQuestion : ${q}`, { systeme, temperature: 0.2, vite: true, delai: 60 });
   },
 
   // ---------- la consigne du résumé de la semaine (Accueil) : la même pour le bouton jaune et pour ↻ ----------

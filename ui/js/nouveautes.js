@@ -3,6 +3,11 @@
 // Pour une nouvelle version : ajouter un bloc EN HAUT de la liste. Une ligne courte par point : « Onglet : ce qui change. »
 // =====================================================================
 BK.NOUVEAUTES = [
+  { v: '0.9.53', titre: '', l: [
+    ['🔍', 'Bouton rouge (?) : vérifier les mises à jour.'],
+    ['📖', 'Tuto : pas à pas, questions fréquentes, recherche.'],
+    ['🍞', 'Miette : répond aux questions sur le logiciel.'],
+  ] },
   { v: '0.9.52', titre: '', l: [
     ['⚡', 'Démarrage : le logiciel s\'ouvre plus vite.'],
     ['🟢', 'Bandeau : ONLINE se met à jour quand on ouvre ou ferme le logiciel.'],
@@ -43,83 +48,146 @@ BK.NOUVEAUTES = [
 ];
 
 // =====================================================================
-// LE TUTO — tout le logiciel, onglet par onglet, une ligne par fonction.
+// LE TUTO — tout le logiciel, onglet par onglet : à quoi ça sert, comment faire (pas à pas), bon à savoir.
+// + une FAQ. Miette le lit aussi pour répondre aux questions sur le logiciel.
 // À METTRE À JOUR à chaque push si une fonction apparaît, change ou disparaît.
+//   o : nom de l'onglet · quoi : à quoi il sert · comment : [question, réponse pas à pas] · astuces : petites phrases
 // =====================================================================
 BK.TUTO = [
-  { o: 'Partout', ic: '🍞', l: [
-    'Bouton jaune (biscotte) : Miette relit Discord et le Drive, et remplit tous les onglets.',
-    'Bouton rouge (?) : version, mises à jour, relancer, fermer.',
-    'ONLINE (en haut) : qui est connecté. EN CE MOMENT (en bas) : ce que font les autres.',
-    'Ctrl + Z : annule la dernière action.',
-    'Tout est enregistré sur le Drive et arrive sur les autres PC en moins d\'une minute.',
-    'Chaque titre du menu de gauche se replie d\'un clic.' ] },
-  { o: 'Accueil', ic: '🏠', l: [
-    'Le prochain rendez-vous, ce qu\'on s\'est dit cette semaine sur Discord, la prochaine release.',
-    'À faire : coche une case pour dire que c\'est fait.',
-    'À droite : l\'avancement de chaque morceau, et les alertes.' ] },
-  { o: 'Miette AI', ic: '🍞', l: [
-    'Pose une question à Miette sur le groupe.',
-    '« Ce que Miette a lu » : les salons Discord lus, et les mails recopiés par les bots (🤖).',
-    'À valider : ce que Miette a repéré sur Discord (tâches, dates, dépenses).',
-    'Améliorer BEESKOT Studio : écris ou dicte un problème, Miette en fait une note.' ] },
-  { o: 'Bibliothèque', ic: '🎵', l: [
-    'Next release, Work in progress, Sortis : glisse une fiche pour changer son statut ou son ordre.',
-    '★ sur un export : c\'est LE bon fichier du morceau, utilisé partout.',
-    'Clique la photo d\'une fiche pour la changer.',
-    '🏷 Étiqueté BEESKOT : tout ce qui concerne le morceau (audio, projets, photos).',
-    'BPM : ce que vous écrivez passe avant Discord, Ableton et la détection.',
-    'Avancement : une couleur par étape (maquette rouge, enregistrement orange, mixage jaune…).',
-    '🍞 Vérifier les infos des morceaux : Miette remet les BPM dits sur Discord.' ] },
-  { o: 'Médias', ic: '🖼', l: [
-    'Tous les dossiers du Drive, plus Discord (pas sur le Drive).',
-    'Clic = choisir, Ctrl+clic = en ajouter, Maj+clic = toute une suite.',
-    'Clic droit : les étiquettes, en cascade (Morceaux ▸, Tournage ▸, Réseaux ▸).',
-    'Ou glisse les photos sur une étiquette en bas.',
-    '− + : taille des vignettes. 🙈 : les fichiers masqués.',
-    'Discord : chargé une fois, puis ↻ Actualiser Discord (à droite) pour les nouvelles images.' ] },
-  { o: 'Reels', ic: '🎬', l: [
-    'Un poster par reel : clique pour voir l\'audio, les médias, le moodboard, le tournage.',
-    'Le nom court du poster (ex. Reel 1) se change en haut du panneau.',
-    '🖼 sur le poster : changer l\'image. ↺ : revenir à l\'image automatique.',
-    'Sortie prévue : la date va dans le Calendrier.',
-    'Les 5 étapes (Idée → Publié) : chaque étape faite va dans la To-do de la personne.' ] },
-  { o: 'Calendrier', ic: '📅', l: [
-    'Les rendez-vous du groupe, et ceux que Miette a lus sur Discord.' ] },
-  { o: 'To-do list', ic: '✅', l: [
-    'Glisse une tâche dans le panier de quelqu\'un, ou dans « Déjà fait ».',
-    'Miette propose : les tâches repérées sur Discord.' ] },
-  { o: 'Budget', ic: '💰', l: [
-    '↩ Ma part : tu as remboursé ta part d\'une dépense.',
-    'Chaque mois / chaque année : les abonnements et le loyer reviennent tout seuls.',
-    'Remboursements : qui fait un virement à qui.' ] },
-  { o: 'Tournages', ic: '🎥', l: [
-    'Une fiche par tournage. Chaque encadré se replie d\'un clic sur son titre.',
-    'Moodboard : ＋ Ajouter des images (étiquetées, cloud ou Discord), étiquetées toutes seules.',
-    'Références : colle des liens Instagram, TikTok, YouTube…',
-    'Tenues : une photo par personne. 🍞 Qui porte quoi ? les trouve sur Discord.',
-    'Imprimer / PDF : la fiche à donner à l\'équipe.' ] },
-  { o: 'Ableton Live', ic: '🎛', l: [
-    'Relie Ableton (A BEESKOT dans Control Surface), puis renomme, colore, gèle et zippe pour le mixage.',
-    'Le tempo lu dans Ableton va dans la fiche du morceau.' ] },
-  { o: 'Reels Audio', ic: '🎧', l: [
-    'Choisis un morceau (le ★ de la Bibliothèque), un passage, sa durée, la vitesse de tournage.',
-    'Exporter : le fichier MONTAGE, et le fichier TOURNAGE si la vitesse change.',
-    'Après l\'export : 📂 Ouvrir le dossier, ⇪ Upload Drive.' ] },
-  { o: 'Reels Photo', ic: '📸', l: [
-    'Ajoute des photos, choisis le format (story 9:16 par défaut, 4:5, carré, paysage).',
-    'Cadrage : Entière, Remplir, Centrer. Couleur : un filtre ou ta LUT. Effet : vintage, grain, VHS…',
-    'Exporter : 📂 Ouvrir le dossier, ⇪ Upload Drive.' ] },
-  { o: 'Reels Vidéo', ic: '🎞', l: [
-    'Une vidéo verticale avec la musique d\'un export Reels Audio (ou de ce PC), et des sous-titres.',
-    '🖼 Photos et vidéos… : mélange-les, une durée et une animation par fichier, une transition, un effet vintage, puis « Importer ».',
-    'Cadrage (Entière, Remplir, Centrer), Couleur + Intensité, Effet : comme dans Reels Photo.' ] },
-  { o: 'Réglages', ic: '⚙', l: [
-    'En onglets : Aide, Ce PC, Onglets, Miette & Discord, Drive, Ableton.',
-    'Qui utilise ce PC, taille de l\'interface, onglets affichés.',
-    'Drive : carte d\'accès pour les autres PC, ⏪ Time Machine pour revenir en arrière.',
-    'Drive : 🪶 Alléger les fiches range les vieilles photos dans le Drive (une seule fois suffit).',
-    'Miette : la clé Gemini et les salons Discord à lire.' ] },
+  { o: 'Pour commencer', ic: '👋', quoi: 'BEESKOT Studio rassemble tout le travail du groupe : morceaux, photos, reels, tournages, rendez-vous, tâches, budget. Tout est rangé dans le Google Drive BEESKOT, donc chaque membre voit la même chose sur son PC.',
+    comment: [
+      ['Relier un nouveau PC', 'Demande à Dari la « carte d\'accès » (un petit fichier, envoyé en message privé) → Réglages › Drive › Importer une carte d\'accès → choisis le fichier. C\'est fini : le Drive et Miette sont reliés.'],
+      ['Dire qui utilise ce PC', 'Clique la case « PC : » en haut à droite (ou Réglages › Ce PC) → choisis Yacine, Pierre, Baptiste ou Studio. C\'est ce nom qui apparaît dans ONLINE et sur ce que tu fais.'],
+      ['Mettre à jour le logiciel', 'Quand une version sort, une fenêtre s\'ouvre toute seule : « Installer maintenant ». Pour vérifier toi-même : bouton rouge (?) en haut → 🔍 Vérifier les mises à jour.'],
+      ['Annuler une erreur', 'Ctrl + Z annule la dernière action. Pour revenir plus loin en arrière (des heures, des jours) : Réglages › Drive › ⏪ Time Machine.'] ],
+    astuces: [
+      'Bouton jaune (la biscotte) : Miette relit Discord, les mails et le Drive, et prépare tous les onglets.',
+      'Bouton rouge (?) : version, mises à jour, nouveautés, relancer, fermer.',
+      'ONLINE (en haut) : qui est connecté. EN CE MOMENT (en bas de chaque page) : ce que font les autres.',
+      'Ce que tu fais arrive sur les autres PC en moins d\'une minute.',
+      'Chaque titre du menu de gauche (Audiovisuel, Organisation…) se replie d\'un clic.' ] },
+  { o: 'Accueil', ic: '🏠', quoi: 'Le résumé du moment : le prochain rendez-vous, ce qui s\'est passé cette semaine (Discord et mails), la prochaine sortie et ce qu\'il reste à faire.',
+    comment: [
+      ['Mettre le résumé de la semaine à jour', 'Clique ↻ dans la case « Cette semaine », ou la biscotte jaune. Miette relit les messages et les mails des 7 derniers jours.'],
+      ['Cocher une tâche faite', 'Dans « À faire », coche la case : elle passe dans « Déjà fait » de la To-do list.'] ],
+    astuces: [
+      'Le résumé a 4 parties : ce qu\'on s\'est dit, 📬 les mails, 📈 où on en est, ce qui ressort à faire.',
+      'Prochaine release : les 2 prochains morceaux qui sortent, avec leur avancement.' ] },
+  { o: 'Miette AI', ic: '🍞', quoi: 'Miette est l\'assistante du groupe. Elle lit Discord (et les mails recopiés par le bot), répond aux questions et propose des tâches, des dates et des dépenses.',
+    comment: [
+      ['Poser une question', 'Écris ta question (« quand est le tournage de Mother ? », « comment on exporte un reel ? ») → Demander. Miette répond avec les messages Discord et ce qu\'elle sait du logiciel.'],
+      ['Valider ce que Miette a repéré', 'Dans « À valider » : ✓ pour accepter (ça va dans la To-do, le Calendrier ou le Budget), ✕ pour refuser.'],
+      ['Signaler un problème ou une idée', 'Choisis « 🔧 Améliorer BEESKOT Studio » → écris ou 🎤 dicte ce qui ne va pas → Ranger en note. Dari récupère toutes les notes d\'un coup.'],
+      ['Choisir les salons Discord à lire', 'Réglages › Miette & Discord → coche les salons (pense au salon des mails).'] ],
+    astuces: [
+      '« 👁 Ce que Miette a lu » : la liste des salons et des mails qu\'elle a vraiment lus.',
+      'Miette ne crée jamais rien toute seule : elle propose, vous acceptez.',
+      'Il faut la clé Gemini (gratuite) et l\'interrupteur « AI Miette activée » allumé en bas du menu.' ] },
+  { o: 'Bibliothèque', ic: '🎵', quoi: 'Une fiche par morceau : ses exports audio, ses projets Ableton, ses paroles, sa photo, son tempo et son avancement (maquette → sortie).',
+    comment: [
+      ['Créer une fiche', '« + Fiche » en haut, ou « Scanner ce PC » / Drive : le logiciel trouve les fichiers pas encore reliés et propose de créer les fiches.'],
+      ['Choisir le bon export d\'un morceau', 'Ouvre la fiche → clique ☆ à côté de l\'export : il devient ★. C\'est lui qu\'utilisent Reels Audio et les autres onglets.'],
+      ['Changer l\'avancement', 'Ouvre la fiche → clique l\'étape (maquette, enregistrement, mixage, master, sortie, promo).'],
+      ['Changer la photo', 'Clique la photo de la fiche → une photo étiquetée, du Drive ou de ce PC. Elle reste dans le Drive : la fiche garde juste son adresse.'],
+      ['Mettre le bon BPM', 'Écris-le dans la fiche : ce que vous écrivez passe avant tout. Sinon : 🎛 Ableton (le tempo du projet), ou 🍞 Vérifier les infos des morceaux (ce qui a été dit sur Discord).'],
+      ['Copier les paroles pour le distributeur', 'Ouvre la fiche → Paroles → Copier pour le distributeur.'] ],
+    astuces: [
+      'Next release, Work in progress, Sortis : glisse une fiche pour changer son statut ou son ordre.',
+      '🏷 Étiqueté BEESKOT : tout ce qui concerne le morceau (audio, projets, photos), rangé par type.',
+      'Une couleur par étape : maquette rouge, enregistrement orange, mixage jaune, master bleu-vert, sortie bleu, promo vert.' ] },
+  { o: 'Médias', ic: '🖼', quoi: 'Toutes les photos et vidéos du groupe : les dossiers du Drive, plus celles postées sur Discord. On les range avec des étiquettes (un morceau, un tournage, Instagram…), sans jamais déplacer les fichiers.',
+    comment: [
+      ['Étiqueter des photos', 'Choisis les photos (clic, Ctrl+clic pour en ajouter, Maj+clic pour une suite) → clic droit → Morceaux ▸ / Tournage ▸ / Réseaux ▸ → l\'étiquette. Ou glisse-les sur une étiquette dans la barre du bas.'],
+      ['Retrouver les photos d\'un morceau', 'Menu « Voir » en haut → choisis le morceau ou l\'étiquette.'],
+      ['Ajouter des photos de ce PC', 'Ouvre le dossier du Drive voulu → glisse les fichiers sur la page, ou « + Choisir des fichiers ». Ils partent dans ce dossier du Drive.'],
+      ['Laisser Miette étiqueter', '🍞 Étiqueter avec Miette (à droite) : elle regarde les photos sans étiquette et propose où les ranger.'] ],
+    astuces: [
+      'Médias s\'ouvre toujours sur « Tous les dossiers ». La flèche ⬆ remonte d\'un dossier.',
+      'Discord (pas sur le Drive) : chargé une fois, puis ↻ Actualiser Discord pour les nouvelles images.',
+      '− + : taille des vignettes. 🙈 : voir les fichiers masqués. ▾ : replier la barre des étiquettes.' ] },
+  { o: 'Reels', ic: '🎬', quoi: 'Le suivi de chaque reel : un poster par reel, avec son audio, ses médias, son moodboard, son tournage et où il en est (Idée → Publié).',
+    comment: [
+      ['Créer un reel', 'À droite, « Nouveau reel » : choisis le morceau → + Créer le reel. Un poster apparaît.'],
+      ['Voir et régler un reel', 'Clique le poster : le panneau s\'ouvre dessous (audio, médias, moodboard, tournage). Change le nom court en haut du panneau.'],
+      ['Changer l\'image du poster', '🖼 sur le poster → une image étiquetée, du cloud ou de Discord. ↺ revient à l\'image automatique.'],
+      ['Prévoir la date de sortie', 'Dans le panneau : Sortie prévue → la date va toute seule dans le Calendrier.'] ],
+    astuces: [ 'Chaque étape cochée (Idée, Audio, Tourné, Monté, Publié) va dans la To-do de la personne.' ] },
+  { o: 'Calendrier', ic: '📅', quoi: 'Les rendez-vous du groupe (tournages, shootings, enregistrements, sorties…), les tâches avec une date, et les dates que Miette a repérées sur Discord et dans les mails.',
+    comment: [
+      ['Ajouter un rendez-vous', 'Clique le jour → remplis type, titre, heure, lieu → + Ajouter. « Ajouter à Google Agenda ↗ » le met aussi dans Google.'],
+      ['Garder une date repérée par Miette', 'Dans « Repéré par Miette » : ✎ remplit le formulaire → vérifie → + Ajouter. ✕ l\'ignore pour de bon.'],
+      ['Comprendre pourquoi une date manque', 'Regarde la ligne « 🍞 Dernière lecture » : combien de messages et de mails Miette a lus, combien de dates elle a trouvées. 0 mail = le salon des mails n\'est pas coché dans Réglages.'] ],
+    astuces: [ 'Pointillés = date possible (pas encore décidée). Trait plein = décidé.', '🍞 Lire Discord et placer les dates : relit tout de suite, sans attendre la biscotte.' ] },
+  { o: 'To-do list', ic: '✅', quoi: 'Qui fait quoi : un panier par membre, plus « BEESKOT » (tout le groupe) et « Déjà fait ».',
+    comment: [
+      ['Ajouter une tâche', 'Écris-la en haut (morceau et date si besoin) → + Ajouter ou Entrée. Elle arrive dans « Tâches en vrac ». Avec une date, elle apparaît aussi dans le Calendrier.'],
+      ['Donner une tâche à quelqu\'un', 'Attrape la tâche et lâche-la dans son panier.'],
+      ['Marquer comme fait', 'Glisse-la dans « Déjà fait », ou coche-la dans l\'Accueil.'] ],
+    astuces: [ 'Miette propose : les tâches repérées sur Discord et dans les mails, à accepter ou non.' ] },
+  { o: 'Budget', ic: '💰', quoi: 'Les dépenses du groupe, qui a payé, et les remboursements entre vous.',
+    comment: [
+      ['Noter une dépense', 'Titre, montant, qui a payé, pour qui → + Ajouter la dépense.'],
+      ['Dire que j\'ai remboursé ma part', 'Sur la dépense : ↩ Ma part. (Ça utilise le nom de ce PC : règle-le en haut à droite.)'],
+      ['Ajouter un abonnement', '↻ Chaque mois ou ↻ Chaque année : il revient tout seul. « Arrêter » pour le stopper.'],
+      ['Voir qui doit rembourser qui', 'Encadré « Remboursements » : qui fait un virement à qui. ✓ Virement fait quand c\'est payé.'] ],
+    astuces: [ 'Les petites sommes (moins de 0,50 $) sont ignorées.' ] },
+  { o: 'Tournages', ic: '🎥', quoi: 'Une fiche par tournage ou shooting : l\'idée, le moodboard, des références, le découpage plan par plan, les tenues, le matériel. On l\'imprime en PDF pour l\'équipe.',
+    comment: [
+      ['Créer un tournage', '+ Nouveau tournage (à droite) → titre, type (Clip, Reel, Shooting), morceau, date, lieu. 📅 Mettre au Calendrier pour la date.'],
+      ['Remplir le moodboard', '＋ Ajouter des images → étiquetées pour ce tournage, tout le cloud ou Discord. Elles sont étiquetées « moodboard » toutes seules. 💻 Ce PC pour des images de ton ordinateur.'],
+      ['Ajouter les tenues', '＋ Photo sous le nom de chacun, ou 🍞 Qui porte quoi ? pour que Miette trouve les photos de tenues sur Discord.'],
+      ['Faire le découpage', '+ Ajouter un plan pour chaque plan (cadrage, ce qu\'on voit, durée), ou demande à Miette de proposer un découpage.'],
+      ['Imprimer la fiche', 'Imprimer / PDF → « Enregistrer au format PDF » ou ton imprimante.'] ],
+    astuces: [ 'Chaque encadré se replie d\'un clic sur son titre.', 'Les images restent dans le Drive : la fiche garde juste leur adresse.' ] },
+  { o: 'Ableton Live', ic: '🎛', quoi: 'Prépare un projet Ableton pour l\'envoyer au mixeur : noms des pistes, couleurs, gel, puis zip daté dans le Drive.',
+    comment: [
+      ['Relier Ableton (une fois par PC)', 'Réglages › Ableton › Relier Ableton → dans Ableton : Préférences › Link/Tempo/MIDI › Control Surface → choisis « BEESKOT ».'],
+      ['Préparer pour le mixage', 'Ouvre le projet dans Ableton → Lire les pistes → Trier / Couleurs par groupe / Geler automatiquement → Appliquer dans Ableton → Zipper le projet → Envoyer dans le Drive.'] ],
+    astuces: [ 'Le tempo lu dans Ableton peut aller dans la fiche du morceau (🎛 dans la Bibliothèque).' ] },
+  { o: 'Reels Audio', ic: '🎧', quoi: 'Coupe le bon passage d\'un morceau pour un reel, à la bonne durée, et prépare la version ralentie ou accélérée pour le tournage.',
+    comment: [
+      ['Faire l\'audio d\'un reel', 'Choisis le morceau (son export ★) → place le passage (glisse le bloc, ou I / O) → durée → Exporter.'],
+      ['Tourner au ralenti', 'Règle la vitesse de tournage (ex. 50 %) : l\'export donne 2 fichiers, MONTAGE (vitesse normale) et TOURNAGE (à jouer pendant le tournage).'],
+      ['Reprendre un passage dit sur Discord', 'Les passages repérés par Miette (🍞 Discord) sont dans la liste des passages du morceau.'] ],
+    astuces: [ 'Après l\'export : 📂 Ouvrir le dossier, ⇪ Upload Drive → ☁ Ouvrir le dossier du Drive.' ] },
+  { o: 'Reels Photo', ic: '📸', quoi: 'Prépare des photos ou un carrousel Instagram : format, cadrage, couleur, effet vintage, légende.',
+    comment: [
+      ['Faire un post', 'Choisis le sujet → + Ajouter des photos → format (Story 9:16, Portrait 4:5, Carré, Paysage) → règle chaque photo → Exporter les images.'],
+      ['Régler une photo', 'Clique-la dans la bande → Cadrage (Entière, Remplir, Centrer), Zoom (glisse la souris sur la case), glisse l\'image dans l\'aperçu pour la déplacer.'],
+      ['Mettre une couleur ou un effet', 'Couleur : un filtre (ou « Ajouter une LUT ») + Intensité. Effet : Vintage, Grain, Poussière, Fuite de lumière, VHS, Vignettage. Ça vaut pour toutes les photos.'],
+      ['Trouver une légende', '✨ Idées de légende : Miette en propose. Copier la légende pour la coller sur Instagram.'] ],
+    astuces: [ '↻ Même cadrage pour toutes les photos : applique le réglage de la photo choisie à tout le carrousel.' ] },
+  { o: 'Reels Vidéo', ic: '🎞', quoi: 'Monte une vidéo verticale (1080×1920) : couper, recadrer, couleur, effet, sous-titres calés sur la musique, export MP4.',
+    comment: [
+      ['Partir d\'une vidéo', 'Choisis le sujet → 🏷 Les vidéos de Médias, 💻 Ce PC ou ☁ Drive.'],
+      ['Faire une vidéo avec des photos et des vidéos', '🖼 Photos et vidéos… → ajoute tes fichiers → pour chacun : durée et animation (zoom avant, zoom arrière, glisser, fixe) → Transition et Effet → Importer ces fichiers.'],
+      ['Mettre la musique', 'À droite, Musique : un export de Reels Audio, le passage ouvert dans Reels Audio, ou une musique de ce PC.'],
+      ['Ajouter des sous-titres', 'Choisis les paroles d\'un morceau → ⏺ Caler en écoutant → appuie sur Espace au début de chaque phrase.'],
+      ['Exporter', 'Exporter en MP4 → 📂 Ouvrir le dossier ou ⇪ Upload Drive.'] ],
+    astuces: [ 'Le son des vidéos importées n\'est pas gardé : la musique se choisit à droite.', 'Gabarit Instagram / TikTok : les zones hachurées seront cachées par l\'appli.' ] },
+  { o: 'Lumières', ic: '💡', quoi: 'Le Light Show (LED de Pierre, TouchDesigner) et les lampes Globe du studio, depuis le PC.',
+    comment: [
+      ['Lancer le Light Show', '▶ Ouvrir dans TouchDesigner, ou ▶ Autre programme LED (ce PC).'],
+      ['Piloter les lampes Globe', 'Enregistrer et chercher les lampes (une fois) → Allumer / Éteindre chaque lampe.'] ],
+    astuces: [ 'À afficher seulement sur les PC qui en ont besoin (Réglages › Onglets).' ] },
+  { o: 'Réglages', ic: '⚙', quoi: 'Ce qui est propre à cet ordinateur, plus le Drive, Miette et Ableton. Rangé en onglets : Aide, Ce PC, Onglets, Miette & Discord, Drive, Ableton.',
+    comment: [
+      ['Revenir en arrière après une erreur', 'Drive › ⏪ Time Machine → choisis l\'onglet et l\'heure d\'avant l\'erreur → Remettre comme avant. Google garde 30 jours d\'historique.'],
+      ['Alléger les fiches', 'Drive › 🪶 Alléger les fiches : les vieilles photos recopiées dans les fiches sont rangées dans le Drive. Une seule fois, sur un seul PC.'],
+      ['Fabriquer une carte d\'accès', 'Drive › 🎫 Fabriquer la carte d\'accès → elle arrive sur le Bureau. Ne l\'envoie qu\'aux membres, en message privé.'],
+      ['Cacher un onglet sur ce PC', 'Onglets → éteins l\'interrupteur de l\'onglet.'] ],
+    astuces: [ 'Taille de l\'interface : Ce PC › Zoom.' ] },
+  { o: 'Questions fréquentes', ic: '❓', quoi: 'Les questions qu\'on se pose le plus souvent.',
+    comment: [
+      ['Je ne vois pas ce qu\'un autre a fait', 'Attends une minute (le partage se fait toutes les minutes). Sinon Réglages › Drive › ↻ Relire le Drive.'],
+      ['Je n\'ai pas eu la fenêtre de mise à jour', 'Bouton rouge (?) → 🔍 Vérifier les mises à jour. Le logiciel vérifie aussi tout seul au démarrage, puis toutes les 20 minutes.'],
+      ['J\'ai effacé ou cassé quelque chose', 'Ctrl + Z tout de suite. Sinon Réglages › Drive › ⏪ Time Machine. Rien n\'est jamais vraiment effacé : ça part dans la corbeille du Drive.'],
+      ['La biscotte jaune, elle fait quoi ?', 'Miette relit Discord (et les mails), le Drive, fait le résumé de la semaine, propose des tâches, des dépenses et des tournages, place les dates au Calendrier, reprend les BPM et remplit les moodboards vides. Elle ne valide rien toute seule.'],
+      ['Miette ne répond pas', 'Vérifie l\'interrupteur « AI Miette activée » en bas du menu, et la clé Gemini dans Réglages › Miette & Discord. Si Gemini est occupé, réessaie dans une minute.'],
+      ['Une date ou un mail n\'apparaît pas', 'Calendrier › ligne « Dernière lecture » : si 0 mail, coche le salon des mails dans Réglages › Miette & Discord, puis appuie sur la biscotte.'],
+      ['Le PC rame', 'Le logiciel est fait pour ne jamais bloquer le PC : les gros exports vont plus lentement exprès. Ferme les onglets Médias / Reels Vidéo si tu ne t\'en sers pas.'],
+      ['Où sont mes exports ?', 'Après chaque export : 📂 Ouvrir le dossier. Sur le Drive : ⇪ Upload Drive → ☁ Ouvrir le dossier du Drive.'],
+      ['Le Drive dit « non relié »', 'Réglages › Drive › Importer une carte d\'accès (demande-la à Dari).'] ] },
 ];
 
 BK.nouveautes = {
@@ -127,19 +195,41 @@ BK.nouveautes = {
   tuto(depart) {
     if (document.getElementById('tuVoile')) return;
     const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
-    let i = Math.max(0, BK.TUTO.findIndex(x => x.o === depart));
+    let i = Math.max(0, BK.TUTO.findIndex(x => x.o === depart)), cherche = '';
     const v = document.createElement('div'); v.className = 'voile'; v.id = 'tuVoile';
-    const dessiner = () => { const t = BK.TUTO[i];
+    const bloc = (q, r) => `<details class="tu-q"><summary>${esc(q)}</summary><p>${esc(r).replace(/ → /g, ' <b>→</b> ')}</p></details>`;
+    const contenu = () => {
+      if (cherche) {                                              // la recherche : dans tout le tuto et la FAQ
+        const n = t => BK.inv ? BK.inv.normaliser(t) : String(t).toLowerCase(), m = n(cherche);
+        const r = BK.TUTO.flatMap(t => [...(t.comment || []).filter(([q, x]) => n(q + ' ' + x).includes(m)).map(([q, x]) => bloc(t.ic + ' ' + q, x)),
+          ...(t.astuces || []).filter(x => n(x).includes(m)).map(x => `<p class="tu-a">${t.ic} ${esc(x)}</p>`)]);
+        return `<b>🔍 « ${esc(cherche)} »</b>${r.length ? r.join('') : '<p class="nt">Rien trouvé. Essaie un autre mot, ou pose la question à Miette.</p>'}`;
+      }
+      const t = BK.TUTO[i];
+      return `<b>${t.ic} ${esc(t.o)}</b><p class="tu-quoi">${esc(t.quoi || '')}</p>
+        ${(t.comment || []).length ? `<span class="eng tu-t">${t.o === 'Questions fréquentes' ? 'Clique une question' : 'Comment faire…'}</span>${t.comment.map(([q, r]) => bloc(q, r)).join('')}` : ''}
+        ${(t.astuces || []).length ? `<span class="eng tu-t">Bon à savoir</span>${t.astuces.map(x => `<p class="tu-a">• ${esc(x)}</p>`).join('')}` : ''}
+        <div class="tu-nav">${i > 0 ? `<button class="btn sm" data-tu="${i - 1}">◀ ${esc(BK.TUTO[i - 1].o)}</button>` : '<span></span>'}${i < BK.TUTO.length - 1 ? `<button class="btn sm pri" data-tu="${i + 1}">${esc(BK.TUTO[i + 1].o)} ▶</button>` : '<button class="btn sm pri" data-tu="x">Fini ✓</button>'}</div>`;
+    };
+    const dessiner = () => {
       v.innerHTML = `<div class="stopbox tu-box">
         <span class="screw tl"></span><span class="screw tr"></span><span class="screw bl"></span><span class="screw br"></span>
         <button class="btn xs rt-x" data-tu="x" title="Fermer">✕</button>
         <span class="dymo" style="align-self:center">Tuto</span>
-        <div class="tu-cols"><div class="tu-menu">${BK.TUTO.map((x, k) => `<button class="${k === i ? 'on' : ''}" data-tu="${k}">${x.ic} ${esc(x.o)}</button>`).join('')}</div>
-          <div class="tu-c"><b>${t.ic} ${esc(t.o)}</b>${t.l.map(x => `<p>• ${esc(x)}</p>`).join('')}
-            <div class="tu-nav">${i > 0 ? `<button class="btn sm" data-tu="${i - 1}">◀ ${esc(BK.TUTO[i - 1].o)}</button>` : '<span></span>'}${i < BK.TUTO.length - 1 ? `<button class="btn sm pri" data-tu="${i + 1}">${esc(BK.TUTO[i + 1].o)} ▶</button>` : '<button class="btn sm pri" data-tu="x">Fini ✓</button>'}</div></div></div></div>`;
-      v.querySelectorAll('[data-tu]').forEach(b => b.onclick = () => { if (b.dataset.tu === 'x') return v.remove(); i = +b.dataset.tu; dessiner(); }); };
+        <div class="tu-cols"><div class="tu-menu"><input class="fld tu-cherche" id="tuCherche" placeholder="🔍 Chercher…" value="${esc(cherche)}">
+            ${BK.TUTO.map((x, k) => `<button class="${k === i && !cherche ? 'on' : ''}" data-tu="${k}">${x.ic} ${esc(x.o)}</button>`).join('')}</div>
+          <div class="tu-c" id="tuC">${contenu()}</div></div></div>`;
+      const c = v.querySelector('#tuCherche');
+      c.addEventListener('keydown', e => e.stopPropagation());
+      c.oninput = () => { cherche = c.value.trim(); v.querySelector('#tuC').innerHTML = contenu(); lier(); v.querySelectorAll('.tu-menu [data-tu]').forEach(b => b.classList.toggle('on', !cherche && +b.dataset.tu === i)); };
+      lier(); };
+    const lier = () => v.querySelectorAll('[data-tu]').forEach(b => b.onclick = () => { if (b.dataset.tu === 'x') return v.remove(); i = +b.dataset.tu; cherche = ''; dessiner(); });
     document.body.appendChild(v); dessiner();
     v.addEventListener('click', e => { if (e.target === v) v.remove(); });
+  },
+  // tout le tuto en texte simple : Miette s'en sert pour répondre aux questions sur le logiciel
+  texteGuide() {
+    return BK.TUTO.map(t => `## ${t.o}\n${t.quoi || ''}\n${(t.comment || []).map(([q, r]) => `- ${q} : ${r}`).join('\n')}\n${(t.astuces || []).map(x => `- ${x}`).join('\n')}`).join('\n\n');
   },
   num: v => String(v || '').replace(/[^\d.]/g, ''),
   // à l'ouverture : si la version a changé depuis la dernière fois, on montre ce qui est neuf

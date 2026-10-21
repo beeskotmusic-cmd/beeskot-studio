@@ -7,7 +7,7 @@ const $ = (s, r = document) => r.querySelector(s);
 const $$ = (s, r = document) => [...r.querySelectorAll(s)];
 
 const BK = {
-  version: '0.9.52 bêta',
+  version: '0.9.53 bêta',
   modules: {},
   onglets: [],
   cotes: [],
@@ -146,16 +146,28 @@ const BK = {
     try { await Promise.race([BK.presence && BK.presence.battre(true), new Promise(r => setTimeout(r, 1500))]); } catch (e) {}
     if (window.__TAURI__?.process) window.__TAURI__.process.exit(0); else window.close(); },
   // ---------- mises à jour : vérifiées au démarrage, installées en 1 clic depuis le bouton STOP ----------
+  // renvoie { m } (une version trouvée), { aJour: true }, ou { erreur } — pour pouvoir le dire à l'écran
   async verifierMaj() {
-    const up = BK.T && BK.T.updater; if (!up) return;
+    const up = BK.T && BK.T.updater; if (!up) return { erreur: 'seulement dans le logiciel installé' };
     try {
-      const m = await up.check(); if (!m) return;
+      const m = await up.check(); if (!m) return { aJour: true };
       BK.majDispo = m;
       $('#stopLed').classList.add('on'); $('#syMaj').textContent = 'MAJ ' + m.version;
       $('#btStop').classList.add('maj'); $('#btStop').title = 'Mise à jour ' + m.version + ' disponible';
       const b = $('#stMaj'); b.classList.remove('hidden'); b.classList.add('clignote'); b.textContent = '⬇ Installer la version ' + m.version;
       BK.popupMaj(m);
-    } catch (e) { /* pas d'Internet : on réessaiera tout à l'heure */ }
+      return { m };
+    } catch (e) { return { erreur: 'pas de réponse (Internet ?) : ' + (e && e.message || e) }; }     // on réessaiera tout à l'heure
+  },
+  // le bouton « 🔍 Vérifier les mises à jour » (bouton rouge ? et Réglages) : on dit toujours ce qu'on a trouvé
+  async verifierMajBouton(b, txt) {
+    const lab = b.textContent; b.disabled = true; b.innerHTML = '<span class="spin"></span>Recherche…';
+    BK.regler('maj.plusTard', 0);                                     // « plus tard » oublié : on veut la voir maintenant
+    const r = await BK.verifierMaj();
+    b.disabled = false; b.textContent = lab;
+    const t = r.m ? '✓ Version ' + r.m.version + ' trouvée : installe-la !' : r.aJour ? '✓ Tu as la dernière version (' + String(BK.version).replace(' bêta', '') + ').' : '⚠ Vérification impossible — ' + r.erreur;
+    if (txt) { txt.textContent = t; txt.style.color = r.m ? '#ffb23e' : r.aJour ? '#7ee08a' : '#ff7a5a'; }
+    return r;
   },
   // ---------- la mise à jour est obligatoire (tout le monde sur la même version) : un gros pop-up au milieu ----------
   // un petit mot différent à chaque mise à jour (choisi selon le numéro de version) — à compléter à chaque fois
@@ -252,6 +264,8 @@ const BK = {
     setTimeout(() => BK.bienvenue && BK.bienvenue.ouvrir(), 600);      // premier lancement : le petit guide
     setTimeout(BK.verifierMaj, 3000);
     BK.nouveautes && BK.nouveautes.verifier();                  // juste après une mise à jour : « Quoi de neuf ? »
+    const sv = document.getElementById('stVerif'); if (sv) sv.onclick = () => BK.verifierMajBouton(sv, document.getElementById('stVerifTxt'));
+    const st = document.getElementById('stTuto'); if (st) st.onclick = () => { document.getElementById('stopVoile').classList.add('hidden'); BK.nouveautes.tuto(); };
     const nv = document.getElementById('stNouveau'); if (nv) nv.onclick = () => { document.getElementById('stopVoile').classList.add('hidden'); BK.nouveautes.montrer(); };
     setInterval(BK.verifierMaj, 20 * 60e3);        // le bouton se met à clignoter sans avoir à relancer
     BK.ableton && BK.ableton.surveiller();
