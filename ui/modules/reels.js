@@ -224,6 +224,7 @@ BK.module('reels', function (page) {
       const ps = enSec(p.audio); if (ps) ajout({ ...ps, nom: '🎬 ' + (t.titre || 'Tournage') + (p.action ? ' · ' + p.action : '') });
     }
     for (const r of await BK.partage.lire('plan.lignes', [])) if (deCeMorceau(r.reel)) { const ps = enSec(r.audio); if (ps) ajout({ ...ps, nom: '📋 PLAN · ' + (r.jour || '') + (r.plans ? ' · ' + r.plans : '') }); }
+    for (const p of ((await BK.partage.lire('passages.reels', {}))[m.id] || [])) ajout({ ...p, nom: '🎞 Gardé dans Reels' });
     for (const p of ((await BK.partage.lire('passages.discord', {}))[m.id] || [])) ajout(p);
     return { m, l };
   }

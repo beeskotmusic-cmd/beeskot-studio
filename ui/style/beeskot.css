@@ -1707,3 +1707,25 @@ body.glisse-media #nav .tab.depot-ok{box-shadow:0 0 0 2px #ffb23e,0 0 10px rgba(
 .md-lier-d{text-align:left;border:0;background:rgba(255,255,255,.03);color:var(--ink);padding:7px 10px;border-radius:4px;cursor:pointer;font:500 13px Jost,sans-serif}
 .md-lier-d:hover{background:rgba(255,178,62,.12)}
 .fiche.survol-media{box-shadow:0 0 0 2px #ffb23e!important}
+
+/* 0.9.60 : la fiche d'un reel = un formulaire simple */
+.md-choix-titre{align-self:center;max-width:min(70vw,720px);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.su-form{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:8px 12px;padding:4px 2px}
+.su-form label{display:flex;flex-direction:column;gap:3px;min-width:0}
+.su-form .eng{font-size:9px}
+.su-form .su-f-large,.su-f-audio,.su-f-m{grid-column:1/-1}
+.su-f-m{flex-direction:row!important;align-items:flex-end;gap:8px!important;flex-wrap:wrap}
+.su-f-m .eng{width:100%}
+.su-f-m select{max-width:260px}
+.su-f-audio{display:flex;align-items:flex-end;gap:10px;flex-wrap:wrap;padding:8px 10px;border-radius:6px;background:rgba(0,0,0,.22);border-left:3px solid rgba(255,178,62,.5)}
+.su-f-audio>.eng{width:100%}
+.su-tc{display:flex;flex-direction:column;gap:3px}
+.vfd-in{width:96px;font:600 17px 'Share Tech Mono',monospace;color:#ffb23e;text-align:center;background:#120b05;border-color:rgba(255,178,62,.35);text-shadow:0 0 6px rgba(255,160,40,.55)}
+.vfd-in::placeholder{color:rgba(255,178,62,.28)}
+.su-pass{width:auto;min-width:170px}
+.su-f-audio .nt{margin:0 0 4px}
+.su-sortie-l{display:flex;gap:6px;align-items:center}
+.su-sortie-l .fld{flex:1}
+.su-form label>.nt{font-size:10px;margin:0}
+.su-pied{display:flex;align-items:center;justify-content:flex-end;gap:10px;padding-top:4px;border-top:1px solid rgba(239,230,210,.08)}
+.su-pied .nt{margin:0}

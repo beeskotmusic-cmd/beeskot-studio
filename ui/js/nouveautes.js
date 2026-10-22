@@ -3,6 +3,12 @@
 // Pour une nouvelle version : ajouter un bloc EN HAUT de la liste. Une ligne courte par point : « Onglet : ce qui change. »
 // =====================================================================
 BK.NOUVEAUTES = [
+  { v: '0.9.60', titre: '', l: [
+    ['🎬', 'Reels : la fiche d\'un reel devient un formulaire simple (morceau, extrait, lieu, cadrage, équipement, outfit, notes).'],
+    ['🎵', 'Reels : l\'extrait se tape en début / fin, il est gardé et revient dans le menu « Passage ».'],
+    ['🚀', 'Reels : la sortie prévue peut être une date ou une période (« début novembre »).'],
+    ['📋', 'Reels : « Envoyer dans Tournages » le range avec toutes ses infos, prêt à glisser dans la bonne journée.'],
+    ['🖼', 'Médias : un titre trop long ne déborde plus en haut de la fenêtre.'] ] },
   { v: '0.9.59', titre: '', l: [
     ['🎬', 'Tournages : un tournage = une journée ; dedans, les reels qu\'on y tourne, qui se déplient (infos, moodboard, découpage, tenues).'],
     ['👕', 'Tournages : glisse une photo sur la tenue de Pierre ou de Yacine : elle est étiquetée toute seule (tenue, membre, morceau).'],
@@ -230,14 +236,16 @@ BK.TUTO = [
       'Avec des photos choisies, un clic sur une étiquette du bas les étiquette (au lieu de filtrer). Glisser des photos sur une étiquette marche toujours.',
       'Discord (pas sur le Drive) : chargé une fois, puis ↻ Actualiser Discord pour les nouvelles images.',
       '− + : taille des vignettes. 🙈 : voir les fichiers masqués. ▾ : replier la barre des étiquettes.' ] },
-  { o: 'Reels', ic: '🎬', quoi: 'Le suivi de chaque reel : un poster par reel, avec son audio, ses médias, son moodboard, son tournage et où il en est (Idée → Publié).',
+  { o: 'Reels', ic: '🎬', quoi: 'Le suivi de chaque reel : un poster par reel, et une fiche simple (morceau, extrait, lieu, cadrage, équipement, outfit, notes, sortie) qu\'on envoie dans Tournages.',
     comment: [
       ['Retrouver les reels dont on a parlé', 'Bouton « Chercher les reels » : Miette relit Discord et crée une carte verte par reel. ✓ sur la carte pour la valider.'],
       ['Voir un reel en couleur', 'Les cartes sont en noir et blanc : passe la souris dessus pour la couleur. Si le reel a une vidéo étiquetée, elle se lance (sans le son).'],
       ['Créer un reel', 'À droite, « Nouveau reel » : choisis le morceau → + Créer le reel. Un poster apparaît.'],
-      ['Voir et régler un reel', 'Clique le poster : le panneau s\'ouvre dessous (audio, moodboard, médias, tournage). « ＋ Insérer » dans Moodboard ou Médias ouvre la fenêtre Médias : ce que tu choisis est rangé et étiqueté pour ce reel. Change le nom court en haut du panneau.'],
+      ['Remplir un reel', 'Clique le poster : la fiche s\'ouvre dessous. Choisis le morceau (ou « Autre… »), puis remplis lieu, cadrage, équipement, outfit et notes. Tout s\'enregistre seul.'],
+      ['Choisir l\'extrait audio', 'Tape le Début et la Fin (ex. 0:08.0 et 0:30.0) puis Entrée : l\'extrait est gardé pour ce morceau et revient dans le menu « Passage ». ▶ pour l\'écouter, « → Reels Audio » pour en faire l\'export.'],
+      ['Envoyer dans Tournages', 'Bouton « Envoyer dans Tournages » : le reel arrive dans Tournages (Reels sans tournage) avec toutes ses infos. Glisse-le ensuite dans la bonne journée. Ce que tu changes ensuite dans la fiche suit dans Tournages.'],
       ['Changer l\'image du poster', '🖼 sur le poster → la fenêtre Médias s\'ouvre sur le morceau → choisis l\'image. ↺ revient à l\'image automatique.'],
-      ['Prévoir la date de sortie', 'Dans le panneau : Sortie prévue → la date va toute seule dans le Calendrier.'] ],
+      ['Prévoir la sortie', 'Sortie prévue : tape une période (« début novembre ») ou clique 📅 pour une date. Une date va toute seule dans le Calendrier.'] ],
     astuces: [ 'Chaque étape cochée (Idée, Audio, Tourné, Monté, Publié) va dans la To-do de la personne.' ] },
   { o: 'Calendrier', ic: '📅', quoi: 'Les rendez-vous du groupe (tournages, shootings, enregistrements, sorties…), les tâches avec une date, et les dates que Miette a repérées sur Discord et dans les mails.',
     comment: [

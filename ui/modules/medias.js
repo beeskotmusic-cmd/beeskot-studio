@@ -294,7 +294,7 @@ BK.module('medias', function (page) {
     M.sel.clear(); M.choisi = null;
     const v = document.createElement('div'); v.className = 'voile md-choix-voile';
     v.innerHTML = `<div class="stopbox md-choix"><button class="btn xs rt-x" data-c="x" title="Fermer">✕</button>
-      <span class="dymo" style="align-self:center">🖼 ${esc(titre)}</span><div class="md-choix-c"></div>
+      <span class="dymo md-choix-titre" title="${esc(titre)}">🖼 ${esc(titre)}</span><div class="md-choix-c"></div>
       <div class="md-choix-pied">${pc ? '<button class="btn sm" data-c="pc">💻 Ce PC…</button>' : ''}${retirer ? `<button class="btn sm" data-c="retirer">${esc(retirer)}</button>` : ''}<span class="nt" id="mdChN">Clic = choisir · Ctrl+clic = en ajouter · Maj+clic = une suite · double-clic = choisir et ajouter</span>
         <button class="btn" data-c="x">Annuler</button><button class="btn pri" data-c="ok" disabled>${esc(bouton)}</button>
         <input type="file" multiple hidden accept="${type === 'video' ? 'video/*' : type === 'image' ? 'image/*' : 'image/*,video/*'}"></div></div>`;
