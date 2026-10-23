@@ -27,6 +27,7 @@ BK.module('medias', function (page) {
           <button class="md-haut md-maison" id="mdMaison" title="Tout en haut : tous les dossiers">⌂</button>
           <button class="md-haut" id="mdHaut" title="Revenir au dossier d'avant">↰ Retour</button>
           <div class="md-fil" id="mdFil"></div>
+          <div class="seg md-types" id="mdTypes"><button data-ty="tout" class="on">Tout</button><button data-ty="image">Images</button><button data-ty="video">Vidéos</button><button data-ty="audio">Musiques</button></div>
           <div class="md-filtre"><span class="eng">Voir tout</span><button class="fld md-voir" id="mdVoirB" title="Tout ce qui porte cette étiquette, dans TOUT Médias (pas seulement le dossier)">Choisir… ▾</button><select class="fld hidden" id="mdFiltre"><option value="">Tout le dossier</option></select></div>
           <div class="md-outils"><button class="md-ico" id="mdMoins" title="Vignettes plus petites">−</button><button class="md-ico" id="mdPlus2" title="Vignettes plus grandes">+</button><button class="md-ico" id="mdCaches" title="Voir les fichiers masqués">🙈<span id="mdNbC"></span></button></div>
         </div>
@@ -126,13 +127,23 @@ BK.module('medias', function (page) {
   }
   // tout en haut (« Tous les dossiers »), le « dossier », c'est tout Médias : le filtre cherche partout
   const enHaut = () => !M.pile.length && M.racine !== 'discord' && !M.filtre;
-  function appliquer() { if (enHaut()) return M.ff && M.ff.rub ? toutFiltre() : racineCloud(); rendre(!!M.filtre); }
+  // Tout / Images / Vidéos / Musiques : dans le dossier ouvert ; tout en haut, on cherche dans tout Médias
+  M.type = 'tout';
+  const estSon = f => /^audio\//.test(f.mimeType || '') || /\.(wav|mp3|aiff?|flac|m4a|ogg)$/i.test(f.name || '');
+  const passeType = f => M.type === 'tout' || (M.type === 'audio' ? estSon(f) : M.type === 'image' ? /^image\//.test(f.mimeType || '') && !estSon(f) : /^video\//.test(f.mimeType || ''));
+  const filtreHaut = () => (M.ff && M.ff.rub) || M.type !== 'tout';
+  $$('#mdTypes button').forEach(b => b.onclick = () => { M.type = b.dataset.ty; $$('#mdTypes button').forEach(x => x.classList.toggle('on', x === b));
+    msg({ tout: 'Tout', image: 'Les images', video: 'Les vidéos', audio: 'Les musiques et les sons' }[M.type] + (enHaut() && M.type !== 'tout' ? ' de tout Médias' : '')); appliquer(); });
+  function appliquer() { if (enHaut()) return filtreHaut() ? toutFiltre() : racineCloud(); rendre(!!M.filtre); }
   async function toutFiltre() {
     $('#mdFil').innerHTML = '<button class="ex-miette" data-i="-1">⌂ Tous les dossiers</button><span>›</span><span class="ex-miette">filtré dans tout Médias</span>';
     const h = $('#mdFil [data-i="-1"]'); if (h) h.onclick = () => $('#mdMaison').click();
     $('#mdGrille').innerHTML = '<span class="nt md-vide"><span class="spin"></span>Recherche dans le Drive…</span>';
-    try { const l = await BK.dossiers.tousFichiers(); if (!enHaut() || !(M.ff && M.ff.rub)) return;
-      M.fichiers = l.filter(f => /^(image|video|audio)\//.test(f.mimeType) || /\.(pdf|wav|mp3|aiff?|flac|m4a)$/i.test(f.name)); rendre(true); }
+    try { const l = await BK.dossiers.tousFichiers(); if (!enHaut() || !filtreHaut()) return;
+      M.fichiers = l.filter(f => /^(image|video|audio)\//.test(f.mimeType) || /\.(pdf|wav|mp3|aiff?|flac|m4a)$/i.test(f.name));
+      if (M.type === 'audio' && BK.discord && BK.discord.mediasVite) {            // les sons postés sur Discord aussi
+        try { const d = await BK.discord.mediasVite('audio', {}); M.fichiers = M.fichiers.concat((d || []).map(x => ({ id: 'dc:' + x.id, name: x.nom, mimeType: 'audio/mpeg', webViewLink: x.lien, modifiedTime: x.t, size: x.taille, dc: x, dossiers: ['Discord', '#' + x.salon] }))); } catch (e) {} }
+      rendre(true); }
     catch (e) { vide('Drive injoignable pour l\'instant.'); }
   }
   // ce fichier passe-t-il le filtre du bas ?
@@ -354,7 +365,7 @@ BK.module('medias', function (page) {
     const garde = f => !M.choix || !M.choix.type || (M.choix.type === 'image' ? /^image\//.test(f.mimeType || '') : M.choix.type === 'video' ? /^video\//.test(f.mimeType || '') : true);
     const ds = M.fichiers.filter(f => f.mimeType === DOSSIER), tous = M.fichiers.filter(f => f.mimeType !== DOSSIER && garde(f));
     M.vus = M.vus || {}; for (const f of tous) M.vus[f.id] = f;          // pour retrouver un fichier choisi dans un autre dossier
-    const fs = (M.voirCaches ? tous.filter(masque) : tous.filter(f => !masque(f))).filter(passeFiltre);
+    const fs = (M.voirCaches ? tous.filter(masque) : tous.filter(f => !masque(f))).filter(passeFiltre).filter(passeType);
     const nbC = tous.filter(masque).length;
     $('#mdNbC').textContent = nbC ? '(' + nbC + ')' : '';
     $('#mdCaches').classList.toggle('on', M.voirCaches);

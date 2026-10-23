@@ -553,7 +553,7 @@ BK.module('tournage', function (page) {
         <textarea class="fld" data-tc="materiel" rows="3" placeholder="ex. 2 caméras, trépied, lampes Globe en rouge">${esc(tr.materiel)}</textarea>
         <textarea class="fld" data-tc="notes" rows="2" placeholder="Notes pour l'équipe…" style="margin-top:8px">${esc(tr.notes)}</textarea>
         <button class="btn xs" id="toSupprT" style="margin-top:8px;align-self:flex-start">Retirer ce tournage</button></div>`;
-    $('#toPdf').disabled = true; $('#toCal').disabled = !tr.date;
+    $('#toPdf').disabled = false; $('#toCal').disabled = !tr.date;
     $('#toRetour').onclick = () => { T.vue = 'jours'; T.tour = null; T.courant = null; rendreListe(); rendreFiche(); };
     $('#toFiniT').onclick = async () => { tr.fini = !tr.fini; await BK.db.ecrire('tournages', tr); for (const r of rs) if (!!r.fini !== tr.fini) await finir(r, true); msg(tr.fini ? 'Tournage fini ✓ : ses reels passent à « Tourné »' : 'Tournage remis à faire'); rendreFiche(); };
     let dateAvant = tr.date;
@@ -641,22 +641,31 @@ BK.module('tournage', function (page) {
   const rendreJours = () => rendreTournages();
 
   // ---------- Imprimer / PDF ----------
+  // ---------- Imprimer / PDF : un reel seul, ou un tournage entier (la journée, puis chacun de ses reels) ----------
+  const tenuesHtml = t => { t.tenues = t.tenues || {};
+    return Object.values(t.tenues).some(Boolean) || Object.values(t.tenuesPhotos || {}).some(l => l && l.length) ? `<table>${T.membres.filter(m => t.tenues[m] || ((t.tenuesPhotos || {})[m] || []).length).map(m => `<tr><td class="imp-nom">${esc(m)}</td><td>${((t.tenuesPhotos || {})[m] || []).map(u => `<img${BK.img.src(u)} style="height:110px;margin:0 6px 6px 0;border-radius:4px">`).join('')}${t.tenues[m] ? '<br>' + esc(t.tenues[m]) : ''}</td></tr>`).join('')}</table>` : ''; };
+  const corpsPdf = (t, h) => { const H = h || 'h2', ten = tenuesHtml(t); t.moodboard = t.moodboard || []; t.plans = t.plans || [];
+    return `${t.moodboard.length ? `<${H}>Moodboard</${H}><div class="imp-mood">${t.moodboard.map(u => `<img${BK.img.src(u)}>`).join('')}</div>` : ''}
+      ${t.plans.length ? `<${H}>Découpage</${H}><table><tr><th>#</th><th>Cadrage</th><th>Ce qu'on voit</th><th>Durée</th><th>Notes</th></tr>${t.plans.map((p, i) => `<tr><td>${i + 1}</td><td>${esc(p.cadrage)}</td><td>${esc(p.action)}</td><td>${esc(p.duree)}</td><td>${esc([p.audio && '♪ ' + p.audio, p.notes].filter(Boolean).join(' · '))}</td></tr>`).join('')}</table>` : ''}
+      ${ten ? `<${H}>Tenues</${H}>${ten}` : ''}
+      ${t.materiel ? `<${H}>Matériel</${H}><p class="imp-txt">${esc(t.materiel)}</p>` : ''}
+      ${t.notes ? `<${H}>Notes</${H}><p class="imp-txt">${esc(t.notes)}</p>` : ''}`; };
   $('#toPdf').onclick = () => {
-    const t = T.courant; if (!t) return;
+    const tour = T.vue === 'tournage' && T.tour, t = tour || T.courant; if (!t) return;
     const vieux = $('#impression'); vieux && vieux.remove();
     const d = document.createElement('div'); d.id = 'impression';
-    d.innerHTML = `<div class="imp-tete"><div><h1>${esc(t.titre || 'Tournage')}</h1><p>${esc(t.type || '')}${t.morceau ? ' · ' + esc(t.morceau) : ''}</p></div><div class="imp-logo">BEESKOT</div></div>
-      <div class="imp-infos"><p><b>Quand</b> ${esc(dateFr(t.date)) || 'à fixer'}${t.heure ? ' à ' + esc(t.heure) : ''}</p><p><b>Où</b> ${esc(t.lieu || '—')}</p>${t.idee ? `<p><b>L'idée</b> ${esc(t.idee)}</p>` : ''}</div>
-      ${t.moodboard.length ? `<h2>Moodboard</h2><div class="imp-mood">${t.moodboard.map(u => `<img${BK.img.src(u)}>`).join('')}</div>` : ''}
-      ${t.plans.length ? `<h2>Découpage</h2><table><tr><th>#</th><th>Cadrage</th><th>Ce qu'on voit</th><th>Durée</th><th>Notes</th></tr>${t.plans.map((p, i) => `<tr><td>${i + 1}</td><td>${esc(p.cadrage)}</td><td>${esc(p.action)}</td><td>${esc(p.duree)}</td><td>${esc(p.notes)}</td></tr>`).join('')}</table>` : ''}
-      ${Object.values(t.tenues).some(Boolean) || Object.values(t.tenuesPhotos || {}).some(l => l && l.length) ? `<h2>Tenues</h2><table>${T.membres.filter(m => t.tenues[m] || ((t.tenuesPhotos || {})[m] || []).length).map(m => `<tr><td class="imp-nom">${esc(m)}</td><td>${((t.tenuesPhotos || {})[m] || []).map(u => `<img${BK.img.src(u)} style="height:110px;margin:0 6px 6px 0;border-radius:4px">`).join('')}${t.tenues[m] ? '<br>' + esc(t.tenues[m]) : ''}</td></tr>`).join('')}</table>` : ''}
-      ${t.materiel ? `<h2>Matériel</h2><p class="imp-txt">${esc(t.materiel)}</p>` : ''}
-      ${t.notes ? `<h2>Notes</h2><p class="imp-txt">${esc(t.notes)}</p>` : ''}`;
+    const tete = `<div class="imp-tete"><div><h1>${esc(t.titre || 'Tournage')}</h1><p>${esc(t.type || '')}${t.morceau ? ' · ' + esc(t.morceau) : ''}</p></div><div class="imp-logo">BEESKOT</div></div>
+      <div class="imp-infos"><p><b>Quand</b> ${esc(dateFr(t.date)) || 'à fixer'}${t.heure ? ' à ' + esc(t.heure) : ''}</p><p><b>Où</b> ${esc(t.lieu || '—')}</p>${t.idee ? `<p><b>L'idée</b> ${esc(t.idee)}</p>` : ''}</div>`;
+    if (tour) { const rs = reelsDe(tour);
+      d.innerHTML = tete + (rs.length ? `<h2>Au programme</h2><ol class="imp-txt">${rs.map(r => `<li>${esc(r.titre || 'Reel')}${r.morceau ? ' · ' + esc(r.morceau) : ''}</li>`).join('')}</ol>` : '')
+        + corpsPdf(tour)
+        + rs.map((r, i) => `<div class="imp-reel"><h2>${/^reel\b/i.test(r.titre || '') ? esc(r.titre) : 'Reel ' + (i + 1) + ' · ' + esc(r.titre || 'Sans titre')}</h2><p class="imp-txt">${[r.morceau && '♪ ' + esc(r.morceau), r.lieu && '📍 ' + esc(r.lieu), r.idee && '« ' + esc(r.idee) + ' »'].filter(Boolean).join(' · ')}</p>${corpsPdf(r, 'h3')}</div>`).join(''); }
+    else d.innerHTML = tete + corpsPdf(t);
     document.body.appendChild(d); document.body.classList.add('imprime');
     const fin = () => { document.body.classList.remove('imprime'); d.remove(); window.removeEventListener('afterprint', fin); };
     window.addEventListener('afterprint', fin);
     BK.img.toutes(d).then(() => setTimeout(() => window.print(), 200));          // les images du Drive d'abord
-    msg('Choisis « Enregistrer au format PDF » ou ton imprimante');
+    msg((tour ? 'PDF du tournage entier · ' : '') + 'Choisis « Enregistrer au format PDF » ou ton imprimante');
   };
 
   BK.surOuvrir = BK.surOuvrir || {}; BK.surOuvrir.tournage = charger;

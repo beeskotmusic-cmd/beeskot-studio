@@ -7,7 +7,7 @@ const $ = (s, r = document) => r.querySelector(s);
 const $$ = (s, r = document) => [...r.querySelectorAll(s)];
 
 const BK = {
-  version: '0.9.60 bêta',
+  version: '0.9.61 bêta',
   modules: {},
   onglets: [],
   cotes: [],
@@ -132,6 +132,7 @@ const BK = {
     try { if (dessiner) dessiner(p, o); }
     catch (e) { $('.grid', p).innerHTML = `<div class="pane vit"><span class="nt">Cet onglet a un souci : ${e.message}</span></div>`; console.error(e); }
     $$('.knobify', p).forEach(BK.knobify);
+    BK.boites && BK.boites.suivre(p, id);
     const v = $('.pane.abar > .vfd', p); if (v && BK._obsEtats) BK._obsEtats.observe(v, { childList: true, characterData: true, subtree: true });
   },
   // les autres onglets se construisent un par un, seulement quand le PC est au repos
@@ -300,7 +301,7 @@ const BK = {
     if (ba) ba.onclick = () => { document.getElementById('stopVoile').classList.add('hidden');
       BK.regler('renfort.aide', 'amelioration'); BK.renfortDemander ? BK.renfortDemander('amelioration', {}) : BK.ouvrir('renforts'); };
     const bm = document.getElementById('btMiette');                 // le bouton jaune : Miette relit tout
-    if (bm) bm.onclick = () => { bm.classList.add('pressed'); setTimeout(() => bm.classList.remove('pressed'), 150); BK.miette.toutLire(); };
+    if (bm) bm.onclick = () => { bm.classList.add('pressed'); setTimeout(() => bm.classList.remove('pressed'), 150); BK.menuMiette(bm); };
     BK.ouvrir(BK.reglage('dernierOnglet', 'accueil'));
     // le reste se construit en arrière-plan, quand le PC est au repos (l'Accueil d'abord, il sert souvent)
     setTimeout(() => BK.construireLeReste(['accueil', 'biblio', 'medias', 'taches', 'agenda', 'suivi', 'tournage', 'budget', ...BK.onglets.map(o => o.id)]), 1200);
@@ -314,6 +315,83 @@ const BK = {
     BK.ableton && BK.ableton.surveiller();
     BK.discord && BK.discord.surveiller();                         // le Veilleur : toutes les 30 min, s'il est réglé
     setInterval(() => BK.pousser && BK.pousser(), 60000);          // partage avec les autres PC : toutes les minutes              // quelques secondes après l'ouverture, sans gêner
+  },
+
+  // ---------- chaque cadre avec un titre se replie (clic sur le titre) et se tire par le bas (double-clic sur le bord : taille normale) ----------
+  // gardé sur ce PC, par onglet et par titre de cadre
+  boites: {
+    cle: (id, b) => { const t = b.querySelector(':scope > .lb, :scope > .ligne-titre > .lb'); return t ? id + '|' + t.textContent.trim().slice(0, 40) : ''; },
+    appliquer(p, id) {
+      const P = BK.reglage('boites.plies', {}), H = BK.reglage('boites.h', {});
+      for (const b of p.querySelectorAll('.box')) {
+        if (b.closest('.stopbox,.voile,.md-choix,#impression') || b.classList.contains('md-barre')) continue;
+        const k = BK.boites.cle(id, b); if (!k) continue;
+        if (b.dataset.bxk !== k) { b.dataset.bxk = k; b.classList.add('bx'); }
+        b.classList.toggle('plie', !!P[k]);
+        const h = H[k]; if (h && !P[k]) { b.style.flex = `0 0 ${h}px`; b.style.height = h + 'px'; b.classList.add('bx-h'); }
+        else if (b.classList.contains('bx-h') && !h) { b.style.flex = ''; b.style.height = ''; b.classList.remove('bx-h'); }
+      }
+    },
+    suivre(p, id) {
+      let prevu = 0; const go = () => { prevu = 0; BK.boites.appliquer(p, id); };
+      new MutationObserver(() => { if (!prevu) prevu = requestAnimationFrame(go); }).observe(p, { childList: true, subtree: true });
+      go();
+      p.addEventListener('click', e => { const t = e.target.closest('.box.bx > .lb, .box.bx > .ligne-titre > .lb'); if (!t) return;
+        const b = t.closest('.box.bx'), k = b.dataset.bxk, P = BK.reglage('boites.plies', {}); P[k] = !P[k]; if (!P[k]) delete P[k];
+        BK.regler('boites.plies', P); go(); window.dispatchEvent(new Event('resize')); });
+      // tirer le bord du bas d'un cadre
+      const bord = e => { const b = e.target.closest && e.target.closest('.box.bx:not(.plie)'); if (!b) return null; const r = b.getBoundingClientRect(); return e.clientY > r.bottom - 7 && e.clientY <= r.bottom + 1 ? b : null; };
+      p.addEventListener('mousemove', e => { if (!BK.boites.tire) p.classList.toggle('bx-bord', !!bord(e)); });
+      p.addEventListener('pointerdown', e => { const b = bord(e); if (!b) return; e.preventDefault(); BK.boites.tire = true;
+        const y0 = e.clientY, h0 = b.getBoundingClientRect().height, k = b.dataset.bxk;
+        const bouge = ev => { const h = Math.max(50, Math.round(h0 + ev.clientY - y0)); b.style.flex = `0 0 ${h}px`; b.style.height = h + 'px'; b.classList.add('bx-h'); };
+        const fin = () => { BK.boites.tire = false; removeEventListener('pointermove', bouge); removeEventListener('pointerup', fin);
+          const H = BK.reglage('boites.h', {}); H[k] = Math.round(b.getBoundingClientRect().height); BK.regler('boites.h', H); window.dispatchEvent(new Event('resize')); };
+        addEventListener('pointermove', bouge); addEventListener('pointerup', fin); });
+      p.addEventListener('dblclick', e => { const b = bord(e); if (!b) return; const H = BK.reglage('boites.h', {}); delete H[b.dataset.bxk]; BK.regler('boites.h', H); go(); window.dispatchEvent(new Event('resize')); });
+    },
+  },
+
+  // ---------- le bouton ✓ d'enregistrement (comme dans la Bibliothèque) : vert = enregistré, orange = un changement pas encore enregistré ----------
+  // à appeler APRÈS avoir branché btn.onclick ; champs = les cases qui le font passer en orange
+  boutonSauve(btn, champs) {
+    if (!btn || btn._sauve) return; btn._sauve = 1; const action = btn.onclick, nom = btn.textContent.trim();
+    btn.classList.add('bi-sauv', 'ok'); btn.textContent = '✓'; btn.title = nom + ' (vert : enregistré · orange : à enregistrer)';
+    const aFaire = () => { btn.classList.remove('ok'); btn.classList.add('a-faire'); };
+    (champs || []).forEach(c => c && ['input', 'change'].forEach(t => c.addEventListener(t, aFaire)));
+    btn.onclick = async e => { try { const r = action && await action.call(btn, e); btn.classList.remove('a-faire'); btn.classList.add('ok'); return r; } catch (er) { console.warn(er); } };
+  },
+
+  // ---------- le bouton de Miette en haut : une petite fenêtre (tout relire, actualiser, qui est là) ----------
+  async menuMiette(bm) {
+    const vieux = document.getElementById('mmMenu'); if (vieux) { vieux.remove(); return; }
+    const esc = x => String(x ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+    const z = document.createElement('div'); z.id = 'mmMenu'; z.className = 'mm-menu';
+    const r = bm.getBoundingClientRect(); z.style.top = (r.bottom + 8) + 'px'; z.style.left = Math.max(8, r.left + r.width / 2 - 150) + 'px';
+    z.innerHTML = `<button class="mm-l" data-mm="lire"><b>📖 Tout relire</b><span>Miette relit Discord, le Drive, les mails… et prépare les onglets</span></button>
+      <button class="mm-l" data-mm="actu"><b>🔄 Actualiser</b><span>Va chercher dans le Drive ce que les autres ont fait</span></button>
+      <div class="mm-qui"><span class="eng">Qui est là</span><div id="mmQui"><span class="nt"><span class="spin"></span>…</span></div></div>`;
+    document.body.appendChild(z);
+    const fermer = e => { if (!z.contains(e.target) && e.target !== bm && !bm.contains(e.target)) { z.remove(); document.removeEventListener('pointerdown', fermer, true); } };
+    setTimeout(() => document.addEventListener('pointerdown', fermer, true), 0);
+    z.querySelector('[data-mm="lire"]').onclick = () => { z.remove(); BK.miette.toutLire(); };
+    z.querySelector('[data-mm="actu"]').onclick = async () => { const b = z.querySelector('[data-mm="actu"] b'); b.innerHTML = '<span class="spin"></span>Actualisation…';
+      try { if (BK.db.viderAttente) await BK.db.viderAttente();          // ce qui attendait ici part d'abord
+        BK.dossiers && BK.dossiers.oublier && BK.dossiers.oublier();
+        window.dispatchEvent(new CustomEvent('bk:distant', { detail: { cols: (BK.synchro && BK.synchro.COLS) || [] } }));
+        BK.presence && await BK.presence.maj(true); await qui(); b.textContent = '✓ À jour'; BK.toast && BK.toast('À jour : ce que les autres ont fait est arrivé'); }
+      catch (e) { b.textContent = '🔄 Drive injoignable, réessaie'; } };
+    // qui est en ligne (vu dans les 7 dernières minutes) ou hors ligne (et depuis quand)
+    const qui = async () => { const el = document.getElementById('mmQui'); if (!el) return;
+      if (!BK.drive || !BK.drive.relie()) { el.innerHTML = '<span class="nt">Relie le Drive pour voir les autres.</span>'; return; }
+      let docs = []; try { docs = (await BK.db.liste('config')).filter(d => /^ici-/.test(d.id)); } catch (e) {}
+      const membres = ((((await BK.db.liste('config').catch(() => [])).find(c => c.id === 'membres')) || {}).liste) || ['Yacine', 'Pierre', 'Baptiste'];
+      const moi = (BK.reglage('nomPc', '') || '').toLowerCase(), noms = [...new Set([...membres, 'Studio', ...docs.map(d => d.qui).filter(Boolean)])];
+      const depuis = t => { const m = Math.round((Date.now() - t) / 60e3); return !t ? 'jamais vu' : m < 60 ? 'il y a ' + m + ' min' : m < 1440 ? 'il y a ' + Math.round(m / 60) + ' h' : 'il y a ' + Math.round(m / 1440) + ' j'; };
+      el.innerHTML = noms.map(n => { const d = docs.find(x => String(x.qui || '').toLowerCase() === n.toLowerCase()) || {}, ici = n.toLowerCase() === moi;
+        const on = ici || (d.t && Date.now() - d.t < 7 * 60e3), dernier = d.t || (d.maj ? Date.parse(d.maj) : 0);
+        return `<div class="mm-p${on ? ' on' : ''}"><i></i><b>${esc(n)}${ici ? ' (toi)' : ''}</b><span>${on ? (ici ? 'en ligne' : 'en ligne' + (d.onglet ? ' · ' + esc(d.onglet) : '')) : 'hors ligne · ' + depuis(dernier)}</span></div>`; }).join(''); };
+    qui();
   },
 
   // ---------- boutons rotatifs (repris tel quel de Dari Audio Live) ----------

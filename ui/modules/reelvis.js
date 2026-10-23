@@ -37,7 +37,7 @@ BK.module('reelvis', function (page) {
           <div class="rv-tel"><div class="rv-ecran" id="rvEcran">
             <canvas id="rvCanvas" width="540" height="960"></canvas>
             <video id="rvVideo" playsinline preload="auto" hidden></video>
-            <div class="rv-vide" id="rvVide"><span class="dymo">Glisse tes vidéos ou photos ici</span><span class="nt">depuis ce PC · ou :</span><div class="gd" id="rvGal"><button class="btn sm pri" id="rvGalB">＋ Importer…</button></div></div>
+            <div class="rv-vide rv-exemple" id="rvVide" title="Importe des vidéos ou des photos (ou glisse-les ici)"></div>
             <div class="rv-zones" id="rvZones"></div><div id="rvCalque"></div>
           </div></div>
           <div class="rv-cote">
@@ -238,7 +238,8 @@ BK.module('reelvis', function (page) {
   };
   async function depuisDrive(f) { msg('Téléchargement de ' + f.name + '…');
     try { const o = await BK.drive.telecharger(f.id); charger(new File([o], f.name, { type: f.mimeType || 'video/mp4' })); } catch (e) { msg('Téléchargement impossible'); } }
-  $('#rvGalB').onclick = e => { e.stopPropagation(); $('#rvTag').click(); };             // l'écran vide propose la fenêtre Médias
+  $('#rvVide').onclick = e => { e.stopPropagation(); $('#rvTag').click(); };             // l'écran vide (photo d'exemple) ouvre la fenêtre Médias
+  BK.photoExemple && BK.photoExemple().then(u => { if (u) $('#rvVide').style.backgroundImage = `url(${u})`; });
   const galerieSiVide = () => {};
   // ---------- ① le sujet : morceau, tournage, live, promo — ses vidéos passent en premier ----------
   (async () => { const g = await BK.etiquettes.sujets();

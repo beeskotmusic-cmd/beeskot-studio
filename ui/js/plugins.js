@@ -43,7 +43,31 @@ BK.plugins = {
     const d = await BK.partage.lire('plugins', {});
     d[pc] = { t: new Date().toISOString(), l };
     await BK.partage.ecrire('plugins', d); BK.regler('plugins.note', Date.now());
+    await BK.plugins.noterProjets(pc).catch(e => console.warn('plugins des projets', e));
     return l.length;
+  },
+  // les plugins de chaque projet BEESKOT de ce PC (le plus récent par morceau), pour que les autres sachent quoi installer
+  async noterProjets(pc) {
+    const tout = await BK.partage.lire('plugins.projets', {}), avant = (tout[pc] && tout[pc].l) || [], vus = new Set(), l = [];
+    for (const p of await BK.plugins.projetsBeeskot()) {
+      if (vus.has(p.morceau) || l.length >= 40) continue; vus.add(p.morceau);
+      const deja = avant.find(x => x.chemin === p.chemin && x.modif === (p.modif || ''));      // pas changé : on ne relit pas
+      if (deja) { l.push(deja); continue; }
+      try { const pl = await BK.plugins.duProjet(await BK.fichier.lireOctets(p.chemin));
+        l.push({ chemin: p.chemin, projet: BK.plugins.nomDe(p.chemin), morceau: p.morceau, modif: p.modif || '', plugins: pl.map(x => ({ nom: x.nom, fichier: x.fichier })) }); } catch (e) {}
+      await BK.audio.pause();                                          // doucement : ne jamais bloquer le PC
+    }
+    tout[pc] = { t: new Date().toISOString(), l }; await BK.partage.ecrire('plugins.projets', tout);
+  },
+  // pour un membre : les plugins des projets des AUTRES qu'il n'a pas → [{ nom, projets: ['Mother (Pierre)', …] }]
+  async manquentChez(qui) {
+    const inv = await BK.partage.lire('plugins', {}), pr = await BK.partage.lire('plugins.projets', {}), moi = inv[qui];
+    if (!moi) return { verifie: false, l: [], sources: Object.keys(pr).filter(pc => pc !== qui) };
+    const m = new Map();
+    for (const [pc, d] of Object.entries(pr)) { if (pc === qui) continue;
+      for (const p of (d && d.l) || []) for (const pl of p.plugins || []) { if (BK.plugins.present(pl, moi.l)) continue;
+        const k = BK.plugins.norme(pl.nom); const x = m.get(k) || { nom: pl.nom, projets: [] }; const o = p.morceau + ' (' + pc + ')'; if (!x.projets.includes(o)) x.projets.push(o); m.set(k, x); } }
+    return { verifie: true, t: moi.t, l: [...m.values()].sort((a, b) => a.nom.localeCompare(b.nom)), sources: Object.keys(pr).filter(pc => pc !== qui) };
   },
 
   // ---------- les plugins d'un projet (.als = du XML compressé) ----------
@@ -93,9 +117,10 @@ BK.plugins = {
   },
 
   // ---------- la comparaison : ce qui manque, PC par PC ----------
+  present(pl, liste) { const a = BK.plugins.norme(pl.fichier || pl.nom), b = BK.plugins.norme(pl.nom);
+    return (liste || []).some(x => { const n = BK.plugins.norme(x); return n === a || n === b || (b.length >= 4 && (n.includes(b) || b.includes(n) && n.length >= 4)); }); },
   manquants(projet, inv, membres) {
-    const ok = (pl, liste) => { const a = BK.plugins.norme(pl.fichier || pl.nom), b = BK.plugins.norme(pl.nom);
-      return liste.some(x => { const n = BK.plugins.norme(x); return n === a || n === b || (b.length >= 4 && (n.includes(b) || b.includes(n) && n.length >= 4)); }); };
+    const ok = BK.plugins.present;
     const pcs = [...new Set([...(membres || []), 'Studio', ...Object.keys(inv || {})])];
     return pcs.map(pc => { const i = (inv || {})[pc];
       return { pc, verifie: !!i, t: i && i.t, l: i ? projet.filter(p => !ok(p, i.l || [])).map(p => p.nom) : [] }; });
@@ -105,7 +130,7 @@ BK.plugins = {
   async case(el) {
     if (!el) return;
     const P = BK.plugins._etat = BK.plugins._etat || {};
-    const dire = h => { el.innerHTML = `<span class="lb">Plugins manquants</span>${h}`; };
+    const dire = h => { el.innerHTML = `<span class="lb">Le projet ouvert sur ce PC</span>${h}`; };
     if (!BK.estExe) return dire('<span class="nt">Disponible dans le logiciel installé.</span>');
     const rendre = async () => {
       if (!P.chemin) return dire(`<span class="nt">Aucun projet BEESKOT trouvé sur ce PC (seuls les projets qui portent le nom d'un morceau de la Bibliothèque comptent).</span><div class="chips" style="margin-top:8px"><button class="chip" data-pl="choisir">Choisir le projet ▾</button></div>`);

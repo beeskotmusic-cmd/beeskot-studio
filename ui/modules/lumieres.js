@@ -164,6 +164,8 @@ BK.module('lumieres', function (page) {
     L.conf = { ...L.conf, id: 'lumieres', ...(id ? { acces: id } : {}), ...(sec ? { secret: sec } : {}), region: $('#luRegion').value }; L.jeton = null;
     await BK.db.ecrire('config', L.conf); $('#luSecret').value = ''; msg('Codes enregistrés'); chercher();
   };
+  BK.boutonSauve($('#luOk'), ['#luId', '#luSecret', '#luRegion'].map(x => $(x)));
+
   [$('#luId'), $('#luSecret')].forEach(c => c.addEventListener('keydown', e => e.stopPropagation()));
   $('#luRelire').onclick = chercher;
   BK.surOuvrir = BK.surOuvrir || {};

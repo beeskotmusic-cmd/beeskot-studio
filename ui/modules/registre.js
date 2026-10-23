@@ -20,7 +20,7 @@ BK.onglets = [
   { id: 'agenda',   cote: 'outils',  titre: 'Calendrier',     sous: 'Agenda BEESKOT, promo',         couleur: 'var(--mus)',  pret: true , defaut: true },
   { id: 'taches',   cote: 'outils',  titre: 'To-do list',     sous: 'À faire',                       couleur: 'var(--crm)',  pret: true , defaut: true },
   { id: 'budget',   cote: 'outils',  titre: 'Budget',         sous: 'Dépenses, qui doit à qui',      couleur: 'var(--olv)',  pret: true , defaut: true },
-  { id: 'ecoute',   cote: 'outils',  titre: 'Écoute',         sous: 'Mix A/B et notes minutées',     couleur: 'var(--rust)', pret: true , defaut: true },
+  { id: 'ecoute',   cote: 'outils',  titre: 'Notes et retours', sous: 'Mix A/B et notes minutées',     couleur: 'var(--rust)', pret: true , defaut: true },
 
   { id: 'reels',    cote: 'assist',  titre: 'Reels Audio',    sous: 'Passage, durée, vitesse',       couleur: 'var(--teal)', pret: true , defaut: true },
   { id: 'reelvis',  cote: 'assist',  titre: 'Reels Vidéo',    sous: 'Montage, sous-titres, MP4',     couleur: 'var(--teal)', pret: true , defaut: true },

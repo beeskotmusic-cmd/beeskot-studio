@@ -11,7 +11,6 @@ const date = iso => iso ? new Date(iso).toLocaleDateString('fr-CA', { day: '2-di
 BK.module('biblio', function (page) {
   $('.sub', page).textContent = 'Tous vos morceaux : exports, projets Ableton, paroles, avancement';
   $('.hdr .right', page).innerHTML = `
-    <div><span class="eng" style="font-size:9px">En chantier</span><span class="vfd" id="biNbC">00</span></div>
     <div><span class="eng" style="font-size:9px">Sortis</span><span class="vfd" id="biNbS">00</span></div>`;
   $('.grid', page).innerHTML = `
     <div class="cols">
@@ -94,7 +93,7 @@ BK.module('biblio', function (page) {
   // ---------- affichage ----------
   function rendre() {
     const C = B.morceaux.filter(m => m.statut !== 'sorti'), S = B.morceaux.filter(m => m.statut === 'sorti'), O = orphelins();
-    $('#biNbC').textContent = String(C.length).padStart(2, '0'); $('#biNbS').textContent = String(S.length).padStart(2, '0');
+    $('#biNbS').textContent = String(S.length).padStart(2, '0');
     $('#biNbR').textContent = O.length ? `(${O.length})` : '';
     $$('#biVues .chip').forEach(c => c.classList.toggle('on', c.dataset.v === B.vue));
     const liste = $('#biListe');
@@ -207,9 +206,9 @@ BK.module('biblio', function (page) {
       return BK.sonDuMorceau(m, B.morceaux);
     },
     async octets(src) { return src.drive ? BK.drive.telecharger(src.drive) : BK.fichier.lireOctets(src.chemin); },
-    async jouer(m, src) {
+    async jouer(m, src, neuf) {
       const a = lecteur.audio;
-      if (!src && lecteur.id === m.id && lecteur.urls[m.id]) { a.paused ? a.play() : a.pause(); return lecteur.maj(); }
+      if (!src && !neuf && lecteur.id === m.id && lecteur.urls[m.id]) { a.paused ? a.play() : a.pause(); return lecteur.maj(); }
       a.pause(); lecteur.id = m.id; lecteur.maj('…');
       try {
         src = src || await lecteur.source(m);
@@ -232,7 +231,13 @@ BK.module('biblio', function (page) {
       }
     },
   };
-  BK.mini.suivre(lecteur.audio, { page: 'biblio', titre: () => { const m = B.morceaux.find(x => x.id === lecteur.id); return (m ? m.nom + ' · ' : '') + (lecteur.nom[lecteur.id] || ''); } });
+  // ⏮ / ⏭ : le morceau d'avant / d'après, dans l'ordre de la liste affichée
+  lecteur.voisin = async dir => { const ids = (B.affiches && B.affiches.length ? B.affiches : B.morceaux).map(m => m.id); let i = ids.indexOf(lecteur.id);
+    for (let n = 0; n < Math.min(ids.length, 8); n++) {                  // un morceau sans export : on passe au suivant
+      i = (i < 0 ? 0 : i + dir + ids.length) % ids.length; const m = B.morceaux.find(x => x.id === ids[i]); if (!m) continue;
+      await lecteur.jouer(m, null, true); if (lecteur.id) return; } };
+  lecteur.arreter = () => { lecteur.audio.pause(); lecteur.audio.currentTime = 0; lecteur.maj(); };
+  BK.mini.suivre(lecteur.audio, { page: 'biblio', precedent: () => lecteur.voisin(-1), suivant: () => lecteur.voisin(1), titre: () => { const m = B.morceaux.find(x => x.id === lecteur.id); return (m ? m.nom + ' · ' : '') + (lecteur.nom[lecteur.id] || ''); } });
 
   ['timeupdate', 'pause', 'play', 'ended', 'loadedmetadata'].forEach(ev => lecteur.audio.addEventListener(ev, () => lecteur.maj()));
 
@@ -258,17 +263,10 @@ BK.module('biblio', function (page) {
     const tAvance = () => `${t('avance', 'Avancement', `${BK.etapes[Math.min(m.fait || 0, 5)].nom} · ${pc} %`, () => `
           <div class="etapes-clic">${BK.etapes.map((e, i) => `<button class="etape-b ${i < (m.fait || 0) ? 'fait' : i === (m.fait || 0) ? 'encours' + ((m.enCours || 0) > 0 ? ' demi' : '') : ''}" style="--sc:${e.c}" data-etape="${i}" title="Clic : fait / pas fait · clic droit : en cours">${e.nom}${i === (m.fait || 0) && (m.enCours || 0) > 0 ? ' <small>en cours</small>' : ''}</button>`).join('')}</div>
           `)}`;
-    // RETOURS : les notes d'Écoute, par version (le fichier), en français et en anglais
-    const tRetours = () => { const ns = (B.notesmix || []).filter(n => n.morceau === m.id), parV = {};
-      for (const n of ns) (parV[n.version] ||= []).push(n);
-      const vs = Object.entries(parV).sort((a, b) => (b[1][0].quand || '').localeCompare(a[1][0].quand || ''));
-      const ouverts = ns.filter(n => !n.regle).length, tps = x => { x = +x || 0; return Math.floor(x / 60) + ':' + String(Math.floor(x % 60)).padStart(2, '0'); };
-      return t('retours', 'Notes du mix', ns.length ? `${ns.length} note(s) · ${ouverts} à régler · ${vs.length} version(s)` : 'aucune (onglet Écoute)', () => vs.length ? vs.map(([v, l]) => `
-          <div class="ret-v"><div class="ligne-titre"><span class="mono ret-nom">${esc(l[0].versionNom || 'version')}</span><button class="btn xs" data-retv="${esc(v)}" title="Ouvrir dans Écoute">▶ Écoute</button></div>
-            ${l.sort((a, b) => a.t - b.t).map(n => `<div class="ret-n${n.regle ? ' regle' : ''}"><span class="mono ret-t">${tps(n.t)}${n.fin ? '–' + tps(n.fin) : ''}</span>
-              <div><b>${esc(n.par)}</b> ${esc(n.texte)}${n.regle ? ' <em>✓ réglé</em>' : ''}${n.texteEn ? `<div class="ec-en"><span>EN</span>${esc(n.texteEn)}</div>` : ''}
-              ${(n.reponses || []).map(r => `<div class="ret-rep"><b>${esc(r.par)}</b> ${esc(r.texte)}</div>`).join('')}</div></div>`).join('')}</div>`).join('')
-        : '<span class="nt">Pas encore de note. Dans l\'onglet Écoute, choisis ce morceau et une version, puis laisse des notes minutées : elles arrivent ici, rangées par version.</span>'); };
+    // RETOURS : juste un lien vers Notes et retours (les notes se lisent là-bas)
+    const tRetours = () => { const ns = (B.notesmix || []).filter(n => n.morceau === m.id), ouverts = ns.filter(n => !n.regle).length;
+      return `<button class="tiroir-tete ret-lien" data-retv=""><span class="fleche">↗</span><span class="lb">Notes du mix</span>
+        <span class="nt tiroir-resume">${ns.length ? `${ns.length} note(s) · ${ouverts} à régler · ouvrir dans Notes et retours` : 'aucune · ouvrir Notes et retours'}</span></button>`; };
     return `<article class="fiche${ouvert ? ' ouverte' : ''}" data-id="${m.id}" style="--av:${BK.couleurAvance(m)}">
       <div class="fiche-haut">
         <button class="fiche-photo${m.photo ? '' : ' vide'}" data-act="photo" title="Choisir la photo du morceau" ${BK.img.bg(m.photo)}>${m.photo ? '' : '🖼'}</button>
@@ -279,7 +277,7 @@ BK.module('biblio', function (page) {
             <span class="mini-etapes">${(() => { const f = m.fait || 0, demi = (m.enCours || 0) > 0, bout = demi ? f : f - 1;   // le bout : là où on en est (il brille)
               return BK.etapes.map((e, i) => `<i class="${i < f ? 'fait' : i === f ? (demi ? 'demi' : 'suivante') : ''}${i === bout ? ' bout' : ''}" style="flex:${e.poids};--sc:${e.c}"></i>`).join(''); })()}</span>
             <span class="vfd fiche-pc">${pc} %</span><span class="fleche">${ouvert ? '▾' : '▸'}</span></button>
-          <div class="lecteur" data-lect="${m.id}"><button class="lect-play" title="Écouter l'export principal">▶</button><div class="lect-barre"><i></i></div><span class="lect-t mono"></span><span class="nt lect-src"></span></div>
+          <div class="lecteur" data-lect="${m.id}"><button class="lect-pas" data-lp="-1" title="Morceau précédent (re-clic au début)">⏮</button><button class="lect-play" title="Écouter l'export principal">▶</button><button class="lect-pas" data-lp="0" title="Arrêt : on s'arrête et on revient au début">■</button><button class="lect-pas" data-lp="1" title="Morceau suivant">⏭</button><div class="lect-barre"><i></i></div><span class="lect-t mono"></span><span class="nt lect-src"></span></div>
         </div>
       </div>
       ${ouvert ? `<div class="fiche-corps">
@@ -292,6 +290,7 @@ BK.module('biblio', function (page) {
             <input class="fld f-note" data-f="${esc(x.nom)}" placeholder="note…" value="${esc((m.notesExports || {})[x.nom] || '')}">
             ${x.drive ? `<button class="btn xs" data-ecoute="${esc(x.driveId)}" data-nom="${esc(x.nom)}" title="Écouter">▶</button><button class="btn xs" data-dreel="${esc(x.driveId)}" data-nom="${esc(x.nom)}">→ Reel</button>`
               : x.ici ? `<button class="btn xs" data-reel="${esc(x.chemin)}" data-nom="${esc(x.nom)}">→ Reel</button>` : ''}
+            ${(v => `<span class="f-ab"><button class="btn xs f-a${m.ecouteA === v ? ' on' : ''}" data-ab="A|${esc(v)}" title="Version A par défaut dans Notes et retours (re-clic : automatique, la plus récente)">A</button><button class="btn xs f-b${m.ecouteB === v ? ' on' : ''}" data-ab="B|${esc(v)}" title="Version B par défaut dans Notes et retours (re-clic : automatique, celle d'avant)">B</button></span>`)(x.drive ? 'drive:' + x.driveId : x.chemin)}
             <button class="btn xs" data-remplacer="${esc(x.chemin)}" title="Choisir une autre version à la place">Remplacer…</button>
             <button class="btn xs" data-expx="${esc(x.chemin)}" title="Retirer de la fiche (le fichier n'est pas effacé)">✕</button></div>`).join('') : '<span class="nt">Aucun export relié. Range-le dans le Drive (dossier du morceau), ou « + Ajouter un export ».</span>')
           + ((m.exportsDiscord || []).length ? `<span class="nt" style="margin-top:8px">Vu sur Discord (Miette) :</span>` + m.exportsDiscord.slice(0, 5).map(x => `<div class="ligne-f"><span class="etoile">💬</span><span class="mono f-nom">${esc(x.fichier || '—')}</span>
@@ -428,6 +427,12 @@ BK.module('biblio', function (page) {
     $$('.fiche', page).forEach(el => {
       const m = B.morceaux.find(x => x.id === el.dataset.id);
       $('.lect-play', el).onclick = () => lecteur.jouer(m);
+      $$('.lect-pas', el).forEach(b => b.onclick = () => { const d = +b.dataset.lp;
+        if (!d) return lecteur.id === m.id ? lecteur.arreter() : null;
+        if (lecteur.id !== m.id) return lecteur.jouer(m);
+        if (d < 0 && lecteur.audio.currentTime > 3) { lecteur.audio.currentTime = 0; return; }
+        lecteur.voisin(d); });
+      { const lz = $('.lecteur', el); if (lz && !lz._mol) { lz._mol = 1; BK.mini.molette(lz); } }
       $('.lect-barre', el).onclick = e => { if (lecteur.id !== m.id || !lecteur.audio.duration) return; const r = e.currentTarget.getBoundingClientRect(); lecteur.audio.currentTime = (e.clientX - r.left) / r.width * lecteur.audio.duration; };
       $$('[data-ecoute]', el).forEach(b => b.onclick = () => lecteur.jouer(m, { drive: b.dataset.ecoute, nom: b.dataset.nom }));
       $$('[data-dreel]', el).forEach(b => b.onclick = async () => { try { msg('Téléchargement depuis le Drive…'); const o = await BK.drive.telecharger(b.dataset.dreel); BK.ouvrir('reels'); await BK.reelsCharger(new File([o], b.dataset.nom)); } catch (e) { msg('Téléchargement impossible'); } });
@@ -463,6 +468,10 @@ BK.module('biblio', function (page) {
         try { msg('Envoi vers Reels…'); const o = await BK.fichier.lireOctets(b.dataset.reel); BK.ouvrir('reels'); await BK.reelsCharger(new File([o], b.dataset.nom)); }
         catch (e) { msg('Fichier illisible'); } });
       $$('.lien', el).forEach(a => a.onclick = e => { e.preventDefault(); BK.ouvrirLien(a.dataset.url); });
+      // A / B : les versions par défaut dans Notes et retours (re-clic = automatique : A la plus récente, B celle d'avant)
+      $$('[data-ab]', el).forEach(b => b.onclick = async () => { const [c, v] = [b.dataset.ab.slice(0, 1), b.dataset.ab.slice(2)], k = 'ecoute' + c, o = c === 'A' ? 'ecouteB' : 'ecouteA';
+        m[k] = m[k] === v ? '' : v; if (m[k] && m[o] === v) m[o] = '';
+        await sauver(m); msg(m[k] ? 'Version ' + c + ' par défaut dans Notes et retours' : 'Version ' + c + ' : automatique (' + (c === 'A' ? 'la plus récente' : 'celle d\'avant') + ')'); rendre(); });
       $$('[data-princ]', el).forEach(b => b.onclick = async () => { m.exportPrincipal = b.dataset.princ; await sauver(m); msg('Version principale choisie'); rendre(); });
       $$('[data-expx]', el).forEach(b => b.onclick = async () => {
         const c = b.dataset.expx; m.exportsManuels = (m.exportsManuels || []).filter(f => f.chemin !== c);

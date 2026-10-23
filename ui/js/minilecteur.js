@@ -5,8 +5,9 @@
 // =====================================================================
 BK.mini = {
   actuel: null, sources: [],
-  suivre(el, { page, titre }) {
-    const s = { el, page, titre }; BK.mini.sources.push(s); el.volume = BK.reglage('mini.volume', 1);
+  // opts facultatifs : precedent(), suivant() (ex. la Bibliothèque : le morceau d'avant / d'après)
+  suivre(el, { page, titre, precedent, suivant }) {
+    const s = { el, page, titre, precedent, suivant }; BK.mini.sources.push(s); el.volume = BK.reglage('mini.volume', 1);
     el.addEventListener('play', () => {
       for (const x of BK.mini.sources) if (x !== s && !x.el.paused) x.el.pause();      // un seul son à la fois
       const e = BK.mini.actuel; if (e && e.ext && e !== s && e.joue()) e.pause();       // (aussi Écoute, Reels Audio…)
@@ -25,12 +26,16 @@ BK.mini = {
   },
   // le volume : un petit triangle comme sur VLC, il vaut pour tous les lecteurs du logiciel
   volume(v) {
-    v = Math.max(0, Math.min(1, v)); BK.regler('mini.volume', v);
+    v = Math.round(Math.max(0, Math.min(1, v)) * 100) / 100; BK.regler('mini.volume', v);
     for (const x of BK.mini.sources) x.el.volume = v;
     const z = document.getElementById('bkMini'); if (!z) return;
     const r = z.querySelector('.mini-range'); if (r && +r.value !== v) r.value = v;
     const n = z.querySelector('.mini-niveau'); if (n) n.style.width = (v * 100) + '%';
     const h = z.querySelector('.mini-hp'); if (h) h.textContent = v === 0 ? '🔇' : v < 0.5 ? '🔉' : '🔊';
+  },
+  // la molette sur un lecteur = le volume (5 % par cran)
+  molette(el) {
+    el.addEventListener('wheel', e => { e.preventDefault(); BK.mini.volume(BK.reglage('mini.volume', 1) + (e.deltaY < 0 ? 0.05 : -0.05)); BK.mini.bulle && BK.mini.bulle(); }, { passive: false });
   },
   maj() {
     const z = document.getElementById('bkMini'), s = BK.mini.actuel; if (!z) return;
@@ -42,13 +47,14 @@ BK.mini = {
     const nomPage = ((BK.onglets || []).find(m => m.id === s.page) || {}).titre || s.page;
     if (!z.dataset.pret) {
       z.dataset.pret = '1';
-      z.innerHTML = `<span class="mini-titre"></span><div class="mini-barre" title="Clique pour aller à cet endroit"><div class="mini-plein"></div></div><span class="mini-t mono"></span>
+      z.innerHTML = `<span class="mini-ctl"><button class="btn xs" data-mi="prec" title="Précédent (re-clic au début : le morceau d'avant)">⏮</button><button class="btn xs pri mini-jouer" data-mi="jouer">▶</button><button class="btn xs" data-mi="stop" title="Arrêt : on s'arrête et on revient au début">■</button><button class="btn xs" data-mi="suiv" title="Suivant">⏭</button></span><span class="mini-titre"></span><div class="mini-barre" title="Clique pour aller à cet endroit"><div class="mini-plein"></div></div><span class="mini-t mono"></span>
         <span class="mini-vol" title="Volume"><span class="mini-hp" data-mi="muet">🔊</span><span class="mini-equerre"><span class="mini-niveau"></span><input type="range" min="0" max="1" step="0.01" class="mini-range"></span></span>
-        <button class="btn xs pri mini-jouer" data-mi="jouer">▶</button><button class="btn xs" data-mi="page"></button><button class="btn xs" data-mi="fermer" title="Arrêter">✕</button>`;
+        <button class="btn xs" data-mi="page"></button><button class="btn xs" data-mi="fermer" title="Arrêter">✕</button>`;
       z.addEventListener('click', e => { const b = e.target.closest('[data-mi]'), s = BK.mini.actuel; if (!s) return;
         if (s.ext) { const k = b && b.dataset.mi;                        // Écoute, Reels Audio…
           if (!b) { const barre = e.target.closest('.mini-barre'), d = s.duree(); if (barre && d && s.aller) { const r = barre.getBoundingClientRect(); s.aller((e.clientX - r.left) / r.width * d); } }
           else if (k === 'jouer') { s.joue() ? s.pause() : s.jouer(); }
+          else if (k === 'stop') { if (s.joue()) s.pause(); s.aller && s.aller(0); }
           else if (k === 'page') BK.ouvrir(s.page);
           else if (k === 'fermer') { if (s.joue()) s.pause(); BK.mini.cache = true; }
           else if (k === 'muet') { const v = BK.reglage('mini.volume', 1); BK.mini.volume(v > 0 ? 0 : (BK.mini.avantMuet || 1)); if (v > 0) BK.mini.avantMuet = v; }
@@ -57,6 +63,9 @@ BK.mini = {
         if (!b) { const barre = e.target.closest('.mini-barre'); if (barre && a.duration) { const r = barre.getBoundingClientRect(); a.currentTime = (e.clientX - r.left) / r.width * a.duration; } return; }
         const k = b.dataset.mi;
         if (k === 'jouer') a.paused ? a.play() : a.pause();
+        if (k === 'stop') { a.pause(); a.currentTime = 0; }
+        if (k === 'prec' && s.precedent) { if (a.currentTime > 3) a.currentTime = 0; else s.precedent(); }
+        if (k === 'suiv' && s.suivant) s.suivant();
         if (k === 'moins') a.currentTime = Math.max(0, a.currentTime - 10);
         if (k === 'plus') a.currentTime = Math.min(a.duration || 0, a.currentTime + 10);
         if (k === 'page') BK.ouvrir(s.page);
@@ -64,8 +73,9 @@ BK.mini = {
         if (k === 'muet') { const v = BK.reglage('mini.volume', 1); BK.mini.volume(v > 0 ? 0 : (BK.mini.avantMuet || 1)); if (v > 0) BK.mini.avantMuet = v; }
         BK.mini.maj(); });
     }
-    if (!z.dataset.vol) { z.dataset.vol = '1'; const r = z.querySelector('.mini-range'); r.value = BK.reglage('mini.volume', 1); r.oninput = () => BK.mini.volume(+r.value); BK.mini.volume(+r.value); }
+    if (!z.dataset.vol) { z.dataset.vol = '1'; BK.mini.molette(z); const r = z.querySelector('.mini-range'); r.value = BK.reglage('mini.volume', 1); r.oninput = () => BK.mini.volume(+r.value); BK.mini.volume(+r.value); }
     z.querySelector('.mini-jouer').textContent = a.paused ? '▶' : '❚❚';
+    z.querySelectorAll('[data-mi="prec"],[data-mi="suiv"]').forEach(b => b.hidden = !(s.precedent || s.suivant));
     z.querySelector('.mini-titre').textContent = (typeof s.titre === 'function' ? s.titre() : s.titre) || '';
     z.querySelector('.mini-plein').style.width = (d ? t / d * 100 : 0) + '%';
     z.querySelector('.mini-t').textContent = `${T(t).replace(/\.\d$/, '')} / ${T(d).replace(/\.\d$/, '')}`;

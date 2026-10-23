@@ -15,15 +15,18 @@ const tps = s => { s = Math.max(0, s || 0); return Math.floor(s / 60) + ':' + St
 // une couleur par personne (pas de bleu ni de rouge : ce sont les couleurs de A et B)
 const COULEURS = { Yacine: '#f1c453', Pierre: '#7ee08a', Baptiste: '#c58af0' };
 const couleur = qui => COULEURS[qui] || '#d9b67a';
+// l'auteur d'une note (« par » est réécrit à chaque enregistrement, par celui qui enregistre)
+const qui = n => n.auteur || n.par;
 const moi = () => BK.reglage('nomPc', '') || 'Quelqu\'un';
 
 BK.module('ecoute', function (page) {
-  $('.sub', page).textContent = 'Comparer deux versions d\'un mix et laisser des notes minutées';
+  $('.sub', page).textContent = 'Comparer deux versions d\'un mix et laisser des notes minutées sur A';
   $('.hdr .right', page).innerHTML = `<div><span class="eng" style="font-size:9px">Morceau</span><span class="vfd" id="ecNomH" style="width:200px">—</span></div>
     <div><span class="eng" style="font-size:9px">Notes</span><span class="vfd" id="ecNbH">—</span></div>`;
   $('.grid', page).innerHTML = `
     <div class="cols">
       <section class="pane vit ec-vit">
+        <div class="ec-haut" id="ecHaut">
         <div class="box ec-choix">
           <label><span class="eng">Morceau</span><select class="fld" id="ecMorceau"><option value="">—</option></select></label>
           <label class="ec-a"><span class="eng">A <i class="ec-pt a"></i></span><span class="ec-l"><select class="fld" id="ecA"></select><button class="btn xs" id="ecStarA" title="Cette version devient l'export principal de la fiche (Bibliothèque)">★</button></span></label>
@@ -39,12 +42,16 @@ BK.module('ecoute', function (page) {
             <span class="nt ec-astuce">Clic = aller là · cliquer-glisser = un passage · <b>Espace</b> = lecture · <b>Tab</b> = A/B</span>
             <span class="ec-recal"><span class="eng">Recaler B</span><input class="fld rv-glisse" id="ecDecal" title="Glisse la souris (ou double-clic pour taper) : décale B en secondes"><button class="btn xs" id="ecAuto" title="Le logiciel cherche tout seul le décalage entre A et B">Caler tout seul</button></span>
           </div></div>
-        <div class="box grow ec-notes-box">
-          <div class="ec-form"><span class="vfd" id="ecQuand">0:00</span><span class="ec-sur" id="ecSur">sur A</span>
+        </div>
+        <div class="ec-poignee" id="ecPoignee" title="Tire pour agrandir les notes ou le lecteur (double-clic : taille normale)"><i></i></div>
+        <div class="box ec-notes-box">
+          <div class="ec-form"><span class="vfd" id="ecQuand">0:00</span><span class="ec-sur" id="ecSur">note sur A</span>
             <input class="fld" id="ecTexte" placeholder="Ta note à cet endroit… (Entrée pour ajouter)"><button class="btn sm pri" id="ecAjout">＋ Note</button></div>
-          <div class="ec-filtres"><button class="chip on" data-f="tout">Toutes</button><button class="chip" data-f="ouvertes">À régler</button><button class="chip" data-f="A">Seulement A</button><button class="chip" data-f="B">Seulement B</button>
+          <div class="ec-filtres"><div class="seg ec-tri" id="ecTri"><button data-t="temps">Dans le morceau</button><button data-t="date">Par date</button><button data-t="membre">Par membre</button></div>
+            <button class="chip on" data-f="tout">Toutes</button><button class="chip" data-f="ouvertes">À régler</button><button class="chip" data-f="A" title="Seulement les notes de la version A choisie">Cette version</button>
             <button class="btn xs miette-aide" id="ecTraduire" style="margin-left:auto" title="Miette traduit les notes en anglais, naturellement (pour l'ingé son). Le français reste.">Traduire en anglais</button>
-            <button class="btn xs" id="ecCopier" title="Copie les notes à régler (en anglais si elles sont traduites)">📋 Copier pour l'ingé son</button></div>
+            <button class="btn xs" id="ecCopier" title="Copie toutes les notes affichées, avec leurs timecodes, dans le presse-papier">📋 Copier</button>
+            <button class="btn xs" id="ecGrand" title="Les notes prennent toute la place (le lecteur reste en haut)">⤢ Agrandir</button></div>
           <div class="ec-liste" id="ecListe"><span class="nt">Pas encore de note.</span></div></div>
       </section>
     </div>
@@ -80,12 +87,20 @@ BK.module('ecoute', function (page) {
     E.opts = await versions(E.m);
     const html = E.opts.length ? E.opts.map(o => `<option value="${esc(o.v)}">${o.v === E.m.exportPrincipal ? '★ ' : ''}${o.ou} ${esc(o.nom)}</option>`).join('') : '<option value="">aucun export trouvé</option>';
     $('#ecA').innerHTML = html; $('#ecB').innerHTML = '<option value="">— Aucun (un seul mix)</option>' + (E.opts.length ? html : '');
-    // par défaut : B = la plus récente, A = la précédente (ou la ★)
+    // A = la version choisie dans la fiche (Bibliothèque), sinon la plus récente ; B = celle choisie dans la fiche, sinon celle d'avant.
+    // Un nouvel export plus récent devient donc A tout seul, et l'ancien A passe en B.
     const parDate = [...E.opts].sort((a, b) => (b.t || '').localeCompare(a.t || ''));
-    const b0 = parDate[0], a0 = E.opts.find(o => o.v === E.m.exportPrincipal && o !== b0) || parDate[1] || parDate[0];
-    if (a0) $('#ecA').value = a0.v; $('#ecB').value = b0 && a0 && b0 !== a0 ? b0.v : '';      // une seule version : B = aucun
+    const a0 = E.opts.find(o => o.v === E.m.ecouteA) || parDate[0];
+    const b0 = E.opts.find(o => o.v === E.m.ecouteB && o !== a0) || parDate.find(o => o !== a0);
+    if (a0) $('#ecA').value = a0.v; $('#ecB').value = b0 ? b0.v : '';                     // une seule version : B = aucun
     await Promise.all([chargerCote('A'), chargerCote('B')]);
     chargerNotes();
+  }
+  // une version gardée qui n'est plus dans la liste (glissée depuis Médias…) : on la remet avec son nom
+  function remettre(c, v, nom) {
+    if (!E.opts.some(o => o.v === v)) { E.opts.push({ v, nom: nom || 'version', ou: '📂' });
+      for (const s2 of ['#ecA', '#ecB']) if (![...$(s2).options].some(o => o.value === v)) $(s2).insertAdjacentHTML('beforeend', `<option value="${esc(v)}">📂 ${esc(nom || 'version')}</option>`); }
+    $('#ec' + c).value = v;
   }
   async function octetsDe(v) {
     if (v.startsWith('drive:')) return BK.drive.telecharger(v.slice(6));
@@ -112,6 +127,7 @@ BK.module('ecoute', function (page) {
     if (!x) return msg('Ici, il faut un son'); if (x.dc) return msg('Range d\'abord ce son de Discord dans le Drive (Médias)');
     const v = 'drive:' + x.id, c = E.A && !E.B ? 'B' : E.A && E.B ? 'B' : 'A';
     for (const s2 of ['#ecA', '#ecB']) if (![...$(s2).options].some(o => o.value === v)) $(s2).insertAdjacentHTML('beforeend', `<option value="${esc(v)}">📂 ${esc(x.nom || 'son')}</option>`);
+    if (!E.opts.some(o => o.v === v)) E.opts.push({ v, nom: x.nom || 'son', ou: '📂' });
     $('#ec' + c).value = v; stop(); await chargerCote(c); dessinerNotes(); msg('« ' + (x.nom || 'son') + ' » en version ' + c); });
   $('#ecA').onchange = async () => { stop(); await chargerCote('A'); dessinerNotes(); };
   $('#ecB').onchange = async () => { stop(); await chargerCote('B'); dessinerNotes(); };
@@ -155,7 +171,7 @@ BK.module('ecoute', function (page) {
     E.cote = c || (E.cote === 'A' ? 'B' : 'A');
     $$('#ecAB button').forEach(b => b.classList.toggle('on', b.dataset.c === E.cote));
     if (E.gA && E.ctx) { const t = E.ctx.currentTime; E.gA.gain.setTargetAtTime(E.cote === 'A' ? 1 : 0, t, 0.01); E.gB.gain.setTargetAtTime(E.cote === 'B' ? 1 : 0, t, 0.01); }
-    $('#ecSur').textContent = 'sur ' + E.cote; msg('Tu écoutes ' + E.cote + ' : ' + ((E.opts.find(o => o.v === E[E.cote]) || {}).nom || ''));
+    msg('Tu écoutes ' + E.cote + ' : ' + ((E.opts.find(o => o.v === E[E.cote]) || {}).nom || ''));
   }
   $('#ecPlay').onclick = () => E.joue ? stop() : jouer();
   $$('#ecAB button').forEach(b => b.onclick = () => basculer(b.dataset.c));
@@ -220,25 +236,56 @@ BK.module('ecoute', function (page) {
   const nomVersion = v => ((E.opts.find(o => o.v === v) || {}).nom || 'autre version');
   function visibles() {
     const f = ($('.ec-filtres .chip.on') || {}).dataset ? $('.ec-filtres .chip.on').dataset.f : 'tout';
-    return E.notes.filter(n => (n.version === E.A || n.version === E.B || !E.A) && (f === 'tout' || (f === 'ouvertes' && !n.regle) || (f === 'A' && n.version === E.A) || (f === 'B' && n.version === E.B)));
+    return E.notes.filter(n => f === 'tout' || (f === 'ouvertes' && !n.regle) || (f === 'A' && n.version === E.A));
   }
-  function dessinerNotes() {
-    const l = visibles(), D = duree();
-    $('#ecNbH').textContent = String(E.notes.filter(n => !n.regle).length).padStart(2, '0');
-    // les marques sous la forme du son : un point (instant) ou une barre (passage), à la couleur de la personne
-    $('#ecMarques').innerHTML = D ? l.map(n => `<span class="ec-mq${n.fin ? ' passage' : ''}${n.regle ? ' regle' : ''}" data-n="${n.id}" title="${esc(tps(n.t) + (n.fin ? ' → ' + tps(n.fin) : '') + ' · ' + n.par + ' : ' + n.texte)}"
-      style="left:${Math.min(100, n.t / D * 100)}%;${n.fin ? `width:${Math.max(0.6, (n.fin - n.t) / D * 100)}%;` : ''}--pc:${couleur(n.par)};top:${n.version === E.B ? 12 : 0}px"></span>`).join('') : '';
-    $('#ecListe').innerHTML = l.length ? l.map(n => `<div class="ec-n${n.regle ? ' regle' : ''}" data-n="${n.id}" style="--pc:${couleur(n.par)}">
+  // ---------- trier : dans le morceau (timecode), par date (la plus ancienne en haut), par membre ----------
+  const tri = () => BK.reglage('ecoute.tri', 'temps');
+  const plies = () => BK.reglage('ecoute.plies', {});
+  const ORDRE_M = ['Yacine', 'Baptiste', 'Pierre'];
+  const jour = q => { const d = new Date(q || 0); return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); };
+  const nomJour = k => { const d = new Date(k + 'T12:00'), auj = jour(new Date()), hier = jour(Date.now() - 864e5);
+    const s = d.toLocaleDateString('fr-CA', { weekday: 'long', day: 'numeric', month: 'long' }); return (k === auj ? 'Aujourd\'hui · ' : k === hier ? 'Hier · ' : '') + s.charAt(0).toUpperCase() + s.slice(1); };
+  const heure = q => q ? new Date(q).toLocaleTimeString('fr-CA', { hour: '2-digit', minute: '2-digit' }) : '';
+  // les notes rangées en groupes (un seul groupe sans titre pour « dans le morceau »)
+  function groupes(l) {
+    const T = tri();
+    if (T === 'date') { const g = {}; [...l].sort((a, b) => (a.quand || '').localeCompare(b.quand || '')).forEach(n => (g[jour(n.quand)] = g[jour(n.quand)] || []).push(n));
+      return Object.keys(g).sort().map(k => ({ cle: 'date:' + k, titre: nomJour(k), l: g[k] })); }
+    if (T === 'membre') { const g = {}; l.forEach(n => (g[qui(n)] = g[qui(n)] || []).push(n));
+      const rang = p => { const i = ORDRE_M.indexOf(p); return i < 0 ? 99 : i; };
+      return Object.keys(g).sort((a, b) => rang(a) - rang(b) || a.localeCompare(b)).map(k => ({ cle: 'membre:' + k, titre: 'Notes de ' + k, pc: couleur(k), l: g[k].sort((a, b) => a.t - b.t) })); }
+    return [{ cle: '', titre: '', l: [...l].sort((a, b) => a.t - b.t) }];
+  }
+  const versionDe = n => n.versionNom || nomVersion(n.version);
+  function ligneNote(n) {
+    const autre = E.A && n.version !== E.A, T = tri();
+    return `<div class="ec-n${n.regle ? ' regle' : ''}" data-n="${n.id}" style="--pc:${couleur(qui(n))}">
         <button class="ec-n-t mono" data-aller="${n.id}" title="Écouter à cet endroit">${tps(n.t)}${n.fin ? ' → ' + tps(n.fin) : ''}</button>
-        <div class="ec-n-c"><div class="ec-n-l"><b>${esc(n.par)}</b><span class="ec-v ${n.version === E.B ? 'b' : 'a'}" title="${esc(nomVersion(n.version))}">${n.version === E.B ? 'B' : 'A'}</span><span class="ec-n-txt">${esc(n.texte)}</span></div>${n.texteEn ? `<div class="ec-en"><span>EN</span>${esc(n.texteEn)}</div>` : ''}
+        <div class="ec-n-c"><div class="ec-n-l">${T === 'membre' ? '' : `<b>${esc(qui(n))}</b>`}<span class="ec-n-txt">${esc(n.texte)}</span>${T === 'date' ? `<span class="ec-n-h">${heure(n.quand)}</span>` : ''}</div>
+          ${autre || n.contreNom ? `<div class="ec-n-v${autre ? ' autre' : ''}">sur « ${esc(versionDe(n))} »${n.contreNom ? ` · comparé à « ${esc(n.contreNom)} »` : ''}</div>` : ''}
+          ${n.texteEn ? `<div class="ec-en"><span>EN</span>${esc(n.texteEn)}</div>` : ''}
           ${(n.reponses || []).map(r => `<div class="ec-rep" style="--pc:${couleur(r.par)}"><b>${esc(r.par)}</b> ${esc(r.texte)}${r.texteEn ? `<em class="ec-en-r"> · EN : ${esc(r.texteEn)}</em>` : ''}</div>`).join('')}
           <div class="ec-rep-f hidden"><input class="fld" placeholder="Ta réponse… (Entrée)"></div></div>
         <div class="ec-n-o"><button class="btn xs" data-rep="${n.id}" title="Répondre">💬 ${(n.reponses || []).length || ''}</button>
           <button class="btn xs${n.regle ? ' on' : ''}" data-ok="${n.id}" title="Réglé / pas réglé">${n.regle ? '✓ réglé' : '○'}</button>
-          ${n.par === moi() ? `<button class="btn xs" data-x="${n.id}" title="Retirer ma note">✕</button>` : ''}</div></div>`).join('')
+          ${qui(n) === moi() ? `<button class="btn xs" data-x="${n.id}" title="Retirer ma note">✕</button>` : ''}</div></div>`;
+  }
+  function dessinerNotes() {
+    const l = visibles(), D = duree(), P = plies(), G = groupes(l);
+    $$('#ecTri button').forEach(b => b.classList.toggle('on', b.dataset.t === tri()));
+    const caches = new Set(G.filter(g => g.cle && P[g.cle]).flatMap(g => g.l.map(n => n.id)));      // les notes d'un dossier replié : cachées aussi sous la forme du son
+    $('#ecNbH').textContent = String(E.notes.filter(n => !n.regle).length).padStart(2, '0');
+    // les marques sous la forme du son : un point (instant) ou une barre (passage), à la couleur de la personne
+    $('#ecMarques').innerHTML = D ? l.filter(n => !caches.has(n.id)).map(n => `<span class="ec-mq${n.fin ? ' passage' : ''}${n.regle ? ' regle' : ''}${E.A && n.version !== E.A ? ' autre' : ''}" data-n="${n.id}" title="${esc(tps(n.t) + (n.fin ? ' → ' + tps(n.fin) : '') + ' · ' + qui(n) + ' : ' + n.texte)}"
+      style="left:${Math.min(100, n.t / D * 100)}%;${n.fin ? `width:${Math.max(0.6, (n.fin - n.t) / D * 100)}%;` : ''}--pc:${couleur(qui(n))}"></span>`).join('') : '';
+    $('#ecListe').innerHTML = l.length ? G.map(g => !g.cle ? g.l.map(ligneNote).join('') : `
+        <div class="ec-dos${P[g.cle] ? ' plie' : ''}"${g.pc ? ` style="--pc:${g.pc}"` : ''}>
+          <button class="ec-dos-t" data-pli="${esc(g.cle)}"><span class="ec-dos-f">${P[g.cle] ? '▸' : '▾'}</span><b>${esc(g.titre)}</b><span class="nt">${g.l.length} note(s)${g.l.some(n => !n.regle) ? ' · ' + g.l.filter(n => !n.regle).length + ' à régler' : ''}</span></button>
+          ${P[g.cle] ? '' : `<div class="ec-dos-l">${g.l.map(ligneNote).join('')}</div>`}</div>`).join('')
       : `<span class="nt">${E.m ? 'Pas encore de note. Écoute, clique à l\'endroit voulu (ou cliquer-glisser pour un passage), puis écris ta note.' : 'Choisis un morceau.'}</span>`;
+    $$('[data-pli]', page).forEach(b => b.onclick = () => { const p = plies(); p[b.dataset.pli] = !p[b.dataset.pli]; BK.regler('ecoute.plies', p); dessinerNotes(); });
     const trouver = id => E.notes.find(n => n.id === id);
-    $$('[data-aller]', page).forEach(b => b.onclick = () => { const n = trouver(b.dataset.aller); if (n.version === E.B) basculer('B'); else if (n.version === E.A) basculer('A'); jouer(Math.max(0, n.t - 1)); });
+    $$('[data-aller]', page).forEach(b => b.onclick = () => { const n = trouver(b.dataset.aller); if (n.version === E.A && E.B) basculer('A'); jouer(Math.max(0, n.t - 1)); });
     $$('.ec-mq', page).forEach(b => b.onclick = () => { const n = trouver(b.dataset.n); const el = $(`.ec-n[data-n="${n.id}"]`); el && el.scrollIntoView({ block: 'nearest', behavior: 'smooth' }); el && el.classList.add('flash'); setTimeout(() => el && el.classList.remove('flash'), 900); });
     $$('[data-ok]', page).forEach(b => b.onclick = async () => { const n = trouver(b.dataset.ok); n.regle = !n.regle; await BK.db.ecrire('notesmix', n); dessinerNotes(); });
     $$('[data-x]', page).forEach(b => b.onclick = async () => { const n = trouver(b.dataset.x); if (!await BK.confirmer('Retirer ta note ?')) return; E.notes = E.notes.filter(x => x !== n); await BK.db.supprimer('notesmix', n.id); dessinerNotes(); });
@@ -247,23 +294,41 @@ BK.module('ecoute', function (page) {
         (n.reponses = n.reponses || []).push({ par: moi(), texte: i.value.trim(), quand: new Date().toISOString() }); await BK.db.ecrire('notesmix', n); dessinerNotes(); }; });
   }
   $$('.ec-filtres .chip').forEach(c => c.onclick = () => { $$('.ec-filtres .chip').forEach(x => x.classList.toggle('on', x === c)); dessinerNotes(); });
+  $$('#ecTri button').forEach(b => b.onclick = () => { BK.regler('ecoute.tri', b.dataset.t); dessinerNotes(); });
   async function ajouterNote() {
     const t = $('#ecTexte').value.trim(); if (!t) return $('#ecTexte').focus();
-    if (!E.m || !E[E.cote]) return msg('Choisis d\'abord un morceau et une version');
-    const n = { morceau: E.m.id, version: E[E.cote], versionNom: nomVersion(E[E.cote]), t: Math.round((E.sel ? E.sel.a : E.pos) * 10) / 10,
-      fin: E.sel ? Math.round(E.sel.b * 10) / 10 : null, texte: t, par: moi(), quand: new Date().toISOString(), reponses: [], regle: false };
+    if (!E.m || !E.A) return msg('Choisis d\'abord un morceau et la version A');
+    const n = { morceau: E.m.id, version: E.A, versionNom: nomVersion(E.A), contre: E.B || '', contreNom: E.B ? nomVersion(E.B) : '', t: Math.round((E.sel ? E.sel.a : E.pos) * 10) / 10,
+      fin: E.sel ? Math.round(E.sel.b * 10) / 10 : null, texte: t, auteur: moi(), par: moi(), quand: new Date().toISOString(), reponses: [], regle: false };
     const f = await BK.db.ecrire('notesmix', n); E.notes.push(f); E.notes.sort((a, b) => a.t - b.t);
-    $('#ecTexte').value = ''; E.sel = null; majSel(); dessinerNotes(); msg('Note ajoutée à ' + tps(n.t) + ' sur ' + E.cote);
+    $('#ecTexte').value = ''; E.sel = null; majSel(); dessinerNotes(); msg('Note ajoutée à ' + tps(n.t) + ' sur A');
   }
   $('#ecAjout').onclick = ajouterNote;
   $('#ecTexte').addEventListener('keydown', e => { e.stopPropagation(); if (e.key === 'Enter') ajouterNote(); });
-  // la liste pour l'ingé son : les notes à régler de la version écoutée (B en général : le nouveau mix)
+  // 📋 Copier : toutes les notes affichées, avec leurs timecodes, dans l'ordre choisi (en anglais si tout est traduit)
   $('#ecCopier').onclick = async () => {
-    const v = E[E.cote], l = E.notes.filter(n => n.version === v && !n.regle); if (!l.length) return msg('Aucune note à régler sur ' + E.cote);
-    const en = l.every(n => n.texteEn);                                 // tout est traduit : on copie l'anglais (sinon le français)
-    const txt = `${E.m.nom} — ${nomVersion(v)}\n\n` + l.map(n => `${tps(n.t)}${n.fin ? '–' + tps(n.fin) : ''} : ${en ? n.texteEn : n.texte}${(n.reponses || []).length ? ' (' + n.reponses.map(r => en && r.texteEn ? r.texteEn : r.texte).join(' / ') + ')' : ''}`).join('\n');
-    try { await navigator.clipboard.writeText(txt); msg(l.length + ' note(s) copiée(s)' + (en ? ' en anglais' : '') + ' : colle-les à l\'ingé son'); } catch (e) { msg('Copie impossible'); }
+    const l = visibles(); if (!E.m || !l.length) return msg('Aucune note à copier');
+    const en = l.every(n => n.texteEn), T = tri();
+    const ligne = n => `${n.regle ? '✓ ' : ''}${tps(n.t)}${n.fin ? '–' + tps(n.fin) : ''}${T === 'membre' ? '' : ' · ' + qui(n)} : ${en ? n.texteEn : n.texte}`
+      + (E.A && n.version !== E.A ? ` [${versionDe(n)}]` : '')
+      + (n.reponses || []).map(r => `\n    ↳ ${r.par} : ${en && r.texteEn ? r.texteEn : r.texte}`).join('');
+    const tete = `${E.m.nom}\nA : ${nomVersion(E.A)}${E.B ? '\nB : ' + nomVersion(E.B) : ''}\n`;
+    const txt = tete + groupes(l).map(g => (g.cle ? `\n— ${g.titre} —\n` : '\n') + g.l.map(ligne).join('\n')).join('\n');
+    try { await navigator.clipboard.writeText(txt); msg(l.length + ' note(s) copiée(s)' + (en ? ' en anglais' : '') + ' : colle-les où tu veux'); } catch (e) { msg('Copie impossible'); }
   };
+  // ---------- la place : poignée entre le lecteur et les notes, et ⤢ Agrandir (gardés sur ce PC) ----------
+  const vit = $('.ec-vit', page);
+  const hNotes = h => { if (h) vit.style.setProperty('--hn', h + 'px'); else vit.style.removeProperty('--hn'); vit.classList.toggle('ec-taille', !!h); };
+  hNotes(BK.reglage('ecoute.hNotes', 0));
+  $('#ecPoignee').addEventListener('pointerdown', ev => { ev.preventDefault(); const p = $('#ecPoignee'); p.setPointerCapture(ev.pointerId);
+    const bas = vit.getBoundingClientRect().bottom, max = vit.getBoundingClientRect().height - 90;
+    const bouge = e => hNotes(Math.max(150, Math.min(max, Math.round(bas - e.clientY - 6))));
+    const fin = () => { p.removeEventListener('pointermove', bouge); p.removeEventListener('pointerup', fin); const h = parseInt(vit.style.getPropertyValue('--hn')) || 0; BK.regler('ecoute.hNotes', h); dessiner(); };
+    p.addEventListener('pointermove', bouge); p.addEventListener('pointerup', fin); });
+  $('#ecPoignee').ondblclick = () => { hNotes(0); BK.regler('ecoute.hNotes', 0); dessiner(); };
+  const grand = on => { page.classList.toggle('ec-grand', on); $('#ecGrand').textContent = on ? '⤡ Réduire' : '⤢ Agrandir'; BK.regler('ecoute.grand', on); if (!on) setTimeout(dessiner, 30); };
+  grand(!!BK.reglage('ecoute.grand', false));
+  $('#ecGrand').onclick = () => grand(!page.classList.contains('ec-grand'));
   // ---------- Miette traduit les notes en anglais (naturel, vocabulaire d'ingé son). On garde les deux textes. ----------
   $('#ecTraduire').onclick = async () => {
     const l = E.notes.filter(n => !n.texteEn || (n.reponses || []).some(r => !r.texteEn)); if (!l.length) return msg('Tout est déjà traduit');

@@ -42,7 +42,7 @@ BK.module('postvis', function (page) {
           <div class="pv-tel"><div class="pv-app">
             <div class="pv-tete"><span class="rv-avatar petit"></span><b>beeskot</b><span class="pv-pts">⋯</span></div>
             <div class="pv-ecran" id="pvEcran"><canvas id="pvCanvas"></canvas>
-              <div class="rv-vide" id="pvVide"><span class="dymo">Glisse des photos ici</span><span class="nt">JPG, PNG… depuis ce PC · ou :</span><div class="gd" id="pvGal"><button class="btn sm pri" id="pvGalB">🖼 Choisir dans Médias…</button></div></div>
+              <div class="rv-vide rv-exemple" id="pvVide" title="Ajoute des photos (bouton jaune, ou glisse-les ici)"></div>
               <button class="pv-fl g" id="pvPrec">‹</button><button class="pv-fl d" id="pvSuiv">›</button><span class="pv-num" id="pvNum"></span></div>
             <div class="pv-icones"><span>♡</span><span>💬</span><span>➤</span><span class="pv-points" id="pvPoints"></span><span style="margin-left:auto">⌑</span></div>
             <div class="pv-legende"><b>beeskot</b> <span id="pvLegAff">La légende du post…</span></div>
@@ -109,6 +109,8 @@ BK.module('postvis', function (page) {
     ecran.style.maxHeight = 'none'; ecran.style.maxWidth = 'none'; ecran.style.width = w + 'px'; ecran.style.height = Math.round(w * f.H / f.L) + 'px'; const tel = $('.pv-tel', page); if (tel) tel.style.width = Math.max(300, w + 20) + 'px';
   }
   window.addEventListener('resize', () => { if (!page.classList.contains('hidden')) taille(); });
+  // la scène n'a sa vraie hauteur qu'une fois l'onglet affiché : on recalcule à ce moment-là (sinon le téléphone part tout petit)
+  new ResizeObserver(() => { const sc = $('.rv-scene', page); if (sc && sc.clientHeight > 0) taille(); }).observe($('.rv-scene', page));
   function moteur() {
     const f = F(), k = 0.5; cv.width = Math.round(f.L * k); cv.height = Math.round(f.H * k);
     r = BK.rendu.creer(cv.width, cv.height); r.lut(P.lut); r.reglages(P.regl);
@@ -199,7 +201,8 @@ BK.module('postvis', function (page) {
     if (l && l.length) ajouterChoisis(l); };
   $('#pvInput').onchange = e => { ajouter(e.target.files); e.target.value = ''; };
   const galerie = () => {};                                     // l'écran vide propose la fenêtre Médias (plus de galerie à part)
-  $('#pvGalB').onclick = e => { e.stopPropagation(); $('#pvAjout').click(); };
+  $('#pvVide').onclick = e => { e.stopPropagation(); $('#pvAjout').click(); };
+  BK.photoExemple && BK.photoExemple().then(u => { if (u) $('#pvVide').style.backgroundImage = `url(${u})`; });
     page.addEventListener('dragover', e => { e.preventDefault(); ecran.classList.add('survol'); });
   page.addEventListener('dragleave', e => { if (e.target === page) ecran.classList.remove('survol'); });
   page.addEventListener('drop', async e => { e.preventDefault(); ecran.classList.remove('survol'); let fs = [...e.dataTransfer.files];

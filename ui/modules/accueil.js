@@ -47,6 +47,23 @@ async function donnees() {
 // une image étiquetée « Affiches / flyers » ou « Presse / EPK », tirée au hasard UNE fois par jour,
 // avec un look d'époque (cadre Polaroid ou pellicule + couleur chaude légère). Gardée sur ce PC jusqu'au lendemain.
 // Si la photo est trop sombre, trop claire ou trop petite : pas d'effet de couleur (juste le cadre), pour qu'elle reste belle.
+// une photo du groupe (affiche / presse), sans effet : l'exemple qu'on voit dans le téléphone vide (Social Photo, Reels Vidéo)
+BK.photoExemple = async () => {
+  const jour = new Date().toISOString().slice(0, 10), garde = BK.reglage('exemple.photo', null);
+  if (garde && garde.jour === jour) return garde.u || '';
+  if (BK._exemple) return BK._exemple;
+  return BK._exemple = (async () => {
+    if (!BK.drive.relie() || !BK.etiquettes) return '';
+    try { const tags = await BK.etiquettes.tous();
+      const ids = Object.keys(tags).filter(id => !/^dc:/.test(id) && BK.etiquettes.liste(tags, id).some(k => k === 'c:affiche' || k === 'c:presse'));
+      if (!ids.length) { BK.regler('exemple.photo', { jour, u: '' }); return ''; }
+      const id = ids[Math.floor(Math.random() * ids.length)], blob = await (await BK.drive.api(`/files/${id}?alt=media`)).blob();
+      const img = await createImageBitmap(await BK.img.reduire(blob, 700)), c = document.createElement('canvas');
+      c.width = img.width; c.height = img.height; c.getContext('2d').drawImage(img, 0, 0);
+      const u = c.toDataURL('image/jpeg', 0.8); BK.regler('exemple.photo', { jour, u }); return u;
+    } catch (e) { console.warn('photo d\'exemple', e); return ''; } finally { setTimeout(() => BK._exemple = null, 0); }
+  })();
+};
 BK.photoDuJour = async () => {
   const jour = new Date().toISOString().slice(0, 10), garde = BK.reglage('accueil.photo', null);
   if (garde && garde.jour === jour) return garde.u || '';
@@ -124,7 +141,7 @@ BK.module('accueil', function (page) {
                   <span class="ac-rel-p${m.photo ? '' : ' vide'}"${BK.img.bg(m.photo)}>${m.photo ? '' : '♪'}</span>
                   <span class="ac-rel-n">${esc(m.nom)}</span><span class="vfd ac-rel-pc">${Math.round(BK.pourcent(m))} %</span></button>`).join('')}</div></div>` : ''}
             </div>
-            <div class="box ac-cote"><div class="ac-photo" id="acPhoto"></div><p class="ac-phrase"><img class="mi-ic" src="look/patch-miette.png" alt="Miette"><b>Miette :</b> « ${esc(BK.phraseDuJour(d))} »</p></div>
+
           </div>
           <div class="box grow"><div class="ligne-titre"><span class="lb">À faire</span><button class="btn xs" data-va="taches" style="margin-left:auto">Ouvrir la To-do list</button></div>
             <div class="af-liste">${d.afaire.length ? d.afaire.map(x => `<div class="af-l${x.date && x.date < d.auj ? ' retard' : ''}">
@@ -168,7 +185,6 @@ BK.module('accueil', function (page) {
   }
   // ---------- colonne de droite : la photo du jour ----------
   function colonneDroite() {
-    BK.photoDuJour().then(u => { const z = $('#acPhoto', page); if (z) z.innerHTML = u ? `<img src="${u}" alt="Photo du jour">` : ''; }).catch(() => {});
   }
   async function resume() {
     let doc = BK.reglage('accueil.resume', null);
