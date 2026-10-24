@@ -22,18 +22,19 @@ BK.module('notesvid', function (page) {
     <div class="seg ec-vues" id="nvVues"><button data-v="notes">Notes</button><button data-v="histo">Historique de notes</button></div>
     <div class="cols ec-cols" id="nvVueNotes">
       <section class="pane vit ec-vit nv-vit">
-        <div class="box nv-choix">
-          <button class="btn sm pri" id="nvMedias">🎬 Choisir dans Médias…</button><button class="btn sm" id="nvPC">💻 Ce PC…</button><input type="file" id="nvInput" accept="video/*" hidden>
-          <label><span class="eng">Relié à</span><select class="fld" id="nvLien"><option value="">— morceau ou tournage —</option></select></label>
+        <div class="nv-barre">
+          <button class="btn xs pri" id="nvMedias">🎬 Médias…</button><button class="btn xs" id="nvPC">💻 Ce PC…</button><input type="file" id="nvInput" accept="video/*" hidden>
+          <select class="fld nv-lien" id="nvLien" title="Le morceau ou le tournage de cette vidéo"><option value="">— relié à : morceau ou tournage —</option></select>
           <span class="nt mono nv-fich" id="nvFich">Aucune vidéo</span></div>
-        <div class="box grow nv-lecteur">
-          <div class="nv-ecran" id="nvEcran"><video id="nvVideo" playsinline preload="auto"></video><canvas class="nv-dessin" id="nvDessin"></canvas><span class="nt ec-vide" id="nvVide">Choisis une vidéo (Médias ou ce PC), ou glisse-la ici</span></div>
-          <div class="nv-ligne" id="nvLigne"><div class="nv-plein" id="nvPlein"></div><div class="ec-selz hidden" id="nvSelz"></div><div class="ec-tete" id="nvTete"></div></div>
-          <div class="ec-marques" id="nvMarques"></div>
-          <div class="ec-transport"><button class="btn sm pri" id="nvPlay" disabled>▶</button><span class="vfd" id="nvTemps">0:00 / 0:00</span>
-            <input type="range" id="nvVol" min="0" max="1" step="0.01" title="Volume (double-clic : normal)">
-            <button class="btn sm" id="nvCrayon" title="Dessiner sur l'image (la vidéo se met en pause) : le dessin part avec ta prochaine note">✏ Dessiner</button><button class="btn sm hidden" id="nvGomme" title="Effacer le dessin">⌫</button>
-            <span class="nt ec-astuce">Clic sur la ligne = aller là · cliquer-glisser = un passage (en boucle) · <b>Espace</b> = lecture</span></div></div>
+        <div class="nv-zone" id="nvZone"><div class="nv-ecran" id="nvEcran"><video id="nvVideo" playsinline preload="auto"></video><canvas class="nv-dessin" id="nvDessin"></canvas><span class="nt ec-vide" id="nvVide">Choisis une vidéo (Médias ou ce PC), ou glisse-la ici</span></div></div>
+        <div class="nv-ligne" id="nvLigne"><div class="nv-plein" id="nvPlein"></div><div class="ec-selz hidden" id="nvSelz"></div><div class="nv-mq" id="nvMarques"></div><div class="ec-tete" id="nvTete"></div></div>
+        <div class="ec-transport nv-transport"><button class="btn xs pri" id="nvPlay" disabled title="Lecture / pause (Espace)">▶</button><span class="vfd" id="nvTemps">0:00 / 0:00</span>
+          <button class="btn xs" id="nvI" title="Début du passage ici (touche I)">I</button><button class="btn xs" id="nvO" title="Fin du passage ici (touche O)">O</button>
+          <input type="range" id="nvVol" min="0" max="1" step="0.01" title="Volume (double-clic : normal)">
+          <button class="btn xs" id="nvCrayon" title="Dessiner sur l'image (la vidéo se met en pause) : le dessin part avec ta prochaine note">✏ Dessiner</button>
+          <span class="nv-outils hidden" id="nvOutils">${['#ffcf3a', '#e0452b', '#7ee08a', '#4f9bd0', '#c58af0', '#efe4cc'].map(c => `<button class="nv-coul" data-coul="${c}" style="--c:${c}" title="Couleur"></button>`).join('')}
+            <button class="btn xs" id="nvAnnuler" title="Annuler le dernier trait (Ctrl + Z)">↶</button><button class="btn xs" id="nvGomme" title="Tout effacer">⌫</button></span>
+          <span class="nt ec-astuce" title="Clic sur la ligne = aller là · cliquer-glisser (ou I / O) = un passage, qui tourne en boucle · Espace = lecture">?</span></div>
       </section>
       <div class="ec-poignee" id="nvPoignee" title="Tire pour élargir les notes ou la vidéo (double-clic : taille normale)"><i></i></div>
       <section class="pane reg ec-panneau"><span class="ptitle">Retours</span>
@@ -130,23 +131,40 @@ BK.module('notesvid', function (page) {
   }
   N.montre = null; const montrer = tr => { N.montre = tr; peindre(tr); };
   vid.addEventListener('play', () => { if (!N.crayon) montrer(null); });
-  const crayon = on => { N.crayon = on; if (on) { vid.pause(); montrer(N.traits); } $('#nvCrayon').classList.toggle('on', on); cvD.classList.toggle('actif', on);
-    $('#nvGomme').classList.toggle('hidden', !on && !N.traits.length); msg(on ? 'Dessine sur l\'image, puis écris ta note' : N.traits.length ? 'Dessin prêt : il part avec ta prochaine note' : 'Prêt'); };
+  const crayon = on => { N.crayon = on; if (on) { vid.pause(); montrer(N.traits); } else if (!N.traits.length) montrer(null);
+    $('#nvCrayon').classList.toggle('on', on); cvD.classList.toggle('actif', on); $('#nvOutils').classList.toggle('hidden', !on);
+    $$('.nv-coul').forEach(b => b.classList.toggle('on', b.dataset.coul === (N.coul || ''))); msg(on ? 'Dessine sur l\'image, puis écris ta note' : N.traits.length ? 'Dessin prêt : il part avec ta prochaine note' : 'Prêt'); };
   $('#nvCrayon').onclick = e => { e.stopPropagation(); if (!N.src) return msg('Choisis d\'abord une vidéo'); crayon(!N.crayon); };
-  $('#nvGomme').onclick = e => { e.stopPropagation(); N.traits = []; montrer([]); $('#nvGomme').classList.toggle('hidden', !N.crayon); };
+  $('#nvGomme').onclick = e => { e.stopPropagation(); N.traits = []; montrer([]); };
+  const annuler = () => { N.traits.pop(); montrer(N.traits); msg(N.traits.length ? 'Dernier trait enlevé' : 'Plus de dessin'); };
+  $('#nvAnnuler').onclick = e => { e.stopPropagation(); annuler(); };
+  $$('.nv-coul').forEach(b => b.onclick = e => { e.stopPropagation(); N.coul = b.dataset.coul; BK.regler('notesvid.coul', N.coul); $$('.nv-coul').forEach(x => x.classList.toggle('on', x === b)); });
+  N.coul = BK.reglage('notesvid.coul', '');
+  document.addEventListener('keydown', e => { if (N.crayon && !page.classList.contains('hidden') && (e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'z' && !/INPUT|TEXTAREA/.test((document.activeElement || {}).tagName)) { e.preventDefault(); e.stopImmediatePropagation(); annuler(); } }, true);
   let trait = null;
   cvD.addEventListener('pointerdown', e => { if (!N.crayon) return; e.preventDefault(); e.stopPropagation(); cvD.setPointerCapture(e.pointerId);
-    const z = zoneImage(); trait = { c: couleur(moi()), p: [] }; N.traits.push(trait); ajoutPt(e, z); });
+    const z = zoneImage(); trait = { c: N.coul || couleur(moi()), p: [] }; N.traits.push(trait); ajoutPt(e, z); });
   const ajoutPt = (e, z) => { const x = (e.clientX - z.r.left - z.x) / z.w, y = (e.clientY - z.r.top - z.y) / z.h;
     const p = [Math.round(Math.max(0, Math.min(1, x)) * 1000) / 1000, Math.round(Math.max(0, Math.min(1, y)) * 1000) / 1000], d = trait.p[trait.p.length - 1];
     if (!d || Math.abs(d[0] - p[0]) + Math.abs(d[1] - p[1]) > 0.004) { trait.p.push(p); montrer(N.traits); } };
   cvD.addEventListener('pointermove', e => { if (trait) ajoutPt(e, zoneImage()); });
   cvD.addEventListener('pointerup', e => { if (trait) { e.stopPropagation(); trait = null; } });
   cvD.addEventListener('click', e => { if (N.crayon) e.stopPropagation(); });
-  new ResizeObserver(() => peindre(N.montre)).observe($('#nvEcran'));
+  // l'écran prend la forme de la vidéo (pas de bandes noires) et la plus grande place possible
+  const ajuster = () => { const z = $('#nvZone').getBoundingClientRect(), ar = vid.videoWidth && vid.videoHeight ? vid.videoWidth / vid.videoHeight : 16 / 9; if (!z.width || !z.height) return;
+    let w = z.width, h = w / ar; if (h > z.height) { h = z.height; w = h * ar; }
+    const e = $('#nvEcran'); e.style.width = Math.floor(w) + 'px'; e.style.height = Math.floor(h) + 'px'; peindre(N.montre); };
+  new ResizeObserver(ajuster).observe($('#nvZone')); vid.addEventListener('loadedmetadata', ajuster);
   document.addEventListener('keydown', e => { const ae = document.activeElement || {};
     if (page.classList.contains('hidden') || N.vue !== 'notes' || /INPUT|TEXTAREA/.test(ae.tagName) && ae.type !== 'range' || document.querySelector('.voile:not(.hidden)')) return;
-    if (e.code === 'Space') { e.preventDefault(); if (/SELECT|BUTTON/.test(ae.tagName) || ae.type === 'range') ae.blur(); jouer(); } });
+    if (e.code === 'Space') { e.preventDefault(); if (/SELECT|BUTTON/.test(ae.tagName) || ae.type === 'range') ae.blur(); jouer(); }
+    if (!e.ctrlKey && !e.metaKey && (e.key === 'i' || e.key === 'I')) { e.preventDefault(); poserIO('i'); }
+    if (!e.ctrlKey && !e.metaKey && (e.key === 'o' || e.key === 'O')) { e.preventDefault(); poserIO('o'); } });
+  // I / O : le début et la fin du passage, à la tête de lecture
+  function poserIO(k) { if (!D()) return; const t = pos(), s0 = N.sel || { a: 0, b: D() };
+    N.sel = k === 'i' ? { a: t, b: s0.b > t + 0.2 ? s0.b : D() } : { a: s0.a < t - 0.2 ? s0.a : 0, b: t };
+    majSel(); msg(`Passage ${tps(N.sel.a)} → ${tps(N.sel.b)} (en boucle)`); }
+  $('#nvI').onclick = () => poserIO('i'); $('#nvO').onclick = () => poserIO('o');
   const vol = $('#nvVol'); vol.value = BK.reglage('notesvid.vol', 1); vid.volume = +vol.value;
   vol.oninput = () => { vid.volume = +vol.value; BK.regler('notesvid.vol', +vol.value); vol._majTri && vol._majTri(); }; vol.ondblclick = () => { vol.value = 1; vol.oninput(); };
   BK.triangle(vol);
@@ -225,7 +243,7 @@ BK.module('notesvid', function (page) {
     const n = { video: N.src.cle, videoNom: N.src.nom, lien: N.src.lien || $('#nvLien').value || '', t: N.tout ? 0 : Math.round((N.sel ? N.sel.a : pos()) * 10) / 10,
       fin: !N.tout && N.sel ? Math.round(N.sel.b * 10) / 10 : null, tout: !!N.tout, texte: t, auteur: moi(), par: moi(), quand: new Date().toISOString(), reponses: [], regle: false,
       ...(N.traits.length ? { dessin: N.traits.slice(0, 40).map(x => ({ c: x.c, p: x.p.slice(0, 400) })) } : {}) };
-    const f = await BK.db.ecrire('notesvid', n); if (N.traits.length) { N.traits = []; crayon(false); montrer(f.dessin); } N.notes.push(f); N.toutes.push(f);
+    const f = await BK.db.ecrire('notesvid', n); if (N.traits.length) { const d = N.traits; N.traits = []; crayon(false); montrer(d); } N.notes.push(f); N.toutes.push(f);
     $('#nvTexte').value = ''; N.sel = null; majSel(); dessinerNotes(); msg(n.tout ? 'Note sur toute la vidéo' : 'Note ajoutée à ' + tps(n.t));
     BK.annoncerRetours && BK.annoncerRetours(nomLien(n.lien).replace(/^[♪🎥] /, ''), N.src.nom, 'video');
   }

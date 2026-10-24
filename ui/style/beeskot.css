@@ -1881,3 +1881,24 @@ body.glisse-media #nav .tab.depot-ok{box-shadow:0 0 0 2px #ffb23e,0 0 10px rgba(
 .nv-ligne{position:relative;height:14px;border-radius:4px;background:#0d0906;box-shadow:inset 0 0 0 1px rgba(239,230,210,.12);cursor:crosshair;flex:none}
 .nv-plein{position:absolute;left:0;top:0;bottom:0;background:rgba(255,178,62,.25);border-radius:4px;pointer-events:none}
 .nv-ligne .ec-tete{top:-3px;bottom:-3px}
+/* Notes vidéos : la vidéo prend toute la place, à sa forme ; outils de dessin */
+.nv-vit{gap:8px!important}
+.nv-barre{display:flex;align-items:center;gap:8px;flex:none}
+.nv-barre .nv-lien{width:auto;max-width:300px;min-height:28px;font-size:12px}
+.nv-barre .nv-fich{margin:0 0 0 auto;max-width:35%}
+.nv-zone{flex:1 1 auto;min-height:160px;display:flex;align-items:center;justify-content:center;overflow:hidden}
+.nv-zone .nv-ecran{flex:none;min-height:0;background:#000;border-radius:4px}
+.nv-zone .nv-ecran video{object-fit:fill}
+.nv-ligne{height:18px}
+.nv-mq{position:absolute;inset:0;pointer-events:none}
+.nv-mq .ec-mq{top:4px;pointer-events:auto}
+.nv-transport{margin-top:0!important;flex:none}
+.nv-outils{display:inline-flex;align-items:center;gap:5px;padding:3px 6px;border-radius:5px;background:rgba(0,0,0,.35)}
+.nv-outils.hidden{display:none}
+.nv-coul{width:18px;height:18px;border-radius:50%;border:2px solid rgba(0,0,0,.6);background:var(--c);cursor:pointer;padding:0}
+.nv-coul.on{box-shadow:0 0 0 2px #ffcf7a}
+.nv-transport{gap:6px!important}.nv-transport .vfd{font-size:12px;padding:3px 8px;min-height:0}
+.nv-transport .btn.xs{min-height:24px}.nv-transport .tri-vol{flex-basis:44px;width:44px;height:13px}
+.nv-transport .ec-astuce{cursor:help;width:18px;height:18px;border-radius:50%;display:inline-grid;place-items:center;border:1px solid rgba(239,230,210,.25);margin-left:auto}
+.nv-barre .btn.xs{min-height:24px}
+.nv-transport #nvPlay{min-height:24px!important;min-width:34px!important;padding:0 8px!important;font-size:11px!important}

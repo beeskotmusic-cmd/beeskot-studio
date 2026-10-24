@@ -3,6 +3,10 @@
 // Pour une nouvelle version : ajouter un bloc EN HAUT de la liste. Une ligne courte par point : « Onglet : ce qui change. »
 // =====================================================================
 BK.NOUVEAUTES = [
+  { v: '0.9.64', titre: '', l: [
+    ['🎬', 'Notes vidéos : la vidéo prend toute la place, à sa forme (plus de grandes bandes noires), et les boutons sont plus petits.'],
+    ['🎨', 'Notes vidéos : 6 couleurs pour dessiner, et ↶ (Ctrl + Z) pour enlever le dernier trait.'],
+    ['⇥', 'Notes vidéos : I et O pour choisir un passage.'] ] },
   { v: '0.9.63', titre: '', l: [
     ['🎧', 'Notes et retours : le nom des versions A et B est de nouveau lisible (le volume prenait toute la place).'],
     ['🎧', 'Notes et retours : A = le dernier export (fiche ou dossier CL du Drive), B = celui d\'avant.'],
@@ -343,8 +347,8 @@ BK.TUTO = [
   { o: 'Notes vidéos', ic: '🎬', quoi: 'Comme Notes et retours, mais pour une vidéo (clip, reel, live) : la vidéo à gauche, les retours à droite, comme Frame.io. On peut dessiner sur l\'image pour montrer de quoi on parle.',
     comment: [
       ['Ouvrir une vidéo', '« 🎬 Choisir dans Médias… » (Drive, Discord) ou « 💻 Ce PC… », ou glisse-la sur la page. Dans Médias : clic droit sur une vidéo › Envoyer vers › Notes vidéos. Puis « Relié à » : le morceau ou le tournage.'],
-      ['Laisser une note', 'Clique sur la ligne sous la vidéo pour aller à un moment (ou cliquer-glisser pour un passage, qui tourne en boucle) → écris ta note → Entrée. « Toute la vidéo » : une note générale.'],
-      ['Dessiner sur l\'image', '✏ Dessiner : la vidéo se met en pause, dessine sur l\'image (à ta couleur), puis écris ta note : le dessin part avec elle. ⌫ efface. Un clic sur une note avec ✏ : la vidéo s\'arrête sur cette image, avec le dessin.'],
+      ['Laisser une note', 'Clique sur la ligne sous la vidéo pour aller à un moment (ou cliquer-glisser, ou les touches I et O, pour un passage qui tourne en boucle) → écris ta note → Entrée. « Toute la vidéo » : une note générale.'],
+      ['Dessiner sur l\'image', '✏ Dessiner : la vidéo se met en pause, choisis une couleur (6 pastilles), dessine sur l\'image, puis écris ta note : le dessin part avec elle. ↶ (ou Ctrl + Z) enlève le dernier trait, ⌫ efface tout. Un clic sur une note avec ✏ : la vidéo s\'arrête sur cette image, avec le dessin.'],
       ['Répondre, régler, modifier', '💬 répondre, ○ / ✓ réglé, ✎ modifier ta note, ✕ la retirer. 📋 Copier : toutes les notes avec leurs timecodes.'],
       ['Retrouver toutes les notes', 'Sous-onglet « Historique de notes » : à gauche les morceaux et tournages, à droite leurs notes, triées par vidéo (menu en haut). « ▶ Ouvrir la vidéo » pour la revoir.'] ],
     astuces: [ 'Espace = lecture / pause. La vidéo tourne en boucle.', 'Miette annonce les nouveaux retours vidéo dans #annonce-miette sur Discord.', 'Une vidéo de ce PC : les autres voient les notes, mais pour la regarder il faut qu\'ils aient le fichier (mieux : passer par Médias / Drive).' ] },
