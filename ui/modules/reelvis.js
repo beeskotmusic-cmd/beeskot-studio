@@ -63,12 +63,12 @@ BK.module('reelvis', function (page) {
                 <span class="eng">Cadrage</span>
                 <div class="pv-seg"><button id="rvEntier" title="Voir toute la vidéo, avec des bandes">⤢ Entière</button><button id="rvRemplir" title="La vidéo remplit le cadre, les bords sont coupés">⤡ Remplir</button><button id="rvCentre" title="Remettre au centre, sans zoom">⊙ Centrer</button></div>
                 <span class="eng">Réglages</span>
-                <div class="pv-ligne pv-regl"><span class="eng">Contraste</span><input class="fld rv-glisse" id="rvCon" title="Clic maintenu et glisse la souris (ou double-clic pour taper)"><span class="eng">Lumière</span><input class="fld rv-glisse" id="rvLum" title="Clic maintenu et glisse la souris (ou double-clic pour taper)"><span class="eng">Saturation</span><input class="fld rv-glisse" id="rvSat" title="Clic maintenu et glisse la souris (ou double-clic pour taper)"></div>
+                <div class="pv-ligne pv-regl"><span class="eng">Contraste</span><input class="fld rv-glisse" id="rvCon" title="Clic maintenu et glisse la souris (double-clic : valeur par défaut · tape un chiffre pour l'écrire)"><span class="eng">Lumière</span><input class="fld rv-glisse" id="rvLum" title="Clic maintenu et glisse la souris (double-clic : valeur par défaut · tape un chiffre pour l'écrire)"><span class="eng">Saturation</span><input class="fld rv-glisse" id="rvSat" title="Clic maintenu et glisse la souris (double-clic : valeur par défaut · tape un chiffre pour l'écrire)"></div>
                 <span class="eng">Zoom</span>
-                <div class="pv-ligne"><input class="fld rv-glisse" id="rvZoom" value="0 %" title="Clic maintenu et glisse la souris (ou double-clic pour taper)"><span class="nt">glisse l'image dans le téléphone pour la déplacer</span></div>
+                <div class="pv-ligne"><input class="fld rv-glisse" id="rvZoom" value="0 %" title="Clic maintenu et glisse la souris (double-clic : valeur par défaut · tape un chiffre pour l'écrire)"><span class="nt">glisse l'image dans le téléphone pour la déplacer</span></div>
                 <span class="eng">Couleur</span>
                 <div class="pv-ligne"><select class="fld" id="rvFiltre">${['', ...BK.filtres.map(f => f.nom)].map(n => `<option value="${n}">${n || 'Aucun filtre'}</option>`).join('')}<option value="__lut">＋ Ajouter une LUT (.cube)…</option></select>
-                  <span class="eng" style="margin-left:6px">Intensité</span><input class="fld rv-glisse pv-force" id="rvForce" value="100 %" title="Clic maintenu et glisse la souris (ou double-clic pour taper)"></div>
+                  <span class="eng" style="margin-left:6px">Intensité</span><input class="fld rv-glisse pv-force" id="rvForce" value="100 %" title="Clic maintenu et glisse la souris (double-clic : valeur par défaut · tape un chiffre pour l'écrire)"></div>
                 <span class="eng">Effet</span>
                 <div class="pv-ligne"><select class="fld" id="rvVoile">${BK.rendu.VOILES.map(([k, n]) => `<option value="${k}">${n}</option>`).join('')}</select></div>
               </div>
@@ -343,7 +343,7 @@ BK.module('reelvis', function (page) {
   $('#rvEntier').onclick = () => { if (!vid.videoWidth) return; V.x = V.y = 0; V.zoom = zoomEntier(); champZoom.value = (V.zoom - 100) + ' %'; dessiner(); msg('Vidéo entière'); };
   $('#rvRemplir').onclick = () => { V.x = V.y = 0; reglerZoom(100); msg('La vidéo remplit le cadre'); };
   $('#rvCentre').onclick = () => { V.x = V.y = 0; reglerZoom(100); };
-  // intensité du filtre (0 à 100 %) : glisser la souris sur la case, ou double-clic pour taper
+  // intensité du filtre (0 à 100 %) : glisser la souris sur la case, double-clic = valeur par défaut, ou tape un chiffre
   const fc = $('#rvForce'); fc.readOnly = true; let fg = null;
   const force = v => { V.force = Math.round(Math.max(0, Math.min(100, v))); fc.value = V.force + ' %'; dessiner(); };
   fc.addEventListener('pointerdown', e => { if (!fc.readOnly) return; e.preventDefault(); fc.setPointerCapture(e.pointerId); fg = { x: e.clientX, y: e.clientY, v: V.force }; });

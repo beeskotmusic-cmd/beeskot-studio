@@ -29,8 +29,8 @@ BK.module('ecoute', function (page) {
         <div class="ec-haut" id="ecHaut">
         <div class="box ec-choix">
           <label><span class="eng">Morceau</span><select class="fld" id="ecMorceau"><option value="">—</option></select></label>
-          <label class="ec-a"><span class="eng">A <i class="ec-pt a"></i></span><span class="ec-l"><select class="fld" id="ecA"></select><button class="btn xs" id="ecStarA" title="Cette version devient l'export principal de la fiche (Bibliothèque)">★</button></span></label>
-          <label class="ec-b"><span class="eng">B <i class="ec-pt b"></i></span><span class="ec-l"><select class="fld" id="ecB"></select><button class="btn xs" id="ecStarB" title="Cette version devient l'export principal de la fiche (Bibliothèque)">★</button></span></label>
+          <label class="ec-a"><span class="eng">A <i class="ec-pt a"></i></span><span class="ec-l"><select class="fld" id="ecA"></select><input type="range" class="ec-vol" id="ecVolA" min="0" max="1.5" step="0.01" title="Volume de A (double-clic : normal)"><button class="btn xs" id="ecStarA" title="Cette version devient l'export principal de la fiche (Bibliothèque)">★</button></span></label>
+          <label class="ec-b"><span class="eng">B <i class="ec-pt b"></i></span><span class="ec-l"><select class="fld" id="ecB"></select><input type="range" class="ec-vol" id="ecVolB" min="0" max="1.5" step="0.01" title="Volume de B (double-clic : normal)"><button class="btn xs" id="ecStarB" title="Cette version devient l'export principal de la fiche (Bibliothèque)">★</button></span></label>
         </div>
         <div class="box ec-onde-box">
           <div class="ec-onde" id="ecOnde"><canvas id="ecCanvas"></canvas><div class="ec-tete" id="ecTete"></div><div class="ec-selz hidden" id="ecSelz"></div>
@@ -40,14 +40,14 @@ BK.module('ecoute', function (page) {
             <button class="btn sm pri" id="ecPlay" disabled>▶</button><span class="vfd" id="ecTemps">0:00 / 0:00</span>
             <div class="seg ec-ab" id="ecAB"><button data-c="A" class="on">A</button><button data-c="B">B</button></div>
             <span class="nt ec-astuce">Clic = aller là · cliquer-glisser = un passage · <b>Espace</b> = lecture · <b>Tab</b> = A/B</span>
-            <span class="ec-recal"><span class="eng">Recaler B</span><input class="fld rv-glisse" id="ecDecal" title="Glisse la souris (ou double-clic pour taper) : décale B en secondes"><button class="btn xs" id="ecAuto" title="Le logiciel cherche tout seul le décalage entre A et B">Caler tout seul</button></span>
+            <span class="ec-recal"><span class="eng">Recaler B</span><input class="fld rv-glisse" id="ecDecal" title="Glisse la souris (double-clic : valeur par défaut · tape un chiffre pour l'écrire) : décale B en secondes"><button class="btn xs" id="ecAuto" title="Le logiciel cherche tout seul le décalage entre A et B">Caler tout seul</button></span>
           </div></div>
         </div>
         <div class="ec-poignee" id="ecPoignee" title="Tire pour agrandir les notes ou le lecteur (double-clic : taille normale)"><i></i></div>
         <div class="box ec-notes-box">
           <div class="ec-form"><span class="vfd" id="ecQuand">0:00</span><span class="ec-sur" id="ecSur">note sur A</span>
-            <input class="fld" id="ecTexte" placeholder="Ta note à cet endroit… (Entrée pour ajouter)"><button class="btn sm pri" id="ecAjout">＋ Note</button></div>
-          <div class="ec-filtres"><div class="seg ec-tri" id="ecTri"><button data-t="temps">Dans le morceau</button><button data-t="date">Par date</button><button data-t="membre">Par membre</button></div>
+            <input class="fld" id="ecTexte" placeholder="Ta note à cet endroit… (Entrée pour ajouter)"><button class="btn sm" id="ecTout" title="La note parle de tout le morceau, pas d'un passage">Tout le morceau</button><button class="btn sm pri" id="ecAjout">＋ Note</button></div>
+          <div class="ec-filtres"><div class="seg ec-tri" id="ecTri"><button data-t="membre">Par membre</button><button data-t="temps">Dans le morceau</button><button data-t="date">Par date</button></div>
             <button class="chip on" data-f="tout">Toutes</button><button class="chip" data-f="ouvertes">À régler</button><button class="chip" data-f="A" title="Seulement les notes de la version A choisie">Cette version</button>
             <button class="btn xs miette-aide" id="ecTraduire" style="margin-left:auto" title="Miette traduit les notes en anglais, naturellement (pour l'ingé son). Le français reste.">Traduire en anglais</button>
             <button class="btn xs" id="ecCopier" title="Copie toutes les notes affichées, avec leurs timecodes, dans le presse-papier">📋 Copier</button>
@@ -89,9 +89,13 @@ BK.module('ecoute', function (page) {
     $('#ecA').innerHTML = html; $('#ecB').innerHTML = '<option value="">— Aucun (un seul mix)</option>' + (E.opts.length ? html : '');
     // A = la version choisie dans la fiche (Bibliothèque), sinon la plus récente ; B = celle choisie dans la fiche, sinon celle d'avant.
     // Un nouvel export plus récent devient donc A tout seul, et l'ancien A passe en B.
-    const parDate = [...E.opts].sort((a, b) => (b.t || '').localeCompare(a.t || ''));
-    const a0 = E.opts.find(o => o.v === E.m.ecouteA) || parDate[0];
-    const b0 = E.opts.find(o => o.v === E.m.ecouteB && o !== a0) || parDate.find(o => o !== a0);
+    // les exports de RÉFÉRENCE (ceux de la fiche) passent avant les autres sons du Drive (stems, vieux wav…)
+    const parDate = l => [...l].sort((a, b) => (b.t || '').localeCompare(a.t || ''));
+    const refs = parDate(E.opts.filter(o => o.f)), tous = [...refs, ...parDate(E.opts.filter(o => !o.f))];
+    const a0 = E.opts.find(o => o.v === E.m.ecouteA) || tous[0];
+    // B : celui qu'un membre a choisi (gardé pour tout le monde) tant qu'aucun nouvel export n'est arrivé en A ; sinon l'avant-dernier export de référence
+    const bGarde = E.m.ecouteB && (!E.m.ecouteBpour || (a0 && E.m.ecouteBpour === a0.v));
+    const b0 = bGarde ? (E.m.ecouteB === '-' ? null : E.opts.find(o => o.v === E.m.ecouteB && o !== a0) || tous.find(o => o !== a0)) : tous.find(o => o !== a0);
     if (a0) $('#ecA').value = a0.v; $('#ecB').value = b0 ? b0.v : '';                     // une seule version : B = aucun
     await Promise.all([chargerCote('A'), chargerCote('B')]);
     chargerNotes();
@@ -119,7 +123,7 @@ BK.module('ecoute', function (page) {
   }
   // un seul mix (B = aucun) : pas de bouton A/B, pas de recalage, pas de filtres A/B
   function solo() { const un = !E.B; page.classList.toggle('ec-solo', un); if (un && E.cote === 'B') basculer('A'); }
-  $('#ecMorceau').onchange = choisirMorceau;
+  $('#ecMorceau').onchange = () => { $('#ecMorceau').blur(); choisirMorceau(); };
   // un son glissé depuis Médias : il devient la version A (ou B si A est déjà là)
   page.addEventListener('dragover', e => { if (BK.glisse.actif()) e.preventDefault(); });
   page.addEventListener('drop', async e => { if (!BK.glisse.actif()) return; e.preventDefault();
@@ -129,8 +133,10 @@ BK.module('ecoute', function (page) {
     for (const s2 of ['#ecA', '#ecB']) if (![...$(s2).options].some(o => o.value === v)) $(s2).insertAdjacentHTML('beforeend', `<option value="${esc(v)}">📂 ${esc(x.nom || 'son')}</option>`);
     if (!E.opts.some(o => o.v === v)) E.opts.push({ v, nom: x.nom || 'son', ou: '📂' });
     $('#ec' + c).value = v; stop(); await chargerCote(c); dessinerNotes(); msg('« ' + (x.nom || 'son') + ' » en version ' + c); });
-  $('#ecA').onchange = async () => { stop(); await chargerCote('A'); dessinerNotes(); };
-  $('#ecB').onchange = async () => { stop(); await chargerCote('B'); dessinerNotes(); };
+  $('#ecA').onchange = async () => { $('#ecA').blur(); stop(); await chargerCote('A'); dessinerNotes(); };
+  $('#ecB').onchange = async () => { $('#ecB').blur(); stop(); await chargerCote('B'); dessinerNotes();
+    // le B choisi est gardé dans la fiche du morceau : tout le groupe le retrouve (jusqu'au prochain nouvel export)
+    if (E.m) { E.m.ecouteB = E.B || '-'; E.m.ecouteBpour = E.A || ''; try { await BK.db.ecrire('morceaux', E.m); msg('B gardé pour tout le groupe : ' + (E.B ? nomVersion(E.B) : 'aucun')); } catch (e) {} } };
 
   // ---------- ★ : cette version devient l'export principal de la fiche ----------
   const etoile = async c => {
@@ -147,10 +153,11 @@ BK.module('ecoute', function (page) {
   // ---------- la lecture : A et B jouent ensemble, on n'entend que celle choisie (bascule sans coupure) ----------
   function jouer(depuis) {
     stop(); if (!E.bufA && !E.bufB) return;
+    if (depuis == null && E.sel && (E.pos < E.sel.a || E.pos >= E.sel.b)) depuis = E.sel.a;          // une zone choisie : on part de son début
     E.ctx = BK.audio.contexte(); const ctx = E.ctx, now = ctx.currentTime + 0.05;
     E.pos = Math.max(0, Math.min(depuis ?? E.pos, duree() - 0.05));
     E.gA = ctx.createGain(); E.gB = ctx.createGain(); E.gA.connect(ctx.destination); E.gB.connect(ctx.destination);
-    E.gA.gain.value = E.cote === 'A' || !E.bufB ? 1 : 0; E.gB.gain.value = E.cote === 'B' || !E.bufA ? 1 : 0;
+    E.gA.gain.value = gainDe('A'); E.gB.gain.value = gainDe('B');
     const lancer = (buf, g, dans) => { if (!buf) return; const s = ctx.createBufferSource(); s.buffer = buf; s.connect(g);
       if (dans >= 0) { if (dans < buf.duration) s.start(now, dans); } else s.start(now - dans, 0); E.srcs.push(s); };
     lancer(E.bufA, E.gA, E.pos); lancer(E.bufB, E.gB, E.pos + E.decal);
@@ -161,22 +168,33 @@ BK.module('ecoute', function (page) {
       jouer: () => jouer(), pause: () => stop(), aller: t => { if (E.joue) jouer(t); else { E.pos = t; majTete(); } } });
   }
   function stop() { E.srcs.forEach(s => { try { s.stop(); } catch (e) {} }); E.srcs = []; if (E.joue && E.ctx) E.pos = E.ctx.currentTime - E.t0; E.joue = false; $('#ecPlay') && ($('#ecPlay').textContent = '▶'); }
+  // le volume de chaque piste (A, B) : gardé sur ce PC ; on n'entend que celle choisie
+  const VOL = BK.reglage('ecoute.vol', { A: 1, B: 1 });
+  const gainDe = c => (c === 'A' ? (E.cote === 'A' || !E.bufB) : (E.cote === 'B' || !E.bufA)) ? (VOL[c] ?? 1) : 0;
+  function majGains() { if (E.gA && E.ctx) { const t = E.ctx.currentTime; E.gA.gain.setTargetAtTime(gainDe('A'), t, 0.01); E.gB.gain.setTargetAtTime(gainDe('B'), t, 0.01); } }
+  for (const c of ['A', 'B']) { const r = $('#ecVol' + c); r.value = VOL[c] ?? 1;
+    r.oninput = () => { VOL[c] = +r.value; BK.regler('ecoute.vol', VOL); majGains(); msg('Volume ' + c + ' : ' + Math.round(VOL[c] * 100) + ' %'); };
+    r.ondblclick = () => { r.value = 1; r.oninput(); }; r.addEventListener('keydown', e => e.stopPropagation()); }
   function boucle() {
     if (!E.joue) return;
     if (page.classList.contains('hidden')) return stop();             // on a changé d'onglet : on coupe
-    E.pos = E.ctx.currentTime - E.t0; if (E.pos >= duree()) { stop(); E.pos = 0; }
+    E.pos = E.ctx.currentTime - E.t0;
+    if (E.sel && E.sel.b - E.sel.a > 0.2 && (E.pos >= E.sel.b || E.pos < E.sel.a - 0.5)) return jouer(E.sel.a);     // la zone choisie tourne en boucle
+    if (E.pos >= duree()) { stop(); E.pos = 0; }
     majTete(); requestAnimationFrame(boucle);
   }
   function basculer(c) {
     E.cote = c || (E.cote === 'A' ? 'B' : 'A');
     $$('#ecAB button').forEach(b => b.classList.toggle('on', b.dataset.c === E.cote));
-    if (E.gA && E.ctx) { const t = E.ctx.currentTime; E.gA.gain.setTargetAtTime(E.cote === 'A' ? 1 : 0, t, 0.01); E.gB.gain.setTargetAtTime(E.cote === 'B' ? 1 : 0, t, 0.01); }
+    majGains();
     msg('Tu écoutes ' + E.cote + ' : ' + ((E.opts.find(o => o.v === E[E.cote]) || {}).nom || ''));
   }
   $('#ecPlay').onclick = () => E.joue ? stop() : jouer();
   $$('#ecAB button').forEach(b => b.onclick = () => basculer(b.dataset.c));
   document.addEventListener('keydown', e => {
-    if (page.classList.contains('hidden') || /INPUT|TEXTAREA|SELECT/.test(document.activeElement.tagName) || document.querySelector('.voile')) return;
+    const ae = document.activeElement || {};
+    if (page.classList.contains('hidden') || (/INPUT|TEXTAREA/.test(ae.tagName) && ae.type !== 'range') || document.querySelector('.voile:not(.hidden)')) return;
+    if (/SELECT|BUTTON/.test(ae.tagName) || ae.type === 'range') { if (e.code === 'Space' || e.key === 'Tab') ae.blur(); }
     if (e.code === 'Space') { e.preventDefault(); E.joue ? stop() : jouer(); }
     if (e.key === 'Tab') { e.preventDefault(); if (E.B) basculer(); }
   });
@@ -211,7 +229,7 @@ BK.module('ecoute', function (page) {
     dessinerNotes(); majTete();
   }
   function majTete() { const D = duree(); if (!D) return; $('#ecTete').style.left = (E.pos / D * 100) + '%'; $('#ecTemps').textContent = tps(E.pos) + ' / ' + tps(D);
-    if (!E.sel) $('#ecQuand').textContent = tps(E.pos); }
+    if (!E.sel && !E.tout) $('#ecQuand').textContent = tps(E.pos); }
   addEventListener('resize', () => { if (!page.classList.contains('hidden')) dessiner(); });
 
   // clic = aller là ; cliquer-glisser = choisir un passage (pour une note)
@@ -239,8 +257,9 @@ BK.module('ecoute', function (page) {
     return E.notes.filter(n => f === 'tout' || (f === 'ouvertes' && !n.regle) || (f === 'A' && n.version === E.A));
   }
   // ---------- trier : dans le morceau (timecode), par date (la plus ancienne en haut), par membre ----------
-  const tri = () => BK.reglage('ecoute.tri', 'temps');
-  const plies = () => BK.reglage('ecoute.plies', {});
+  const tri = () => BK.reglage('ecoute.tri2', 'membre');
+  // les dossiers sont repliés au départ : on retient ceux qu'on a ouverts
+  const plies = () => { const o = BK.reglage('ecoute.ouverts', {}); return new Proxy({}, { get: (_, k) => !o[k] }); };
   const ORDRE_M = ['Yacine', 'Baptiste', 'Pierre'];
   const jour = q => { const d = new Date(q || 0); return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); };
   const nomJour = k => { const d = new Date(k + 'T12:00'), auj = jour(new Date()), hier = jour(Date.now() - 864e5);
@@ -260,56 +279,62 @@ BK.module('ecoute', function (page) {
   function ligneNote(n) {
     const autre = E.A && n.version !== E.A, T = tri();
     return `<div class="ec-n${n.regle ? ' regle' : ''}" data-n="${n.id}" style="--pc:${couleur(qui(n))}">
-        <button class="ec-n-t mono" data-aller="${n.id}" title="Écouter à cet endroit">${tps(n.t)}${n.fin ? ' → ' + tps(n.fin) : ''}</button>
-        <div class="ec-n-c"><div class="ec-n-l">${T === 'membre' ? '' : `<b>${esc(qui(n))}</b>`}<span class="ec-n-txt">${esc(n.texte)}</span>${T === 'date' ? `<span class="ec-n-h">${heure(n.quand)}</span>` : ''}</div>
+        <button class="ec-n-t mono${n.tout ? ' tout' : ''}" data-aller="${n.id}" title="${n.tout ? 'Note sur tout le morceau' : 'Écouter à cet endroit'}">${n.tout ? 'TOUT' : tps(n.t) + (n.fin ? ' → ' + tps(n.fin) : '')}</button>
+        <div class="ec-n-c"><div class="ec-n-l">${T === 'membre' ? '' : `<b>${esc(qui(n))}</b>`}<span class="ec-n-txt" data-txt="${n.id}">${esc(n.texte)}</span>${n.modifie ? '<em class="ec-modif">modifiée</em>' : ''}${T === 'date' ? `<span class="ec-n-h">${heure(n.quand)}</span>` : ''}</div>
           ${autre || n.contreNom ? `<div class="ec-n-v${autre ? ' autre' : ''}">sur « ${esc(versionDe(n))} »${n.contreNom ? ` · comparé à « ${esc(n.contreNom)} »` : ''}</div>` : ''}
           ${n.texteEn ? `<div class="ec-en"><span>EN</span>${esc(n.texteEn)}</div>` : ''}
           ${(n.reponses || []).map(r => `<div class="ec-rep" style="--pc:${couleur(r.par)}"><b>${esc(r.par)}</b> ${esc(r.texte)}${r.texteEn ? `<em class="ec-en-r"> · EN : ${esc(r.texteEn)}</em>` : ''}</div>`).join('')}
           <div class="ec-rep-f hidden"><input class="fld" placeholder="Ta réponse… (Entrée)"></div></div>
         <div class="ec-n-o"><button class="btn xs" data-rep="${n.id}" title="Répondre">💬 ${(n.reponses || []).length || ''}</button>
           <button class="btn xs${n.regle ? ' on' : ''}" data-ok="${n.id}" title="Réglé / pas réglé">${n.regle ? '✓ réglé' : '○'}</button>
-          ${qui(n) === moi() ? `<button class="btn xs" data-x="${n.id}" title="Retirer ma note">✕</button>` : ''}</div></div>`;
+          ${qui(n) === moi() ? `<button class="btn xs" data-ed="${n.id}" title="Modifier ma note">✎</button><button class="btn xs" data-x="${n.id}" title="Retirer ma note">✕</button>` : ''}</div></div>`;
   }
   function dessinerNotes() {
     const l = visibles(), D = duree(), P = plies(), G = groupes(l);
     $$('#ecTri button').forEach(b => b.classList.toggle('on', b.dataset.t === tri()));
-    const caches = new Set(G.filter(g => g.cle && P[g.cle]).flatMap(g => g.l.map(n => n.id)));      // les notes d'un dossier replié : cachées aussi sous la forme du son
+    const caches = new Set();
     $('#ecNbH').textContent = String(E.notes.filter(n => !n.regle).length).padStart(2, '0');
     // les marques sous la forme du son : un point (instant) ou une barre (passage), à la couleur de la personne
-    $('#ecMarques').innerHTML = D ? l.filter(n => !caches.has(n.id)).map(n => `<span class="ec-mq${n.fin ? ' passage' : ''}${n.regle ? ' regle' : ''}${E.A && n.version !== E.A ? ' autre' : ''}" data-n="${n.id}" title="${esc(tps(n.t) + (n.fin ? ' → ' + tps(n.fin) : '') + ' · ' + qui(n) + ' : ' + n.texte)}"
+    $('#ecMarques').innerHTML = D ? l.filter(n => !caches.has(n.id) && !n.tout).map(n => `<span class="ec-mq${n.fin ? ' passage' : ''}${n.regle ? ' regle' : ''}${E.A && n.version !== E.A ? ' autre' : ''}" data-n="${n.id}" title="${esc(tps(n.t) + (n.fin ? ' → ' + tps(n.fin) : '') + ' · ' + qui(n) + ' : ' + n.texte)}"
       style="left:${Math.min(100, n.t / D * 100)}%;${n.fin ? `width:${Math.max(0.6, (n.fin - n.t) / D * 100)}%;` : ''}--pc:${couleur(qui(n))}"></span>`).join('') : '';
     $('#ecListe').innerHTML = l.length ? G.map(g => !g.cle ? g.l.map(ligneNote).join('') : `
         <div class="ec-dos${P[g.cle] ? ' plie' : ''}"${g.pc ? ` style="--pc:${g.pc}"` : ''}>
           <button class="ec-dos-t" data-pli="${esc(g.cle)}"><span class="ec-dos-f">${P[g.cle] ? '▸' : '▾'}</span><b>${esc(g.titre)}</b><span class="nt">${g.l.length} note(s)${g.l.some(n => !n.regle) ? ' · ' + g.l.filter(n => !n.regle).length + ' à régler' : ''}</span></button>
           ${P[g.cle] ? '' : `<div class="ec-dos-l">${g.l.map(ligneNote).join('')}</div>`}</div>`).join('')
       : `<span class="nt">${E.m ? 'Pas encore de note. Écoute, clique à l\'endroit voulu (ou cliquer-glisser pour un passage), puis écris ta note.' : 'Choisis un morceau.'}</span>`;
-    $$('[data-pli]', page).forEach(b => b.onclick = () => { const p = plies(); p[b.dataset.pli] = !p[b.dataset.pli]; BK.regler('ecoute.plies', p); dessinerNotes(); });
+    $$('[data-pli]', page).forEach(b => b.onclick = () => { const o = BK.reglage('ecoute.ouverts', {}); o[b.dataset.pli] = !o[b.dataset.pli]; if (!o[b.dataset.pli]) delete o[b.dataset.pli]; BK.regler('ecoute.ouverts', o); dessinerNotes(); });
     const trouver = id => E.notes.find(n => n.id === id);
     $$('[data-aller]', page).forEach(b => b.onclick = () => { const n = trouver(b.dataset.aller); if (n.version === E.A && E.B) basculer('A'); jouer(Math.max(0, n.t - 1)); });
     $$('.ec-mq', page).forEach(b => b.onclick = () => { const n = trouver(b.dataset.n); const el = $(`.ec-n[data-n="${n.id}"]`); el && el.scrollIntoView({ block: 'nearest', behavior: 'smooth' }); el && el.classList.add('flash'); setTimeout(() => el && el.classList.remove('flash'), 900); });
     $$('[data-ok]', page).forEach(b => b.onclick = async () => { const n = trouver(b.dataset.ok); n.regle = !n.regle; await BK.db.ecrire('notesmix', n); dessinerNotes(); });
     $$('[data-x]', page).forEach(b => b.onclick = async () => { const n = trouver(b.dataset.x); if (!await BK.confirmer('Retirer ta note ?')) return; E.notes = E.notes.filter(x => x !== n); await BK.db.supprimer('notesmix', n.id); dessinerNotes(); });
+    $$('[data-ed]', page).forEach(b => b.onclick = () => { const n = trouver(b.dataset.ed), sp = $(`[data-txt="${n.id}"]`, page); if (!sp || sp.querySelector('input')) return;
+      sp.innerHTML = `<input class="fld ec-ed" value="${esc(n.texte)}">`; const i = sp.querySelector('input'); i.focus(); i.select();
+      const fin = async garder => { const v = i.value.trim(); if (garder && v && v !== n.texte) { n.texte = v; n.modifie = new Date().toISOString(); delete n.texteEn; await BK.db.ecrire('notesmix', n); msg('Note modifiée'); } dessinerNotes(); };
+      i.onkeydown = e => { e.stopPropagation(); if (e.key === 'Enter') fin(true); if (e.key === 'Escape') fin(false); }; i.onblur = () => fin(true); });
     $$('[data-rep]', page).forEach(b => b.onclick = () => { const f = b.closest('.ec-n').querySelector('.ec-rep-f'); f.classList.toggle('hidden'); const i = f.querySelector('input'); i.focus();
       i.onkeydown = async e => { e.stopPropagation(); if (e.key !== 'Enter' || !i.value.trim()) return; const n = trouver(b.dataset.rep);
         (n.reponses = n.reponses || []).push({ par: moi(), texte: i.value.trim(), quand: new Date().toISOString() }); await BK.db.ecrire('notesmix', n); dessinerNotes(); }; });
   }
   $$('.ec-filtres .chip').forEach(c => c.onclick = () => { $$('.ec-filtres .chip').forEach(x => x.classList.toggle('on', x === c)); dessinerNotes(); });
-  $$('#ecTri button').forEach(b => b.onclick = () => { BK.regler('ecoute.tri', b.dataset.t); dessinerNotes(); });
+  $$('#ecTri button').forEach(b => b.onclick = () => { BK.regler('ecoute.tri2', b.dataset.t); dessinerNotes(); });
   async function ajouterNote() {
     const t = $('#ecTexte').value.trim(); if (!t) return $('#ecTexte').focus();
     if (!E.m || !E.A) return msg('Choisis d\'abord un morceau et la version A');
-    const n = { morceau: E.m.id, version: E.A, versionNom: nomVersion(E.A), contre: E.B || '', contreNom: E.B ? nomVersion(E.B) : '', t: Math.round((E.sel ? E.sel.a : E.pos) * 10) / 10,
-      fin: E.sel ? Math.round(E.sel.b * 10) / 10 : null, texte: t, auteur: moi(), par: moi(), quand: new Date().toISOString(), reponses: [], regle: false };
+    const n = { morceau: E.m.id, version: E.A, versionNom: nomVersion(E.A), contre: E.B || '', contreNom: E.B ? nomVersion(E.B) : '', t: E.tout ? 0 : Math.round((E.sel ? E.sel.a : E.pos) * 10) / 10,
+      fin: !E.tout && E.sel ? Math.round(E.sel.b * 10) / 10 : null, tout: !!E.tout, texte: t, auteur: moi(), par: moi(), quand: new Date().toISOString(), reponses: [], regle: false };
     const f = await BK.db.ecrire('notesmix', n); E.notes.push(f); E.notes.sort((a, b) => a.t - b.t);
-    $('#ecTexte').value = ''; E.sel = null; majSel(); dessinerNotes(); msg('Note ajoutée à ' + tps(n.t) + ' sur A');
+    $('#ecTexte').value = ''; E.sel = null; majSel(); dessinerNotes(); msg(n.tout ? 'Note ajoutée sur tout le morceau' : 'Note ajoutée à ' + tps(n.t) + ' sur A');
+    BK.annoncerRetours && BK.annoncerRetours(E.m.nom, nomVersion(E.A));
   }
   $('#ecAjout').onclick = ajouterNote;
+  $('#ecTout').onclick = () => { E.tout = !E.tout; $('#ecTout').classList.toggle('on', E.tout); $('#ecQuand').textContent = E.tout ? 'TOUT' : tps(E.sel ? E.sel.a : E.pos); };
   $('#ecTexte').addEventListener('keydown', e => { e.stopPropagation(); if (e.key === 'Enter') ajouterNote(); });
   // 📋 Copier : toutes les notes affichées, avec leurs timecodes, dans l'ordre choisi (en anglais si tout est traduit)
   $('#ecCopier').onclick = async () => {
     const l = visibles(); if (!E.m || !l.length) return msg('Aucune note à copier');
     const en = l.every(n => n.texteEn), T = tri();
-    const ligne = n => `${n.regle ? '✓ ' : ''}${tps(n.t)}${n.fin ? '–' + tps(n.fin) : ''}${T === 'membre' ? '' : ' · ' + qui(n)} : ${en ? n.texteEn : n.texte}`
+    const ligne = n => `${n.regle ? '✓ ' : ''}${n.tout ? 'Tout le morceau' : tps(n.t) + (n.fin ? '–' + tps(n.fin) : '')}${T === 'membre' ? '' : ' · ' + qui(n)} : ${en ? n.texteEn : n.texte}`
       + (E.A && n.version !== E.A ? ` [${versionDe(n)}]` : '')
       + (n.reponses || []).map(r => `\n    ↳ ${r.par} : ${en && r.texteEn ? r.texteEn : r.texte}`).join('');
     const tete = `${E.m.nom}\nA : ${nomVersion(E.A)}${E.B ? '\nB : ' + nomVersion(E.B) : ''}\n`;

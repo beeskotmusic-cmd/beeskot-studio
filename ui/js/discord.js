@@ -591,3 +591,41 @@ Morceaux : ${ms.map(m => m.nom + ((m.alias || []).length ? ' (' + m.alias.join('
     setTimeout(tour, 90e3); setInterval(tour, 30 * 60e3);
   },
 };
+
+// =====================================================================
+// MIETTE ANNONCE SUR DISCORD (#annonce-miette) — pour l'instant : les retours de Notes et retours.
+//   une note ajoutée ──► on attend 10 min sans nouvelle note ──► « Yacine a fait des retours sur One Point Perspective · OPP Master 10.23.26 »
+// Seul le PC de celui qui écrit annonce (pas de doublon). Si le logiciel est fermé avant, l'annonce part à la prochaine ouverture.
+// =====================================================================
+(() => {
+  const ATTENTE = 10 * 60e3, SALON = /annonce[-_ ]?miette/i;
+  async function salonAnnonce(jeton) {
+    const garde = BK.reglage('discord.annonce', null); if (garde && garde.id) return garde.id;
+    const l = await BK.discord.salons(jeton).catch(() => []); const s = l.find(x => SALON.test(x.nom) && !x.forum);
+    if (s) BK.regler('discord.annonce', { id: s.id, nom: s.nom }); return s ? s.id : null;
+  }
+  async function poster(texte) {
+    const c = await BK.discord.config(); if (!c.jeton) return false;
+    const id = await salonAnnonce(c.jeton); if (!id) return false;
+    const r = await BK.discord.fetch(`${BK.discord.API}/channels/${id}/messages`, { method: 'POST', headers: { Authorization: 'Bot ' + c.jeton, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ content: texte, allowed_mentions: { parse: [] } }) });
+    return !!(r && r.ok !== false);
+  }
+  async function vider() {
+    const l = BK.reglage('discord.aAnnoncer', []), reste = [];
+    for (const a of l) { if (Date.now() - a.t < ATTENTE) { reste.push(a); continue; }
+      const txt = `🍞 ${a.qui} a fait des retours sur ${a.morceau}${a.version ? ' · ' + a.version.replace(/\.(wav|mp3|aiff?|flac|m4a)$/i, '') : ''}${a.n > 1 ? ' (' + a.n + ' notes)' : ''}. À lire dans Notes et retours.`;
+      let ok = false; try { ok = await poster(txt); } catch (e) {}
+      if (!ok && Date.now() - a.t < 3 * 864e5) reste.push(a);                  // pas pu : on réessaie plus tard (3 jours max)
+    }
+    BK.regler('discord.aAnnoncer', reste);
+    clearTimeout(BK._annT); if (reste.length) BK._annT = setTimeout(vider, Math.max(30e3, Math.min(...reste.map(a => ATTENTE - (Date.now() - a.t))) + 2e3));
+  }
+  BK.annoncerRetours = (morceau, version) => {
+    const qui = BK.reglage('nomPc', ''); if (!qui || !morceau) return;
+    const l = BK.reglage('discord.aAnnoncer', []), k = morceau + '|' + (version || '');
+    const a = l.find(x => x.k === k && x.qui === qui); if (a) { a.t = Date.now(); a.n = (a.n || 1) + 1; } else l.push({ k, qui, morceau, version: version || '', t: Date.now(), n: 1 });
+    BK.regler('discord.aAnnoncer', l); clearTimeout(BK._annT); BK._annT = setTimeout(vider, ATTENTE + 2e3);
+  };
+  BK.annoncesVider = vider; setTimeout(vider, 60e3);                          // au démarrage : ce qui n'était pas parti
+})();

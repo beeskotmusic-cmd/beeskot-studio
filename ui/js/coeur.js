@@ -7,7 +7,7 @@ const $ = (s, r = document) => r.querySelector(s);
 const $$ = (s, r = document) => [...r.querySelectorAll(s)];
 
 const BK = {
-  version: '0.9.61 bêta',
+  version: '0.9.62 bêta',
   modules: {},
   onglets: [],
   cotes: [],
@@ -370,11 +370,14 @@ const BK = {
     const r = bm.getBoundingClientRect(); z.style.top = (r.bottom + 8) + 'px'; z.style.left = Math.max(8, r.left + r.width / 2 - 150) + 'px';
     z.innerHTML = `<button class="mm-l" data-mm="lire"><b>📖 Tout relire</b><span>Miette relit Discord, le Drive, les mails… et prépare les onglets</span></button>
       <button class="mm-l" data-mm="actu"><b>🔄 Actualiser</b><span>Va chercher dans le Drive ce que les autres ont fait</span></button>
+      <button class="mm-l" data-mm="journal"><b>📜 Voir les updates des membres</b><span id="mmDernier">Tout ce que chacun a fait, heure par heure</span></button>
       <div class="mm-qui"><span class="eng">Qui est là</span><div id="mmQui"><span class="nt"><span class="spin"></span>…</span></div></div>`;
     document.body.appendChild(z);
     const fermer = e => { if (!z.contains(e.target) && e.target !== bm && !bm.contains(e.target)) { z.remove(); document.removeEventListener('pointerdown', fermer, true); } };
     setTimeout(() => document.addEventListener('pointerdown', fermer, true), 0);
     z.querySelector('[data-mm="lire"]').onclick = () => { z.remove(); BK.miette.toutLire(); };
+    z.querySelector('[data-mm="journal"]').onclick = () => { z.remove(); BK.journalFenetre(); };
+    BK.journalLire && BK.journalLire().then(l => { const x = l[0], e = document.getElementById('mmDernier'); if (x && e) { const p = BK.journalPhrase(x); e.textContent = 'Dernier : ' + p.quand + ' · ' + p.txt; } }).catch(() => {});
     z.querySelector('[data-mm="actu"]').onclick = async () => { const b = z.querySelector('[data-mm="actu"] b'); b.innerHTML = '<span class="spin"></span>Actualisation…';
       try { if (BK.db.viderAttente) await BK.db.viderAttente();          // ce qui attendait ici part d'abord
         BK.dossiers && BK.dossiers.oublier && BK.dossiers.oublier();
@@ -390,7 +393,7 @@ const BK = {
       const depuis = t => { const m = Math.round((Date.now() - t) / 60e3); return !t ? 'jamais vu' : m < 60 ? 'il y a ' + m + ' min' : m < 1440 ? 'il y a ' + Math.round(m / 60) + ' h' : 'il y a ' + Math.round(m / 1440) + ' j'; };
       el.innerHTML = noms.map(n => { const d = docs.find(x => String(x.qui || '').toLowerCase() === n.toLowerCase()) || {}, ici = n.toLowerCase() === moi;
         const on = ici || (d.t && Date.now() - d.t < 7 * 60e3), dernier = d.t || (d.maj ? Date.parse(d.maj) : 0);
-        return `<div class="mm-p${on ? ' on' : ''}"><i></i><b>${esc(n)}${ici ? ' (toi)' : ''}</b><span>${on ? (ici ? 'en ligne' : 'en ligne' + (d.onglet ? ' · ' + esc(d.onglet) : '')) : 'hors ligne · ' + depuis(dernier)}</span></div>`; }).join(''); };
+        return `<div class="mm-p${on ? ' on' : ''}"><i></i><b>${esc(n)}${ici ? ' (toi)' : ''}</b><span>${on ? (ici ? 'en ligne' : 'en ligne' + (d.onglet ? ' · ' + esc(d.onglet) : '')) : 'hors ligne'}</span></div>`; }).join(''); };
     qui();
   },
 

@@ -65,16 +65,16 @@ BK.module('postvis', function (page) {
                 <span class="eng">Preset</span>
                 <div class="pv-ligne"><select class="fld" id="pvPreset" title="Couleur, effet et réglages d'un coup (tu peux tout retoucher après)"><option value="">Choisir un preset…</option>${PRESETS.map((x, i) => `<option value="${i}">${x.nom}</option>`).join('')}</select></div>
                 <span class="eng">Réglages</span>
-                <div class="pv-ligne pv-regl"><span class="eng">Zoom</span><input class="fld rv-glisse" id="pvZoom" value="0 %" title="Clic maintenu et glisse la souris (ou double-clic pour taper) · glisse l'image dans l'aperçu pour la déplacer"><span class="eng">Contraste</span><input class="fld rv-glisse" id="pvCon" title="Clic maintenu et glisse la souris (ou double-clic pour taper)"><span class="eng">Lumière</span><input class="fld rv-glisse" id="pvLum" title="Clic maintenu et glisse la souris (ou double-clic pour taper)"><span class="eng">Saturation</span><input class="fld rv-glisse" id="pvSat" title="Clic maintenu et glisse la souris (ou double-clic pour taper)"></div>
+                <div class="pv-ligne pv-regl"><span class="eng">Zoom</span><input class="fld rv-glisse" id="pvZoom" value="0 %" title="Clic maintenu et glisse la souris (double-clic : valeur par défaut · tape un chiffre pour l'écrire) · glisse l'image dans l'aperçu pour la déplacer"><span class="eng">Contraste</span><input class="fld rv-glisse" id="pvCon" title="Clic maintenu et glisse la souris (double-clic : valeur par défaut · tape un chiffre pour l'écrire)"><span class="eng">Lumière</span><input class="fld rv-glisse" id="pvLum" title="Clic maintenu et glisse la souris (double-clic : valeur par défaut · tape un chiffre pour l'écrire)"><span class="eng">Saturation</span><input class="fld rv-glisse" id="pvSat" title="Clic maintenu et glisse la souris (double-clic : valeur par défaut · tape un chiffre pour l'écrire)"></div>
                 <span class="eng">Couleur</span>
                 <div class="pv-ligne"><select class="fld" id="pvFiltre">${['', ...BK.filtres.map(f => f.nom)].map(n => `<option value="${n}">${n || 'Aucun filtre'}</option>`).join('')}<option value="__lut">＋ Ajouter une LUT (.cube)…</option></select>
-                  <span class="eng" style="margin-left:6px">Intensité</span><input class="fld rv-glisse pv-force" id="pvForce" value="100 %" title="Clic maintenu et glisse la souris (ou double-clic pour taper)"></div>
+                  <span class="eng" style="margin-left:6px">Intensité</span><input class="fld rv-glisse pv-force" id="pvForce" value="100 %" title="Clic maintenu et glisse la souris (double-clic : valeur par défaut · tape un chiffre pour l'écrire)"></div>
                 <span class="eng">Effet</span>
                 <div class="pv-ligne"><select class="fld" id="pvVoile">${BK.rendu.VOILES.map(([k, n]) => `<option value="${k}">${n}</option>`).join('')}</select>
-                  <span class="eng" style="margin-left:6px">Intensité</span><input class="fld rv-glisse pv-force" id="pvVoileK" value="100 %" title="Clic maintenu et glisse la souris (ou double-clic pour taper)"></div>
+                  <span class="eng" style="margin-left:6px">Intensité</span><input class="fld rv-glisse pv-force" id="pvVoileK" value="100 %" title="Clic maintenu et glisse la souris (double-clic : valeur par défaut · tape un chiffre pour l'écrire)"></div>
                 <span class="eng">Cadre</span>
                 <div class="pv-ligne"><select class="fld" id="pvCadre">${BK.rendu.CADRES.map(([k, n]) => `<option value="${k}">${n}</option>`).join('')}</select>
-                  <span class="eng" style="margin-left:6px">Taille</span><input class="fld rv-glisse pv-force" id="pvCadreT" value="40 %" title="Clic maintenu et glisse la souris (ou double-clic pour taper)"></div>
+                  <span class="eng" style="margin-left:6px">Taille</span><input class="fld rv-glisse pv-force" id="pvCadreT" value="40 %" title="Clic maintenu et glisse la souris (double-clic : valeur par défaut · tape un chiffre pour l'écrire)"></div>
               </div>
               <input type="file" id="pvLutIn" accept=".cube" hidden></div>
             <div class="box pv-leg-box"><span class="lb">Légende</span>
@@ -228,20 +228,20 @@ BK.module('postvis', function (page) {
   champ.addEventListener('pointerdown', e => { if (!champ.readOnly || !S()) return; e.preventDefault(); champ.setPointerCapture(e.pointerId); zg = { x: e.clientX, y: e.clientY, z: S().zoom }; });
   champ.addEventListener('pointermove', e => { if (zg) zoom(zg.z + (e.clientX - zg.x) - (e.clientY - zg.y)); });
   champ.addEventListener('pointerup', () => { zg = null; });
-  champ.addEventListener('dblclick', () => { if (!S()) return; champ.readOnly = false; champ.value = S().zoom - 100; champ.select(); });
+  champ.addEventListener('dblclick', () => { if (!S()) return; champ.readOnly = true; zoom(100); $('#pvZoom').value = '0 %'; });      // double-clic : zoom normal
   champ.addEventListener('blur', () => { if (champ.readOnly) return; champ.readOnly = true; const v = parseFloat(champ.value.replace(',', '.')); zoom(isNaN(v) ? S().zoom : 100 + v); });
-  champ.addEventListener('keydown', e => { e.stopPropagation(); if (e.key === 'Enter') champ.blur(); });
+  champ.addEventListener('keydown', e => { e.stopPropagation(); if (e.key === 'Enter') return champ.blur(); if (champ.readOnly && S() && /^[-+\d]$/.test(e.key)) { champ.readOnly = false; champ.value = ''; } });
   ecran.addEventListener('wheel', e => { if (!S()) return; e.preventDefault(); zoom(S().zoom - Math.sign(e.deltaY) * 5); }, { passive: false });
   champ.addEventListener('wheel', e => { if (!S()) return; e.preventDefault(); zoom(S().zoom - Math.sign(e.deltaY) * 5); }, { passive: false });
-  // ---------- intensité du filtre (0 à 100 %) : glisser la souris sur la case, ou double-clic pour taper ----------
+  // ---------- intensité du filtre (0 à 100 %) : glisser la souris sur la case, double-clic = valeur par défaut, ou tape un chiffre ----------
   const fc = $('#pvForce'); fc.readOnly = true; let fg = null; P.force = P.force ?? 100;
   const force = v => { P.force = Math.round(Math.max(0, Math.min(100, v))); if (!P.enPreset) P.edite = true; fc.value = P.force + ' %'; dessiner(); };
   fc.addEventListener('pointerdown', e => { if (!fc.readOnly) return; e.preventDefault(); fc.setPointerCapture(e.pointerId); fg = { x: e.clientX, y: e.clientY, v: P.force }; });
   fc.addEventListener('pointermove', e => { if (fg) force(fg.v + ((e.clientX - fg.x) - (e.clientY - fg.y)) / 2); });
   fc.addEventListener('pointerup', () => { fg = null; });
-  fc.addEventListener('dblclick', () => { fc.readOnly = false; fc.value = P.force; fc.select(); });
+  fc.addEventListener('dblclick', () => { fc.readOnly = true; force(100); });                       // double-clic : intensité normale
   fc.addEventListener('blur', () => { if (fc.readOnly) return; fc.readOnly = true; const v = parseFloat(fc.value.replace(',', '.')); force(isNaN(v) ? P.force : v); });
-  fc.addEventListener('keydown', e => { e.stopPropagation(); if (e.key === 'Enter') fc.blur(); });
+  fc.addEventListener('keydown', e => { e.stopPropagation(); if (e.key === 'Enter') return fc.blur(); if (fc.readOnly && /^[-+\d]$/.test(e.key)) { fc.readOnly = false; fc.value = ''; } });
   fc.addEventListener('wheel', e => { e.preventDefault(); force(P.force - Math.sign(e.deltaY) * 5); }, { passive: false });
   $('#pvEntier').onclick = () => { const s = S(); if (!s) return; s.zoom = zoomEntier(tournee(s)); s.x = 0; s.y = 0; dessiner(); majTout(); msg('Photo entière'); };
   $('#pvRemplir').onclick = () => { const s = S(); if (!s) return; s.zoom = 100; s.x = 0; s.y = 0; dessiner(); majTout(); msg('La photo remplit le cadre'); };
@@ -273,10 +273,10 @@ BK.module('postvis', function (page) {
   [['#pvCon', 'contraste'], ['#pvLum', 'lumiere'], ['#pvSat', 'saturation']].forEach(([id, k]) =>
     champsRegl[k] = BK.rendu.champGlisse($(id), { val: P.regl[k], change: v => { P.regl[k] = v; marquer(); r && r.reglages(P.regl); dessiner(); } }));
   // l'intensité de l'effet : de 0 (rien) à 100 % (plein effet)
-  const champVoileK = BK.rendu.champGlisse($('#pvVoileK'), { min: 0, max: 100, val: 100, pas: 5, change: v => { P.voileK = v; marquer(); dessiner(); } });
+  const champVoileK = BK.rendu.champGlisse($('#pvVoileK'), { min: 0, max: 100, val: 100, defaut: 100, pas: 5, change: v => { P.voileK = v; marquer(); dessiner(); } });
   $('#pvVoileK').value = '100 %';
   // le cadre d'époque et sa taille (toutes les photos)
-  const champCadreT = BK.rendu.champGlisse($('#pvCadreT'), { min: 0, max: 100, val: 40, pas: 5, change: v => { P.cadreT = v; marquer(); dessiner(); } });
+  const champCadreT = BK.rendu.champGlisse($('#pvCadreT'), { min: 0, max: 100, val: 40, defaut: 40, pas: 5, change: v => { P.cadreT = v; marquer(); dessiner(); } });
   $('#pvCadre').onchange = e => { P.cadre = e.target.value; marquer(); dessiner(); msg(P.cadre ? 'Cadre : ' + e.target.selectedOptions[0].textContent + ' (toutes les photos)' : 'Sans cadre'); };
   $('#pvVoile').onchange = e => { P.voile = e.target.value; marquer(); dessiner(); msg(P.voile ? 'Effet : ' + e.target.selectedOptions[0].textContent + ' (toutes les photos)' : 'Sans effet'); };
   // ---------- PRESETS : couleur + effet + réglages d'un coup (tout reste retouchable ensuite) ----------

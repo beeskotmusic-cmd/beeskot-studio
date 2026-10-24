@@ -225,20 +225,18 @@ BK.module('mixprep', function (page) {
     const z = $('#mpManque');
     if (!BK.drive.relie()) { z.innerHTML = '<span class="nt">Relie le Drive : c\'est là que chaque PC dit ce qu\'il a.</span>'; return; }
     const r = await BK.plugins.manquentChez(qui); if (M.plugQui !== qui || !z.isConnected) return;
-    const autres = r.sources.length ? r.sources.join(', ') : 'personne pour l\'instant';
-    if (!r.verifie) { z.innerHTML = `<span class="nt">Le PC de ${esc(qui)} n'a pas encore envoyé sa liste de plugins. Il le fait tout seul quelques minutes après l'ouverture de BEESKOT Studio.</span>`; return; }
-    z.innerHTML = `<span class="nt">Comparé aux projets de : ${esc(autres)} · liste de ${esc(qui)} du ${esc(new Date(r.t).toLocaleDateString('fr-CA', { day: 'numeric', month: 'long' }))}</span>`
-      + (r.l.length ? `<ul class="mp-manque">${r.l.map(x => `<li><b>${esc(x.nom)}</b><span class="nt">${esc(x.projets.join(' · '))}</span></li>`).join('')}</ul>
-          <div class="chips" style="margin-top:8px"><button class="chip" id="mpVersTodo">📋 Envoyer dans la To-do list (${esc(qui)})</button><button class="chip" id="mpCopierPl">Copier la liste</button></div>`
-        : `<span class="nt mp-rien">✓ Rien ne manque à ${esc(qui)} pour ouvrir les projets des autres.</span>`);
-    const noms = r.l.map(x => x.nom);
+    const noms = [...new Set(r.l.flatMap(x => x.plugins))].sort((a, b) => a.localeCompare(b));
+    if (!r.verifie) { z.innerHTML = `<p class="mp-phrase">${esc(qui)} : pas encore vérifié.</p>`; majCartes(); return; }
+    z.innerHTML = !r.l.length ? `<p class="mp-phrase mp-rien">Rien ne manque chez ${esc(qui)}.</p>`
+      : `<p class="mp-phrase">Il manque :</p>${r.l.map(x => `<div class="mp-proj"><b>${esc(x.titre)}</b><ul>${x.plugins.map(n => `<li>${esc(n)}</li>`).join('')}</ul></div>`).join('')}
+        <div class="chips" style="margin-top:10px"><button class="chip" id="mpVersTodo">📋 Envoyer dans la To-do list (${esc(qui)})</button><button class="chip" id="mpCopierPl">Copier la liste</button></div>`;
     const t = $('#mpVersTodo'); if (t) t.onclick = async () => {
       const id = 'plug-' + BK.plugins.norme(qui) + '-' + BK.plugins.norme(noms.join('')).slice(0, 60);
       if ((await BK.db.liste('taches')).some(x => x.id === id)) { t.textContent = 'Déjà dans la To-do ✓'; return; }
       await BK.db.ecrire('taches', { id, texte: `Installer : ${noms.join(', ')}${qui === 'Studio' ? ' (PC du Studio)' : ''}`, qui: qui === 'Studio' ? '' : qui, fait: false, ordre: Date.now() });
       BK.tachesRecharger && BK.tachesRecharger(); t.textContent = '✓ Dans la To-do de ' + qui; msg('Tâche ajoutée pour ' + qui); };
-    const c = $('#mpCopierPl'); if (c) c.onclick = async () => { try { await navigator.clipboard.writeText(noms.join('\n')); msg(noms.length + ' plugin(s) copié(s)'); } catch (e) { msg('Copie impossible'); } };
-    majCartes(r.l.length);
+    const c = $('#mpCopierPl'); if (c) c.onclick = async () => { try { await navigator.clipboard.writeText(r.l.map(x => x.titre + ' :\n' + x.plugins.map(n => '  • ' + n).join('\n')).join('\n\n')); msg(noms.length + ' plugin(s) copié(s)'); } catch (e) { msg('Copie impossible'); } };
+    majCartes(noms.length);
   }
 
   // les cartes : un mot sur où on en est

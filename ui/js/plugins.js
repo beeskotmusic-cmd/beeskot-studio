@@ -59,63 +59,18 @@ BK.plugins = {
     }
     tout[pc] = { t: new Date().toISOString(), l }; await BK.partage.ecrire('plugins.projets', tout);
   },
-  // pour un membre : les plugins des projets des AUTRES qu'il n'a pas → [{ nom, projets: ['Mother (Pierre)', …] }]
+  // pour un membre : ce qui lui manque, projet par projet (les projets des AUTRES) → { verifie, l: [{ titre: 'Mother › Mother v9.als', plugins: [...] }] }
   async manquentChez(qui) {
     const inv = await BK.partage.lire('plugins', {}), pr = await BK.partage.lire('plugins.projets', {}), moi = inv[qui];
-    if (!moi) return { verifie: false, l: [], sources: Object.keys(pr).filter(pc => pc !== qui) };
-    const m = new Map();
+    const sources = Object.keys(pr).filter(pc => pc !== qui);
+    if (!moi) return { verifie: false, l: [], sources };
+    const l = [];
     for (const [pc, d] of Object.entries(pr)) { if (pc === qui) continue;
-      for (const p of (d && d.l) || []) for (const pl of p.plugins || []) { if (BK.plugins.present(pl, moi.l)) continue;
-        const k = BK.plugins.norme(pl.nom); const x = m.get(k) || { nom: pl.nom, projets: [] }; const o = p.morceau + ' (' + pc + ')'; if (!x.projets.includes(o)) x.projets.push(o); m.set(k, x); } }
-    return { verifie: true, t: moi.t, l: [...m.values()].sort((a, b) => a.nom.localeCompare(b.nom)), sources: Object.keys(pr).filter(pc => pc !== qui) };
+      for (const p of (d && d.l) || []) { const manque = [...new Set((p.plugins || []).filter(pl => !BK.plugins.present(pl, moi.l)).map(pl => pl.nom))].sort((a, b) => a.localeCompare(b));
+        if (manque.length) l.push({ titre: (p.morceau ? p.morceau + ' › ' : '') + p.projet + '.als', pc, plugins: manque }); } }
+    l.sort((a, b) => a.titre.localeCompare(b.titre));
+    return { verifie: true, t: moi.t, l, sources };
   },
-
-  // ---------- les plugins d'un projet (.als = du XML compressé) ----------
-  async duProjet(octets) {
-    const txt = await new Response(new Blob([octets]).stream().pipeThrough(new DecompressionStream('gzip'))).text();
-    const out = new Map();
-    for (const b of txt.match(/<VstPluginInfo[\s\S]*?<\/VstPluginInfo>/g) || []) {
-      const nom = (b.match(/<PlugName Value="([^"]*)"/) || [])[1], f = (b.match(/<FileName Value="([^"]*)"/) || [])[1];
-      if (nom || f) out.set(BK.plugins.norme(f || nom), { nom: (nom || f.replace(/\.dll$/i, '')).replace(/\s*\((x64|x86)\)|[_ -]x64$/i, ''), fichier: f || '' });
-    }
-    for (const b of txt.match(/<Vst3PluginInfo[\s\S]*?<\/Vst3PluginInfo>/g) || []) {
-      const nom = (b.match(/<Name Value="([^"]*)"/) || [])[1]; if (nom) out.set(BK.plugins.norme(nom), { nom, fichier: '' });
-    }
-    return [...out.values()].sort((a, b) => a.nom.localeCompare(b.nom));
-  },
-  // ---------- seulement les projets BEESKOT (pas les projets perso) ----------
-  //   un projet compte s'il porte le nom d'un morceau de la Bibliothèque (ou s'il a été choisi à la main),
-  //   et jamais s'il a été mis de côté (« Pas un projet BEESKOT »)
-  nomDe: p => String(p || '').split(/[\\/]/).pop().replace(/\.als$/i, ''),
-  async morceauDe(chemin, ms) {
-    ms = ms || await BK.db.liste('morceaux');
-    if (BK.reglage('plugins.ignores', []).includes(chemin)) return null;
-    const m = BK.inv.trouverMorceau(BK.plugins.nomDe(chemin), ms) || BK.inv.trouverMorceau(chemin.split(/[\\/]/).slice(-3).join(' '), ms);
-    if (m) return m;
-    return BK.reglage('plugins.ajoutes', []).includes(chemin) ? { nom: 'Ajouté à la main' } : null;
-  },
-  // les projets BEESKOT de ce PC, rangés par morceau (le plus récent d'abord)
-  async projetsBeeskot() {
-    const ms = await BK.db.liste('morceaux'), als = (await BK.inv.tous()).filter(f => f.type === 'als' && f.ici && !f.sauvegarde)
-      .sort((a, b) => (b.modif || '').localeCompare(a.modif || '')), out = [];
-    for (const f of als) { const m = await BK.plugins.morceauDe(f.chemin, ms); if (m) out.push({ ...f, morceau: m.nom }); }
-    for (const c of BK.reglage('plugins.ajoutes', [])) if (!out.some(x => x.chemin === c)) out.push({ chemin: c, nom: BK.plugins.nomDe(c), morceau: 'Ajouté à la main' });
-    return out;
-  },
-  // le projet ouvert dans Ableton (Ableton l'écrit dans son journal), s'il est BEESKOT ; sinon le projet BEESKOT le plus récent
-  async projetOuvert() {
-    if (!BK.estExe) return null;
-    const ms = await BK.db.liste('morceaux');
-    try {
-      const base = BK.chemin(await BK.T.path.configDir(), 'Ableton');
-      const vs = (await BK.fichier.liste(base)).filter(v => /^Live /i.test(v.name)).map(v => v.name).sort().reverse();
-      for (const v of vs) { try { const t = await BK.fichier.lireTexte(BK.chemin(base, v, 'Preferences', 'Log.txt'));
-        const l = t.match(/[A-Za-z]:\\[^"\r\n<>|]*?\.als/g) || [];
-        for (let i = l.length - 1; i >= 0; i--) if (await BK.plugins.morceauDe(l[i], ms) && await BK.fichier.existe(l[i])) return l[i]; } catch (e) {} }
-    } catch (e) {}
-    const l = await BK.plugins.projetsBeeskot(); return l[0] ? l[0].chemin : null;
-  },
-
   // ---------- la comparaison : ce qui manque, PC par PC ----------
   present(pl, liste) { const a = BK.plugins.norme(pl.fichier || pl.nom), b = BK.plugins.norme(pl.nom);
     return (liste || []).some(x => { const n = BK.plugins.norme(x); return n === a || n === b || (b.length >= 4 && (n.includes(b) || b.includes(n) && n.length >= 4)); }); },

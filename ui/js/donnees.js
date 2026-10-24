@@ -72,7 +72,9 @@ BK.db = {
   photo: {},
   lu: {},                                                            // les collections bien lues dans le Drive depuis l'ouverture
   async ecrire(col, fiche, { sansAnnuler = false, graine = false } = {}) {
+    const neuf = !fiche.id;
     fiche.id = fiche.id || BK.db.nouvelId();
+    if (col !== 'activite' && BK.journalAuto) try { BK.journalAuto(col, fiche, neuf, { sansAnnuler, graine }); } catch (e) {}
     if (!graine && fiche.graine) delete fiche.graine;                 // une fiche de départ qu'on modifie devient une vraie fiche du groupe
     // PROTECTION : les réglages partagés (étiquettes, dossiers, résumé…) sont un seul gros fichier pour tout le groupe.
     // Si on n'a pas réussi à les lire dans le Drive, on ne les écrit pas : on écraserait le travail des autres avec une version vide.

@@ -209,16 +209,19 @@ BK.rendu = {
   },
 
   // ---------- une case « glisse la souris » (comme Zoom et Intensité) : -100 à +100 % ----------
-  champGlisse(el, { min = -100, max = 100, val = 0, pas = 5, change }) {
+  // double-clic = la valeur par défaut ; taper un chiffre (case sélectionnée) = l'écrire à la main
+  champGlisse(el, { min = -100, max = 100, val = 0, pas = 5, change, defaut }) {
+    if (defaut == null) defaut = min < 0 ? 0 : val;
     el.readOnly = true; let g = null, v = val;
     const poser = x => { v = Math.round(Math.max(min, Math.min(max, x))); el.value = (v > 0 && min < 0 ? '+' : '') + v + ' %'; change(v); };
     el.value = (v > 0 && min < 0 ? '+' : '') + v + ' %';
     el.addEventListener('pointerdown', e => { if (!el.readOnly) return; e.preventDefault(); el.setPointerCapture(e.pointerId); g = { x: e.clientX, y: e.clientY, v }; });
     el.addEventListener('pointermove', e => { if (g) poser(g.v + ((e.clientX - g.x) - (e.clientY - g.y)) / 2); });
     el.addEventListener('pointerup', () => { g = null; });
-    el.addEventListener('dblclick', () => { el.readOnly = false; el.value = v; el.select(); });
+    el.addEventListener('dblclick', () => { el.readOnly = true; poser(defaut); });
     el.addEventListener('blur', () => { if (el.readOnly) return; el.readOnly = true; const x = parseFloat(el.value.replace(',', '.')); poser(isNaN(x) ? v : x); });
-    el.addEventListener('keydown', e => { e.stopPropagation(); if (e.key === 'Enter') el.blur(); });
+    el.addEventListener('keydown', e => { e.stopPropagation(); if (e.key === 'Enter') return el.blur();
+      if (el.readOnly && /^[-+\d]$/.test(e.key)) { el.readOnly = false; el.value = ''; } });
     el.addEventListener('wheel', e => { e.preventDefault(); poser(v - Math.sign(e.deltaY) * pas); }, { passive: false });
     return { poser, regler: x => { v = x; } };
   },

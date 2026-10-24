@@ -35,3 +35,15 @@ document.addEventListener('dragover', e => {
 }, true);
 document.addEventListener('dragend', () => BK.glisse.fin(), true);
 document.addEventListener('drop', () => setTimeout(() => BK.glisse.fin(), 0));
+// « Envoyer vers » (clic droit dans Médias) : comme un glisser-déposer, sans glisser
+//   le média ──► l'onglet s'ouvre ──► il est déposé au bon endroit
+BK.glisse.envoyer = (onglet, items) => new Promise(ok => {
+  BK.glisse.debut(items); BK.ouvrir(onglet);
+  setTimeout(() => {
+    const cible = { ecoute: '#p-ecoute .grid', postvis: '#p-postvis .grid', reelvis: '#p-reelvis .grid', tournage: '#p-tournage .grid', reels: '#p-reels .grid',
+      suivi: '#p-suivi .su-aff.on, #p-suivi .su-aff[data-id]', biblio: '#p-biblio .fiche.ouverte, #p-biblio .fiche[data-id]' }[onglet];
+    const z = cible && document.querySelector(cible);
+    if (z) z.dispatchEvent(new DragEvent('drop', { bubbles: true, cancelable: true, dataTransfer: new DataTransfer() }));
+    setTimeout(() => { BK.glisse.fin(); ok(!!z); }, 50);
+  }, 450);
+});

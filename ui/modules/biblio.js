@@ -470,7 +470,7 @@ BK.module('biblio', function (page) {
       $$('.lien', el).forEach(a => a.onclick = e => { e.preventDefault(); BK.ouvrirLien(a.dataset.url); });
       // A / B : les versions par défaut dans Notes et retours (re-clic = automatique : A la plus récente, B celle d'avant)
       $$('[data-ab]', el).forEach(b => b.onclick = async () => { const [c, v] = [b.dataset.ab.slice(0, 1), b.dataset.ab.slice(2)], k = 'ecoute' + c, o = c === 'A' ? 'ecouteB' : 'ecouteA';
-        m[k] = m[k] === v ? '' : v; if (m[k] && m[o] === v) m[o] = '';
+        m[k] = m[k] === v ? '' : v; if (m[k] && m[o] === v) m[o] = ''; delete m.ecouteBpour;      // choisi dans la fiche : gardé tant qu'on ne le change pas
         await sauver(m); msg(m[k] ? 'Version ' + c + ' par défaut dans Notes et retours' : 'Version ' + c + ' : automatique (' + (c === 'A' ? 'la plus récente' : 'celle d\'avant') + ')'); rendre(); });
       $$('[data-princ]', el).forEach(b => b.onclick = async () => { m.exportPrincipal = b.dataset.princ; await sauver(m); msg('Version principale choisie'); rendre(); });
       $$('[data-expx]', el).forEach(b => b.onclick = async () => {

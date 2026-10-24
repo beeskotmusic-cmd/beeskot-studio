@@ -85,6 +85,15 @@
         },
         {
           "url": "https://*.tuyain.com/*"
+        },
+        {
+          "url": "https://graph.facebook.com/*"
+        },
+        {
+          "url": "https://graph.instagram.com/*"
+        },
+        {
+          "url": "https://open.tiktokapis.com/*"
         }
       ]
     }

@@ -1799,3 +1799,35 @@ body.glisse-media #nav .tab.depot-ok{box-shadow:0 0 0 2px #ffb23e,0 0 10px rgba(
 .mp-manque li{display:flex;align-items:baseline;gap:10px;padding:5px 8px;border-radius:4px;background:rgba(0,0,0,.25);border-left:3px solid #d0574f}
 .mp-manque b{font:600 13px Jost,sans-serif}.mp-manque .nt{margin:0 0 0 auto;font-size:10.5px;text-align:right}
 .mp-rien{color:#9bd986!important;margin-top:8px}
+.ec-vol{width:70px;flex:none;accent-color:#ffb23e;align-self:center}
+.ec-n-t.tout{color:#cbbfa8;letter-spacing:.08em}
+.ec-modif{font:italic 400 10px Jost,sans-serif;color:#8a7f70}
+.ec-ed{height:28px;font-size:13px;width:100%;min-width:240px}
+#ecTout.on{background:linear-gradient(180deg,#f0b54a,#c98a1e)!important;color:#2a1a0c!important}
+.re-vol{display:flex;align-items:center;gap:8px;margin-top:8px}.re-vol input{flex:1;max-width:200px;accent-color:#ffb23e}.re-vol .eng{font-size:9px}.re-vol .mono{font-size:11px;color:#ffb23e;min-width:40px}
+.re-nvreel{display:flex;align-items:center;gap:10px;margin-top:8px;padding:8px 10px;border-radius:6px;background:rgba(255,178,62,.08);border:1px dashed rgba(255,178,62,.4)}.re-nvreel .nt{margin:0}
+.mp-phrase{margin:10px 0 6px;font:600 14px Jost,sans-serif}
+.mp-proj{margin:8px 0 4px}.mp-proj b{font:700 12px Jost,sans-serif;color:#ffb23e;letter-spacing:.03em}
+.mp-proj ul{margin:4px 0 0;padding-left:20px;display:flex;flex-direction:column;gap:2px}.mp-proj li{font:400 13px/1.4 Jost,sans-serif}
+.ac-dernier{flex:none;display:flex;align-items:baseline;gap:10px;padding:7px 12px;border-radius:6px;border:1px solid rgba(255,178,62,.25);background:rgba(0,0,0,.3);color:var(--ink);font:400 12.5px Jost,sans-serif;text-align:left;cursor:pointer;min-width:0}
+.ac-dernier .eng{font-size:9px;color:#ffb23e;flex:none}.ac-dernier .mono{font-size:11px;color:#ffb23e;flex:none}
+.ac-dernier span:last-child{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ac-dernier:hover{border-color:#ffb23e}
+.jn-box{width:min(640px,92vw);max-height:80vh;align-items:stretch!important}
+.jn-l{display:flex;flex-direction:column;gap:3px;overflow:auto;min-height:120px;max-height:60vh;padding-right:4px}
+.jn-jour{font-size:9px;margin:10px 0 3px;color:#ffb23e;text-transform:capitalize}
+.jn-p{display:flex;align-items:baseline;gap:10px;padding:5px 8px;border-radius:4px;border:0;border-left:3px solid var(--pc);background:rgba(0,0,0,.25);color:var(--ink);font:400 12.5px Jost,sans-serif;text-align:left;cursor:pointer}
+.jn-p:hover{background:rgba(255,178,62,.1)}.jn-p .mono{font-size:11px;color:#a89c86;flex:none}.jn-p b{color:var(--pc);flex:none}.jn-p i{color:#cbbfa8}
+/* un reel sorti : il s'allume */
+.su-aff.sorti{background-blend-mode:normal!important;background-color:#15110e!important;border-color:#ffcf7a!important;box-shadow:0 0 0 1px #ffcf7a,0 0 18px rgba(255,190,80,.55),0 6px 18px rgba(0,0,0,.6)!important;animation:suLueur 3.2s ease-in-out infinite}
+.su-aff.sorti::before{opacity:.25!important}
+@keyframes suLueur{50%{box-shadow:0 0 0 1px #ffcf7a,0 0 28px rgba(255,190,80,.8),0 6px 18px rgba(0,0,0,.6)}}
+.su-sorti-b{font:700 10px Jost,sans-serif;letter-spacing:.14em;color:#2a1a0c;background:linear-gradient(180deg,#ffcf7a,#d48a1c);padding:4px 8px;border-radius:3px;flex:none}
+.su-stats .su-tete .lb{flex:1}
+.su-st{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.su-st-b{display:flex;flex-direction:column;gap:6px;padding:10px;border-radius:6px;background:rgba(0,0,0,.25);border-left:3px solid #ffb23e}
+.su-st-ch{display:flex;flex-wrap:wrap;gap:8px}.su-st-ch>div{display:flex;flex-direction:column;align-items:center;gap:3px;min-width:74px}
+.su-st-ch .vfd{min-width:70px;text-align:center}.su-st-ch .eng{font-size:8.5px}
+.su-comms{display:flex;flex-direction:column;gap:4px;max-height:260px;overflow:auto}
+.su-comm{font:400 12.5px Jost,sans-serif;padding:4px 8px;border-radius:4px;background:rgba(0,0,0,.2);display:flex;gap:6px;align-items:baseline}.su-comm b{color:#ffb23e;flex:none}.su-comm .nt{margin:0 0 0 auto;font-size:10px;flex:none}
+.rs-box{width:min(560px,92vw);align-items:stretch!important;gap:10px}.rs-box label{display:flex;flex-direction:column;gap:4px}

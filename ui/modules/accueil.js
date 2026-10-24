@@ -113,7 +113,7 @@ BK.phraseDuJour = d => {
 
 BK.module('accueil', function (page) {
   BK.surOuvrir = BK.surOuvrir || {};
-  BK.surOuvrir.accueil = async () => { try { dessiner(await donnees()); } catch (e) { console.error(e); } };
+  BK.surOuvrir.accueil = async () => { try { dessiner(await donnees()); BK.accueilDerniere && BK.accueilDerniere(); } catch (e) { console.error(e); } };
   setTimeout(BK.surOuvrir.accueil, 300);
 
   function dessiner(d) {
@@ -131,6 +131,7 @@ BK.module('accueil', function (page) {
         <section class="pane vit" aria-label="Vitrine">
           <div class="ac-haut">
             <div class="ac-col">
+              <button class="ac-dernier hidden" id="acDernier" title="Voir toutes les updates des membres"></button>
               <div class="box next"><span class="lb">Next</span>
                 ${n ? `<div class="next-l"><span class="nchip" style="--c:${t.c}"></span><span class="vfd next-q">${quand}</span>
                   <div><span class="evt-type">${esc(t.nom)}</span><span class="nt" style="margin:2px 0 0;font-size:14px;color:var(--ink)">${esc(n.titre || '')}${n.morceau ? ' · ' + esc(n.morceau) : ''}</span></div></div>`
@@ -168,6 +169,13 @@ BK.module('accueil', function (page) {
       BK.tachesRecharger && BK.tachesRecharger();
       setTimeout(() => BK.surOuvrir.accueil(), 700); });
   }
+
+  // ---------- la dernière action faite par un membre (une seule ligne) ----------
+  BK.accueilDerniere = async () => {
+    const z = $('#acDernier', page); if (!z || !BK.journalLire) return;
+    const x = (await BK.journalLire().catch(() => []))[0]; if (!x) return z.classList.add('hidden');
+    const p = BK.journalPhrase(x); z.innerHTML = `<span class="eng">Dernière action</span><span class="mono">${p.quand}</span><span>${p.txt.replace(/[<>&]/g, '')}</span>`;
+    z.classList.remove('hidden'); z.onclick = () => BK.journalFenetre(); };
 
   // ---------- « Cette semaine » : le résumé de Miette (Discord + Gemini) ----------
   // le dernier résumé est gardé sur ce PC : il s'affiche tout de suite, sans attendre ni clignoter.

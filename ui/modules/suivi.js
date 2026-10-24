@@ -90,7 +90,7 @@ BK.module('suivi', function (page) {
     const choisi = R.ouvert === r.id;
     const img = imageDe(r);
     const pas = r.passage || (a && a.duree ? { debut: a.debut || 0, fin: (a.debut || 0) + a.duree } : null);
-    return `<button class="su-aff${choisi ? ' on' : ''}${r.miette ? ' mi-prop' : ''}" data-ouv="${r.id}" data-id="${r.id}"
+    return `<button class="su-aff${choisi ? ' on' : ''}${r.miette ? ' mi-prop' : ''}${r.statut === 'publie' ? ' sorti' : ''}" data-ouv="${r.id}" data-id="${r.id}"
         ${BK.img.bg(img)} data-mdimg="${(md.find(f => /^image\//.test(f.mimeType || '')) || {}).id || ''}" data-vid="${(md.find(f => /^video\//.test(f.mimeType || '')) || {}).id || ''}"
         title="${esc(r.titre || 'Reel')}">
       ${img ? '' : '<span class="su-aff-vide">🎬</span>'}
@@ -113,6 +113,7 @@ BK.module('suivi', function (page) {
     const i = ETAPES.findIndex(e => e.k === (r.statut || 'idee'));
     const tp = t && t.parent ? R.tournages.find(x => x.id === t.parent) : null;     // le tournage (la journée) où ce reel est tourné
     const pas = r.passage || (a && a.duree ? { debut: a.debut || 0, fin: (a.debut || 0) + a.duree } : null);
+    if (r.statut === 'publie') return carteStats(r, i);
     return `<div class="su-c ouverte" data-id="${r.id}">
       <div class="su-tete">
         <input class="fld su-nom" data-nom="${r.id}" value="${esc(nomCourt(r))}" title="Le nom sur le poster" placeholder="ex. Reel 1">
@@ -145,6 +146,29 @@ BK.module('suivi', function (page) {
     </div>`;
   }
 
+  // ---------- un reel SORTI : sa page devient « Statistiques » (liens TikTok / Instagram, chiffres, commentaires) ----------
+  const nb = x => x == null ? '—' : x >= 1e6 ? (x / 1e6).toFixed(1).replace('.0', '') + ' M' : x >= 1e4 ? Math.round(x / 1e3) + ' k' : String(x);
+  function carteStats(r, i) {
+    const st = r.stats || {}, L = r.liens || {};
+    const bloc = (k, nom, lien) => { const s = st[k];
+      return `<div class="su-st-b"><div class="ligne-titre"><span class="lb">${nom}</span>${lien ? `<button class="btn xs" data-url="${esc(lien)}" style="margin-left:auto">↗ Ouvrir</button>` : ''}</div>
+        <input class="fld" data-lien="${k}" value="${esc(lien || '')}" placeholder="Colle le lien du ${nom === 'TikTok' ? 'TikTok' : 'post Instagram'}">
+        ${s ? `<div class="su-st-ch">${[['Vues', s.vues], ['J\'aime', s.likes], ['Commentaires', s.comms], ['Partages', s.partages], ['Enregistrés', s.enreg]].filter(([, v]) => v != null).map(([n, v]) => `<div><span class="vfd">${nb(v)}</span><span class="eng">${n}</span></div>`).join('')}</div>
+          <span class="nt">Mis à jour ${esc(new Date(s.t).toLocaleString('fr-CA', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }))}</span>`
+          : `<span class="nt">${lien ? 'Pas encore de chiffres : « ↻ Actualiser les stats ».' : 'Colle le lien pour voir les chiffres ici.'}</span>`}</div>`; };
+    const comms = (st.insta && st.insta.commentaires) || [];
+    return `<div class="su-c ouverte su-stats" data-id="${r.id}">
+      <div class="su-tete">
+        <span class="su-sorti-b">★ SORTI</span><input class="fld su-nom" data-nom="${r.id}" value="${esc(nomCourt(r))}" title="Le nom sur le poster">
+        <span class="lb" style="margin:0">📈 Statistiques</span>
+        <div class="su-etapes">${ETAPES.map((e, k) => `<button class="su-e${k <= i ? ' ok' : ''}${k === i ? ' on' : ''}" data-st="${r.id}|${e.k}" title="${e.nom}">${e.ic}</button>`).join('')}</div>
+        <button class="btn xs" data-ouv="${r.id}" title="Replier">▾ Fermer</button></div>
+      <div class="su-st">${bloc('tiktok', 'TikTok', L.tiktok)}${bloc('insta', 'Instagram', L.insta)}</div>
+      <div class="su-pied"><span class="nt" id="suApi">${BK.reseaux && BK.reseaux.relie() ? '' : 'Les chiffres arrivent tout seuls une fois TikTok et Instagram reliés (⚙ Relier).'}</span>
+        <button class="btn sm" data-relier="1">⚙ Relier TikTok / Instagram</button><button class="btn sm pri" data-stats="${r.id}">↻ Actualiser les stats</button></div>
+      ${comms.length ? `<div class="box"><span class="lb">Commentaires Instagram (${comms.length})</span><div class="su-comms">${comms.map(c => `<div class="su-comm"><b>${esc(c.qui)}</b> ${esc(c.texte)}<span class="nt">${esc(new Date(c.t).toLocaleDateString('fr-CA', { day: 'numeric', month: 'short' }))}</span></div>`).join('')}</div></div>` : ''}
+    </div>`;
+  }
   function rendre() {
     $$('#suFiltre button').forEach(b => b.classList.toggle('on', b.dataset.f === R.filtre));
     const l = R.l.filter(r => R.filtre === 'tout' || (R.filtre === 'publie' ? r.statut === 'publie' : r.statut !== 'publie'))
@@ -240,6 +264,13 @@ BK.module('suivi', function (page) {
     const z = $('#suListe');
     $$('[data-ouv]', z).forEach(b => b.onclick = () => { R.ouvert = R.ouvert === b.dataset.ouv ? null : b.dataset.ouv; BK.regler('suivi.ouvert', R.ouvert || ''); rendre();
       if (R.ouvert) setTimeout(() => { const c = $('.su-c', z); c && c.scrollIntoView({ behavior: 'smooth', block: 'nearest' }); }, 60); });
+    $$('[data-lien]', z).forEach(i => { i.addEventListener('keydown', e => { e.stopPropagation(); if (e.key === 'Enter') i.blur(); });
+      i.onchange = async () => { const r = R.l.find(x => x.id === i.closest('.su-c').dataset.id); r.liens = { ...(r.liens || {}), [i.dataset.lien]: i.value.trim() }; await BK.db.ecrire('reels', r); msg('Lien enregistré'); rendre(); }; });
+    $$('.su-stats [data-url]', z).forEach(b => b.onclick = () => BK.ouvrirLien(b.dataset.url));
+    $$('[data-relier]', z).forEach(b => b.onclick = () => BK.reseaux && BK.reseaux.fenetre());
+    $$('[data-stats]', z).forEach(b => b.onclick = async () => { const r = R.l.find(x => x.id === b.dataset.stats); b.disabled = true; b.innerHTML = '<span class="spin"></span>Stats…';
+      try { const n = await BK.reseaux.actualiser(r); await BK.db.ecrire('reels', r); msg(n ? 'Stats à jour' : 'Rien à lire : relie TikTok / Instagram, et colle les liens'); }
+      catch (e) { msg(e.message || 'Stats impossibles'); } rendre(); });
     $$('[data-reval]', z).forEach(b => b.onclick = async e => { e.stopPropagation(); const r = R.l.find(x => x.id === b.dataset.reval); if (!r) return;
       delete r.miette; await BK.db.ecrire('reels', r); msg('Reel validé'); rendre(); });
     $$('[data-play]', z).forEach(b => b.onclick = e => { e.stopPropagation(); jouerPassage(R.l.find(x => x.id === b.dataset.play)); });

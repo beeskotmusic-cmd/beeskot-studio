@@ -261,7 +261,9 @@ Règles : "taches" = ce que quelqu'un doit faire et qui n'est pas déjà fait ni
 // ---------- qui travaille sur BEESKOT Studio en même temps que toi ----------
 // Chaque PC laisse un petit mot sur le Drive toutes les 40 s : son nom et l'onglet ouvert.
 BK.presence = {
-  action: '', actionT: 0, dernierEnvoi: 0,
+  action: '', actionT: 0, dernierEnvoi: 0, vu: Date.now(),
+  // AFK : rien fait (souris, clavier) depuis 20 min → les autres te voient hors ligne
+  afk: () => Date.now() - BK.presence.vu > 20 * 60e3,
   // ce que ce PC est en train de faire : la petite ligne d'état de l'onglet ouvert (« Export 2/3 », « Image prête »…)
   noter(t) { t = String(t || '').trim(); if (!t || t === BK.presence.action) return; BK.presence.action = t.slice(0, 60); BK.presence.actionT = Date.now();
     const attente = 15e3 - (Date.now() - BK.presence.dernierEnvoi);                   // on prévient les autres vite, mais pas plus d'une fois toutes les 15 s
@@ -272,7 +274,10 @@ BK.presence = {
     const o = (BK.onglets || []).find(x => x.id === BK.reglage('dernierOnglet', 'accueil'));
     const action = Date.now() - BK.presence.actionT < 10 * 60e3 ? BK.presence.action : '';            // une action trop vieille ne compte plus
     BK.presence.dernierEnvoi = Date.now();
-    try { await BK.db.ecrire('config', { id: 'ici-' + moi.toLowerCase().replace(/[^a-z0-9]+/g, '-'), qui: moi, onglet: o ? o.titre : '', action, t: parti ? 0 : Date.now() }, { sansAnnuler: true }); } catch (e) {}
+    const absent = parti || BK.presence.afk();
+    if (absent && BK.presence._absent && !parti) return;                // déjà dit « hors ligne » : on ne répète pas
+    BK.presence._absent = absent;
+    try { await BK.db.ecrire('config', { id: 'ici-' + moi.toLowerCase().replace(/[^a-z0-9]+/g, '-'), qui: moi, onglet: o ? o.titre : '', action, t: absent ? 0 : Date.now() }, { sansAnnuler: true }); } catch (e) {}
   },
   async lire() {
     if (!BK.drive || !BK.drive.relie()) return [];
@@ -320,7 +325,7 @@ BK.synchro = {
   // les collections connues : on va chercher l'identifiant de leur dossier Drive une fois,
   // sinon un changement venu d'un autre PC dans une collection jamais ouverte passe inaperçu
   COLS: ['morceaux', 'taches', 'evenements', 'tournages', 'reels', 'depenses', 'abonnements',
-         'inventaires', 'exportsaudio', 'config', 'veille', 'propositions', 'renforts', 'ameliorations', 'notesmix'],
+         'inventaires', 'exportsaudio', 'config', 'veille', 'propositions', 'renforts', 'ameliorations', 'notesmix', 'activite'],
   async prevenir() {
     if (!BK.drive || !BK.drive.relie()) return;
     const racine = await BK.drive.racine();
@@ -330,7 +335,12 @@ BK.synchro = {
     BK.synchro.prevenir();
     // un seul tempo pour la présence et la synchro (deux appels au Drive, groupés, toutes les 45 s)
     const tic = () => { BK.synchro.tour(); BK.presence.maj(); };
-    BK.presence.maj(true); setInterval(tic, 45e3);                 // à l'ouverture : « je suis là »
+    BK.presence.maj(true);                                           // à l'ouverture : « je suis là »
+    // toutes les 15 s quand la fenêtre est devant toi (les changements des autres arrivent presque en direct), sinon toutes les minutes
+    let dernierTic = 0; setInterval(() => { const vite = document.hasFocus() && !BK.presence.afk(); if (Date.now() - dernierTic >= (vite ? 15e3 : 60e3)) { dernierTic = Date.now(); tic(); } }, 5e3);
+    // on bouge : « je suis là » (et si on était AFK, les autres le voient tout de suite)
+    let vuT = 0; const bouge = () => { const etaitAfk = BK.presence.afk(); BK.presence.vu = Date.now(); if (etaitAfk) BK.presence.maj(true); };
+    ['pointermove', 'keydown', 'pointerdown', 'wheel'].forEach(t => window.addEventListener(t, () => { const n = Date.now(); if (n - vuT > 2000) { vuT = n; bouge(); } }, { passive: true }));
     window.addEventListener('focus', tic);
     window.addEventListener('beforeunload', () => { BK.presence.battre(true); });   // à la fermeture : « je pars » (si Internet le permet)
     // quand une fiche change ailleurs, l'onglet concerné se relit (sauf si on est en train d'écrire dedans)
@@ -349,6 +359,7 @@ BK.synchro = {
       veille:       ['agendaRecharger'],
       config:       ['mediasTags', 'agendaRecharger'],
       notesmix:     ['ecouteRecharger', 'biblioRecharger'],      // étiquettes, dispos du Calendrier…
+      activite:     ['accueilDerniere', 'journalMaj'],
       renforts:     ['veilleurMaj'],
       ameliorations:['veilleurMaj'],
     };
@@ -363,3 +374,61 @@ BK.synchro = {
     });
   },
 };
+
+// =====================================================================
+// LE JOURNAL — ce que les membres ont fait (« 10h25 · Pierre a ajouté des notes dans Notes et retours »).
+// Une ligne par action (la même action dans l'heure ne fait qu'une ligne). Rangé dans le Drive (collection « activite »).
+// =====================================================================
+(() => {
+  const PHRASES = {
+    taches:     (f, n) => [n ? 'a ajouté une tâche dans la To-do list' : f.fait ? 'a coché une tâche dans la To-do list' : 'a modifié une tâche dans la To-do list', f.texte],
+    evenements: (f, n) => [n ? 'a ajouté une date dans le Calendrier' : 'a modifié une date dans le Calendrier', f.titre],
+    notesmix:   (f, n) => [n ? 'a ajouté des notes dans Notes et retours' : 'a mis à jour des notes dans Notes et retours', ((BK.db.cache.morceaux || {})[f.morceau] || {}).nom],
+    morceaux:   (f, n) => [n ? 'a créé une fiche dans la Bibliothèque' : 'a modifié une fiche dans la Bibliothèque', f.nom],
+    reels:      (f, n) => [n ? 'a créé un reel dans Reels' : 'a mis à jour un reel dans Reels', f.nom || f.titre],
+    tournages:  (f, n) => [n ? 'a ajouté un tournage dans Tournages' : 'a modifié un tournage dans Tournages', f.titre],
+    depenses:   (f, n) => [n ? 'a ajouté une dépense dans le Budget' : 'a modifié une dépense dans le Budget', f.quoi || f.titre || f.texte],
+  };
+  const norme = x => String(x || '').toLowerCase().normalize('NFD').replace(/[^a-z0-9]+/g, '').slice(0, 40);
+  BK.journal = async (quoi, onglet, sujet) => {
+    const qui = BK.reglage('nomPc', ''); if (!qui) return;
+    const h = new Date(), heure = h.toISOString().slice(0, 13);
+    const id = 'j-' + norme(qui) + '-' + norme(quoi) + '-' + norme(sujet) + '-' + heure.replace(/\D/g, '');
+    try { await BK.db.ecrire('activite', { id, qui, quoi, onglet: onglet || '', sujet: String(sujet || '').slice(0, 80), t: Date.now() }, { sansAnnuler: true }); } catch (e) {}
+    BK.accueilDerniere && BK.accueilDerniere();
+  };
+  // appelé par BK.db.ecrire : seulement ce qu'un membre fait lui-même (pas Miette, pas le logiciel tout seul)
+  BK.journalAuto = (col, f, neuf, opts) => {
+    const p = PHRASES[col]; if (!p || (opts && (opts.sansAnnuler || opts.graine)) || f.miette || f.graine) return;
+    const [quoi, sujet] = p(f, neuf); const ong = { taches: 'taches', evenements: 'agenda', notesmix: 'ecoute', morceaux: 'biblio', reels: 'suivi', tournages: 'tournage', depenses: 'budget' }[col];
+    clearTimeout(BK._jt); const k = col + quoi + sujet; if (BK._jk === k && Date.now() - (BK._jkt || 0) < 60e3) return;
+    BK._jk = k; BK._jkt = Date.now(); BK.journal(quoi, ong, sujet);
+  };
+  // les dernières lignes (les plus récentes d'abord) ; les vieilles (plus de 30 jours) partent toutes seules
+  BK.journalLire = async () => {
+    let l = []; try { l = await BK.db.liste('activite'); } catch (e) {}
+    const vieux = l.filter(x => Date.now() - (x.t || 0) > 30 * 864e5).slice(0, 15);
+    for (const x of vieux) BK.db.supprimer('activite', x.id).catch(() => {});
+    return l.filter(x => !vieux.includes(x)).sort((a, b) => (b.t || 0) - (a.t || 0));
+  };
+  const hm = d => String(d.getHours()).padStart(2, '0') + 'h' + String(d.getMinutes()).padStart(2, '0');
+  BK.journalPhrase = x => { const d = new Date(x.t), auj = new Date().toDateString() === d.toDateString();
+    return { quand: (auj ? '' : d.toLocaleDateString('fr-CA', { weekday: 'short', day: 'numeric', month: 'short' }) + ' · ') + hm(d),
+      txt: x.qui + ' ' + x.quoi + (x.sujet ? ' · ' + x.sujet : '') }; };
+  // la fenêtre « Les updates des membres »
+  BK.journalFenetre = async () => {
+    const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+    const v = document.createElement('div'); v.className = 'voile'; v.id = 'jnVoile';
+    v.innerHTML = `<div class="stopbox jn-box"><button class="btn xs rt-x" data-j="x" title="Fermer">✕</button><span class="dymo" style="align-self:center">Les updates des membres</span>
+      <div class="jn-l" id="jnL"><span class="nt"><span class="spin"></span>…</span></div><div class="stopbox-btns"><button class="btn" data-j="x">Fermer</button></div></div>`;
+    document.body.appendChild(v);
+    v.onclick = e => { if (e.target === v || e.target.closest('[data-j="x"]')) v.remove(); const o = e.target.closest('[data-va]'); if (o) { v.remove(); BK.ouvrir(o.dataset.va); } };
+    const remplir = async () => { const z = document.getElementById('jnL'); if (!z) return; const l = (await BK.journalLire()).slice(0, 120);
+      const COUL = { Yacine: '#f1c453', Pierre: '#7ee08a', Baptiste: '#c58af0' };
+      let jour = ''; z.innerHTML = l.length ? l.map(x => { const d = new Date(x.t).toLocaleDateString('fr-CA', { weekday: 'long', day: 'numeric', month: 'long' }), p = BK.journalPhrase(x);
+        const t = d !== jour ? `<span class="eng jn-jour">${esc(d)}</span>` : ''; jour = d;
+        return t + `<button class="jn-p" data-va="${esc(x.onglet || 'accueil')}" style="--pc:${COUL[x.qui] || '#d9b67a'}"><span class="mono">${hm(new Date(x.t))}</span><b>${esc(x.qui)}</b><span>${esc(x.quoi)}${x.sujet ? ' · <i>' + esc(x.sujet) + '</i>' : ''}</span></button>`; }).join('')
+        : '<span class="nt">Rien pour l\'instant. Ce que chacun fait (notes, tâches, dates, reels…) arrive ici.</span>'; };
+    BK.journalMaj = remplir; await remplir();
+  };
+})();

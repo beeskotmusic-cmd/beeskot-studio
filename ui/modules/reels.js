@@ -71,7 +71,8 @@ BK.module('reels', function (page) {
             <button class="btn ecoute bleu" id="reEcouteT" disabled>▶ Version pour le tournage</button>
             <button class="btn ecoute orange" id="rePlay" disabled>▶ Version pour le Reel</button>
           </div>
-          <span class="nt" id="reEcouteTxt">Tu entends exactement les fichiers qui seront exportés. Barre d'espace : écoute libre du morceau.</span>
+          <label class="re-vol"><span class="eng">Volume</span><input type="range" id="reVol" min="0" max="1.5" step="0.01" title="Volume de l'écoute (double-clic : normal)"><span class="mono" id="reVolV">100 %</span></label>
+          <span class="nt" id="reEcouteTxt">Tu entends exactement les fichiers qui seront exportés. La version pour le Reel tourne en boucle. Barre d'espace : écoute de la zone choisie, en boucle.</span>
         </div>
         <div class="box re-paroles"><div class="ligne-titre"><span class="lb">Paroles du passage</span><span class="re-par-outils" id="reParOutils" style="margin-left:auto"></span></div>
           <div class="re-par-l" id="reParoles"><span class="nt">Choisis un morceau de la Bibliothèque : ses paroles du passage s'affichent ici.</span></div></div>
@@ -464,13 +465,14 @@ BK.module('reels', function (page) {
     const f = await fabriquer(tournage ? 'T' : 'M'); msg('Écoute du fichier ' + (tournage ? 'tournage' : 'montage'));
     const ctx = BK.audio.contexte(); if (ctx.state === 'suspended') await ctx.resume();
     const ab = ctx.createBuffer(f.canaux.length, f.canaux[0].length, f.sr); f.canaux.forEach((c, i) => ab.copyToChannel(c, i));
-    const src = ctx.createBufferSource(); src.buffer = ab; src.connect(ctx.destination);
+    const src = ctx.createBufferSource(); src.buffer = ab; R.gain = ctx.createGain(); R.gain.gain.value = R.vol; src.connect(R.gain); R.gain.connect(ctx.destination);
+    src.loop = !tournage;                                                // la zone choisie tourne en boucle
     const v = tournage ? R.v : 1, t0 = ctx.currentTime + 0.05; src.start(t0); R.src = src; b.textContent = '■ Stop'; if (tournage) $('#reEcouteT2').textContent = '■';
     src.onended = () => { R.src = null; stop(); };
-    const tic = () => { const e = ctx.currentTime - t0 - f.decal; if (e >= 0) montrerTete(R.debut + e * v); R.lecture = requestAnimationFrame(tic); };
+    const tic = () => { let e = ctx.currentTime - t0 - f.decal; if (src.loop) e = ((ctx.currentTime - t0) % ab.duration) - f.decal; if (e >= 0) montrerTete(R.debut + e * v); R.lecture = requestAnimationFrame(tic); };
     R.lecture = requestAnimationFrame(tic);
     BK.mini.lance({ page: 'reels', titre: () => 'Reels Audio · ' + (tournage ? 'version tournage ×' + x2(R.v) : 'version montage') + ' · ' + (($('#reFich') || {}).textContent || ''),
-      temps: () => Math.max(0, ctx.currentTime - t0), duree: () => ab.duration, joue: () => R.src === src,
+      temps: () => Math.max(0, src.loop ? (ctx.currentTime - t0) % ab.duration : ctx.currentTime - t0), duree: () => ab.duration, joue: () => R.src === src,
       jouer: () => ecouter(tournage), pause: () => { if (R.src === src) stop(); } });
   }
   $('#rePlay').onclick = () => ecouter(false);
@@ -478,12 +480,23 @@ BK.module('reels', function (page) {
   $('#reEcouteT2').onclick = () => ecouter(true);
   document.addEventListener('keydown', e => {
     if (page.classList.contains('hidden') || !R.buffer || /INPUT|SELECT|TEXTAREA/.test(document.activeElement.tagName)) return;
-    if (e.code === 'Space') { e.preventDefault(); if (R.src) stop(); if (audio.paused) { audio.play(); const tic = () => { montrerTete(); if (!audio.paused) R.lecture = requestAnimationFrame(tic); }; R.lecture = requestAnimationFrame(tic); } else stop(); }
+    if (e.code === 'Space') { e.preventDefault(); if (R.src) stop();
+      if (audio.paused) { const fin = () => R.debut + R.duree;                       // écoute de la zone choisie, en boucle
+        if (audio.currentTime < R.debut || audio.currentTime >= fin()) audio.currentTime = R.debut;
+        audio.volume = Math.min(1, R.vol); audio.play();
+        const tic = () => { if (audio.currentTime >= fin()) audio.currentTime = R.debut; montrerTete(); if (!audio.paused) R.lecture = requestAnimationFrame(tic); }; R.lecture = requestAnimationFrame(tic); } else stop(); }
     if (e.key === 'i' || e.key === 'I') $('#reI').click();
     if (e.key === 'o' || e.key === 'O') $('#reO').click();
   });
   $('#reI').onclick = () => { if (!R.buffer) return; const fin = R.debut + R.duree; R.debut = audio.currentTime; if (fin - R.debut >= 3) { R.duree = fin - R.debut; suivreDuree(); } maj(); };
   $('#reO').onclick = () => { if (!R.buffer) return; const t = audio.currentTime; if (t - R.debut >= 3) { R.duree = t - R.debut; suivreDuree(); maj(); } };
+
+  // ---------- le volume de l'écoute (gardé sur ce PC) ----------
+  R.vol = BK.reglage('reels.vol', 1);
+  const majVol = () => { $('#reVol').value = R.vol; $('#reVolV').textContent = Math.round(R.vol * 100) + ' %'; audio.volume = Math.min(1, R.vol); if (R.gain) R.gain.gain.value = R.vol; };
+  $('#reVol').oninput = () => { R.vol = +$('#reVol').value; BK.regler('reels.vol', R.vol); majVol(); };
+  $('#reVol').ondblclick = () => { R.vol = 1; BK.regler('reels.vol', 1); majVol(); };
+  $('#reVol').addEventListener('keydown', e => e.stopPropagation()); majVol();
 
   // ---------- réglages ----------
   $('#reDuree').onchange = e => { R.duree = Math.max(3, +e.target.value); maj(); };
@@ -507,7 +520,7 @@ BK.module('reels', function (page) {
     const { m } = await morceauActuel().catch(() => ({}));
     const e = { id: Date.now().toString(36) + (tournage ? 't' : ''), nom, chemin, morceau: m ? m.nom : R.nom, debut: R.debut, duree: R.duree, t: new Date().toISOString(), pour: tournage ? 'tournage' : 'montage' };
     BK.reelsExports[e.id] = URL.createObjectURL(new Blob([octets], { type: 'audio/wav' }));
-    await BK.exportsAudio.ajouter(e);
+    await BK.exportsAudio.ajouter(e); if (!tournage) R.dernierExport = e;
     if (BK.suiviEnCours && !tournage) { try { const l = await BK.db.liste('reels'), r = l.find(x => x.id === BK.suiviEnCours);     // relié à la page Reels
       if (r) { r.audio = e.id; r.passage = { debut: R.debut, fin: R.debut + R.duree }; if (r.statut === 'idee') r.statut = 'audio';
         await BK.db.ecrire('reels', r); BK.suiviRecharger && BK.suiviRecharger(); } } catch (er) {} }
@@ -537,9 +550,28 @@ BK.module('reels', function (page) {
       }
       msg(faits.filter(f => f.p).length + ' fichier(s) prêt(s)');
       BK.montrerExports($('#reFaits'), faits, { drive: { role: 'photovideo', sous: ['Reels', R.nom], titre: 'Photos/Vidéos › Reels › ' + R.nom }, msg });
+      proposerReel();
     } catch (e) { msg('Erreur à l\'export'); console.error(e); }
     b.disabled = false; majBouton();
   };
+  // un passage exporté qui n'est encore dans aucun reel : on propose de créer sa carte dans Reels
+  async function proposerReel() {
+    const e = R.dernierExport; if (!e || BK.suiviEnCours) return;
+    const { m } = await morceauActuel().catch(() => ({})); if (!m) return;
+    const reels = await BK.db.liste('reels'), pr = r => r.passage || null;
+    const deja = reels.some(r => r.morceau === m.id && pr(r) && Math.abs(pr(r).debut - e.debut) < 1 && Math.abs(pr(r).fin - (e.debut + e.duree)) < 1);
+    if (deja) return;
+    const z = document.createElement('div'); z.className = 're-nvreel';
+    z.innerHTML = `<span class="nt">Nouveau passage (${BK.audio.temps(e.debut)} → ${BK.audio.temps(e.debut + e.duree)}) :</span><button class="btn sm pri">→ Créer ce reel dans Reels</button>`;
+    $('#reFaits').appendChild(z);
+    z.querySelector('button').onclick = async () => {
+      const n = reels.filter(r => r.morceau === m.id).length + 1;
+      await BK.db.ecrire('reels', { titre: 'Reel ' + n + ' · ' + m.nom, morceau: m.id, statut: 'audio', audio: e.id, passage: { debut: e.debut, fin: e.debut + e.duree }, notes: '' });
+      const tout = await BK.partage.lire('passages.reels', {}), l = tout[m.id] = tout[m.id] || [];
+      if (!l.some(x => Math.abs(x.debut - e.debut) < .05)) { l.push({ debut: Math.round(e.debut * 10) / 10, fin: Math.round((e.debut + e.duree) * 10) / 10 }); await BK.partage.ecrire('passages.reels', tout); }
+      BK.suiviRecharger && BK.suiviRecharger();
+      z.innerHTML = '<span class="nt">✓ Reel créé dans Reels</span>'; msg('Reel créé dans Reels'); };
+  }
   function majBouton() {
     const deux = deuxFichiers();
     $('#reExport').textContent = deux ? 'Exporter les 2 fichiers ▶' : 'Exporter le fichier ▶';

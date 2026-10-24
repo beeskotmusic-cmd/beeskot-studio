@@ -36,7 +36,7 @@ BK.bienvenue = {
         fait: () => false,
         action: async () => { BK.bienvenue.fermer(); BK.ouvrir('reglages'); BK.reglagesOnglet && BK.reglagesOnglet('miette'); return null; } }]),
       { id: 'fin', titre: 'C\'est prêt !', ic: '✓',
-        txt: 'Quelques repères :<br><br>• Le <b>bouton jaune</b> (la biscotte) en haut : Miette relit Discord et le Drive, et remplit tous les onglets.<br>• Le <b>menu de gauche</b> : chaque titre (Audio, Organisation…) se replie d\'un clic.<br>• Tout ce que tu fais arrive sur les autres PC tout seul.<br>• <b>Ctrl + Z</b> annule la dernière action.<br><br>Ce guide ne reviendra plus. Pour le revoir : <b>Réglages › Revoir le guide</b>.',
+        txt: 'Quelques repères :<br><br>• Le <b>patch de Miette</b> en haut : Tout relire (Discord, Drive), Actualiser, les <b>updates des membres</b> (qui a fait quoi) et qui est en ligne.<br>• Le <b>menu de gauche</b> : chaque titre (Audio, Organisation…) se replie d\'un clic.<br>• Chaque <b>cadre</b> se replie d\'un clic sur son titre, et s\'agrandit en tirant son bord du bas.<br>• <b>Clic droit</b> sur un fichier dans Médias : l\'ouvrir dans le Drive, ou l\'envoyer vers un autre onglet.<br>• Tout ce que tu fais arrive sur les autres PC en quelques secondes.<br>• <b>Ctrl + Z</b> annule la dernière action.<br><br>Ce guide ne reviendra plus. Pour le revoir : <b>Réglages › Revoir le guide</b>.',
         fait: () => true, action: null },
     ];
   },

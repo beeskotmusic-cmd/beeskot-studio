@@ -341,6 +341,18 @@ BK.module('medias', function (page) {
   }
 
   // la première page du cloud : les grands dossiers du Drive, comme des dossiers
+  // le dossier du groupe = le parent des grands dossiers (Recording, Organisation, Photos / Vidéos…) ; gardé 12 h
+  async function dossiersDuGroupe() {
+    const g = BK.reglage('medias.groupe', null);
+    let id = g && Date.now() - g.t < 12 * 3600e3 ? g.id : null;
+    if (!id) { const cpt = {};
+      for (const k of ['recording', 'organisation', 'photovideo', 'scenographie', 'lightshow', 'setlist']) { const d = await BK.dossiers.get(k).catch(() => null); if (!d) continue;
+        try { const r = await (await BK.drive.api(`/files/${d.id}?fields=parents&supportsAllDrives=true`)).json(); for (const p of r.parents || []) cpt[p] = (cpt[p] || 0) + 1; } catch (e) {} }
+      id = Object.entries(cpt).sort((a, b) => b[1] - a[1]).map(x => x[0])[0]; if (!id) return [];
+      BK.regler('medias.groupe', { id, t: Date.now() }); }
+    const r = await (await BK.drive.api('/files?' + new URLSearchParams({ q: `'${id}' in parents and mimeType='${DOSSIER}' and trashed=false`, fields: 'files(id,name)', pageSize: '200', orderBy: 'name', supportsAllDrives: 'true', includeItemsFromAllDrives: 'true' }))).json();
+    return (r.files || []).filter(f => !/^BEESKOT Studio$/i.test(f.name));
+  }
   async function racineCloud() {
     $('#mdFil').innerHTML = '<span class="ex-miette">⌂ Tous les dossiers</span>';
     $('#mdChemin').textContent = 'Drive BEESKOT';
@@ -348,7 +360,10 @@ BK.module('medias', function (page) {
     $('#mdMajDc').classList.add('hidden');
     $('#mdGrille').innerHTML = '<span class="nt md-vide"><span class="spin"></span>Lecture du Drive…</span>';
     const l = [];
-    for (const [k, n] of DOSSIERS_CLOUD) { try { const d = await BK.dossiers.get(k); if (d) l.push({ id: d.id, name: n, mimeType: DOSSIER }); } catch (e) {} }
+    // TOUS les dossiers du Drive du groupe (Recording, Organisation, Photos / Vidéos…), pas seulement ceux des photos
+    let tous = []; try { tous = await dossiersDuGroupe(); } catch (e) {}
+    if (tous.length) tous.forEach(d => l.push({ id: d.id, name: BK.dossiers.joli(d.name) || d.name, mimeType: DOSSIER }));
+    else for (const [k, n] of DOSSIERS_CLOUD) { try { const d = await BK.dossiers.get(k); if (d) l.push({ id: d.id, name: n, mimeType: DOSSIER }); } catch (e) {} }
     l.push({ id: 'discord', name: '🍞 Discord', mimeType: DOSSIER, badge: 'pas sur le Drive' });      // Discord est un dossier comme les autres, juste pas dans le Drive
     const lies = await BK.partage.lire('medias.dossiersLies', []).catch(() => []);                  // les dossiers du Drive ajoutés par le groupe (Musiques, Exports…)
     for (const d of (Array.isArray(lies) ? lies : [])) l.push({ id: d.id, name: d.name, mimeType: DOSSIER, lie: true });
@@ -462,7 +477,10 @@ BK.module('medias', function (page) {
     const tous = M.sel.size > 1 && M.sel.has(id) ? [...M.sel] : [id];
     const x0 = pos ? pos.x : r.left, y0 = pos ? pos.y : r.bottom + 4;
     menu.style.left = Math.min(x0, innerWidth - 230) + 'px'; menu.style.top = Math.min(y0, innerHeight - 200) + 'px';
-    const rubs = cases();
+    const rubs = cases(), f0 = M.fichiers.find(x => x.id === id) || (M.vus || {})[id];
+    const son = f => /^audio\//.test(f.mimeType || '') || /\.(wav|mp3|aiff?|flac|m4a|ogg)$/i.test(f.name || ''), img = f => /^image\//.test(f.mimeType || ''), vid = f => /^video\//.test(f.mimeType || '');
+    const ENVOIS = [['ecoute', '🎧 Notes et retours', son], ['reels', '🎵 Reels Audio', son], ['postvis', '📸 Social Photo', img], ['reelvis', '🎞 Reels Vidéo', f => img(f) || vid(f)],
+      ['suivi', '🎬 Reels (affiche du reel ouvert)', img], ['tournage', '🎥 Tournages', f => img(f) || vid(f)], ['biblio', '🎵 Bibliothèque (fiche ouverte)', f => img(f) || son(f)]];
     // un menu en cascade, comme Windows : les rubriques, et chacune s'ouvre à droite au survol (ou au clic)
     let ouverte = null;
     const GROUPES = [['morceaux', '♪ Morceaux'], ['tournage', '🎬 Tournage'], ['lumiere', '💡 Lumière / scène'], ['reseaux', '📣 Réseaux'], ['membres', '◉ Membres']];
@@ -471,7 +489,10 @@ BK.module('medias', function (page) {
         + GROUPES.map(([r, t]) => { const n = rubs[r].filter(c => l.includes(c.k)).length;
           return `<div class="md-grp${ouverte === r ? ' ouvert' : ''}" data-grp="${r}"><button class="md-grp-b">${t}${n ? ` <em>${n}</em>` : ''}<span class="md-fl">▸</span></button>
             <div class="md-sub">${rubs[r].length ? rubs[r].map(c => `<button data-m="${esc(c.k)}"${l.includes(c.k) ? ' class="on"' : ''}><i style="background:${BK.couleurTag(c.k)}"></i>${l.includes(c.k) ? '☑' : '☐'} ${esc(c.nom)}</button>`).join('') : '<span class="nt" style="padding:6px 10px">Rien ici</span>'}</div></div>`; }).join('')
-        + `<span class="md-menu-sep"></span><button data-m="-"${l.includes('-') ? ' class="on"' : ''}>— Aucun morceau</button>${l.length ? '<button data-m="">↺ Tout enlever</button>' : ''}`;
+        + `<span class="md-menu-sep"></span><button data-m="-"${l.includes('-') ? ' class="on"' : ''}>— Aucun morceau</button>${l.length ? '<button data-m="">↺ Tout enlever</button>' : ''}`
+        + `<span class="md-menu-sep"></span>${(f0 && f0.webViewLink) || !dc ? '<button data-ouvdrive="1">☁ Ouvrir dans le Drive</button>' : ''}`
+        + `<div class="md-grp${ouverte === 'envoi' ? ' ouvert' : ''}" data-grp="envoi"><button class="md-grp-b">↗ Envoyer vers<span class="md-fl">▸</span></button>
+            <div class="md-sub">${ENVOIS.filter(([, , t]) => t(f0 || {})).map(([o, n]) => `<button data-env="${o}">${n}</button>`).join('') || '<span class="nt">Rien pour ce type de fichier</span>'}</div></div>`;
       // le sous-menu s'ouvre à droite (ou à gauche s'il n'y a pas la place)
       menu.querySelectorAll('.md-grp').forEach(g => {
         const ouvrir = () => { ouverte = g.dataset.grp; menu.querySelectorAll('.md-grp').forEach(x => x.classList.toggle('ouvert', x === g));
@@ -485,7 +506,13 @@ BK.module('medias', function (page) {
     document.body.appendChild(menu);
     const fermer = e => { if (!menu.contains(e.target)) { menu.remove(); document.removeEventListener('pointerdown', fermer, true); } };
     setTimeout(() => document.addEventListener('pointerdown', fermer, true));
-    menu.onclick = async e => { const x = e.target.closest('[data-m]'); if (!x) return; const k = x.dataset.m;
+    menu.onclick = async e => {
+      const od = e.target.closest('[data-ouvdrive]'); if (od) { menu.remove(); const f = f0 || {}; return BK.ouvrirLien(f.webViewLink || 'https://drive.google.com/file/d/' + id + '/view'); }
+      const en = e.target.closest('[data-env]'); if (en) { menu.remove();
+        const items = tous.map(i => { const f = M.fichiers.find(x => x.id === i) || (M.vus || {})[i] || {}; return { id: i, nom: f.name, mime: f.mimeType, dc: f.dc || null }; });
+        const ok = await BK.glisse.envoyer(en.dataset.env, items);
+        if (!ok) BK.toast ? BK.toast('Ouvre d\'abord la fiche ou le reel où ça va') : null; return; }
+      const x = e.target.closest('[data-m]'); if (!x) return; const k = x.dataset.m;
       if (k === '' || k === '-') { const d = await BK.etiquettes.charger(); for (const i of tous) { const ii = (String(i).startsWith('dc:') && BK.etiquettes.copieDe(i)) || i; if (k) d.map[ii] = ['-']; else delete d.map[ii]; } await BK.db.ecrire('config', d); menu.remove(); }
       else { const l = lireTags(id), mettre = !l.includes(k);
         for (const i of tous) { if (String(i).startsWith('dc:')) await etiqueter(i, k, mettre); else await BK.etiquettes.basculer(i, k, mettre); } }
