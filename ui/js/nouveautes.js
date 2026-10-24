@@ -3,6 +3,11 @@
 // Pour une nouvelle version : ajouter un bloc EN HAUT de la liste. Une ligne courte par point : « Onglet : ce qui change. »
 // =====================================================================
 BK.NOUVEAUTES = [
+  { v: '0.9.65', titre: '', l: [
+    ['✓', 'Notes et retours, Notes vidéos : une note « réglée » ne s\'écrase plus sur les autres.'],
+    ['▶', 'Historique des notes : « Ouvrir » est juste sous le nom du morceau.'],
+    ['🎵', 'Reels Audio : un clic sur la forme du son (même dans le passage) place la lecture là, et si ça joue, ça repart de là.'],
+    ['🔁', 'Reels Audio : la boucle seulement quand on écoute DANS le passage choisi ; ailleurs, la lecture continue.'] ] },
   { v: '0.9.64', titre: '', l: [
     ['🎬', 'Notes vidéos : la vidéo prend toute la place, à sa forme (plus de grandes bandes noires), et les boutons sont plus petits.'],
     ['🎨', 'Notes vidéos : 6 couleurs pour dessiner, et ↶ (Ctrl + Z) pour enlever le dernier trait.'],
@@ -350,7 +355,7 @@ BK.TUTO = [
       ['Laisser une note', 'Clique sur la ligne sous la vidéo pour aller à un moment (ou cliquer-glisser, ou les touches I et O, pour un passage qui tourne en boucle) → écris ta note → Entrée. « Toute la vidéo » : une note générale.'],
       ['Dessiner sur l\'image', '✏ Dessiner : la vidéo se met en pause, choisis une couleur (6 pastilles), dessine sur l\'image, puis écris ta note : le dessin part avec elle. ↶ (ou Ctrl + Z) enlève le dernier trait, ⌫ efface tout. Un clic sur une note avec ✏ : la vidéo s\'arrête sur cette image, avec le dessin.'],
       ['Répondre, régler, modifier', '💬 répondre, ○ / ✓ réglé, ✎ modifier ta note, ✕ la retirer. 📋 Copier : toutes les notes avec leurs timecodes.'],
-      ['Retrouver toutes les notes', 'Sous-onglet « Historique de notes » : à gauche les morceaux et tournages, à droite leurs notes, triées par vidéo (menu en haut). « ▶ Ouvrir la vidéo » pour la revoir.'] ],
+      ['Retrouver toutes les notes', 'Sous-onglet « Historique de notes » : à gauche les morceaux et tournages, à droite leurs notes, triées par vidéo (menu en haut). « ▶ Ouvrir la vidéo » (sous le nom du morceau) pour la revoir.'] ],
     astuces: [ 'Espace = lecture / pause. La vidéo tourne en boucle.', 'Miette annonce les nouveaux retours vidéo dans #annonce-miette sur Discord.', 'Une vidéo de ce PC : les autres voient les notes, mais pour la regarder il faut qu\'ils aient le fichier (mieux : passer par Médias / Drive).' ] },
   { o: 'Tournages', ic: '🎥', quoi: 'Une fiche par tournage ou shooting : l\'idée, le moodboard, des références, le découpage plan par plan, les tenues, le matériel. On l\'imprime en PDF pour l\'équipe.',
     comment: [
@@ -380,7 +385,7 @@ BK.TUTO = [
       ['Tourner au ralenti', 'Règle la vitesse de tournage (ex. 50 %) : l\'export donne 2 fichiers, MONTAGE (vitesse normale) et TOURNAGE (à jouer pendant le tournage).'],
       ['Voir les paroles du passage', 'Sous « Écouter » : les paroles exactes chantées pendant le passage, avec leur minutage. La 1re fois, cale les paroles du morceau : ⏺ Caler (Espace au début de chaque phrase) ou le bouton biscotte « Caler » (Miette écoute le morceau). Clic sur une ligne = l\'écouter pour vérifier. 📋 Copier.'],
       ['Faire un reel avec ce passage', 'Après l\'export, si le passage est nouveau : « → Créer ce reel dans Reels ». La carte arrive dans Reels avec l\'extrait.'],
-      ['Régler le volume, écouter en boucle', 'Le petit triangle à côté du bouton d\'écoute (molette dessus, double-clic = normal). La version pour le Reel tourne en boucle ; Espace = la zone choisie, en boucle.'],
+      ['Régler le volume, écouter en boucle', 'Le petit triangle à côté du bouton d\'écoute (molette dessus, double-clic = normal). La version pour le Reel tourne en boucle. Espace = écouter à partir de là où tu as cliqué ; si c\'est dans le passage choisi, il tourne en boucle.'],
       ['Reprendre un passage dit sur Discord', 'Bouton biscotte « Trouver les passages » : les timings donnés sur Discord pour ce morceau arrivent dans la liste des passages.'] ],
     astuces: [ 'Après l\'export : 📂 Ouvrir le dossier, ⇪ Upload Drive → ☁ Ouvrir le dossier du Drive.' ] },
   { o: 'Social Photo', ic: '📸', quoi: 'Prépare des photos ou un carrousel Instagram : format, cadrage, couleur, effet vintage, légende.',

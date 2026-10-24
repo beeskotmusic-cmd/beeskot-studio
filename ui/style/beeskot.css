@@ -1902,3 +1902,10 @@ body.glisse-media #nav .tab.depot-ok{box-shadow:0 0 0 2px #ffb23e,0 0 10px rgba(
 .nv-transport .ec-astuce{cursor:help;width:18px;height:18px;border-radius:50%;display:inline-grid;place-items:center;border:1px solid rgba(239,230,210,.25);margin-left:auto}
 .nv-barre .btn.xs{min-height:24px}
 .nv-transport #nvPlay{min-height:24px!important;min-width:34px!important;padding:0 8px!important;font-size:11px!important}
+/* les notes ne s'écrasent plus les unes sur les autres */
+.ec-liste>*,.ec-dos-l>*,.ec-dos{flex-shrink:0!important}
+.ec-hm-l{cursor:pointer}.ec-hm-l .nv-hopen{align-self:flex-start;margin:3px 0 2px}
+/* « .regle » est aussi la règle du temps de Reels Audio : une note réglée ne doit pas en prendre la forme */
+.ec-n.regle,.ret-n.regle{height:auto!important;margin-top:0!important;font:inherit!important;color:inherit!important}
+.ec-mq.regle{height:10px!important;margin-top:0!important}
+.ec-mq.passage.regle{height:10px!important}

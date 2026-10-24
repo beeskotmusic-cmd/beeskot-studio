@@ -408,14 +408,16 @@ BK.module('reels', function (page) {
   const tempsA = clientX => { const r = onde.getBoundingClientRect(), v = vue(); return v.a + Math.max(0, Math.min(1, (clientX - r.left) / r.width)) * (v.b - v.a); };
   const tempsBrut = clientX => { const r = onde.getBoundingClientRect(), v = vue(); return v.a + (clientX - r.left) / r.width * (v.b - v.a); };   // pour glisser au-delà du bord
   bloc.addEventListener('pointerdown', e => { if (!R.buffer || e.button !== 0) return; e.stopPropagation(); bloc.setPointerCapture(e.pointerId);
-    drag = { mode: e.target.classList.contains('g') ? 'g' : e.target.classList.contains('d') ? 'd' : 'm', t0: tempsA(e.clientX), deb: R.debut, dur: R.duree }; });
+    drag = { mode: e.target.classList.contains('g') ? 'g' : e.target.classList.contains('d') ? 'd' : 'm', t0: tempsA(e.clientX), deb: R.debut, dur: R.duree, x0: e.clientX }; });
   bloc.addEventListener('pointermove', e => { if (!drag) return; const dt = tempsBrut(e.clientX) - drag.t0;
     if (drag.mode === 'm') R.debut = drag.deb + dt;
     if (drag.mode === 'd') { R.duree = Math.max(3, drag.dur + dt); suivreDuree(); }
     if (drag.mode === 'g') { const fin = drag.deb + drag.dur; R.debut = Math.min(fin - 3, Math.max(0, drag.deb + dt)); R.duree = fin - R.debut; suivreDuree(); }
     maj(); });
-  bloc.addEventListener('pointerup', () => { drag = null; });
-  onde.addEventListener('pointerdown', e => { if (!R.buffer || e.button !== 0 || e.target !== cv) return; audio.currentTime = tempsA(e.clientX); montrerTete(); });
+  // un simple clic DANS le passage (sans le déplacer) = aller à cet endroit, comme ailleurs sur la forme du son
+  bloc.addEventListener('pointerup', e => { const d = drag; drag = null;
+    if (d && d.mode === 'm' && Math.abs(e.clientX - d.x0) < 4) { R.debut = d.deb; maj(); allerA(tempsA(e.clientX)); } });
+  onde.addEventListener('pointerdown', e => { if (!R.buffer || e.button !== 0 || e.target !== cv) return; allerA(tempsA(e.clientX)); });
   onde.addEventListener('wheel', e => { if (!R.buffer) return; e.preventDefault();       // molette = zoom autour de la souris ; Maj + molette = se déplacer
     if (e.shiftKey || Math.abs(e.deltaX) > Math.abs(e.deltaY)) { const v = vue(); decaler((e.deltaX || e.deltaY) / 400 * (v.b - v.a)); }
     else zoomer(e.deltaY > 0 ? 1.25 : 0.8, tempsA(e.clientX)); }, { passive: false });
@@ -480,14 +482,23 @@ BK.module('reels', function (page) {
   $('#reEcouteT2').onclick = () => ecouter(true);
   document.addEventListener('keydown', e => {
     if (page.classList.contains('hidden') || !R.buffer || /INPUT|SELECT|TEXTAREA/.test(document.activeElement.tagName)) return;
-    if (e.code === 'Space') { e.preventDefault(); if (R.src) stop();
-      if (audio.paused) { const fin = () => R.debut + R.duree;                       // écoute de la zone choisie, en boucle
-        if (audio.currentTime < R.debut || audio.currentTime >= fin()) audio.currentTime = R.debut;
-        audio.volume = Math.min(1, R.vol); audio.play();
-        const tic = () => { if (audio.currentTime >= fin()) audio.currentTime = R.debut; montrerTete(); if (!audio.paused) R.lecture = requestAnimationFrame(tic); }; R.lecture = requestAnimationFrame(tic); } else stop(); }
+    if (e.code === 'Space') { e.preventDefault(); if (R.src) stop(); if (audio.paused) libre(R.marqueur); else stop(); }   // comme Ableton : Espace repart du dernier endroit cliqué
     if (e.key === 'i' || e.key === 'I') $('#reI').click();
     if (e.key === 'o' || e.key === 'O') $('#reO').click();
   });
+  // l'écoute libre : elle part de là où on a cliqué ; si on est DANS le passage choisi, il tourne en boucle
+  function libre(t) {
+    if (!R.buffer) return; if (R.src) stop();
+    if (t != null) audio.currentTime = t;
+    const fin = () => R.debut + R.duree; R.boucle = audio.currentTime >= R.debut - 0.05 && audio.currentTime < fin();
+    audio.volume = Math.min(1, R.vol); if (audio.paused) audio.play();
+    cancelAnimationFrame(R.lecture);
+    const tic = () => { if (R.boucle && audio.currentTime >= fin()) audio.currentTime = R.debut; montrerTete(); if (!audio.paused) R.lecture = requestAnimationFrame(tic); };
+    R.lecture = requestAnimationFrame(tic);
+  }
+  // un clic sur la forme du son (ou dans le passage) : on va là ; si quelque chose joue, la lecture repart de là
+  function allerA(t) { const joue = !audio.paused || R.src; R.marqueur = t; audio.currentTime = t; montrerTete();
+    if (joue) libre(t); else R.boucle = t >= R.debut && t < R.debut + R.duree; }
   $('#reI').onclick = () => { if (!R.buffer) return; const fin = R.debut + R.duree; R.debut = audio.currentTime; if (fin - R.debut >= 3) { R.duree = fin - R.debut; suivreDuree(); } maj(); };
   $('#reO').onclick = () => { if (!R.buffer) return; const t = audio.currentTime; if (t - R.debut >= 3) { R.duree = t - R.debut; suivreDuree(); maj(); } };
 

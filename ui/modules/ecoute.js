@@ -404,7 +404,9 @@ BK.module('ecoute', function (page) {
     const ids = Object.keys(parM).sort((a, b) => nomM(a).localeCompare(nomM(b)));
     if (!E.hm || !parM[E.hm]) E.hm = (E.m && parM[E.m.id]) ? E.m.id : ids[0];
     $('#ecHM').innerHTML = ids.length ? ids.map(id => { const l = parM[id], vs = new Set(l.map(n => n.version)).size, ouv = l.filter(n => !n.regle).length;
-      return `<button class="ec-hm-l${id === E.hm ? ' on' : ''}" data-hm="${esc(id)}"><b>${esc(nomM(id))}</b><span class="nt">${l.length} note(s) · ${vs} version(s)${ouv ? ' · ' + ouv + ' à régler' : ''}</span></button>`; }).join('')
+      return `<div class="ec-hm-l${id === E.hm ? ' on' : ''}" data-hm="${esc(id)}"><b>${esc(nomM(id))}</b>
+        <span class="btn xs nv-hopen" data-hopen="${esc(id)}" title="Écouter ce morceau dans A/B (la version choisie en haut, sinon les versions par défaut)">▶ Ouvrir dans A/B</span>
+        <span class="nt">${l.length} note(s) · ${vs} version(s)${ouv ? ' · ' + ouv + ' à régler' : ''}</span></div>`; }).join('')
       : '<span class="nt">Pas encore de note. Dans « A/B », écoute un morceau et laisse des notes.</span>';
     $$('[data-hm]', $('#ecHM')).forEach(b => b.onclick = () => { E.hm = b.dataset.hm; E.hv = ''; historique(); });
     const l = parM[E.hm] || [], vs = {}; for (const n of l) { const k = n.version || ''; (vs[k] = vs[k] || { nom: n.versionNom || nomVersion(k), t: n.quand || '', n: 0 }).n++; if ((n.quand || '') > vs[k].t) vs[k].t = n.quand; }
@@ -418,6 +420,8 @@ BK.module('ecoute', function (page) {
     const l = (E.toutes || []).filter(n => n.morceau === E.hm && (!E.hv || n.version === E.hv));
     rendreListe($('#ecHL'), l, 'Aucune note pour cette version.'); brancher($('#ecHL'), E.toutes || [], historique);
   }
+  $('#ecHM').addEventListener('click', async e => { const b = e.target.closest('[data-hopen]'); if (!b) return; e.stopPropagation();
+    const id = b.dataset.hopen; vue('ab'); await BK.ecouteOuvrir(id, id === E.hm && E.hv ? E.hv : ''); }, true);
   $('#ecHV').onchange = e => { E.hv = e.target.value; e.target.blur(); dessinerHisto(); };
   $$('#ecHTri button').forEach(b => b.onclick = () => { BK.regler('ecoute.tri2', b.dataset.t); dessinerHisto(); dessinerNotes(); });
   $('#ecHCopier').onclick = async () => { const l = (E.toutes || []).filter(n => n.morceau === E.hm && (!E.hv || n.version === E.hv)); if (!l.length) return msg('Aucune note à copier');

@@ -51,7 +51,6 @@ BK.module('notesvid', function (page) {
       <section class="pane reg ec-hm-pane"><span class="ptitle">Morceaux et tournages</span><div class="box grow ec-hm" id="nvHM"></div></section>
       <section class="pane vit ec-hist"><div class="box ec-notes-box">
         <div class="ec-filtres"><span class="lb" id="nvHTitre">—</span><select class="fld" id="nvHF" style="max-width:360px"></select>
-          <button class="btn xs" id="nvHOuvrir" title="Ouvrir cette vidéo dans Notes">▶ Ouvrir la vidéo</button>
           <button class="btn xs" id="nvHCopier" style="margin-left:auto">📋 Copier</button></div>
         <div class="ec-liste" id="nvHL"></div></div></section>
     </div>
@@ -267,20 +266,24 @@ BK.module('notesvid', function (page) {
     const ks = Object.keys(parL).sort((a, b) => nomLien(a).localeCompare(nomLien(b)));
     if (!(N.hk in parL)) N.hk = ks[0] ?? '';
     $('#nvHM').innerHTML = ks.length ? ks.map(k => { const l = parL[k], fs = new Set(l.map(n => n.video)).size;
-      return `<button class="ec-hm-l${k === N.hk ? ' on' : ''}" data-hk="${esc(k)}"><b>${esc(nomLien(k))}</b><span class="nt">${l.length} note(s) · ${fs} vidéo(s)</span></button>`; }).join('')
+      return `<div class="ec-hm-l${k === N.hk ? ' on' : ''}" data-hk="${esc(k)}"><b>${esc(nomLien(k))}</b>
+        <span class="btn xs nv-hopen" data-hopen="${esc(k)}" title="Ouvrir la vidéo dans Notes (celle choisie en haut, sinon la plus récente)">▶ Ouvrir la vidéo</span>
+        <span class="nt">${l.length} note(s) · ${fs} vidéo(s)</span></div>`; }).join('')
       : '<span class="nt">Pas encore de note vidéo.</span>';
     $$('[data-hk]', $('#nvHM')).forEach(b => b.onclick = () => { N.hk = b.dataset.hk; N.hf = ''; historique(); });
     const l = parL[N.hk] || [], fs = {}; for (const n of l) (fs[n.video] = fs[n.video] || { nom: n.videoNom || 'vidéo', n: 0, t: '' }).n++, fs[n.video].t = (n.quand || '') > fs[n.video].t ? n.quand : fs[n.video].t;
     if (N.hf && !fs[N.hf]) N.hf = '';
     $('#nvHTitre').textContent = nomLien(N.hk);
     $('#nvHF').innerHTML = `<option value="">Toutes les vidéos (${l.length})</option>` + Object.entries(fs).sort((a, b) => b[1].t.localeCompare(a[1].t)).map(([k, v]) => `<option value="${esc(k)}"${k === N.hf ? ' selected' : ''}>${esc(v.nom)} (${v.n})</option>`).join('');
-    $('#nvHOuvrir').disabled = !N.hf;
     dessinerHisto();
   }
   const listeHisto = () => N.toutes.filter(n => (n.lien || '') === N.hk && (!N.hf || n.video === N.hf));
   function dessinerHisto() { rendreListe($('#nvHL'), listeHisto(), 'Aucune note.'); brancher($('#nvHL'), N.toutes, historique); }
-  $('#nvHF').onchange = e => { N.hf = e.target.value; e.target.blur(); $('#nvHOuvrir').disabled = !N.hf; dessinerHisto(); };
-  $('#nvHOuvrir').onclick = () => { const n = N.toutes.find(x => x.video === N.hf); if (n) { vue('notes'); rouvrir(n); } };
+  $('#nvHF').onchange = e => { N.hf = e.target.value; e.target.blur(); dessinerHisto(); };
+  // ▶ Ouvrir la vidéo (sous le nom du morceau) : la vidéo choisie en haut, sinon la plus récente de ce morceau / tournage
+  $('#nvHM').addEventListener('click', e => { const b = e.target.closest('[data-hopen]'); if (!b) return; e.stopPropagation();
+    const l = N.toutes.filter(n => (n.lien || '') === b.dataset.hopen).sort((a, c) => (c.quand || '').localeCompare(a.quand || ''));
+    const n = (b.dataset.hopen === N.hk && N.hf && l.find(x => x.video === N.hf)) || l[0]; if (n) { vue('notes'); rouvrir(n); } }, true);
   $('#nvHCopier').onclick = async () => { const l = listeHisto(); if (!l.length) return msg('Aucune note');
     const txt = nomLien(N.hk) + '\n' + Object.entries(l.reduce((a, n) => ((a[n.videoNom || 'vidéo'] = a[n.videoNom || 'vidéo'] || []).push(n), a), {}))
       .map(([f, ns]) => `\n${f}\n` + ns.sort((a, b) => a.t - b.t).map(n => `${n.regle ? '✓ ' : ''}${n.tout ? 'Toute la vidéo' : tps(n.t)} · ${qui(n)} : ${n.texte}`).join('\n')).join('\n');
