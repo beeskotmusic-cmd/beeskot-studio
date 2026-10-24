@@ -25,6 +25,7 @@ BK.onglets = [
   { id: 'reels',    cote: 'assist',  titre: 'Reels Audio',    sous: 'Passage, durée, vitesse',       couleur: 'var(--teal)', pret: true , defaut: true },
   { id: 'reelvis',  cote: 'assist',  titre: 'Reels Vidéo',    sous: 'Montage, sous-titres, MP4',     couleur: 'var(--teal)', pret: true , defaut: true },
 
+  { id: 'notesvid', cote: 'show',    titre: 'Notes vidéos',   sous: 'Retours minutés sur une vidéo',  couleur: 'var(--mus)',  pret: true, defaut: true },
   { id: 'lumieres', cote: 'show',    titre: 'Lumières',       sous: 'Light Show, lampes Globe',      couleur: 'var(--olv)',  pret: true, defaut: true },
   { id: 'repete',   cote: 'show',    titre: 'Répète',         sous: 'Incoming',                      couleur: 'var(--rust)', pret: false, defaut: true },
   { id: 'concert',  cote: 'show',    titre: 'Concert',        sous: 'Incoming',                      couleur: 'var(--ox)',   pret: false, defaut: true },

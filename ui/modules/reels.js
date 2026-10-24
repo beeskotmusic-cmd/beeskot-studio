@@ -70,8 +70,8 @@ BK.module('reels', function (page) {
           <div class="reel-ecoute-btns">
             <button class="btn ecoute bleu" id="reEcouteT" disabled>▶ Version pour le tournage</button>
             <button class="btn ecoute orange" id="rePlay" disabled>▶ Version pour le Reel</button>
+            <input type="range" id="reVol" min="0" max="1.5" step="0.01" title="Volume de l'écoute (double-clic : normal)">
           </div>
-          <label class="re-vol"><span class="eng">Volume</span><input type="range" id="reVol" min="0" max="1.5" step="0.01" title="Volume de l'écoute (double-clic : normal)"><span class="mono" id="reVolV">100 %</span></label>
           <span class="nt" id="reEcouteTxt">Tu entends exactement les fichiers qui seront exportés. La version pour le Reel tourne en boucle. Barre d'espace : écoute de la zone choisie, en boucle.</span>
         </div>
         <div class="box re-paroles"><div class="ligne-titre"><span class="lb">Paroles du passage</span><span class="re-par-outils" id="reParOutils" style="margin-left:auto"></span></div>
@@ -493,7 +493,8 @@ BK.module('reels', function (page) {
 
   // ---------- le volume de l'écoute (gardé sur ce PC) ----------
   R.vol = BK.reglage('reels.vol', 1);
-  const majVol = () => { $('#reVol').value = R.vol; $('#reVolV').textContent = Math.round(R.vol * 100) + ' %'; audio.volume = Math.min(1, R.vol); if (R.gain) R.gain.gain.value = R.vol; };
+  const majVol = () => { $('#reVol').value = R.vol; $('#reVol')._majTri && $('#reVol')._majTri(); audio.volume = Math.min(1, R.vol); if (R.gain) R.gain.gain.value = R.vol; };
+  BK.triangle($('#reVol'));
   $('#reVol').oninput = () => { R.vol = +$('#reVol').value; BK.regler('reels.vol', R.vol); majVol(); };
   $('#reVol').ondblclick = () => { R.vol = 1; BK.regler('reels.vol', 1); majVol(); };
   $('#reVol').addEventListener('keydown', e => e.stopPropagation()); majVol();

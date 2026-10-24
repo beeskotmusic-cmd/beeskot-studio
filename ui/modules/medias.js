@@ -479,7 +479,7 @@ BK.module('medias', function (page) {
     menu.style.left = Math.min(x0, innerWidth - 230) + 'px'; menu.style.top = Math.min(y0, innerHeight - 200) + 'px';
     const rubs = cases(), f0 = M.fichiers.find(x => x.id === id) || (M.vus || {})[id];
     const son = f => /^audio\//.test(f.mimeType || '') || /\.(wav|mp3|aiff?|flac|m4a|ogg)$/i.test(f.name || ''), img = f => /^image\//.test(f.mimeType || ''), vid = f => /^video\//.test(f.mimeType || '');
-    const ENVOIS = [['ecoute', '🎧 Notes et retours', son], ['reels', '🎵 Reels Audio', son], ['postvis', '📸 Social Photo', img], ['reelvis', '🎞 Reels Vidéo', f => img(f) || vid(f)],
+    const ENVOIS = [['ecoute', '🎧 Notes et retours', son], ['reels', '🎵 Reels Audio', son], ['postvis', '📸 Social Photo', img], ['reelvis', '🎞 Reels Vidéo', f => img(f) || vid(f)], ['notesvid', '🎬 Notes vidéos', vid],
       ['suivi', '🎬 Reels (affiche du reel ouvert)', img], ['tournage', '🎥 Tournages', f => img(f) || vid(f)], ['biblio', '🎵 Bibliothèque (fiche ouverte)', f => img(f) || son(f)]];
     // un menu en cascade, comme Windows : les rubriques, et chacune s'ouvre à droite au survol (ou au clic)
     let ouverte = null;

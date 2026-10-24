@@ -3,6 +3,15 @@
 // Pour une nouvelle version : ajouter un bloc EN HAUT de la liste. Une ligne courte par point : « Onglet : ce qui change. »
 // =====================================================================
 BK.NOUVEAUTES = [
+  { v: '0.9.63', titre: '', l: [
+    ['🎧', 'Notes et retours : le nom des versions A et B est de nouveau lisible (le volume prenait toute la place).'],
+    ['🎧', 'Notes et retours : A = le dernier export (fiche ou dossier CL du Drive), B = celui d\'avant.'],
+    ['🎵', 'Bibliothèque : boutons A / B aussi sur les exports du Drive.'],
+    ['◢', 'Notes et retours et Reels Audio : le volume est un petit triangle, comme le lecteur du bas.'],
+    ['⚖', 'Notes et retours : « Normaliser » met A et B au même volume, pour comparer le mix et pas le volume.'],
+    ['🔁', 'Reels Vidéo : la lecture tourne en boucle entre le début et la fin choisis.'],
+    ['🎧', 'Notes et retours : deux sous-onglets. « A/B » : le double lecteur, avec les notes en colonne à droite. « Notes » : toutes les notes de tous les morceaux, par version.'],
+    ['🎬', 'Nouvel onglet Notes vidéos (Show) : des notes minutées sur une vidéo, avec un dessin sur l\'image, et un historique par morceau ou tournage.'] ] },
   { v: '0.9.62', titre: '', l: [
     ['🎧', 'Notes et retours : B = l\'avant-dernier export de la fiche, et un B choisi est gardé pour tout le groupe.'],
     ['🎧', 'Notes et retours : la barre d\'espace relance bien la lecture.'],
@@ -315,8 +324,9 @@ BK.TUTO = [
   { o: 'Notes et retours', ic: '🎧', quoi: 'Comparer deux versions d\'un mix (A en bleu, B en rouge) au même endroit, et laisser des notes minutées sur A, que tout le groupe voit.',
     comment: [
       ['Écouter un seul mix', 'Choisis le morceau et la version A, et mets B sur « — Aucun ». Tu écoutes et tu laisses tes notes, sans comparaison.'],
+      ['Les deux sous-onglets', '« A/B » : choisis le morceau, écoute A et B, et écris tes notes dans la colonne de droite (tire la poignée pour l\'élargir). « Notes » : toutes les notes de tous les morceaux ; à gauche le morceau, en haut la version (ou toutes).'],
       ['Comparer deux mix', 'Choisis le morceau : A = l\'export le plus récent de la fiche, B = celui d\'avant. ▶ (ou Espace) → Tab (ou les boutons A / B) pour passer de l\'une à l\'autre au même endroit. Si tu changes B, il est gardé pour tout le groupe, jusqu\'au prochain nouvel export.'],
-      ['Régler le volume', 'Le petit curseur à côté de A et de B : chaque piste a son volume (double-clic = normal).'],
+      ['Régler le volume', 'Le petit triangle à côté de A et de B : clique ou glisse dedans, ou molette dessus (double-clic = normal). « Normaliser » (à côté de Recaler B) : le plus fort des deux est baissé au niveau de l\'autre ; re-clic = volumes normaux.'],
       ['Écouter un passage en boucle', 'Cliquer-glisser sur la forme du son : la zone choisie tourne en boucle. Un simple clic ailleurs enlève la zone.'],
       ['Choisir les versions par défaut', 'Bibliothèque › fiche du morceau › Exports : boutons A et B sur la ligne d\'un export. Re-clic = automatique.'],
       ['Les deux versions ne commencent pas pareil', '« Caler tout seul » cherche le décalage. Sinon, glisse la souris sur la case « Recaler B » (en secondes).'],
@@ -330,6 +340,14 @@ BK.TUTO = [
       ['Copier les notes', '📋 Copier : toutes les notes affichées, avec leurs timecodes, dans l\'ordre du tri choisi, vont dans le presse-papier (✓ devant celles qui sont réglées). Colle-les dans un mail, sur Discord ou sur Fiverr. Si tout est traduit, c\'est l\'anglais qui est copié.'],
       ['Garder la meilleure version', '★ à côté de A ou B : elle devient l\'export principal du morceau (Bibliothèque, Reels…).'] ],
     astuces: [ 'Espace = lecture / pause. Un clic sur le timecode d\'une note = l\'écouter à cet endroit.', 'Toutes les notes se retrouvent aussi dans la Bibliothèque : fiche du morceau › Retours › Notes du mix, rangées par version.', 'Couleurs : Yacine jaune, Pierre vert, Baptiste violet (le nom vient de la case « PC : » en haut).' ] },
+  { o: 'Notes vidéos', ic: '🎬', quoi: 'Comme Notes et retours, mais pour une vidéo (clip, reel, live) : la vidéo à gauche, les retours à droite, comme Frame.io. On peut dessiner sur l\'image pour montrer de quoi on parle.',
+    comment: [
+      ['Ouvrir une vidéo', '« 🎬 Choisir dans Médias… » (Drive, Discord) ou « 💻 Ce PC… », ou glisse-la sur la page. Dans Médias : clic droit sur une vidéo › Envoyer vers › Notes vidéos. Puis « Relié à » : le morceau ou le tournage.'],
+      ['Laisser une note', 'Clique sur la ligne sous la vidéo pour aller à un moment (ou cliquer-glisser pour un passage, qui tourne en boucle) → écris ta note → Entrée. « Toute la vidéo » : une note générale.'],
+      ['Dessiner sur l\'image', '✏ Dessiner : la vidéo se met en pause, dessine sur l\'image (à ta couleur), puis écris ta note : le dessin part avec elle. ⌫ efface. Un clic sur une note avec ✏ : la vidéo s\'arrête sur cette image, avec le dessin.'],
+      ['Répondre, régler, modifier', '💬 répondre, ○ / ✓ réglé, ✎ modifier ta note, ✕ la retirer. 📋 Copier : toutes les notes avec leurs timecodes.'],
+      ['Retrouver toutes les notes', 'Sous-onglet « Historique de notes » : à gauche les morceaux et tournages, à droite leurs notes, triées par vidéo (menu en haut). « ▶ Ouvrir la vidéo » pour la revoir.'] ],
+    astuces: [ 'Espace = lecture / pause. La vidéo tourne en boucle.', 'Miette annonce les nouveaux retours vidéo dans #annonce-miette sur Discord.', 'Une vidéo de ce PC : les autres voient les notes, mais pour la regarder il faut qu\'ils aient le fichier (mieux : passer par Médias / Drive).' ] },
   { o: 'Tournages', ic: '🎥', quoi: 'Une fiche par tournage ou shooting : l\'idée, le moodboard, des références, le découpage plan par plan, les tenues, le matériel. On l\'imprime en PDF pour l\'équipe.',
     comment: [
       ['Un tournage, ses reels', 'Un tournage = une journée (date, heure, lieu : il va dans le Calendrier). Clique son affiche : tu vois ses reels. Chaque reel se déplie (infos, moodboard, découpage, tenues, matériel). Glisse un reel sur l\'affiche d\'un tournage pour l\'y mettre.'],
@@ -358,7 +376,7 @@ BK.TUTO = [
       ['Tourner au ralenti', 'Règle la vitesse de tournage (ex. 50 %) : l\'export donne 2 fichiers, MONTAGE (vitesse normale) et TOURNAGE (à jouer pendant le tournage).'],
       ['Voir les paroles du passage', 'Sous « Écouter » : les paroles exactes chantées pendant le passage, avec leur minutage. La 1re fois, cale les paroles du morceau : ⏺ Caler (Espace au début de chaque phrase) ou le bouton biscotte « Caler » (Miette écoute le morceau). Clic sur une ligne = l\'écouter pour vérifier. 📋 Copier.'],
       ['Faire un reel avec ce passage', 'Après l\'export, si le passage est nouveau : « → Créer ce reel dans Reels ». La carte arrive dans Reels avec l\'extrait.'],
-      ['Régler le volume, écouter en boucle', 'Curseur Volume sous « Écouter » (double-clic = normal). La version pour le Reel tourne en boucle ; Espace = la zone choisie, en boucle.'],
+      ['Régler le volume, écouter en boucle', 'Le petit triangle à côté du bouton d\'écoute (molette dessus, double-clic = normal). La version pour le Reel tourne en boucle ; Espace = la zone choisie, en boucle.'],
       ['Reprendre un passage dit sur Discord', 'Bouton biscotte « Trouver les passages » : les timings donnés sur Discord pour ce morceau arrivent dans la liste des passages.'] ],
     astuces: [ 'Après l\'export : 📂 Ouvrir le dossier, ⇪ Upload Drive → ☁ Ouvrir le dossier du Drive.' ] },
   { o: 'Social Photo', ic: '📸', quoi: 'Prépare des photos ou un carrousel Instagram : format, cadrage, couleur, effet vintage, légende.',
@@ -374,7 +392,8 @@ BK.TUTO = [
       ['Faire une vidéo avec des photos et des vidéos', '＋ Importer… → choisis plusieurs fichiers → 🖼 Depuis Médias… ou 💻 Ce PC… → pour chacun : durée et animation (zoom avant, zoom arrière, glisser, fixe) → Transition et Effet → Importer ces fichiers.'],
       ['Mettre la musique', 'À droite, Musique : un export de Reels Audio, le passage ouvert dans Reels Audio, un morceau de la Bibliothèque (Morceau ▸ la version ; ★ = l\'export principal), ou une musique de ce PC.'],
       ['Ajouter des sous-titres', 'Choisis les paroles d\'un morceau → ⏺ Caler en écoutant → appuie sur Espace au début de chaque phrase.'],
-      ['Exporter', 'Exporter en MP4 → 📂 Ouvrir le dossier ou ⇪ Upload Drive.'] ],
+      ['Exporter', 'Exporter en MP4 → 📂 Ouvrir le dossier ou ⇪ Upload Drive.'],
+      ['Revoir en boucle', '▶ Lire : la vidéo tourne en boucle entre le début et la fin choisis (I / O). ■ Stop pour arrêter.'] ],
     astuces: [ 'Le son des vidéos importées n\'est pas gardé : la musique se choisit à droite.', 'Gabarit Instagram / TikTok : les zones hachurées seront cachées par l\'appli.' ] },
   { o: 'Lumières', ic: '💡', quoi: 'Le Light Show (LED de Pierre, TouchDesigner) et les lampes Globe du studio, depuis le PC.',
     comment: [

@@ -487,7 +487,12 @@ BK.module('reelvis', function (page) {
     if (a) { son.src = a.url; son.currentTime = a.debut; son.play(); }
     vid.play(); $('#rvPlay').textContent = '■ Stop';
     const fin = a ? Math.min(V.fin, V.debut + a.duree) : V.fin;
-    const tic = () => { dessiner(); montrerTete(); if (vid.currentTime >= fin || vid.paused) return stop(); V.lecture = requestAnimationFrame(tic); };
+    // arrivé à la fin de la zone choisie (I / O) : on repart du début, en boucle (sauf pendant le calage des sous-titres)
+    const tic = () => { dessiner(); montrerTete();
+      if (vid.ended || vid.currentTime >= fin - 0.02) { if (V.calage >= 0) return stop();
+        vid.currentTime = V.debut; if (vid.paused) vid.play(); if (a) { son.currentTime = a.debut; if (son.paused) son.play(); } }
+      else if (vid.paused && !vid.seeking) return stop();
+      V.lecture = requestAnimationFrame(tic); };
     V.lecture = requestAnimationFrame(tic);
   }
   $('#rvPlay').onclick = () => lire();

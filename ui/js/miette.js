@@ -325,7 +325,7 @@ BK.synchro = {
   // les collections connues : on va chercher l'identifiant de leur dossier Drive une fois,
   // sinon un changement venu d'un autre PC dans une collection jamais ouverte passe inaperçu
   COLS: ['morceaux', 'taches', 'evenements', 'tournages', 'reels', 'depenses', 'abonnements',
-         'inventaires', 'exportsaudio', 'config', 'veille', 'propositions', 'renforts', 'ameliorations', 'notesmix', 'activite'],
+         'inventaires', 'exportsaudio', 'config', 'veille', 'propositions', 'renforts', 'ameliorations', 'notesmix', 'activite', 'notesvid'],
   async prevenir() {
     if (!BK.drive || !BK.drive.relie()) return;
     const racine = await BK.drive.racine();
@@ -360,6 +360,7 @@ BK.synchro = {
       config:       ['mediasTags', 'agendaRecharger'],
       notesmix:     ['ecouteRecharger', 'biblioRecharger'],      // étiquettes, dispos du Calendrier…
       activite:     ['accueilDerniere', 'journalMaj'],
+      notesvid:     ['notesvidRecharger'],
       renforts:     ['veilleurMaj'],
       ameliorations:['veilleurMaj'],
     };
@@ -384,6 +385,7 @@ BK.synchro = {
     taches:     (f, n) => [n ? 'a ajouté une tâche dans la To-do list' : f.fait ? 'a coché une tâche dans la To-do list' : 'a modifié une tâche dans la To-do list', f.texte],
     evenements: (f, n) => [n ? 'a ajouté une date dans le Calendrier' : 'a modifié une date dans le Calendrier', f.titre],
     notesmix:   (f, n) => [n ? 'a ajouté des notes dans Notes et retours' : 'a mis à jour des notes dans Notes et retours', ((BK.db.cache.morceaux || {})[f.morceau] || {}).nom],
+    notesvid:   (f, n) => [n ? 'a ajouté des notes dans Notes vidéos' : 'a mis à jour des notes dans Notes vidéos', f.videoNom],
     morceaux:   (f, n) => [n ? 'a créé une fiche dans la Bibliothèque' : 'a modifié une fiche dans la Bibliothèque', f.nom],
     reels:      (f, n) => [n ? 'a créé un reel dans Reels' : 'a mis à jour un reel dans Reels', f.nom || f.titre],
     tournages:  (f, n) => [n ? 'a ajouté un tournage dans Tournages' : 'a modifié un tournage dans Tournages', f.titre],
@@ -400,7 +402,7 @@ BK.synchro = {
   // appelé par BK.db.ecrire : seulement ce qu'un membre fait lui-même (pas Miette, pas le logiciel tout seul)
   BK.journalAuto = (col, f, neuf, opts) => {
     const p = PHRASES[col]; if (!p || (opts && (opts.sansAnnuler || opts.graine)) || f.miette || f.graine) return;
-    const [quoi, sujet] = p(f, neuf); const ong = { taches: 'taches', evenements: 'agenda', notesmix: 'ecoute', morceaux: 'biblio', reels: 'suivi', tournages: 'tournage', depenses: 'budget' }[col];
+    const [quoi, sujet] = p(f, neuf); const ong = { notesvid: 'notesvid', taches: 'taches', evenements: 'agenda', notesmix: 'ecoute', morceaux: 'biblio', reels: 'suivi', tournages: 'tournage', depenses: 'budget' }[col];
     clearTimeout(BK._jt); const k = col + quoi + sujet; if (BK._jk === k && Date.now() - (BK._jkt || 0) < 60e3) return;
     BK._jk = k; BK._jkt = Date.now(); BK.journal(quoi, ong, sujet);
   };

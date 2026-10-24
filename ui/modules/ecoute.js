@@ -24,7 +24,8 @@ BK.module('ecoute', function (page) {
   $('.hdr .right', page).innerHTML = `<div><span class="eng" style="font-size:9px">Morceau</span><span class="vfd" id="ecNomH" style="width:200px">—</span></div>
     <div><span class="eng" style="font-size:9px">Notes</span><span class="vfd" id="ecNbH">—</span></div>`;
   $('.grid', page).innerHTML = `
-    <div class="cols">
+    <div class="seg ec-vues" id="ecVues"><button data-v="ab">A/B</button><button data-v="notes">Notes</button></div>
+    <div class="cols ec-cols" id="ecVueAB">
       <section class="pane vit ec-vit">
         <div class="ec-haut" id="ecHaut">
         <div class="box ec-choix">
@@ -40,10 +41,12 @@ BK.module('ecoute', function (page) {
             <button class="btn sm pri" id="ecPlay" disabled>▶</button><span class="vfd" id="ecTemps">0:00 / 0:00</span>
             <div class="seg ec-ab" id="ecAB"><button data-c="A" class="on">A</button><button data-c="B">B</button></div>
             <span class="nt ec-astuce">Clic = aller là · cliquer-glisser = un passage · <b>Espace</b> = lecture · <b>Tab</b> = A/B</span>
-            <span class="ec-recal"><span class="eng">Recaler B</span><input class="fld rv-glisse" id="ecDecal" title="Glisse la souris (double-clic : valeur par défaut · tape un chiffre pour l'écrire) : décale B en secondes"><button class="btn xs" id="ecAuto" title="Le logiciel cherche tout seul le décalage entre A et B">Caler tout seul</button></span>
+            <span class="ec-recal"><span class="eng">Recaler B</span><input class="fld rv-glisse" id="ecDecal" title="Glisse la souris (double-clic : valeur par défaut · tape un chiffre pour l'écrire) : décale B en secondes"><button class="btn xs" id="ecAuto" title="Le logiciel cherche tout seul le décalage entre A et B">Caler tout seul</button><button class="btn xs" id="ecNorm" title="Met A et B au même volume (le plus fort est baissé au niveau de l'autre) : on compare le mix, pas le volume. Re-clic : volumes normaux.">Normaliser</button></span>
           </div></div>
         </div>
-        <div class="ec-poignee" id="ecPoignee" title="Tire pour agrandir les notes ou le lecteur (double-clic : taille normale)"><i></i></div>
+      </section>
+      <div class="ec-poignee" id="ecPoignee" title="Tire pour élargir les notes ou le lecteur (double-clic : taille normale)"><i></i></div>
+      <section class="pane reg ec-panneau"><span class="ptitle">Notes</span>
         <div class="box ec-notes-box">
           <div class="ec-form"><span class="vfd" id="ecQuand">0:00</span><span class="ec-sur" id="ecSur">note sur A</span>
             <input class="fld" id="ecTexte" placeholder="Ta note à cet endroit… (Entrée pour ajouter)"><button class="btn sm" id="ecTout" title="La note parle de tout le morceau, pas d'un passage">Tout le morceau</button><button class="btn sm pri" id="ecAjout">＋ Note</button></div>
@@ -51,9 +54,17 @@ BK.module('ecoute', function (page) {
             <button class="chip on" data-f="tout">Toutes</button><button class="chip" data-f="ouvertes">À régler</button><button class="chip" data-f="A" title="Seulement les notes de la version A choisie">Cette version</button>
             <button class="btn xs miette-aide" id="ecTraduire" style="margin-left:auto" title="Miette traduit les notes en anglais, naturellement (pour l'ingé son). Le français reste.">Traduire en anglais</button>
             <button class="btn xs" id="ecCopier" title="Copie toutes les notes affichées, avec leurs timecodes, dans le presse-papier">📋 Copier</button>
-            <button class="btn xs" id="ecGrand" title="Les notes prennent toute la place (le lecteur reste en haut)">⤢ Agrandir</button></div>
+            </div>
           <div class="ec-liste" id="ecListe"><span class="nt">Pas encore de note.</span></div></div>
       </section>
+    </div>
+    <div class="cols ec-cols hidden" id="ecVueNotes">
+      <section class="pane reg ec-hm-pane"><span class="ptitle">Morceaux</span><div class="box grow ec-hm" id="ecHM"></div></section>
+      <section class="pane vit ec-hist"><div class="box ec-notes-box">
+        <div class="ec-filtres"><span class="lb" id="ecHTitre">—</span><select class="fld" id="ecHV" style="max-width:340px"></select>
+          <div class="seg ec-tri" id="ecHTri"><button data-t="membre">Par membre</button><button data-t="temps">Dans le morceau</button><button data-t="date">Par date</button></div>
+          <button class="btn xs" id="ecHCopier" style="margin-left:auto" title="Copie les notes affichées, avec leurs timecodes">📋 Copier</button></div>
+        <div class="ec-liste" id="ecHL"></div></div></section>
     </div>
     <div class="pane abar"><span class="vfd" id="ecMsg">PRÊT</span></div>`;
   const msg = t => $('#ecMsg').textContent = String(t).toUpperCase().slice(0, 90);
@@ -73,7 +84,8 @@ BK.module('ecoute', function (page) {
     if (BK.drive.relie()) {
       try { await BK.dossiers.assurer(); const vus = new Set(opts.map(o => o.v));
         const l = BK.trierStems(await BK.dossiers.duMorceau(m, E.morceaux)).filter(f => !f.groupe && /\.(wav|mp3|aiff?|flac|m4a)$/i.test(f.name) && !/tournage|reel/i.test(f.name));
-        l.sort((a, b) => (b.modifiedTime || '').localeCompare(a.modifiedTime || '')).forEach(f => { if (!vus.has('drive:' + f.id)) opts.push({ v: 'drive:' + f.id, nom: f.name, ou: '☁', drive: f, t: f.modifiedTime || '' }); });
+        // un export du Drive rangé dans CL ou dans le dossier du morceau (Recording) = un export de RÉFÉRENCE, comme ceux de la fiche
+        l.sort((a, b) => (b.modifiedTime || '').localeCompare(a.modifiedTime || '')).forEach(f => { if (!vus.has('drive:' + f.id)) opts.push({ v: 'drive:' + f.id, nom: f.name, ou: '☁', drive: f, t: f.modifiedTime || '', ref: f.role === 'cl' ? 1 : f.role === 'recording' ? 2 : 0 }); });
       } catch (e) {}
     }
     return opts;
@@ -91,7 +103,9 @@ BK.module('ecoute', function (page) {
     // Un nouvel export plus récent devient donc A tout seul, et l'ancien A passe en B.
     // les exports de RÉFÉRENCE (ceux de la fiche) passent avant les autres sons du Drive (stems, vieux wav…)
     const parDate = l => [...l].sort((a, b) => (b.t || '').localeCompare(a.t || ''));
-    const refs = parDate(E.opts.filter(o => o.f)), tous = [...refs, ...parDate(E.opts.filter(o => !o.f))];
+    // d'abord la fiche et le dossier CL ; s'il n'y en a pas deux, on ajoute les mix du dossier du morceau (Recording)
+    const n1 = E.opts.filter(o => o.f || o.ref === 1), n2 = E.opts.filter(o => o.ref === 2);
+    const refs = parDate(n1.length >= 2 ? n1 : [...n1, ...n2]), tous = [...refs, ...parDate(E.opts.filter(o => !refs.includes(o)))];
     const a0 = E.opts.find(o => o.v === E.m.ecouteA) || tous[0];
     // B : celui qu'un membre a choisi (gardé pour tout le monde) tant qu'aucun nouvel export n'est arrivé en A ; sinon l'avant-dernier export de référence
     const bGarde = E.m.ecouteB && (!E.m.ecouteBpour || (a0 && E.m.ecouteBpour === a0.v));
@@ -173,8 +187,22 @@ BK.module('ecoute', function (page) {
   const gainDe = c => (c === 'A' ? (E.cote === 'A' || !E.bufB) : (E.cote === 'B' || !E.bufA)) ? (VOL[c] ?? 1) : 0;
   function majGains() { if (E.gA && E.ctx) { const t = E.ctx.currentTime; E.gA.gain.setTargetAtTime(gainDe('A'), t, 0.01); E.gB.gain.setTargetAtTime(gainDe('B'), t, 0.01); } }
   for (const c of ['A', 'B']) { const r = $('#ecVol' + c); r.value = VOL[c] ?? 1;
-    r.oninput = () => { VOL[c] = +r.value; BK.regler('ecoute.vol', VOL); majGains(); msg('Volume ' + c + ' : ' + Math.round(VOL[c] * 100) + ' %'); };
-    r.ondblclick = () => { r.value = 1; r.oninput(); }; r.addEventListener('keydown', e => e.stopPropagation()); }
+    r.oninput = () => { VOL[c] = +r.value; BK.regler('ecoute.vol', VOL); majGains(); r._majTri && r._majTri(); msg('Volume ' + c + ' : ' + Math.round(VOL[c] * 100) + ' %'); };
+    r.ondblclick = () => { r.value = 1; r.oninput(); E.norm = false; $('#ecNorm').classList.remove('on'); }; r.addEventListener('keydown', e => e.stopPropagation()); BK.triangle(r); }
+  // ---------- Normaliser : A et B au même volume moyen (les silences ne comptent pas) ----------
+  const fort = buf => { const n = buf.numberOfChannels, L = buf.length, sr = buf.sampleRate, bloc = Math.round(sr * 0.4), pas = 4; let tot = 0, nb = 0;
+    for (let i = 0; i + bloc <= L; i += bloc) { let s = 0, k = 0;
+      for (let c = 0; c < n; c++) { const d = buf.getChannelData(c); for (let j = i; j < i + bloc; j += pas) { s += d[j] * d[j]; k++; } }
+      const p = s / k; if (p > 1e-5) { tot += p; nb++; } }                    // sous −50 dB : du silence, on l'ignore
+    return nb ? 10 * Math.log10(tot / nb) : -99; };
+  $('#ecNorm').onclick = () => {
+    if (!E.bufA || !E.bufB) return msg('Il faut A et B');
+    if (E.norm) { VOL.A = VOL.B = 1; E.norm = false; }
+    else { const a = fort(E.bufA), b = fort(E.bufB), cible = Math.min(a, b);
+      VOL.A = Math.round(Math.pow(10, (cible - a) / 20) * 100) / 100; VOL.B = Math.round(Math.pow(10, (cible - b) / 20) * 100) / 100; E.norm = true;
+      msg(Math.abs(a - b) < 0.3 ? 'A et B ont déjà le même volume' : (a > b ? 'A' : 'B') + ' était plus fort de ' + Math.abs(a - b).toFixed(1) + ' dB : baissé'); }
+    BK.regler('ecoute.vol', VOL); for (const c of ['A', 'B']) { const r = $('#ecVol' + c); r.value = VOL[c]; r._majTri && r._majTri(); }
+    $('#ecNorm').classList.toggle('on', !!E.norm); majGains(); if (!E.norm) msg('Volumes normaux'); };
   function boucle() {
     if (!E.joue) return;
     if (page.classList.contains('hidden')) return stop();             // on a changé d'onglet : on coupe
@@ -193,7 +221,7 @@ BK.module('ecoute', function (page) {
   $$('#ecAB button').forEach(b => b.onclick = () => basculer(b.dataset.c));
   document.addEventListener('keydown', e => {
     const ae = document.activeElement || {};
-    if (page.classList.contains('hidden') || (/INPUT|TEXTAREA/.test(ae.tagName) && ae.type !== 'range') || document.querySelector('.voile:not(.hidden)')) return;
+    if (page.classList.contains('hidden') || E.vue === 'notes' || (/INPUT|TEXTAREA/.test(ae.tagName) && ae.type !== 'range') || document.querySelector('.voile:not(.hidden)')) return;
     if (/SELECT|BUTTON/.test(ae.tagName) || ae.type === 'range') { if (e.code === 'Space' || e.key === 'Tab') ae.blur(); }
     if (e.code === 'Space') { e.preventDefault(); E.joue ? stop() : jouer(); }
     if (e.key === 'Tab') { e.preventDefault(); if (E.B) basculer(); }
@@ -250,7 +278,7 @@ BK.module('ecoute', function (page) {
     const l = E.m ? (await BK.db.liste('notesmix')).filter(n => n.morceau === E.m.id) : [];
     E.notes = l.sort((a, b) => a.t - b.t); dessinerNotes();
   }
-  BK.ecouteRecharger = () => { if (E.m) chargerNotes(); };
+  BK.ecouteRecharger = () => { if (E.m) chargerNotes(); if (E.vue === 'notes') historique(); };
   const nomVersion = v => ((E.opts.find(o => o.v === v) || {}).nom || 'autre version');
   function visibles() {
     const f = ($('.ec-filtres .chip.on') || {}).dataset ? $('.ec-filtres .chip.on').dataset.f : 'tout';
@@ -297,24 +325,35 @@ BK.module('ecoute', function (page) {
     // les marques sous la forme du son : un point (instant) ou une barre (passage), à la couleur de la personne
     $('#ecMarques').innerHTML = D ? l.filter(n => !caches.has(n.id) && !n.tout).map(n => `<span class="ec-mq${n.fin ? ' passage' : ''}${n.regle ? ' regle' : ''}${E.A && n.version !== E.A ? ' autre' : ''}" data-n="${n.id}" title="${esc(tps(n.t) + (n.fin ? ' → ' + tps(n.fin) : '') + ' · ' + qui(n) + ' : ' + n.texte)}"
       style="left:${Math.min(100, n.t / D * 100)}%;${n.fin ? `width:${Math.max(0.6, (n.fin - n.t) / D * 100)}%;` : ''}--pc:${couleur(qui(n))}"></span>`).join('') : '';
-    $('#ecListe').innerHTML = l.length ? G.map(g => !g.cle ? g.l.map(ligneNote).join('') : `
+    rendreListe($('#ecListe'), l, E.m ? 'Pas encore de note. Écoute, clique à l\'endroit voulu (ou cliquer-glisser pour un passage), puis écris ta note.' : 'Choisis un morceau.');
+    brancher($('#ecListe'), E.notes, dessinerNotes);
+    $$('.ec-mq', page).forEach(b => b.onclick = () => { const n = E.notes.find(x => x.id === b.dataset.n); if (!n) return; const el = $(`#ecListe .ec-n[data-n="${n.id}"]`); el && el.scrollIntoView({ block: 'nearest', behavior: 'smooth' }); el && el.classList.add('flash'); setTimeout(() => el && el.classList.remove('flash'), 900); });
+  }
+  // la liste (avec ses dossiers) dans une zone ; les boutons de chaque note
+  function rendreListe(z, l, vide) {
+    const P = plies(), G = groupes(l);
+    z.innerHTML = l.length ? G.map(g => !g.cle ? g.l.map(ligneNote).join('') : `
         <div class="ec-dos${P[g.cle] ? ' plie' : ''}"${g.pc ? ` style="--pc:${g.pc}"` : ''}>
           <button class="ec-dos-t" data-pli="${esc(g.cle)}"><span class="ec-dos-f">${P[g.cle] ? '▸' : '▾'}</span><b>${esc(g.titre)}</b><span class="nt">${g.l.length} note(s)${g.l.some(n => !n.regle) ? ' · ' + g.l.filter(n => !n.regle).length + ' à régler' : ''}</span></button>
           ${P[g.cle] ? '' : `<div class="ec-dos-l">${g.l.map(ligneNote).join('')}</div>`}</div>`).join('')
-      : `<span class="nt">${E.m ? 'Pas encore de note. Écoute, clique à l\'endroit voulu (ou cliquer-glisser pour un passage), puis écris ta note.' : 'Choisis un morceau.'}</span>`;
-    $$('[data-pli]', page).forEach(b => b.onclick = () => { const o = BK.reglage('ecoute.ouverts', {}); o[b.dataset.pli] = !o[b.dataset.pli]; if (!o[b.dataset.pli]) delete o[b.dataset.pli]; BK.regler('ecoute.ouverts', o); dessinerNotes(); });
-    const trouver = id => E.notes.find(n => n.id === id);
-    $$('[data-aller]', page).forEach(b => b.onclick = () => { const n = trouver(b.dataset.aller); if (n.version === E.A && E.B) basculer('A'); jouer(Math.max(0, n.t - 1)); });
-    $$('.ec-mq', page).forEach(b => b.onclick = () => { const n = trouver(b.dataset.n); const el = $(`.ec-n[data-n="${n.id}"]`); el && el.scrollIntoView({ block: 'nearest', behavior: 'smooth' }); el && el.classList.add('flash'); setTimeout(() => el && el.classList.remove('flash'), 900); });
-    $$('[data-ok]', page).forEach(b => b.onclick = async () => { const n = trouver(b.dataset.ok); n.regle = !n.regle; await BK.db.ecrire('notesmix', n); dessinerNotes(); });
-    $$('[data-x]', page).forEach(b => b.onclick = async () => { const n = trouver(b.dataset.x); if (!await BK.confirmer('Retirer ta note ?')) return; E.notes = E.notes.filter(x => x !== n); await BK.db.supprimer('notesmix', n.id); dessinerNotes(); });
-    $$('[data-ed]', page).forEach(b => b.onclick = () => { const n = trouver(b.dataset.ed), sp = $(`[data-txt="${n.id}"]`, page); if (!sp || sp.querySelector('input')) return;
+      : `<span class="nt">${vide}</span>`;
+  }
+  function brancher(z, notes, redessiner) {
+    $$('[data-pli]', z).forEach(b => b.onclick = () => { const o = BK.reglage('ecoute.ouverts', {}); o[b.dataset.pli] = !o[b.dataset.pli]; if (!o[b.dataset.pli]) delete o[b.dataset.pli]; BK.regler('ecoute.ouverts', o); redessiner(); });
+    const trouver = id => notes.find(n => n.id === id);
+    $$('[data-aller]', z).forEach(b => b.onclick = async () => { const n = trouver(b.dataset.aller); if (!n) return;
+      if (z.id !== 'ecListe') { vue('ab'); if (!E.m || E.m.id !== n.morceau || E.A !== n.version) await BK.ecouteOuvrir(n.morceau, n.version); }
+      if (n.version === E.A && E.B) basculer('A'); if (!n.tout) jouer(Math.max(0, n.t - 1)); });
+    $$('[data-ok]', z).forEach(b => b.onclick = async () => { const n = trouver(b.dataset.ok); n.regle = !n.regle; await BK.db.ecrire('notesmix', n); redessiner(); });
+    $$('[data-x]', z).forEach(b => b.onclick = async () => { const n = trouver(b.dataset.x); if (!await BK.confirmer('Retirer ta note ?')) return;
+      for (const arr of [E.notes, E.toutes || []]) { const i = arr.indexOf(n); if (i >= 0) arr.splice(i, 1); } await BK.db.supprimer('notesmix', n.id); redessiner(); });
+    $$('[data-ed]', z).forEach(b => b.onclick = () => { const n = trouver(b.dataset.ed), sp = $(`[data-txt="${n.id}"]`, z); if (!sp || sp.querySelector('input')) return;
       sp.innerHTML = `<input class="fld ec-ed" value="${esc(n.texte)}">`; const i = sp.querySelector('input'); i.focus(); i.select();
-      const fin = async garder => { const v = i.value.trim(); if (garder && v && v !== n.texte) { n.texte = v; n.modifie = new Date().toISOString(); delete n.texteEn; await BK.db.ecrire('notesmix', n); msg('Note modifiée'); } dessinerNotes(); };
+      const fin = async garder => { const v = i.value.trim(); if (garder && v && v !== n.texte) { n.texte = v; n.modifie = new Date().toISOString(); delete n.texteEn; await BK.db.ecrire('notesmix', n); msg('Note modifiée'); } redessiner(); };
       i.onkeydown = e => { e.stopPropagation(); if (e.key === 'Enter') fin(true); if (e.key === 'Escape') fin(false); }; i.onblur = () => fin(true); });
-    $$('[data-rep]', page).forEach(b => b.onclick = () => { const f = b.closest('.ec-n').querySelector('.ec-rep-f'); f.classList.toggle('hidden'); const i = f.querySelector('input'); i.focus();
+    $$('[data-rep]', z).forEach(b => b.onclick = () => { const f = b.closest('.ec-n').querySelector('.ec-rep-f'); f.classList.toggle('hidden'); const i = f.querySelector('input'); i.focus();
       i.onkeydown = async e => { e.stopPropagation(); if (e.key !== 'Enter' || !i.value.trim()) return; const n = trouver(b.dataset.rep);
-        (n.reponses = n.reponses || []).push({ par: moi(), texte: i.value.trim(), quand: new Date().toISOString() }); await BK.db.ecrire('notesmix', n); dessinerNotes(); }; });
+        (n.reponses = n.reponses || []).push({ par: moi(), texte: i.value.trim(), quand: new Date().toISOString() }); await BK.db.ecrire('notesmix', n); redessiner(); }; });
   }
   $$('.ec-filtres .chip').forEach(c => c.onclick = () => { $$('.ec-filtres .chip').forEach(x => x.classList.toggle('on', x === c)); dessinerNotes(); });
   $$('#ecTri button').forEach(b => b.onclick = () => { BK.regler('ecoute.tri2', b.dataset.t); dessinerNotes(); });
@@ -341,19 +380,52 @@ BK.module('ecoute', function (page) {
     const txt = tete + groupes(l).map(g => (g.cle ? `\n— ${g.titre} —\n` : '\n') + g.l.map(ligne).join('\n')).join('\n');
     try { await navigator.clipboard.writeText(txt); msg(l.length + ' note(s) copiée(s)' + (en ? ' en anglais' : '') + ' : colle-les où tu veux'); } catch (e) { msg('Copie impossible'); }
   };
-  // ---------- la place : poignée entre le lecteur et les notes, et ⤢ Agrandir (gardés sur ce PC) ----------
-  const vit = $('.ec-vit', page);
-  const hNotes = h => { if (h) vit.style.setProperty('--hn', h + 'px'); else vit.style.removeProperty('--hn'); vit.classList.toggle('ec-taille', !!h); };
-  hNotes(BK.reglage('ecoute.hNotes', 0));
+  // ---------- la place : la poignée entre le lecteur (à gauche) et les notes (à droite), gardée sur ce PC ----------
+  const cols = $('#ecVueAB');
+  const wNotes = w => { if (w) cols.style.setProperty('--wn', w + 'px'); else cols.style.removeProperty('--wn'); };
+  wNotes(BK.reglage('ecoute.wNotes', 0));
   $('#ecPoignee').addEventListener('pointerdown', ev => { ev.preventDefault(); const p = $('#ecPoignee'); p.setPointerCapture(ev.pointerId);
-    const bas = vit.getBoundingClientRect().bottom, max = vit.getBoundingClientRect().height - 90;
-    const bouge = e => hNotes(Math.max(150, Math.min(max, Math.round(bas - e.clientY - 6))));
-    const fin = () => { p.removeEventListener('pointermove', bouge); p.removeEventListener('pointerup', fin); const h = parseInt(vit.style.getPropertyValue('--hn')) || 0; BK.regler('ecoute.hNotes', h); dessiner(); };
+    const droite = cols.getBoundingClientRect().right;
+    const bouge = e => wNotes(Math.max(300, Math.min(cols.getBoundingClientRect().width - 420, Math.round(droite - e.clientX))));
+    const fin = () => { p.removeEventListener('pointermove', bouge); p.removeEventListener('pointerup', fin); BK.regler('ecoute.wNotes', parseInt(cols.style.getPropertyValue('--wn')) || 0); dessiner(); };
     p.addEventListener('pointermove', bouge); p.addEventListener('pointerup', fin); });
-  $('#ecPoignee').ondblclick = () => { hNotes(0); BK.regler('ecoute.hNotes', 0); dessiner(); };
-  const grand = on => { page.classList.toggle('ec-grand', on); $('#ecGrand').textContent = on ? '⤡ Réduire' : '⤢ Agrandir'; BK.regler('ecoute.grand', on); if (!on) setTimeout(dessiner, 30); };
-  grand(!!BK.reglage('ecoute.grand', false));
-  $('#ecGrand').onclick = () => grand(!page.classList.contains('ec-grand'));
+  $('#ecPoignee').ondblclick = () => { wNotes(0); BK.regler('ecoute.wNotes', 0); dessiner(); };
+
+  // ---------- les deux sous-onglets : A/B (écouter, noter) et Notes (toutes les notes de tous les morceaux) ----------
+  function vue(v) { E.vue = v; BK.regler('ecoute.vue', v); $$('#ecVues button').forEach(b => b.classList.toggle('on', b.dataset.v === v));
+    $('#ecVueAB').classList.toggle('hidden', v !== 'ab'); $('#ecVueNotes').classList.toggle('hidden', v !== 'notes');
+    if (v === 'notes') { stop(); historique(); } else setTimeout(dessiner, 30); }
+  $$('#ecVues button').forEach(b => b.onclick = () => vue(b.dataset.v));
+  async function historique() {
+    E.toutes = await BK.db.liste('notesmix').catch(() => []);
+    if (!E.morceaux.length) await remplirMorceaux();
+    const nomM = id => (E.morceaux.find(m => m.id === id) || {}).nom || 'Morceau supprimé';
+    const parM = {}; for (const n of E.toutes) (parM[n.morceau] = parM[n.morceau] || []).push(n);
+    const ids = Object.keys(parM).sort((a, b) => nomM(a).localeCompare(nomM(b)));
+    if (!E.hm || !parM[E.hm]) E.hm = (E.m && parM[E.m.id]) ? E.m.id : ids[0];
+    $('#ecHM').innerHTML = ids.length ? ids.map(id => { const l = parM[id], vs = new Set(l.map(n => n.version)).size, ouv = l.filter(n => !n.regle).length;
+      return `<button class="ec-hm-l${id === E.hm ? ' on' : ''}" data-hm="${esc(id)}"><b>${esc(nomM(id))}</b><span class="nt">${l.length} note(s) · ${vs} version(s)${ouv ? ' · ' + ouv + ' à régler' : ''}</span></button>`; }).join('')
+      : '<span class="nt">Pas encore de note. Dans « A/B », écoute un morceau et laisse des notes.</span>';
+    $$('[data-hm]', $('#ecHM')).forEach(b => b.onclick = () => { E.hm = b.dataset.hm; E.hv = ''; historique(); });
+    const l = parM[E.hm] || [], vs = {}; for (const n of l) { const k = n.version || ''; (vs[k] = vs[k] || { nom: n.versionNom || nomVersion(k), t: n.quand || '', n: 0 }).n++; if ((n.quand || '') > vs[k].t) vs[k].t = n.quand; }
+    if (E.hv && !vs[E.hv]) E.hv = '';
+    $('#ecHTitre').textContent = E.hm ? nomM(E.hm) : '—';
+    $('#ecHV').innerHTML = `<option value="">Toutes les versions (${l.length})</option>` + Object.entries(vs).sort((a, b) => b[1].t.localeCompare(a[1].t)).map(([k, v]) => `<option value="${esc(k)}"${k === E.hv ? ' selected' : ''}>${esc(v.nom)} (${v.n})</option>`).join('');
+    dessinerHisto();
+  }
+  function dessinerHisto() {
+    $$('#ecHTri button').forEach(b => b.classList.toggle('on', b.dataset.t === tri()));
+    const l = (E.toutes || []).filter(n => n.morceau === E.hm && (!E.hv || n.version === E.hv));
+    rendreListe($('#ecHL'), l, 'Aucune note pour cette version.'); brancher($('#ecHL'), E.toutes || [], historique);
+  }
+  $('#ecHV').onchange = e => { E.hv = e.target.value; e.target.blur(); dessinerHisto(); };
+  $$('#ecHTri button').forEach(b => b.onclick = () => { BK.regler('ecoute.tri2', b.dataset.t); dessinerHisto(); dessinerNotes(); });
+  $('#ecHCopier').onclick = async () => { const l = (E.toutes || []).filter(n => n.morceau === E.hm && (!E.hv || n.version === E.hv)); if (!l.length) return msg('Aucune note à copier');
+    const T = tri(), ligne = n => `${n.regle ? '✓ ' : ''}${n.tout ? 'Tout le morceau' : tps(n.t) + (n.fin ? '–' + tps(n.fin) : '')}${T === 'membre' ? '' : ' · ' + qui(n)} : ${n.texte}${E.hv ? '' : ' [' + (n.versionNom || '') + ']'}` + (n.reponses || []).map(r => `\n    ↳ ${r.par} : ${r.texte}`).join('');
+    const txt = $('#ecHTitre').textContent + (E.hv ? '\n' + $('#ecHV').selectedOptions[0].textContent : '') + '\n' + groupes(l).map(g => (g.cle ? `\n— ${g.titre} —\n` : '\n') + g.l.map(ligne).join('\n')).join('\n');
+    try { await navigator.clipboard.writeText(txt); msg(l.length + ' note(s) copiée(s)'); } catch (e) { msg('Copie impossible'); } };
+  setTimeout(() => vue(BK.reglage('ecoute.vue', 'ab')), 0);
+
   // ---------- Miette traduit les notes en anglais (naturel, vocabulaire d'ingé son). On garde les deux textes. ----------
   $('#ecTraduire').onclick = async () => {
     const l = E.notes.filter(n => !n.texteEn || (n.reponses || []).some(r => !r.texteEn)); if (!l.length) return msg('Tout est déjà traduit');
@@ -372,7 +444,7 @@ BK.module('ecoute', function (page) {
   };
 
   // depuis la Bibliothèque (Retours) : ouvrir Écoute sur ce morceau et cette version (en A)
-  BK.ecouteOuvrir = async (id, version) => { BK.ouvrir('ecoute'); await remplirMorceaux(); $('#ecMorceau').value = id; await choisirMorceau();
+  BK.ecouteOuvrir = async (id, version) => { BK.ouvrir('ecoute'); if (E.vue === 'notes') vue('ab'); await remplirMorceaux(); $('#ecMorceau').value = id; await choisirMorceau();
     if (version && [...$('#ecA').options].some(o => o.value === version)) { $('#ecA').value = version; if ($('#ecB').value === version) $('#ecB').value = ''; await Promise.all([chargerCote('A'), chargerCote('B')]); dessinerNotes(); } };
   (BK.surOuvrir = BK.surOuvrir || {}).ecoute = async () => { await remplirMorceaux(); if (!E.m && $('#ecMorceau').value) choisirMorceau(); else { dessiner(); chargerNotes(); } };
   remplirMorceaux();

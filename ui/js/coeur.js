@@ -7,7 +7,7 @@ const $ = (s, r = document) => r.querySelector(s);
 const $$ = (s, r = document) => [...r.querySelectorAll(s)];
 
 const BK = {
-  version: '0.9.62 bêta',
+  version: '0.9.63 bêta',
   modules: {},
   onglets: [],
   cotes: [],
@@ -350,6 +350,18 @@ const BK = {
         addEventListener('pointermove', bouge); addEventListener('pointerup', fin); });
       p.addEventListener('dblclick', e => { const b = bord(e); if (!b) return; const H = BK.reglage('boites.h', {}); delete H[b.dataset.bxk]; BK.regler('boites.h', H); go(); window.dispatchEvent(new Event('resize')); });
     },
+  },
+
+  // ---------- un petit triangle de volume (comme le lecteur du bas) à partir d'un <input type=range> ----------
+  // le curseur reste la vraie valeur (invisible, posé sur le triangle) ; molette = ±5 % ; double-clic = 100 %
+  triangle(inp) {
+    if (!inp || inp._tri) return; inp._tri = 1;
+    const t = document.createElement('span'); t.className = 'tri-vol'; t.title = inp.title || 'Volume';
+    inp.parentNode.insertBefore(t, inp); t.innerHTML = '<span class="tri-niv"></span>'; t.appendChild(inp);
+    const maj = () => { const max = +inp.max || 1; t.firstChild.style.width = Math.min(100, (+inp.value / max) * 100) + '%'; t.title = (inp.title || 'Volume').split(' (')[0] + ' : ' + Math.round(+inp.value * 100) + ' %'; };
+    inp.addEventListener('input', maj); inp._majTri = maj;
+    t.addEventListener('wheel', e => { e.preventDefault(); inp.value = Math.max(+inp.min || 0, Math.min(+inp.max || 1, +inp.value + (e.deltaY < 0 ? 0.05 : -0.05))); inp.dispatchEvent(new Event('input')); }, { passive: false });
+    maj();
   },
 
   // ---------- le bouton ✓ d'enregistrement (comme dans la Bibliothèque) : vert = enregistré, orange = un changement pas encore enregistré ----------

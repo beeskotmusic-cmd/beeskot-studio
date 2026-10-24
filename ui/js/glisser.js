@@ -6,7 +6,7 @@
 // =====================================================================
 BK.glisse = {
   items: [],                                       // [{ id, nom, mime, dc }] : ce qu'on tient
-  PREND: ['medias', 'postvis', 'reelvis', 'tournage', 'ecoute', 'reels', 'suivi', 'biblio'],
+  PREND: ['medias', 'postvis', 'reelvis', 'tournage', 'ecoute', 'reels', 'suivi', 'biblio', 'notesvid'],
   actif: () => BK.glisse.items.length > 0,
   debut(items) {
     BK.glisse.items = items || [];
@@ -40,7 +40,7 @@ document.addEventListener('drop', () => setTimeout(() => BK.glisse.fin(), 0));
 BK.glisse.envoyer = (onglet, items) => new Promise(ok => {
   BK.glisse.debut(items); BK.ouvrir(onglet);
   setTimeout(() => {
-    const cible = { ecoute: '#p-ecoute .grid', postvis: '#p-postvis .grid', reelvis: '#p-reelvis .grid', tournage: '#p-tournage .grid', reels: '#p-reels .grid',
+    const cible = { notesvid: '#p-notesvid .grid', ecoute: '#p-ecoute .grid', postvis: '#p-postvis .grid', reelvis: '#p-reelvis .grid', tournage: '#p-tournage .grid', reels: '#p-reels .grid',
       suivi: '#p-suivi .su-aff.on, #p-suivi .su-aff[data-id]', biblio: '#p-biblio .fiche.ouverte, #p-biblio .fiche[data-id]' }[onglet];
     const z = cible && document.querySelector(cible);
     if (z) z.dispatchEvent(new DragEvent('drop', { bubbles: true, cancelable: true, dataTransfer: new DataTransfer() }));

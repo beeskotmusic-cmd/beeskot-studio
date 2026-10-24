@@ -614,17 +614,18 @@ Morceaux : ${ms.map(m => m.nom + ((m.alias || []).length ? ' (' + m.alias.join('
   async function vider() {
     const l = BK.reglage('discord.aAnnoncer', []), reste = [];
     for (const a of l) { if (Date.now() - a.t < ATTENTE) { reste.push(a); continue; }
-      const txt = `🍞 ${a.qui} a fait des retours sur ${a.morceau}${a.version ? ' · ' + a.version.replace(/\.(wav|mp3|aiff?|flac|m4a)$/i, '') : ''}${a.n > 1 ? ' (' + a.n + ' notes)' : ''}. À lire dans Notes et retours.`;
+      const txt = a.video ? `🍞 ${a.qui} a fait des retours sur la vidéo ${a.version || ''}${a.morceau && a.morceau !== 'Sans lien' ? ' (' + a.morceau + ')' : ''}${a.n > 1 ? ' · ' + a.n + ' notes' : ''}. À lire dans Notes vidéos.`
+        : `🍞 ${a.qui} a fait des retours sur ${a.morceau}${a.version ? ' · ' + a.version.replace(/\.(wav|mp3|aiff?|flac|m4a)$/i, '') : ''}${a.n > 1 ? ' (' + a.n + ' notes)' : ''}. À lire dans Notes et retours.`;
       let ok = false; try { ok = await poster(txt); } catch (e) {}
       if (!ok && Date.now() - a.t < 3 * 864e5) reste.push(a);                  // pas pu : on réessaie plus tard (3 jours max)
     }
     BK.regler('discord.aAnnoncer', reste);
     clearTimeout(BK._annT); if (reste.length) BK._annT = setTimeout(vider, Math.max(30e3, Math.min(...reste.map(a => ATTENTE - (Date.now() - a.t))) + 2e3));
   }
-  BK.annoncerRetours = (morceau, version) => {
-    const qui = BK.reglage('nomPc', ''); if (!qui || !morceau) return;
-    const l = BK.reglage('discord.aAnnoncer', []), k = morceau + '|' + (version || '');
-    const a = l.find(x => x.k === k && x.qui === qui); if (a) { a.t = Date.now(); a.n = (a.n || 1) + 1; } else l.push({ k, qui, morceau, version: version || '', t: Date.now(), n: 1 });
+  BK.annoncerRetours = (morceau, version, genre) => {
+    const qui = BK.reglage('nomPc', ''); if (!qui || (!morceau && !version)) return;
+    const l = BK.reglage('discord.aAnnoncer', []), k = (genre || '') + morceau + '|' + (version || '');
+    const a = l.find(x => x.k === k && x.qui === qui); if (a) { a.t = Date.now(); a.n = (a.n || 1) + 1; } else l.push({ k, qui, morceau, version: version || '', video: genre === 'video', t: Date.now(), n: 1 });
     BK.regler('discord.aAnnoncer', l); clearTimeout(BK._annT); BK._annT = setTimeout(vider, ATTENTE + 2e3);
   };
   BK.annoncesVider = vider; setTimeout(vider, 60e3);                          // au démarrage : ce qui n'était pas parti

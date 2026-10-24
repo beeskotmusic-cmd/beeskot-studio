@@ -144,11 +144,15 @@ BK.module('biblio', function (page) {
             <button class="etoile etoile-b" data-dprinc="${f.id}" data-nom="${esc(f.name)}" data-t="${esc(f.modifiedTime || '')}" title="En faire la version principale">☆</button>
             <a href="#" class="mono f-nom lien" data-url="${esc(f.webViewLink)}">${esc(f.name)}</a>
             <span class="nt f-chemin">📁 ${esc((f.dossiers || []).map(BK.dossiers.joli).join(' / '))}</span><span class="nt f-meta">${date(f.modifiedTime)}</span>
-            <button class="btn xs" data-ecoute="${f.id}" data-nom="${esc(f.name)}" title="Écouter">▶</button><button class="btn xs" data-dreel="${f.id}" data-nom="${esc(f.name)}">→ Reel</button></div>`).join('')
+            <button class="btn xs" data-ecoute="${f.id}" data-nom="${esc(f.name)}" title="Écouter">▶</button><button class="btn xs" data-dreel="${f.id}" data-nom="${esc(f.name)}">→ Reel</button>
+            ${(v => `<span class="f-ab"><button class="btn xs f-a${m.ecouteA === v ? ' on' : ''}" data-dab="A|${esc(v)}" title="Version A par défaut dans Notes et retours (re-clic : automatique)">A</button><button class="btn xs f-b${m.ecouteB === v ? ' on' : ''}" data-dab="B|${esc(v)}" title="Version B par défaut dans Notes et retours (re-clic : automatique)">B</button></span>`)('drive:' + f.id)}</div>`).join('')
           : (deja.size ? '' : '<span class="nt">Aucun export de ce morceau dans le Drive (CL, mix, masters).</span>');
         $$('.lien', el).forEach(a => a.onclick = e => { e.preventDefault(); BK.ouvrirLien(a.dataset.url); });
         $$('[data-ecoute]', el).forEach(b => b.onclick = () => lecteur.jouer(m, { drive: b.dataset.ecoute, nom: b.dataset.nom }));
         $$('[data-dreel]', el).forEach(b => b.onclick = async () => { try { msg('Téléchargement depuis le Drive…'); const o = await BK.drive.telecharger(b.dataset.dreel); BK.ouvrir('reels'); await BK.reelsCharger(new File([o], b.dataset.nom)); } catch (e) { msg('Téléchargement impossible'); } });
+        $$('[data-dab]', el).forEach(b => b.onclick = async () => { const [c, v] = [b.dataset.dab.slice(0, 1), b.dataset.dab.slice(2)], k = 'ecoute' + c, o = c === 'A' ? 'ecouteB' : 'ecouteA';
+          m[k] = m[k] === v ? '' : v; if (m[k] && m[o] === v) m[o] = ''; delete m.ecouteBpour;
+          await sauver(m); msg(m[k] ? 'Version ' + c + ' par défaut dans Notes et retours' : 'Version ' + c + ' : automatique'); rendre(); });
         $$('[data-dprinc]', el).forEach(b => b.onclick = async () => {
           const x = { chemin: 'drive:' + b.dataset.dprinc, driveId: b.dataset.dprinc, drive: true, nom: b.dataset.nom, pc: 'Drive', modif: b.dataset.t || new Date().toISOString() };
           m.exportsManuels = (m.exportsManuels || []).filter(y => y.chemin !== x.chemin); m.exportsManuels.push(x); m.exportPrincipal = x.chemin;

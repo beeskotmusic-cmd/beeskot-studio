@@ -1831,3 +1831,53 @@ body.glisse-media #nav .tab.depot-ok{box-shadow:0 0 0 2px #ffb23e,0 0 10px rgba(
 .su-comms{display:flex;flex-direction:column;gap:4px;max-height:260px;overflow:auto}
 .su-comm{font:400 12.5px Jost,sans-serif;padding:4px 8px;border-radius:4px;background:rgba(0,0,0,.2);display:flex;gap:6px;align-items:baseline}.su-comm b{color:#ffb23e;flex:none}.su-comm .nt{margin:0 0 0 auto;font-size:10px;flex:none}
 .rs-box{width:min(560px,92vw);align-items:stretch!important;gap:10px}.rs-box label{display:flex;flex-direction:column;gap:4px}
+/* 0.9.63 : le curseur de volume reste petit, le nom de la version reste lisible */
+.ec-l .ec-vol{flex:0 0 64px!important;width:64px!important;min-width:0}
+.ec-l select{flex:1 1 auto!important;min-width:140px!important}
+.re-vol input[type=range]{width:auto!important;flex:1;max-width:200px}
+/* 0.9.63 : le petit triangle de volume */
+.tri-vol{position:relative;flex:0 0 56px;width:56px;height:16px;align-self:center;clip-path:polygon(0 100%,100% 0,100% 100%);background:rgba(239,230,210,.18);cursor:pointer}
+.tri-niv{position:absolute;left:0;top:0;bottom:0;background:linear-gradient(90deg,#d48a1c,#ffcf7a)}
+.tri-vol input[type=range]{position:absolute;inset:0;width:100%!important;height:100%;margin:0;opacity:0;cursor:pointer}
+.reel-ecoute-btns{align-items:center}
+#ecNorm.on{background:linear-gradient(180deg,#f0b54a,#c98a1e)!important;color:#2a1a0c!important}
+.reel-ecoute-btns{grid-template-columns:1fr 1fr auto!important}
+.reel-ecoute-btns.seul{grid-template-columns:1fr auto!important}
+/* 0.9.63 : Notes et retours en deux sous-onglets ; dans A/B, les notes en colonne à droite (comme Frame.io) */
+.ec-vues{align-self:flex-start;margin:0 0 10px;flex:none}.ec-vues button{min-width:90px}
+.ec-cols{gap:0!important}
+.ec-cols .ec-vit{flex:1 1 auto;min-width:420px}
+.ec-cols .ec-poignee{flex:0 0 12px;height:auto;cursor:col-resize;display:flex;align-items:center;justify-content:center}
+.ec-cols .ec-poignee i{width:4px;height:60px}
+.ec-panneau{flex:0 0 var(--wn,430px)!important;width:var(--wn,430px)!important;display:flex;flex-direction:column;min-height:0;gap:8px}
+.ec-panneau .ec-notes-box{flex:1 1 auto!important;min-height:0;display:flex;flex-direction:column}
+.ec-panneau .ec-form{flex-wrap:wrap}.ec-panneau .ec-form .fld{flex:1 1 100%;order:3}
+.ec-panneau .ec-filtres{gap:5px}.ec-panneau .ec-tri{margin-right:0}
+.ec-panneau .ec-liste,.ec-hist .ec-liste{flex:1;min-height:0;overflow:auto}
+.ec-panneau .ec-n{grid-template-columns:auto 1fr}.ec-panneau .ec-n-o{grid-column:1/-1;justify-content:flex-end}
+.ec-vit .ec-haut{flex:1 1 auto!important}
+.ec-hm-pane{flex:0 0 280px!important;width:280px!important}
+.ec-hm{display:flex;flex-direction:column;gap:4px;overflow:auto}
+.ec-hm-l{display:flex;flex-direction:column;align-items:flex-start;gap:2px;padding:8px 10px;border-radius:6px;border:1px solid rgba(239,230,210,.1);background:rgba(0,0,0,.25);color:var(--ink);cursor:pointer;text-align:left;font:inherit}
+.ec-hm-l b{font:600 13px Jost,sans-serif}.ec-hm-l .nt{margin:0;font-size:10.5px}
+.ec-hm-l.on{border-color:#ffb23e;background:rgba(255,178,62,.12)}
+.ec-hist{flex:1 1 auto;min-width:0}.ec-hist .ec-notes-box{flex:1;min-height:0;display:flex;flex-direction:column}
+#ecHTitre{margin:0;font-size:13px}
+.ec-panneau .ec-sur{display:none}
+.ec-panneau .ec-form #ecAjout{margin-left:auto}
+.ec-panneau .ec-tri button{white-space:nowrap;padding:0 8px;font-size:9.5px}
+.ec-panneau .ec-filtres .chip{padding-left:8px;padding-right:8px}
+/* Notes vidéos */
+.nv-vit{display:flex;flex-direction:column;gap:10px;overflow:hidden}
+.nv-choix{flex-direction:row!important;align-items:flex-end;gap:10px!important;flex-wrap:wrap}
+.nv-choix label{display:flex;flex-direction:column;gap:4px;min-width:220px}.nv-choix .eng{font-size:9px}
+.nv-fich{margin:0 0 6px auto;font-size:11px;color:#ffb23e;max-width:40%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.nv-lecteur{display:flex;flex-direction:column;gap:6px;min-height:0}
+.nv-ecran{position:relative;flex:1 1 auto;min-height:200px;border-radius:6px;background:#050302;overflow:hidden;cursor:pointer}
+.nv-ecran video{position:absolute;inset:0;width:100%;height:100%;object-fit:contain}
+.nv-dessin{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;z-index:2}
+.nv-dessin.actif{pointer-events:auto;cursor:crosshair;box-shadow:inset 0 0 0 2px #ffb23e}
+#nvCrayon.on{background:linear-gradient(180deg,#f0b54a,#c98a1e)!important;color:#2a1a0c!important}
+.nv-ligne{position:relative;height:14px;border-radius:4px;background:#0d0906;box-shadow:inset 0 0 0 1px rgba(239,230,210,.12);cursor:crosshair;flex:none}
+.nv-plein{position:absolute;left:0;top:0;bottom:0;background:rgba(255,178,62,.25);border-radius:4px;pointer-events:none}
+.nv-ligne .ec-tete{top:-3px;bottom:-3px}
