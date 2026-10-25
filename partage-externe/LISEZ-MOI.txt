@@ -121,3 +121,19 @@ Bon à savoir
   * Si beaucoup de monde lit le même gros fichier le même jour, Google peut le freiner
     quelques heures. Pour un ingé son ou un caméraman, ça n'arrive pas.
   * Limites : 600 caractères par note, 60 notes par heure et par lien.
+
+
+------------------------------------------------------------
+AJOUTS (0.9.69)
+------------------------------------------------------------
+* LIEN COURT : le lien envoyé à l'invité passe par une petite « porte d'entrée »
+  (dossier porte/, un seul fichier index.html) hébergée gratuitement chez Cloudflare
+  (Workers & Pages › Upload static files). Elle renvoie vers la page Google.
+  Si l'adresse Google change : modifier la ligne « var PAGE » dans porte/index.html,
+  re-déposer le dossier chez Cloudflare, et la ligne PORTE dans ui/js/externe.js
+  si l'adresse Cloudflare change.
+* page.html est GÉNÉRÉ : ne pas le modifier à la main. Modifier page.source.html,
+  page.script.html ou guest.css, puis lancer « python3 fabriquer.py » (il lit le CSS du
+  logiciel depuis jsDelivr, figé sur un commit déjà poussé).
+* Invité avec plusieurs comptes Google sur son téléphone : « Impossible d'ouvrir le
+  fichier ». Solution : ouvrir le lien dans un onglet privé.

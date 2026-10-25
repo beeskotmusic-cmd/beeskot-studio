@@ -21,7 +21,7 @@
 const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 const DROITS = [['voir-ecrire', 'Voir + écrire', 'Voit les notes laissées via ce lien (et vos réponses), et peut écrire'], ['ecrire', 'Écrire seulement', 'Écrit ses notes, sans voir celles des autres'], ['lire', 'Lire seulement', 'Écoute / regarde et lit, sans écrire']];
 const nomDroit = d => (DROITS.find(x => x[0] === d) || DROITS[2])[1];
-const cle = () => { const a = 'abcdefghijkmnpqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ23456789', u = crypto.getRandomValues(new Uint8Array(24)); return [...u].map(x => a[x % a.length]).join(''); };
+const cle = () => { const a = 'abcdefghijkmnpqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ23456789', u = crypto.getRandomValues(new Uint8Array(8)); return [...u].map(x => a[x % a.length]).join(''); };
 const moi = () => BK.reglage('nomPc', '') || 'Quelqu\'un';
 const COULEURS = { Yacine: '#f1c453', Pierre: '#7ee08a', Baptiste: '#c58af0' };
 const ICONE = { audio: '♪', video: '🎥' };
@@ -32,7 +32,9 @@ BK.externe = {
   couleurDe: q => COULEURS[q] || (/^Externe · /.test(q || '') ? BK.externe.COULEUR : '#d9b67a'),
   async url() { return String(await BK.partage.lire('externe.url', '') || '').trim(); },
   async cleApi() { return String(await BK.partage.lire('externe.cleApi', '') || '').trim(); },
-  lien: (l, url) => url ? url.replace(/\/+$/, '') + '?k=' + encodeURIComponent(l.cle) : '',
+  // le lien court : une « porte d'entrée » (dossier porte/) qui renvoie vers la vraie page Google. Si elle change de nom : cette ligne seulement.
+  PORTE: 'https://beeskot.beeskot-music.workers.dev/',
+  lien: (l, url) => url ? BK.externe.PORTE + '?k=' + encodeURIComponent(l.cle) : '',
   zones: [],
 
   // ---------- l'accès au fichier du Drive : ouvert tant qu'un lien actif s'en sert ----------

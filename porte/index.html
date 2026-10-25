@@ -1,0 +1,12 @@
+<!doctype html>
+<html lang="fr"><head><meta charset="utf-8"><title>BEESKOT · Espace de partage</title>
+<meta name="viewport" content="width=device-width, initial-scale=1"><meta name="robots" content="noindex"><meta name="referrer" content="no-referrer">
+<style>body{margin:0;background:#2a1d14;color:#efe4cc;font:16px system-ui,sans-serif;display:grid;place-items:center;min-height:100vh;text-align:center}</style></head>
+<body><p id="m">Ouverture de l'espace de partage…</p>
+<script>
+// La « porte d'entrée » : le lien court envoie vers la vraie page chez Google (Apps Script).
+// Si un jour l'adresse Google change, il n'y a QUE cette ligne à modifier.
+var PAGE = 'https://script.google.com/macros/s/AKfycbzNugeIABy4DNm26SGYB_LtXd49J4nGccpO9D9OWhgr2xqUDpnyTnYKRBleyjAWr9KcQw/exec';
+var k = (new URLSearchParams(location.search).get('k') || '').replace(/[^a-zA-Z0-9_-]/g, '');
+if (k) location.replace(PAGE + '?k=' + k); else document.getElementById('m').textContent = 'Ce lien n\'est pas valide.';
+</script></body></html>

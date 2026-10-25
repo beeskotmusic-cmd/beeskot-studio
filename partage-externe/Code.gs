@@ -56,7 +56,7 @@ function lireJson(f) {
 // ---------- le lien secret ----------
 function trouverLien(cle) {
   cle = String(cle || '').replace(/[^a-zA-Z0-9_-]/g, '');
-  if (cle.length < 12) throw new Error('Ce lien n\'est pas valide.');
+  if (cle.length < 8) throw new Error('Ce lien n\'est pas valide.');
   var cache = CacheService.getScriptCache(), idF = cache.get('l:' + cle), f = null;
   if (idF) { try { f = DriveApp.getFileById(idF); } catch (e) { f = null; } }
   if (!f) {
