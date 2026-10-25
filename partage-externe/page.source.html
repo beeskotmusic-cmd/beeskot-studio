@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>BEESKOT · Espace de partage</title>
+<link href="https://fonts.googleapis.com/css2?family=Jost:wght@400;500;600;700&family=Share+Tech+Mono&family=Barlow+Condensed:wght@600;700&family=Work+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+{{LINKS}}<style>
+{{CSS}}
+</style>
+</head>
+<body>
+<div class="app">
+  <header class="top">
+    <img class="patch" src="{{LOGO}}" alt="DARI · BEESKOT Studio">
+    <div class="sys"><div class="sysgrid">
+      <span class="vfd"><b>POUR :</b> <span id="pour">—</span></span>
+      <span class="vfd"><b>TOI :</b> <span id="toi">—</span></span>
+    </div></div>
+  </header>
+  <div class="stripe" aria-hidden="true"></div>
+
+  <div class="rowm"><main class="mainc" id="pages"><section id="p-partage">
+    <header class="hdr"><span class="screw tl" style="--r:60deg"></span><span class="screw bl" style="--r:-30deg"></span><span class="screw tr" style="--r:5deg"></span><span class="screw br" style="--r:85deg"></span>
+      <h1 class="h1">Espace de partage</h1><p class="sub" id="mot">—</p>
+      <div class="right"><div><span class="eng" style="font-size:9px">Morceau</span><span class="vfd" id="nomH" style="width:200px">—</span></div>
+        <div><span class="eng" style="font-size:9px">Notes</span><span class="vfd" id="nbH">—</span></div></div></header>
+    <div class="grid">
+      <section class="pane"><span class="ptitle">Au programme</span>
+        <div class="chips" id="elements" style="margin-top:8px"></div></section>
+
+      <div class="cols ec-cols">
+      <section class="pane vit ec-vit">
+        <div class="ecran hidden" id="ecran"><video id="media" playsinline preload="metadata"></video><canvas id="dessin"></canvas></div>
+        <div class="box ec-onde-box">
+          <div class="ec-onde" id="onde"><canvas id="cv"></canvas><div class="ec-tete" id="tete" style="left:0"></div><div class="ec-selz hidden" id="selz"></div><span class="nt ec-vide" id="vide">Choisis un morceau</span></div>
+          <div class="ec-marques" id="marques"></div>
+          <div class="ec-transport">
+            <button class="btn sm pri" id="play" disabled>▶</button><span class="vfd" id="temps">0:00 / 0:00</span>
+            <button class="btn xs hidden" id="crayon" title="Dessiner sur l'image (la vidéo se met en pause) : le dessin part avec ta prochaine note">Dessiner</button>
+            <span class="outils hidden" id="outils"></span>
+            <span class="nt ec-astuce" id="aide">Clic = aller là · cliquer-glisser = un passage · Espace = lecture</span>
+          </div></div>
+      </section>
+
+      <section class="pane reg ec-panneau"><span class="ptitle">Notes</span>
+        <div class="box ec-notes-box" style="margin-top:8px">
+          <div class="ec-form" id="form"><span class="vfd" id="quand">0:00</span>
+            <input class="fld" id="texte" placeholder="Ta note à cet endroit… (Entrée pour ajouter)" maxlength="600"><button class="btn sm" id="tout" title="La note parle de tout le morceau, pas d'un passage">Tout le morceau</button><button class="btn sm pri" id="ajout">＋ Note</button></div>
+          <div class="ec-liste" id="liste" style="overflow:visible"><span class="nt">—</span></div></div>
+      </section>
+      </div>
+
+      <section class="pane abar" style="padding:10px 16px"><span class="vfd" id="msg" style="display:block">OUVERTURE…</span></section>
+    </div>
+  </section></main></div>
+  <div class="sign">fait avec <b>Dari Band Studio</b></div>
+</div>
+
+<div class="voile hidden" id="voile"><div class="stopbox" role="dialog">
+  <span class="screw tl" style="--r:60deg"></span><span class="screw tr" style="--r:5deg"></span><span class="screw bl" style="--r:-30deg"></span><span class="screw br" style="--r:85deg"></span>
+  <img class="stopbox-patch" src="{{LOGO}}" alt="">
+  <span class="dymo" style="align-self:center">Bienvenue</span>
+  <p class="nt" style="margin:0;text-align:center" id="voileTxt">Écris ton prénom : il apparaîtra à côté de tes notes.</p>
+  <input class="fld" id="prenom" placeholder="Ton prénom" maxlength="30">
+  <button class="btn warm" id="entrer" style="width:100%;justify-content:center">Entrer</button>
+</div></div>
+
+{{SCRIPT}}
+</body>
+</html>

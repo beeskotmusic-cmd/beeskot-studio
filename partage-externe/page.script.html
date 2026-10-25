@@ -1,0 +1,193 @@
+<script>
+// ===== l'espace de partage : tout ce qui suit tourne dans le navigateur de l'invité =====
+// Le son et la vidéo sont lus DIRECTEMENT depuis le fichier du Drive (rien n'est recopié).
+var CLE = <?!= JSON.stringify(cle) ?>;
+var S = { lien: null, el: null, notes: [], prenom: '', buf: null, sel: null, tout: false, pos: 0, droit: 'lire', traits: [], crayon: false, montre: null, coul: '#ffcf3a' };
+var $ = function (s) { return document.querySelector(s); };
+var $$ = function (s) { return [].slice.call(document.querySelectorAll(s)); };
+var esc = function (s) { return String(s == null ? '' : s).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); };
+var tps = function (s) { s = Math.max(0, s || 0); return Math.floor(s / 60) + ':' + ('0' + Math.floor(s % 60)).slice(-2); };
+var msg = function (t) { $('#msg').textContent = String(t).toUpperCase().slice(0, 90); };
+var COULEURS = ['#f1c453', '#7ee08a', '#c58af0', '#e08a5a', '#6fc3c7', '#e0719a'];
+var couleur = function (nom) { nom = String(nom || ''); var h = 0; for (var i = 0; i < nom.length; i++) h = (h * 31 + nom.charCodeAt(i)) & 0xffff; return COULEURS[h % COULEURS.length]; };
+var appel = function (fn) { var args = [].slice.call(arguments, 1); return new Promise(function (ok, ko) { var r = google.script.run.withSuccessHandler(ok).withFailureHandler(function (e) { ko(e); }); r[fn].apply(r, args); }); };
+var media = $('#media'), video = function () { return !!(S.el && S.el.type === 'video'); };
+var source = function (el) { return 'https://www.googleapis.com/drive/v3/files/' + encodeURIComponent(el.fichier) + '?alt=media&key=' + encodeURIComponent(S.lien.cleApi || ''); };
+
+// ---------- le prénom (gardé dans ce navigateur) ----------
+try { S.prenom = localStorage.getItem('bk.prenom') || ''; } catch (e) {}
+function demanderPrenom() { $('#voile').classList.remove('hidden'); $('#prenom').value = S.prenom; $('#prenom').focus(); }
+$('#entrer').onclick = function () { var p = $('#prenom').value.trim().slice(0, 30); if (!p) return $('#prenom').focus();
+  S.prenom = p; try { localStorage.setItem('bk.prenom', p); } catch (e) {} $('#voile').classList.add('hidden'); demarrer(); };
+$('#prenom').addEventListener('keydown', function (e) { if (e.key === 'Enter') $('#entrer').click(); });
+
+// ---------- ouverture : la présentation du lien (titre, petit mot, morceaux et vidéos) ----------
+if (!CLE) { msg('Ce lien n\'est pas valide'); $('#vide').textContent = 'Ce lien n\'est pas valide.'; }
+else if (S.prenom) demarrer(); else demanderPrenom();
+
+function demarrer() {
+  msg('Ouverture…');
+  appel('ouvrir', CLE, S.prenom).then(function (l) {
+    S.lien = l; S.droit = l.droit; $('#pour').textContent = (l.nom || S.prenom).toUpperCase();
+    $('#mot').textContent = l.mot || 'Écoute et laisse des notes minutées'; $('#toi').textContent = S.prenom.toUpperCase();
+    $('#form').classList.toggle('hidden', l.droit === 'lire');
+    $('#elements').innerHTML = l.elements.map(function (m, i) { return '<button class="chip' + (i ? '' : ' on') + '" data-el="' + esc(m.id) + '"><span class="badge">' + (m.type === 'video' ? 'VIDÉO' : 'SON') + '</span> ' + esc(m.nom) + (m.versionNom ? ' <span class="nt">· ' + esc(m.versionNom) + '</span>' : '') + '</button>'; }).join('') || '<span class="nt">Rien à écouter pour l\'instant.</span>';
+    $$('[data-el]').forEach(function (b) { b.onclick = function () { choisir(b.dataset.el); }; });
+    if (l.elements.length) { S.notes = l.notes || []; choisir(l.elements[0].id, true); }
+  }).catch(function (e) { msg(e.message || e); $('#vide').textContent = e.message || 'Ce lien n\'est plus actif.'; $('#form').classList.add('hidden'); });
+}
+
+// ---------- choisir un morceau / une vidéo : le lecteur lit le fichier du Drive directement ----------
+function choisir(id, dejaNotes) {
+  media.pause(); var el = null; S.lien.elements.forEach(function (x) { if (x.id === id) el = x; }); if (!el) return;
+  S.el = el; $('#nomH').textContent = (el.nom || '—').toUpperCase().slice(0, 22); S.buf = null; S.sel = null; S.pos = 0; S.traits = []; crayon(false); montrer(null); majSel(); var tour = S.tour = (S.tour || 0) + 1;
+  $$('[data-el]').forEach(function (b) { b.classList.toggle('on', b.dataset.el === id); });
+  $('#ecran').classList.toggle('hidden', !video()); $('#onde').classList.toggle('mince', video()); $('#crayon').classList.toggle('hidden', !video() || S.droit === 'lire');
+  $('#tout').textContent = video() ? 'Toute la vidéo' : 'Tout le morceau';
+  $('#aide').textContent = (video() ? 'Clic sur la ligne' : 'Clic sur le son') + ' = aller là · cliquer-glisser = un passage · Espace = lecture';
+  $('#vide').classList.remove('hidden'); $('#vide').textContent = 'Chargement de ' + el.nom + '…'; $('#play').disabled = true;
+  if (!dejaNotes) { S.notes = []; dessinerNotes(); appel('notes', CLE, id, S.prenom).then(function (n) { if (S.el === el) { S.notes = n; dessinerNotes(); } }); } else dessinerNotes();
+  media.src = source(el); media.load(); dessiner();
+  // la forme du son (audio seulement, et pas pour un fichier énorme) : en arrière-plan, la lecture n'attend pas
+  if (!video() && window.fetch && (!el.taille || el.taille < 80e6)) {
+    var AC = window.AudioContext || window.webkitAudioContext;
+    if (AC) fetch(source(el)).then(function (r) { if (!r.ok) throw 0; return r.arrayBuffer(); })
+      .then(function (b) { return new Promise(function (ok, ko) { (S.ac = S.ac || new AC()).decodeAudioData(b, ok, ko); }); })
+      .then(function (buf) { if (tour === S.tour) { S.buf = buf; dessiner(); } }).catch(function () {});
+  }
+}
+var duree = function () { return isFinite(media.duration) ? media.duration : 0; };
+media.addEventListener('loadedmetadata', function () { $('#play').disabled = false; $('#vide').classList.add('hidden'); ajuster(); majTete(); dessiner(); msg(S.droit === 'lire' ? 'Prêt : ' + S.el.nom : video() ? 'Clique sur la ligne à l\'endroit voulu, dessine si tu veux, écris ta note' : 'Écoute, clique à l\'endroit voulu, écris ta note'); });
+media.addEventListener('error', function () { if (!S.el) return; $('#play').disabled = true; $('#vide').classList.remove('hidden'); $('#vide').textContent = 'Ce fichier ne répond pas pour l\'instant. Réessaie dans un moment.'; msg('Fichier indisponible'); });
+media.addEventListener('timeupdate', majTete);
+media.addEventListener('play', function () { $('#play').innerHTML = '❚❚'; if (!S.crayon) montrer(null); boucle(); });
+media.addEventListener('pause', function () { $('#play').innerHTML = '▶'; });
+media.addEventListener('ended', function () { media.currentTime = 0; });
+
+// ---------- la forme du son (ou la ligne du temps pour une vidéo) ----------
+var cv = $('#cv'), onde = $('#onde');
+function dessiner() {
+  var W = Math.max(300, Math.round(onde.getBoundingClientRect().width)), H = video() ? 46 : 150, dpr = window.devicePixelRatio || 1;
+  cv.width = W * dpr; cv.height = H * dpr; cv.style.height = H + 'px'; var x = cv.getContext('2d'); x.setTransform(dpr, 0, 0, dpr, 0, 0); x.clearRect(0, 0, W, H);
+  if (video() || !S.buf) { x.fillStyle = 'rgba(79,155,208,.55)'; x.fillRect(0, H / 2 - 1, W, 2); dessinerNotes(); return; }
+  var d = S.buf.getChannelData(0), pas = Math.max(1, Math.floor(d.length / W)); x.fillStyle = '#4f9bd0';
+  for (var i = 0; i < W; i++) { var mn = 1, mx = -1; for (var j = i * pas; j < (i + 1) * pas; j += 8) { var v = d[j]; if (v < mn) mn = v; if (v > mx) mx = v; }
+    x.fillRect(i, H / 2 - mx * H / 2 * .92, 1, Math.max(1, (mx - mn) * H / 2 * .92)); }
+  dessinerNotes();
+}
+addEventListener('resize', function () { ajuster(); dessiner(); });
+function majTete() { var D = duree(); S.pos = media.currentTime || 0; if (!D) return; $('#tete').style.left = (S.pos / D * 100) + '%'; $('#temps').textContent = tps(S.pos) + ' / ' + tps(D); if (!S.sel && !S.tout) $('#quand').textContent = tps(S.pos); }
+function jouer(depuis) { if (!S.el || !duree()) return; if (depuis != null) media.currentTime = depuis; else if (S.sel && (S.pos < S.sel.a || S.pos >= S.sel.b)) media.currentTime = S.sel.a;
+  if (S.crayon) crayon(false); var p = media.play(); if (p && p.catch) p.catch(function () {}); }
+function boucle() { if (media.paused) return; if (S.sel && S.sel.b - S.sel.a > .2 && (media.currentTime >= S.sel.b || media.currentTime < S.sel.a - .5)) media.currentTime = S.sel.a; majTete(); requestAnimationFrame(boucle); }
+$('#play').onclick = function () { media.paused ? jouer() : media.pause(); };
+document.addEventListener('keydown', function (e) { var ae = document.activeElement || {}; if (/INPUT|TEXTAREA/.test(ae.tagName)) return;
+  if (e.code === 'Space') { e.preventDefault(); $('#play').click(); }
+  if (S.crayon && (e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'z') { e.preventDefault(); S.traits.pop(); montrer(S.traits); } });
+// clic = aller là ; cliquer-glisser = un passage
+var g = null, tA = function (ev) { var r = onde.getBoundingClientRect(); return Math.max(0, Math.min(duree(), (ev.clientX - r.left) / r.width * duree())); };
+onde.addEventListener('pointerdown', function (ev) { if (!duree()) return; g = { t: tA(ev), x: ev.clientX }; onde.setPointerCapture(ev.pointerId); });
+onde.addEventListener('pointermove', function (ev) { if (!g || Math.abs(ev.clientX - g.x) <= 5) return; var t = tA(ev); S.sel = { a: Math.min(g.t, t), b: Math.max(g.t, t) }; majSel(); });
+onde.addEventListener('pointerup', function (ev) { if (!g) return; var glisse = Math.abs(ev.clientX - g.x) > 5, t = tA(ev); g = null;
+  if (!glisse) { S.sel = null; majSel(); media.currentTime = t; } else { media.currentTime = S.sel.a; $('#texte').focus(); } majTete(); });
+function majSel() { var z = $('#selz'), D = duree(); if (!S.sel || !D) { z.classList.add('hidden'); $('#quand').textContent = S.tout ? 'TOUT' : tps(S.pos); return; }
+  z.classList.remove('hidden'); z.style.left = (S.sel.a / D * 100) + '%'; z.style.width = ((S.sel.b - S.sel.a) / D * 100) + '%'; $('#quand').textContent = tps(S.sel.a) + ' → ' + tps(S.sel.b); }
+
+// ---------- l'écran vidéo : à la forme de la vidéo, le plus grand possible ----------
+function ajuster() { if (!video()) return; var e = $('#ecran'), W = e.parentNode.getBoundingClientRect().width - 32, ar = media.videoWidth && media.videoHeight ? media.videoWidth / media.videoHeight : 16 / 9;
+  var w = W, h = w / ar, max = Math.max(220, innerHeight * .62); if (h > max) { h = max; w = h * ar; }
+  e.style.width = Math.floor(w) + 'px'; e.style.height = Math.floor(h) + 'px'; peindre(S.montre); }
+
+// ---------- dessiner sur l'image (comme dans BEESKOT Studio) : le dessin part avec la note ----------
+var cvD = $('#dessin'), cxD = cvD.getContext('2d');
+var COULS = ['#ffcf3a', '#e0452b', '#7ee08a', '#4f9bd0', '#c58af0', '#efe4cc'];
+$('#outils').innerHTML = COULS.map(function (c) { return '<button class="coul' + (c === S.coul ? ' on' : '') + '" data-coul="' + c + '" style="--c:' + c + '" title="Couleur"></button>'; }).join('')
+  + '<button class="btn xs" id="annuler" title="Annuler le dernier trait (Ctrl + Z)">Annuler</button><button class="btn xs" id="gomme" title="Tout effacer">Effacer</button>';
+$$('.coul').forEach(function (b) { b.onclick = function () { S.coul = b.dataset.coul; $$('.coul').forEach(function (x) { x.classList.toggle('on', x === b); }); }; });
+$('#annuler').onclick = function () { S.traits.pop(); montrer(S.traits); };
+$('#gomme').onclick = function () { S.traits = []; montrer([]); };
+function zoneImage() { var r = cvD.getBoundingClientRect(), vw = media.videoWidth || 16, vh = media.videoHeight || 9, k = Math.min(r.width / vw, r.height / vh), w = vw * k, h = vh * k; return { x: (r.width - w) / 2, y: (r.height - h) / 2, w: w, h: h, r: r }; }
+function peindre(traits) {
+  var r = cvD.getBoundingClientRect(), dpr = window.devicePixelRatio || 1; cvD.width = Math.round(r.width * dpr); cvD.height = Math.round(r.height * dpr);
+  cxD.setTransform(dpr, 0, 0, dpr, 0, 0); cxD.clearRect(0, 0, r.width, r.height); if (!traits || !traits.length) return;
+  var z = zoneImage(); cxD.lineCap = cxD.lineJoin = 'round';
+  traits.forEach(function (t) { cxD.strokeStyle = t.c || '#ffb23e'; cxD.lineWidth = 4; cxD.shadowColor = 'rgba(0,0,0,.7)'; cxD.shadowBlur = 3; cxD.beginPath();
+    t.p.forEach(function (p, i) { var X = z.x + p[0] * z.w, Y = z.y + p[1] * z.h; i ? cxD.lineTo(X, Y) : cxD.moveTo(X, Y); }); cxD.stroke(); });
+}
+function montrer(tr) { S.montre = tr; peindre(tr); }
+function crayon(on) { S.crayon = on; if (on) { media.pause(); montrer(S.traits); } else if (!S.traits.length) montrer(null);
+  $('#crayon').classList.toggle('on', on); cvD.classList.toggle('actif', on); $('#outils').classList.toggle('hidden', !on);
+  if (S.el) msg(on ? 'Dessine sur l\'image, puis écris ta note' : S.traits.length ? 'Dessin prêt : il part avec ta prochaine note' : 'Prêt'); }
+$('#crayon').onclick = function () { crayon(!S.crayon); };
+var trait = null;
+cvD.addEventListener('pointerdown', function (e) { if (!S.crayon) return; e.preventDefault(); cvD.setPointerCapture(e.pointerId); trait = { c: S.coul, p: [] }; S.traits.push(trait); ajoutPt(e); });
+cvD.addEventListener('pointermove', function (e) { if (trait) ajoutPt(e); });
+cvD.addEventListener('pointerup', function () { trait = null; });
+function ajoutPt(e) { var z = zoneImage(), x = (e.clientX - z.r.left - z.x) / z.w, y = (e.clientY - z.r.top - z.y) / z.h;
+  var p = [Math.round(Math.max(0, Math.min(1, x)) * 1000) / 1000, Math.round(Math.max(0, Math.min(1, y)) * 1000) / 1000], d = trait.p[trait.p.length - 1];
+  if (!d || Math.abs(d[0] - p[0]) + Math.abs(d[1] - p[1]) > 0.004) { trait.p.push(p); montrer(S.traits); } }
+
+// ---------- les notes ----------
+function dessinerNotes() {
+  var D = duree(), l = S.notes; $('#nbH').textContent = String(l.length);
+  $('#marques').innerHTML = D ? l.filter(function (n) { return !n.tout; }).map(function (n) { return '<span class="ec-mq' + (n.fin ? ' passage' : '') + (n.regle ? ' regle' : '') + '" data-n="' + esc(n.id) + '" title="' + esc(tps(n.t) + ' · ' + n.prenom + ' : ' + n.texte) + '" style="left:' + Math.min(100, n.t / D * 100) + '%;' + (n.fin ? 'width:' + Math.max(.6, (n.fin - n.t) / D * 100) + '%;' : '') + '--pc:' + couleur(n.prenom) + '"></span>'; }).join('') : '';
+  $('#liste').innerHTML = l.length ? l.map(function (n) { return '<div class="ec-n externe' + (n.regle ? ' regle' : '') + (n.couleur ? ' marquee' : '') + '" data-n="' + esc(n.id) + '" style="--pc:' + couleur(n.prenom) + (n.couleur ? ';--marque:' + esc(n.couleur) : '') + '">' +
+      '<button class="ec-n-t' + (n.tout ? ' tout' : '') + '" data-aller="' + esc(n.id) + '" title="' + (n.dessin ? 'Voir l\'image avec le dessin' : 'Aller à ce moment') + '">' + (n.tout ? 'TOUT' : tps(n.t) + (n.fin ? ' → ' + tps(n.fin) : '')) + (n.dessin ? ' + dessin' : '') + '</button>' +
+      '<div><div class="ec-n-l"><b>' + esc(n.prenom) + '</b>' + (n.regle ? '<span class="ec-modif">✓ réglé</span>' : '') + '</div><div class="ec-n-txt">' + esc(n.texte) + '</div>' +
+      (n.reponses || []).map(function (r) { return '<div class="ec-rep" style="--pc:' + couleur(r.par) + '"><b>' + esc(r.par) + '</b> ' + esc(r.texte) + '</div>'; }).join('') + '</div>' +
+      '<div class="ec-n-o">' + reacsHtml(n) + '</div></div>'; }).join('')
+    : '<span class="nt">' + (S.droit === 'lire' ? 'Pas encore de note.' : 'Pas encore de note. Clique à l\'endroit voulu (ou cliquer-glisser pour un passage), puis écris ta note.') + '</span>';
+  $$('[data-aller]').forEach(function (b) { b.onclick = function () { var n = S.notes.filter(function (x) { return x.id === b.dataset.aller; })[0]; if (!n || n.tout) return;
+    if (n.dessin && video()) { media.pause(); media.currentTime = n.t; majTete(); setTimeout(function () { montrer(n.dessin); }, 150); return; }   // une note dessinée : on s'arrête sur l'image, avec le dessin
+    jouer(Math.max(0, n.t - 1)); }; });
+  brancherReacs();
+  $$('.ec-mq').forEach(function (b) { b.onclick = function () { var el = document.querySelector('.ec-n[data-n="' + b.dataset.n + '"]'); el && el.scrollIntoView({ block: 'nearest', behavior: 'smooth' }); }; });
+}
+// ---------- réactions (pouce / croix) et couleur (clic droit, ou le petit rond) ----------
+var MOI = function () { return 'Externe · ' + S.prenom; };
+var POUCE = '<span class="pic a pouce"></span>';
+var REACS = [['pouce', POUCE, 'J\'aime'], ['croix', '✕', 'Pas d\'accord']];
+var MARQUES = ['#d9a93c', '#c65d2a', '#7a2430', '#3f6b3a', '#2f7377', '#2a3f6a'];
+function reacsHtml(n) {
+  if (S.droit === 'lire') return '';
+  var r = n.reactions || {};
+  return REACS.map(function (k) { var qui = Object.keys(r).filter(function (p) { return r[p] === k[0]; });
+    return '<button class="btn xs ec-reac' + (r[MOI()] === k[0] ? ' on' : '') + '" data-reac="' + k[0] + '" data-n="' + esc(n.id) + '" title="' + k[2] + (qui.length ? ' : ' + esc(qui.map(function (p) { return p.replace(/^Externe · /, ''); }).join(', ')) : '') + '">' + k[1] + (qui.length ? ' ' + qui.length : '') + qui.map(function (p) { return '<i class="ec-reac-p" style="--pc:' + couleur(p.replace(/^Externe · /, '')) + '"></i>'; }).join('') + '</button>'; }).join('')
+    + '<button class="btn xs ec-reac" data-pal="' + esc(n.id) + '" title="Marquer d\'une couleur (ou clic droit sur la note)"><span class="rond"></span></button>';
+}
+function brancherReacs() {
+  [].forEach.call(document.querySelectorAll('[data-reac]'), function (b) { b.onclick = function () {
+    var n = S.notes.filter(function (x) { return x.id === b.dataset.n; })[0]; if (!n) return; var r = n.reactions || {};
+    var nouv = r[MOI()] === b.dataset.reac ? '' : b.dataset.reac; b.disabled = true;
+    appel('reagir', CLE, n.id, S.prenom, nouv).then(function (x) { n.reactions = x.reactions; n.couleur = x.couleur; dessinerNotes(); }).catch(function (e) { msg(e.message || e); b.disabled = false; }); }; });
+  [].forEach.call(document.querySelectorAll('[data-pal]'), function (b) { b.onclick = function (e) { var r = b.getBoundingClientRect(); palette(b.dataset.pal, r.left, r.bottom + 4); }; });
+  if (S.droit !== 'lire') [].forEach.call(document.querySelectorAll('.ec-n'), function (el) { el.oncontextmenu = function (e) { e.preventDefault(); palette(el.dataset.n, e.clientX, e.clientY); }; });
+}
+function palette(id, x, y) {
+  var n = S.notes.filter(function (q) { return q.id === id; })[0]; if (!n) return;
+  [].forEach.call(document.querySelectorAll('.ec-palette'), function (p) { p.remove(); });
+  var p = document.createElement('div'); p.className = 'ec-palette';
+  p.innerHTML = MARQUES.map(function (c) { return '<button data-c="' + c + '" class="' + (n.couleur === c ? 'on' : '') + '" style="--c:' + c + '"></button>'; }).join('') + '<button data-c="" class="aucune" title="Enlever la couleur">✕</button>';
+  p.style.left = Math.max(4, Math.min(x, innerWidth - 240)) + 'px'; p.style.top = Math.min(y, innerHeight - 50) + 'px';
+  p.onclick = function (e) { var b = e.target.closest('[data-c]'); if (!b) return; p.remove(); var c = b.dataset.c === n.couleur ? '' : b.dataset.c;
+    appel('marquer', CLE, n.id, c).then(function (x) { n.couleur = x.couleur; n.reactions = x.reactions; dessinerNotes(); }).catch(function (e) { msg(e.message || e); }); };
+  document.body.appendChild(p);
+  setTimeout(function () { document.addEventListener('pointerdown', function (e) { if (!p.contains(e.target)) p.remove(); }, { once: true }); }, 0);
+}
+function ajouter() {
+  var t = $('#texte').value.trim(); if (!t) return $('#texte').focus(); if (!S.el) return;
+  var note = { t: S.tout ? 0 : Math.round((S.sel ? S.sel.a : S.pos) * 10) / 10, fin: !S.tout && S.sel ? Math.round(S.sel.b * 10) / 10 : null, tout: S.tout, texte: t };
+  if (video() && S.traits.length && !S.tout) note.dessin = S.traits.slice(0, 40).map(function (x) { return { c: x.c, p: x.p.slice(0, 400) }; });
+  $('#ajout').disabled = true; msg('Envoi…');
+  appel('ecrireNote', CLE, S.el.id, S.prenom, note).then(function (n) {
+    S.notes.push(n); S.notes.sort(function (a, b) { return a.t - b.t; }); $('#texte').value = ''; S.sel = null; majSel();
+    if (S.traits.length) { var d = S.traits; S.traits = []; crayon(false); montrer(d); }
+    dessinerNotes(); msg(n.tout ? 'Note ajoutée' : 'Note ajoutée à ' + tps(n.t));
+  }).catch(function (e) { msg(e.message || e); }).then(function () { $('#ajout').disabled = false; });
+}
+$('#ajout').onclick = ajouter;
+$('#texte').addEventListener('keydown', function (e) { if (e.key === 'Enter') ajouter(); });
+$('#tout').onclick = function () { S.tout = !S.tout; $('#tout').classList.toggle('on', S.tout); $('#quand').textContent = S.tout ? 'TOUT' : tps(S.sel ? S.sel.a : S.pos); };
+// toutes les 2 minutes : les réponses du groupe arrivent toutes seules
+setInterval(function () { if (S.el && S.lien) appel('notes', CLE, S.el.id, S.prenom).then(function (n) { S.notes = n; dessinerNotes(); }).catch(function () {}); }, 120000);
+</script>
