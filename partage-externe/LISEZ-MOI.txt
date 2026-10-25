@@ -1,0 +1,123 @@
+ESPACE DE PARTAGE — la page web des invités (ingé son, caméraman…)
+====================================================================
+
+C'est quoi ?
+  Une petite page web, gratuite, qui tourne chez Google avec le Gmail BEESKOT.
+  Tu lui envoies un lien secret (fait dans BEESKOT Studio › Notes et retours › Externe,
+  ou Notes vidéos › Externe).
+  L'invité écrit son prénom, écoute / regarde le fichier, laisse des notes minutées
+  (et dessine sur l'image pour une vidéo).
+  Ses notes arrivent dans BEESKOT Studio marquées « Externe · prénom ».
+  Le fichier est lu DIRECTEMENT depuis le Drive : rien n'est recopié ni fabriqué.
+  Aucun abonnement, rien de payant : le Drive BEESKOT + une clé gratuite Google (étape 7).
+
+Ce dossier contient 2 fichiers à copier chez Google :
+  Code.gs    le programme (le « guichet » qui lit et écrit dans le Drive)
+  page.html  la page que voit l'invité (bois, ambre, étiquettes)
+
+À faire UNE SEULE FOIS, sur n'importe quel PC (10 minutes, chaque clic est écrit)
+--------------------------------------------------------------------------------
+
+AVANT DE COMMENCER
+  * Ouvre Chrome et connecte-toi avec le Gmail BEESKOT (pas ton Gmail perso !).
+    Pour vérifier : en haut à droite de Google, le rond du compte doit être celui de BEESKOT.
+  * Ouvre BEESKOT Studio une fois avec le Drive relié, et va dans Notes et retours › Externe :
+    ça prépare le dossier « partages » dans le Drive (le guichet en a besoin).
+
+1. CRÉER LE PROGRAMME
+   a. Va sur  https://script.google.com
+   b. Clique le bouton bleu « Nouveau projet » (en haut à gauche).
+   c. En haut, clique sur « Projet sans titre » → tape  BEESKOT partage  → OK.
+
+2. COLLER LE PROGRAMME
+   a. Au milieu, il y a un fichier « Code.gs » déjà ouvert avec 3 lignes dedans.
+      Clique dans le texte, fais Ctrl + A (tout sélectionner), puis Suppr.
+   b. Ouvre le fichier  Code.gs  de ce dossier avec le Bloc-notes, Ctrl + A, Ctrl + C.
+   c. Reviens dans Google, clique dans la zone vide, Ctrl + V.
+   d. Ctrl + S pour enregistrer.
+
+3. COLLER LA PAGE
+   a. À gauche, à côté de « Fichiers », clique le  +  → choisis « HTML ».
+   b. Il demande un nom : tape  page  (tout en minuscules, sans .html) → Entrée.
+   c. Le fichier « page.html » s'ouvre avec quelques lignes dedans : Ctrl + A, Suppr.
+   d. Ouvre  page.html  de ce dossier avec le Bloc-notes, Ctrl + A, Ctrl + C.
+   e. Reviens dans Google, clique dans la zone vide, Ctrl + V, puis Ctrl + S.
+
+4. VÉRIFIER QUE ÇA TROUVE LE DRIVE
+   a. À gauche, clique sur « Code.gs » pour revenir au programme.
+   b. En haut, à côté de « Exécuter » et « Déboguer », il y a une liste déroulante
+      avec le nom d'une fonction (souvent « doGet »). Ouvre-la et choisis  tester .
+   c. Clique « Exécuter ».
+   d. La 1re fois, Google demande une autorisation :
+        « Vérifier les autorisations » → choisis le compte BEESKOT
+        → s'il dit « Google n'a pas validé cette application » : clique « Paramètres avancés »
+          (petit lien en bas) → « Accéder à BEESKOT partage (non sécurisé) »
+          (c'est NOTRE programme, c'est normal) → « Autoriser ».
+   e. En bas, dans « Journal d'exécution », tu dois lire  Tout est bon.
+      Si tu lis « Dossier introuvable », reviens à AVANT DE COMMENCER (ouvrir l'onglet Externe une fois).
+
+5. METTRE LA PAGE EN LIGNE
+   a. En haut à droite, bouton bleu « Déployer » → « Nouveau déploiement ».
+   b. À gauche de « Sélectionner le type », clique la petite roue dentée → « Application Web ».
+   c. Remplis :
+        Description :            BEESKOT partage
+        Exécuter en tant que :   Moi (le Gmail BEESKOT)
+        Qui a accès :            Tout le monde          ← important (les invités n'ont pas de compte)
+   d. Clique « Déployer ».
+   e. Il affiche une « URL de l'application Web » qui commence par
+      https://script.google.com/macros/s/ ... /exec
+      Clique « Copier ».
+
+6. DONNER L'ADRESSE À BEESKOT STUDIO
+   a. Ouvre BEESKOT Studio › Notes et retours › sous-onglet « Externe ».
+   b. En bas à droite, « La page web (chez Google) » : colle l'adresse (Ctrl + V) → « Garder ».
+   c. C'est rangé dans le Drive : les autres PC l'ont aussi, rien à refaire chez eux.
+
+7. LA CLÉ GRATUITE GOOGLE (pour que la page puisse lire les fichiers du Drive)
+   Gratuite, sans carte bancaire. À faire une seule fois.
+   a. Va sur  https://console.cloud.google.com  (avec le compte qui a créé le « fichier client »
+      de BEESKOT Studio ; si tu ne sais plus, le Gmail BEESKOT marche aussi).
+   b. Tout en haut, à gauche de la barre de recherche, il y a le nom d'un projet :
+      clique dessus et choisis le projet de BEESKOT Studio.
+      (Pas de projet ? « Nouveau projet » → nom : BEESKOT partage → « Créer », puis choisis-le.)
+   c. Dans la barre de recherche du haut, tape  Google Drive API  → clique le résultat
+      « Google Drive API » → bouton bleu « Activer ».
+      (Si le bouton dit « Gérer », c'est déjà activé : passe à la suite.)
+   d. Dans la barre de recherche, tape  Identifiants  → ouvre « Identifiants » (API et services).
+   e. En haut : « + Créer des identifiants » → « Clé API ».
+      Une fenêtre montre une clé qui commence par  AIza…  → clique l'icône « copier ».
+   f. Dans cette fenêtre (ou plus tard sur la clé, crayon « Modifier ») :
+        Restrictions relatives aux API → « Restreindre la clé » → coche SEULEMENT « Google Drive API »
+        → « Enregistrer ».
+        Restrictions relatives aux applications : laisse « Aucune » (sinon la page ne marche pas).
+   g. Dans BEESKOT Studio › Notes et retours › Externe, en bas à droite,
+      « Clé gratuite Google » : colle la clé (Ctrl + V) → « Garder ». C'est bon pour tous les PC.
+   Pas de panique : cette clé se voit dans la page de l'invité, c'est normal. Elle permet seulement
+   de lire les fichiers que TU as ouverts avec un lien secret, rien d'autre.
+
+8. ESSAYER
+   a. Dans « Externe » : Pour qui = Test, un morceau, « Créer le lien ». Le lien est copié.
+   b. Colle-le dans un navigateur (ou envoie-le-toi sur ton téléphone).
+   c. Écris un prénom, écoute, laisse une note. Dans la minute, elle apparaît dans
+      BEESKOT Studio (A/B ou Notes), dans un dossier « Externe : notes de … ».
+   d. Coupe ensuite le lien Test (bouton ✕ Couper) : il affiche « Ce lien n'est plus actif »,
+      et le fichier n'est plus lisible avec le lien.
+
+Bon à savoir
+------------
+  * Google met un petit bandeau gris en haut de la page (« créée par un utilisateur de
+    Google Apps Script »). On ne peut pas l'enlever sur une page gratuite. Tout le reste est à nous.
+  * Si un jour tu modifies Code.gs ou page.html chez Google : recolle le nouveau texte, puis
+    « Déployer » → « Gérer les déploiements » → crayon → Version : « Nouvelle version » → Déployer.
+    L'adresse ne change pas, rien à refaire dans BEESKOT Studio.
+  * Le guichet ne fait qu'AJOUTER des notes (fichiers « ext-… ») et ne touche qu'à celles-ci.
+    Il ne modifie jamais une fiche du groupe. Un lien coupé ne marche plus tout de suite.
+  * Le fichier n'est jamais copié. Tant qu'un lien secret actif l'utilise, il est lisible par
+    « toute personne qui a le lien » du Drive (c'est ce qui permet à l'invité de le lire sans compte).
+    Quand tu coupes le lien (et qu'aucun autre lien actif ne l'utilise), BEESKOT Studio retire
+    cet accès tout seul. Un fichier qui était déjà partagé avant n'est jamais touché.
+  * Formats qui passent partout : MP3 ou WAV pour le son, MP4 (H.264) pour la vidéo.
+    Un .mov en ProRes ne se lit pas dans un navigateur : exporte un MP4 pour le partager.
+  * Si beaucoup de monde lit le même gros fichier le même jour, Google peut le freiner
+    quelques heures. Pour un ingé son ou un caméraman, ça n'arrive pas.
+  * Limites : 600 caractères par note, 60 notes par heure et par lien.

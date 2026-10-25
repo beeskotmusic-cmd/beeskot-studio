@@ -13,8 +13,7 @@ const E = { m: null, opts: [], A: null, B: null, bufA: null, bufB: null, decal: 
 const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 const tps = s => { s = Math.max(0, s || 0); return Math.floor(s / 60) + ':' + String(Math.floor(s % 60)).padStart(2, '0'); };
 // une couleur par personne (pas de bleu ni de rouge : ce sont les couleurs de A et B)
-const COULEURS = { Yacine: '#f1c453', Pierre: '#7ee08a', Baptiste: '#c58af0' };
-const couleur = qui => COULEURS[qui] || '#d9b67a';
+const couleur = qui => BK.externe.couleurDe(qui);
 // l'auteur d'une note (« par » est réécrit à chaque enregistrement, par celui qui enregistre)
 const qui = n => n.auteur || n.par;
 const moi = () => BK.reglage('nomPc', '') || 'Quelqu\'un';
@@ -24,7 +23,7 @@ BK.module('ecoute', function (page) {
   $('.hdr .right', page).innerHTML = `<div><span class="eng" style="font-size:9px">Morceau</span><span class="vfd" id="ecNomH" style="width:200px">—</span></div>
     <div><span class="eng" style="font-size:9px">Notes</span><span class="vfd" id="ecNbH">—</span></div>`;
   $('.grid', page).innerHTML = `
-    <div class="seg ec-vues" id="ecVues"><button data-v="ab">A/B</button><button data-v="notes">Notes</button></div>
+    <div class="seg ec-vues" id="ecVues"><button data-v="ab">A/B</button><button data-v="notes">Notes</button><button data-v="externe" title="Des liens secrets pour les gens de l'extérieur (ingé son…) : ils écoutent et laissent des notes ici">Externe</button></div>
     <div class="cols ec-cols" id="ecVueAB">
       <section class="pane vit ec-vit">
         <div class="ec-haut" id="ecHaut">
@@ -66,6 +65,7 @@ BK.module('ecoute', function (page) {
           <button class="btn xs" id="ecHCopier" style="margin-left:auto" title="Copie les notes affichées, avec leurs timecodes">📋 Copier</button></div>
         <div class="ec-liste" id="ecHL"></div></div></section>
     </div>
+    <div class="cols ec-cols hidden" id="ecVueExt"></div>
     <div class="pane abar"><span class="vfd" id="ecMsg">PRÊT</span></div>`;
   const msg = t => $('#ecMsg').textContent = String(t).toUpperCase().slice(0, 90);
   const cv = $('#ecCanvas'), onde = $('#ecOnde');
@@ -227,7 +227,7 @@ BK.module('ecoute', function (page) {
   $$('#ecAB button').forEach(b => b.onclick = () => basculer(b.dataset.c));
   document.addEventListener('keydown', e => {
     const ae = document.activeElement || {};
-    if (page.classList.contains('hidden') || E.vue === 'notes' || (/INPUT|TEXTAREA/.test(ae.tagName) && ae.type !== 'range') || document.querySelector('.voile:not(.hidden)')) return;
+    if (page.classList.contains('hidden') || E.vue === 'notes' || E.vue === 'externe' || (/INPUT|TEXTAREA/.test(ae.tagName) && ae.type !== 'range') || document.querySelector('.voile:not(.hidden)')) return;
     if (/SELECT|BUTTON/.test(ae.tagName) || ae.type === 'range') { if (e.code === 'Space' || e.key === 'Tab') ae.blur(); }
     if (e.code === 'Space') { e.preventDefault(); E.joue ? stop() : jouer(); }
     if (e.key === 'Tab') { e.preventDefault(); if (E.B) basculer(); }
@@ -306,22 +306,23 @@ BK.module('ecoute', function (page) {
       return Object.keys(g).sort().map(k => ({ cle: 'date:' + k, titre: nomJour(k), l: g[k] })); }
     if (T === 'membre') { const g = {}; l.forEach(n => (g[qui(n)] = g[qui(n)] || []).push(n));
       const rang = p => { const i = ORDRE_M.indexOf(p); return i < 0 ? 99 : i; };
-      return Object.keys(g).sort((a, b) => rang(a) - rang(b) || a.localeCompare(b)).map(k => ({ cle: 'membre:' + k, titre: 'Notes de ' + k, pc: couleur(k), l: g[k].sort((a, b) => a.t - b.t) })); }
+      return Object.keys(g).sort((a, b) => rang(a) - rang(b) || a.localeCompare(b)).map(k => ({ cle: 'membre:' + k, titre: /^Externe · /.test(k) ? 'Externe : notes de ' + k.slice(10) : 'Notes de ' + k, pc: couleur(k), l: g[k].sort((a, b) => a.t - b.t) })); }
     return [{ cle: '', titre: '', l: [...l].sort((a, b) => a.t - b.t) }];
   }
   const versionDe = n => n.versionNom || nomVersion(n.version);
   function ligneNote(n) {
     const autre = E.A && n.version !== E.A, T = tri();
-    return `<div class="ec-n${n.regle ? ' regle' : ''}" data-n="${n.id}" style="--pc:${couleur(qui(n))}">
+    return `<div class="ec-n${n.regle ? ' regle' : ''}${BK.externe.reac.classes(n)}" data-n="${n.id}" style="--pc:${couleur(qui(n))}${BK.externe.reac.style(n)}" title="Clic droit : marquer d'une couleur">
         <button class="ec-n-t mono${n.tout ? ' tout' : ''}" data-aller="${n.id}" title="${n.tout ? 'Note sur tout le morceau' : 'Écouter à cet endroit'}">${n.tout ? 'TOUT' : tps(n.t) + (n.fin ? ' → ' + tps(n.fin) : '')}</button>
         <div class="ec-n-c"><div class="ec-n-l">${T === 'membre' ? '' : `<b>${esc(qui(n))}</b>`}<span class="ec-n-txt" data-txt="${n.id}">${esc(n.texte)}</span>${n.modifie ? '<em class="ec-modif">modifiée</em>' : ''}${T === 'date' ? `<span class="ec-n-h">${heure(n.quand)}</span>` : ''}</div>
           ${autre || n.contreNom ? `<div class="ec-n-v${autre ? ' autre' : ''}">sur « ${esc(versionDe(n))} »${n.contreNom ? ` · comparé à « ${esc(n.contreNom)} »` : ''}</div>` : ''}
           ${n.texteEn ? `<div class="ec-en"><span>EN</span>${esc(n.texteEn)}</div>` : ''}
           ${(n.reponses || []).map(r => `<div class="ec-rep" style="--pc:${couleur(r.par)}"><b>${esc(r.par)}</b> ${esc(r.texte)}${r.texteEn ? `<em class="ec-en-r"> · EN : ${esc(r.texteEn)}</em>` : ''}</div>`).join('')}
           <div class="ec-rep-f hidden"><input class="fld" placeholder="Ta réponse… (Entrée)"></div></div>
-        <div class="ec-n-o"><button class="btn xs" data-rep="${n.id}" title="Répondre">💬 ${(n.reponses || []).length || ''}</button>
+        <div class="ec-n-o">${BK.externe.reac.html(n)}<button class="btn xs" data-rep="${n.id}" title="Répondre">💬 ${(n.reponses || []).length || ''}</button>
           <button class="btn xs${n.regle ? ' on' : ''}" data-ok="${n.id}" title="Réglé / pas réglé">${n.regle ? '✓ réglé' : '○'}</button>
-          ${qui(n) === moi() ? `<button class="btn xs" data-ed="${n.id}" title="Modifier ma note">✎</button><button class="btn xs" data-x="${n.id}" title="Retirer ma note">✕</button>` : ''}</div></div>`;
+          ${BK.externe.reac.cacherHtml(n)}
+          ${qui(n) === moi() ?`<button class="btn xs" data-ed="${n.id}" title="Modifier ma note">✎</button><button class="btn xs" data-x="${n.id}" title="Retirer ma note">✕</button>` : ''}</div></div>`;
   }
   function dessinerNotes() {
     const l = visibles(), D = duree(), P = plies(), G = groupes(l);
@@ -351,6 +352,7 @@ BK.module('ecoute', function (page) {
       if (z.id !== 'ecListe') { vue('ab'); if (!E.m || E.m.id !== n.morceau || E.A !== n.version) await BK.ecouteOuvrir(n.morceau, n.version); }
       if (n.version === E.A && E.B) basculer('A'); if (!n.tout) jouer(Math.max(0, n.t - 1)); });
     $$('[data-ok]', z).forEach(b => b.onclick = async () => { const n = trouver(b.dataset.ok); n.regle = !n.regle; await BK.db.ecrire('notesmix', n); redessiner(); });
+    BK.externe.reac.brancher(z, trouver, 'notesmix', redessiner, msg);
     $$('[data-x]', z).forEach(b => b.onclick = async () => { const n = trouver(b.dataset.x); if (!await BK.confirmer('Retirer ta note ?')) return;
       for (const arr of [E.notes, E.toutes || []]) { const i = arr.indexOf(n); if (i >= 0) arr.splice(i, 1); } await BK.db.supprimer('notesmix', n.id); redessiner(); });
     $$('[data-ed]', z).forEach(b => b.onclick = () => { const n = trouver(b.dataset.ed), sp = $(`[data-txt="${n.id}"]`, z); if (!sp || sp.querySelector('input')) return;
@@ -399,8 +401,15 @@ BK.module('ecoute', function (page) {
 
   // ---------- les deux sous-onglets : A/B (écouter, noter) et Notes (toutes les notes de tous les morceaux) ----------
   function vue(v) { E.vue = v; BK.regler('ecoute.vue', v); $$('#ecVues button').forEach(b => b.classList.toggle('on', b.dataset.v === v));
-    $('#ecVueAB').classList.toggle('hidden', v !== 'ab'); $('#ecVueNotes').classList.toggle('hidden', v !== 'notes');
-    if (v === 'notes') { stop(); historique(); } else setTimeout(dessiner, 30); }
+    $('#ecVueAB').classList.toggle('hidden', v !== 'ab'); $('#ecVueNotes').classList.toggle('hidden', v !== 'notes'); $('#ecVueExt').classList.toggle('hidden', v !== 'externe');
+    if (v === 'notes') { stop(); historique(); } else if (v === 'externe') { stop(); externe(); } else setTimeout(dessiner, 30); }
+  // ---------- le sous-onglet Externe (dessiné par js/externe.js) ----------
+  async function externe() {
+    const z = $('#ecVueExt');
+    if (!z._ouvrir) BK.externe.dessiner(z, { type: 'audio', morceaux: async () => { if (!E.morceaux.length) await remplirMorceaux(); return E.morceaux; }, versions, msg,
+      courant: () => ({ m: E.m, v: E.A }) });
+    await z._ouvrir();
+  }
   $$('#ecVues button').forEach(b => b.onclick = () => vue(b.dataset.v));
   async function historique() {
     E.toutes = await BK.db.liste('notesmix').catch(() => []);

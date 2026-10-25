@@ -7,7 +7,7 @@ const $ = (s, r = document) => r.querySelector(s);
 const $$ = (s, r = document) => [...r.querySelectorAll(s)];
 
 const BK = {
-  version: '0.9.67 bêta',
+  version: '0.9.68 bêta',
   modules: {},
   onglets: [],
   cotes: [],
@@ -225,6 +225,7 @@ const BK = {
     'Pour rester dans le même pétrin que le groupe,<br><b>prends la nouvelle version.</b>',
     'C\'est pas de la confiture donnée aux cochons :<br><b>c\'est la mise à jour.</b>',
     'Il reste une biscotte au fond du paquet…<br><b>la nouvelle version. Prends-la !</b>',
+    'On a mis les petits plats dans les grands :<br><b>même les invités ont droit à une biscotte. Mets à jour.</b>',
   ],
   motMaj(v) { let h = 0; for (const c of String(v || '')) h = (h * 31 + c.charCodeAt(0)) >>> 0; return BK.MOTS_MAJ[(h + 1) % BK.MOTS_MAJ.length]; },
   popupMaj(m) {

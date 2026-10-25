@@ -1,0 +1,46 @@
+/* =====================================================================
+   EXTERNE — le sous-onglet « Externe » de Notes et retours, et les notes
+   des invités dans les listes. (Tout ce qui touche à l'espace de partage est ici.)
+   ===================================================================== */
+
+/* les notes des invités : un trait orange cuivré, et « Cachée » = grisée mais toujours là pour le groupe */
+.ec-n.externe .ec-n-l > b::before{content:'';display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--pc);margin-right:5px;vertical-align:1px}
+.ec-n.cache{opacity:.4;background:repeating-linear-gradient(135deg,rgba(239,230,210,.04) 0 6px,transparent 6px 12px)}
+.ec-n.cache .ec-n-txt{text-decoration:line-through;text-decoration-color:rgba(239,230,210,.4)}
+
+/* le sous-onglet : liens à gauche, nouveau lien + adresse à droite */
+#ecVueExt{align-items:stretch}
+.ex-liens{width:420px;flex:none;display:flex;flex-direction:column;min-height:0}
+.ex-liste{overflow:auto;display:flex;flex-direction:column;gap:8px}
+.ex-droite{flex:1;min-width:0;display:flex;flex-direction:column;gap:12px;overflow:auto}
+.ex-ligne{display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap}
+.ex-ligne label{flex:1;min-width:180px;display:flex;flex-direction:column;gap:4px}
+.ex-nouveau{display:flex;flex-direction:column;gap:10px}
+.ex-nouveau > label{display:flex;flex-direction:column;gap:4px}
+.ex-t{margin-top:6px}
+.ex-ajout .fld{flex:1;min-width:160px}
+.ex-choisis{display:flex;flex-direction:column;gap:4px}
+.ex-choisi{display:flex;align-items:center;gap:8px;padding:5px 9px;border-radius:5px;background:rgba(239,230,210,.05);border-left:4px solid #e08a5a}
+.ex-choisi .btn{margin-left:auto}
+.ex-url{display:flex;flex-direction:column;gap:8px}
+.ex-url.vide{box-shadow:inset 0 0 0 1px rgba(224,138,90,.7),0 0 12px rgba(224,138,90,.25)}
+.ex-url .fld{flex:1}
+
+/* un lien : une petite carte, étiquette Dymo pour le droit */
+.ex-lien{display:flex;flex-direction:column;gap:5px;padding:9px 11px;border-radius:6px;background:rgba(239,230,210,.05);border-left:4px solid #e08a5a}
+.ex-lien.coupe{opacity:.55;border-left-color:#6a5a4a}
+.ex-lien-t{display:flex;align-items:center;gap:10px}
+.ex-lien-t b{font-size:14px}
+.ex-dymo{margin-left:auto;font-size:11px!important;padding:4px 8px 3px!important;transform:rotate(1deg)}
+.ex-lien-b{display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-top:3px}
+.ex-seg{padding:3px!important;gap:3px!important}
+.ex-seg button{min-height:22px!important;padding:0 7px!important;font-size:9px!important;letter-spacing:.06em!important;min-width:0!important}
+
+/* ---------- réactions (pouce / croix) et couleur d'une note (clic droit) : pour le groupe et les invités ---------- */
+.ec-reac{gap:3px!important;padding:0 6px!important}
+.ec-reac-p{display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--pc);margin-left:1px}
+.ec-n.marquee{background:color-mix(in srgb,var(--marque) 22%,transparent);box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--marque) 70%,transparent)}
+.ec-palette{position:fixed;z-index:50;display:flex;gap:6px;padding:7px;border-radius:8px;background:linear-gradient(180deg,#3a2718,#22160d);box-shadow:0 0 0 1px rgba(168,135,78,.5),0 8px 20px rgba(0,0,0,.6)}
+.ec-palette button{width:24px;height:24px;border:0;border-radius:50%;background:var(--c);cursor:pointer;box-shadow:inset 0 -2px 3px rgba(0,0,0,.35),0 1px 2px rgba(0,0,0,.5)}
+.ec-palette button.on{box-shadow:0 0 0 2px #efe6d2,inset 0 -2px 3px rgba(0,0,0,.35)}
+.ec-palette button.aucune{background:#161009;color:#bfae92;font-size:11px}

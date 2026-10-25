@@ -12,7 +12,7 @@
     '⚙': 'A_engrenage', '🔧': 'A_engrenage', '🔍': 'A_loupe',
     '✎': 'A_crayon', '✏': 'A_crayon', '⬇': 'A_telecharger', '★': 'A_etoile',
     '🔊': 'A_volume', '🔗': 'A_lien', '💾': 'A_disquette', '⚠': 'A_alerte',
-    '🔁': 'A_boucle', '⏹': 'A_stop',
+    '🔁': 'A_boucle', '⏹': 'A_stop', '👍': 'A_pouce',
     '🎧': 'A_casque', '🎛': 'A_mixeur',
     '🎤': 'H_micro', '🎬': 'H_clap', '✨': 'H_etincelle', '🚀': 'H_fusee',
     '🎵': 'H_note', '♪': 'H_note', '💬': 'H_bulle', '📁': 'H_dossier', '📂': 'H_dossier',

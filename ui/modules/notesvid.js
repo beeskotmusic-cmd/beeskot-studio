@@ -9,8 +9,7 @@
 const N = { src: null, notes: [], toutes: [], morceaux: [], tournages: [], sel: null, tout: false, vue: BK.reglage('notesvid.vue', 'notes'), hk: '', hf: '' };
 const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 const tps = s => { s = Math.max(0, s || 0); return Math.floor(s / 60) + ':' + String(Math.floor(s % 60)).padStart(2, '0'); };
-const COULEURS = { Yacine: '#f1c453', Pierre: '#7ee08a', Baptiste: '#c58af0' };
-const couleur = q => COULEURS[q] || '#d9b67a';
+const couleur = q => BK.externe.couleurDe(q);
 const moi = () => BK.reglage('nomPc', '') || 'Quelqu\'un';
 const qui = n => n.auteur || n.par;
 
@@ -19,7 +18,7 @@ BK.module('notesvid', function (page) {
   $('.hdr .right', page).innerHTML = `<div><span class="eng" style="font-size:9px">Vidéo</span><span class="vfd" id="nvNomH" style="width:220px">—</span></div>
     <div><span class="eng" style="font-size:9px">Notes</span><span class="vfd" id="nvNbH">—</span></div>`;
   $('.grid', page).innerHTML = `
-    <div class="seg ec-vues" id="nvVues"><button data-v="notes">Notes</button><button data-v="histo">Historique de notes</button></div>
+    <div class="seg ec-vues" id="nvVues"><button data-v="notes">Notes</button><button data-v="histo">Historique de notes</button><button data-v="externe" title="Des liens secrets pour les gens de l'extérieur (caméraman…) : ils regardent, dessinent et laissent des notes ici">Externe</button></div>
     <div class="cols ec-cols" id="nvVueNotes">
       <section class="pane vit ec-vit nv-vit">
         <div class="nv-barre">
@@ -54,6 +53,7 @@ BK.module('notesvid', function (page) {
           <button class="btn xs" id="nvHCopier" style="margin-left:auto">📋 Copier</button></div>
         <div class="ec-liste" id="nvHL"></div></div></section>
     </div>
+    <div class="cols ec-cols hidden" id="nvVueExt"></div>
     <div class="pane abar"><span class="vfd" id="nvMsg">PRÊT</span></div>`;
   const msg = t => $('#nvMsg').textContent = String(t).toUpperCase().slice(0, 90);
   const vid = $('#nvVideo'), ligne = $('#nvLigne');
@@ -190,16 +190,17 @@ BK.module('notesvid', function (page) {
     if (T === 'date') { const g = {}; [...l].sort((a, b) => (a.quand || '').localeCompare(b.quand || '')).forEach(n => (g[jour(n.quand)] = g[jour(n.quand)] || []).push(n));
       return Object.keys(g).sort().map(k => ({ cle: 'date:' + k, titre: new Date(k + 'T12:00').toLocaleDateString('fr-CA', { weekday: 'long', day: 'numeric', month: 'long' }), l: g[k] })); }
     if (T === 'membre') { const g = {}; l.forEach(n => (g[qui(n)] = g[qui(n)] || []).push(n)); const O = ['Yacine', 'Baptiste', 'Pierre'], r = p => { const i = O.indexOf(p); return i < 0 ? 99 : i; };
-      return Object.keys(g).sort((a, b) => r(a) - r(b) || a.localeCompare(b)).map(k => ({ cle: 'membre:' + k, titre: 'Notes de ' + k, pc: couleur(k), l: g[k].sort((a, b) => a.t - b.t) })); }
+      return Object.keys(g).sort((a, b) => r(a) - r(b) || a.localeCompare(b)).map(k => ({ cle: 'membre:' + k, titre: /^Externe · /.test(k) ? 'Externe : notes de ' + k.slice(10) : 'Notes de ' + k, pc: couleur(k), l: g[k].sort((a, b) => a.t - b.t) })); }
     return [{ cle: '', l: [...l].sort((a, b) => a.t - b.t) }];
   }
-  const ligneNote = n => `<div class="ec-n${n.regle ? ' regle' : ''}" data-n="${n.id}" style="--pc:${couleur(qui(n))}">
+  const ligneNote = n => `<div class="ec-n${n.regle ? ' regle' : ''}${BK.externe.reac.classes(n)}" data-n="${n.id}" style="--pc:${couleur(qui(n))}${BK.externe.reac.style(n)}" title="Clic droit : marquer d'une couleur">
       <button class="ec-n-t mono${n.tout ? ' tout' : ''}" data-aller="${n.id}" title="${n.dessin ? 'Voir l\'image avec le dessin' : 'Aller à ce moment'}">${n.tout ? 'TOUT' : tps(n.t) + (n.fin ? ' → ' + tps(n.fin) : '')}${n.dessin ? ' ✏' : ''}</button>
       <div class="ec-n-c"><div class="ec-n-l">${tri() === 'membre' ? '' : `<b>${esc(qui(n))}</b>`}<span class="ec-n-txt" data-txt="${n.id}">${esc(n.texte)}</span>${n.modifie ? '<em class="ec-modif">modifiée</em>' : ''}</div>
         ${(n.reponses || []).map(r => `<div class="ec-rep" style="--pc:${couleur(r.par)}"><b>${esc(r.par)}</b> ${esc(r.texte)}</div>`).join('')}
         <div class="ec-rep-f hidden"><input class="fld" placeholder="Ta réponse… (Entrée)"></div></div>
-      <div class="ec-n-o"><button class="btn xs" data-rep="${n.id}" title="Répondre">💬 ${(n.reponses || []).length || ''}</button>
+      <div class="ec-n-o">${BK.externe.reac.html(n)}<button class="btn xs" data-rep="${n.id}" title="Répondre">💬 ${(n.reponses || []).length || ''}</button>
         <button class="btn xs${n.regle ? ' on' : ''}" data-ok="${n.id}" title="Réglé / pas réglé">${n.regle ? '✓ réglé' : '○'}</button>
+        ${BK.externe.reac.cacherHtml(n)}
         ${qui(n) === moi() ? `<button class="btn xs" data-ed="${n.id}" title="Modifier ma note">✎</button><button class="btn xs" data-x="${n.id}" title="Retirer ma note">✕</button>` : ''}</div></div>`;
   function rendreListe(z, l, vide) { const P = plies();
     z.innerHTML = l.length ? groupes(l).map(g => !g.cle ? g.l.map(ligneNote).join('') : `<div class="ec-dos${P[g.cle] ? ' plie' : ''}"${g.pc ? ` style="--pc:${g.pc}"` : ''}>
@@ -213,6 +214,7 @@ BK.module('notesvid', function (page) {
       if (n.dessin && n.dessin.length && D()) { vid.pause(); vid.currentTime = n.t; majTete(); setTimeout(() => montrer(n.dessin), 120); return; }   // une note dessinée : on s'arrête sur l'image, avec le dessin
       if (!n.tout && D()) { vid.currentTime = Math.max(0, n.t - 0.5); if (n.fin) { N.sel = { a: n.t, b: n.fin }; majSel(); } vid.play(); } });
     $$('[data-ok]', z).forEach(b => b.onclick = async () => { const n = trouver(b.dataset.ok); n.regle = !n.regle; await BK.db.ecrire('notesvid', n); redessiner(); });
+    BK.externe.reac.brancher(z, trouver, 'notesvid', redessiner, msg);
     $$('[data-x]', z).forEach(b => b.onclick = async () => { const n = trouver(b.dataset.x); if (!await BK.confirmer('Retirer ta note ?')) return;
       for (const a of [N.notes, N.toutes]) { const i = a.indexOf(n); if (i >= 0) a.splice(i, 1); } await BK.db.supprimer('notesvid', n.id); redessiner(); });
     $$('[data-ed]', z).forEach(b => b.onclick = () => { const n = trouver(b.dataset.ed), sp = $(`[data-txt="${n.id}"]`, z); if (!sp || sp.querySelector('input')) return;
@@ -291,7 +293,10 @@ BK.module('notesvid', function (page) {
 
   // ---------- les deux sous-onglets, la poignée ----------
   function vue(v) { N.vue = v; BK.regler('notesvid.vue', v); $$('#nvVues button').forEach(b => b.classList.toggle('on', b.dataset.v === v));
-    $('#nvVueNotes').classList.toggle('hidden', v !== 'notes'); $('#nvVueHisto').classList.toggle('hidden', v !== 'histo'); if (v === 'histo') { vid.pause(); historique(); } }
+    $('#nvVueNotes').classList.toggle('hidden', v !== 'notes'); $('#nvVueHisto').classList.toggle('hidden', v !== 'histo'); $('#nvVueExt').classList.toggle('hidden', v !== 'externe');
+    if (v === 'histo') { vid.pause(); historique(); } if (v === 'externe') { vid.pause(); externe(); } }
+  // ---------- le sous-onglet Externe (dessiné par js/externe.js, comme dans Notes et retours) ----------
+  async function externe() { const z = $('#nvVueExt'); if (!z._ouvrir) BK.externe.dessiner(z, { type: 'video', msg }); await z._ouvrir(); }
   $$('#nvVues button').forEach(b => b.onclick = () => vue(b.dataset.v));
   const cols = $('#nvVueNotes'), wN = w => { if (w) cols.style.setProperty('--wn', w + 'px'); else cols.style.removeProperty('--wn'); };
   wN(BK.reglage('notesvid.wNotes', 0));

@@ -325,7 +325,7 @@ BK.synchro = {
   // les collections connues : on va chercher l'identifiant de leur dossier Drive une fois,
   // sinon un changement venu d'un autre PC dans une collection jamais ouverte passe inaperçu
   COLS: ['morceaux', 'taches', 'evenements', 'tournages', 'reels', 'depenses', 'abonnements',
-         'inventaires', 'exportsaudio', 'config', 'veille', 'propositions', 'renforts', 'ameliorations', 'notesmix', 'activite', 'notesvid'],
+         'inventaires', 'exportsaudio', 'config', 'veille', 'propositions', 'renforts', 'ameliorations', 'notesmix', 'activite', 'notesvid', 'partages'],
   async prevenir() {
     if (!BK.drive || !BK.drive.relie()) return;
     const racine = await BK.drive.racine();
@@ -361,6 +361,7 @@ BK.synchro = {
       notesmix:     ['ecouteRecharger', 'biblioRecharger'],      // étiquettes, dispos du Calendrier…
       activite:     ['accueilDerniere', 'journalMaj'],
       notesvid:     ['notesvidRecharger'],
+      partages:     ['externeRecharger'],
       renforts:     ['veilleurMaj'],
       ameliorations:['veilleurMaj'],
     };
