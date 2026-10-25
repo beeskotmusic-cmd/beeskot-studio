@@ -1914,3 +1914,41 @@ body.glisse-media #nav .tab.depot-ok{box-shadow:0 0 0 2px #ffb23e,0 0 10px rgba(
 .pic{display:inline-block;width:1.25em;height:1.25em;vertical-align:-.25em;overflow:hidden;white-space:nowrap;text-indent:-9em;background:center/contain no-repeat;line-height:1}
 /* tampon : une encre qui prend la couleur du texte (clair sur fond sombre, foncé sur fond clair) */
 .pic.a{background:currentColor;-webkit-mask-size:contain;mask-size:contain;-webkit-mask-repeat:no-repeat;mask-repeat:no-repeat;-webkit-mask-position:center;mask-position:center}
+
+/* ---------- les languettes sur les bords (js/plein.js) : chacune replie ce qui est à côté d'elle ---------- */
+/* droite : la même que celle du menu à gauche, en miroir */
+.volet-d{border-radius:8px 0 0 8px;box-shadow:0 0 0 1px var(--laiton),-2px 3px 6px rgba(0,0,0,.5);background:linear-gradient(270deg,#2a1d12,#4a3320)}
+.volet-d:hover{background:linear-gradient(270deg,#3a2818,#6a4828)}
+body.droite-cachee .volet-d{background:linear-gradient(270deg,#e8b84a,#c48f22);color:#2a1a0c;box-shadow:0 0 0 1px #7a5a1a,-2px 3px 6px rgba(0,0,0,.5)}
+body.droite-cachee .volet-d:hover{background:linear-gradient(270deg,#f6cc62,#d9a232)}
+body.droite-cachee #pages>section:not(.hidden) .pane.reg{display:none!important}
+body:not(:has(#pages>section:not(.hidden) .pane.reg)) .volet-d{display:none}     /* pas de colonne de droite sur cet onglet */
+/* haut et bas : une rainure de hauteur 0 (ne prend pas de place), la languette couchée au milieu */
+.rainure{position:relative;height:0;flex:none;z-index:6}
+.languette{position:absolute;left:50%;transform:translateX(-50%);width:74px;height:16px;border:0;padding:0;cursor:pointer;font:700 12px/1 inherit;color:#ffd48e;
+  background:linear-gradient(180deg,#4a3320,#2a1d12);box-shadow:0 0 0 1px var(--laiton),0 3px 6px rgba(0,0,0,.5);transition:background .2s,color .2s}
+.languette:hover{background:linear-gradient(180deg,#6a4828,#3a2818);color:#fff0c8}
+.rainure-haut .languette{top:0;border-radius:0 0 8px 8px}
+.rainure-bas .languette{bottom:1px;border-radius:8px 8px 0 0;background:linear-gradient(0deg,#4a3320,#2a1d12)}
+body.haut-cache .rainure-haut .languette,body.bas-cache .rainure-bas .languette{background:linear-gradient(180deg,#f0c050,#c48f22);color:#2a1a0c;box-shadow:0 0 0 1px #7a5a1a,0 3px 6px rgba(0,0,0,.5)}
+body.haut-cache .top,body.haut-cache .stripe{display:none}
+body.bas-cache #pages>section:not(.hidden) .pane.abar{display:none!important}
+body:not(:has(#pages>section:not(.hidden) .pane.abar)) .rainure-bas{display:none}   /* pas de barre du bas sur cet onglet */
+body.bas-cache .rainure-bas .languette::after{content:" barre du bas";font:600 9px/1 "Work Sans",sans-serif;letter-spacing:.08em;text-transform:uppercase}
+body.bas-cache .rainure-bas .languette{width:auto;padding:0 12px}
+
+/* ---------- Social Photo : preset affiché, photo coupée en deux, posts enregistrés ---------- */
+#pvPreset.pv-preset-on{color:#ffd48e;box-shadow:inset 0 0 0 1px #c48f22}
+.pv-mini.pano{background-size:auto 100%!important}
+.pv-mini.pano.p0{background-position:left center!important;border-top-right-radius:0;border-bottom-right-radius:0;margin-right:-4px}
+.pv-mini.pano.p1{background-position:right center!important;border-top-left-radius:0;border-bottom-left-radius:0}
+.pv-mini.pano::after{content:"";position:absolute;left:0;right:0;bottom:0;height:4px;background:linear-gradient(90deg,#e8b84a,#c48f22)}
+.pv-enr{overflow:auto}
+.pv-enr-l{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:14px;align-content:start}
+.pv-enr-c{display:flex;flex-direction:column;gap:6px;padding:10px;border-radius:8px;background:rgba(0,0,0,.25);box-shadow:0 0 0 1px var(--laiton)}
+.pv-enr-c.on{box-shadow:0 0 0 2px #e8b84a}
+.pv-enr-c b{font:600 13px/1.2 "Work Sans",sans-serif;color:var(--crm);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.pv-enr-c .nt{margin:0;font-size:11px}
+.pv-enr-v{aspect-ratio:4/5;border-radius:4px;background:#1a110a center/cover no-repeat}
+.pv-enr-b{display:flex;gap:6px}.pv-enr-b .btn.pri{flex:1;justify-content:center}
+.pv-seg:has(#pvDeux){grid-template-columns:repeat(4,1fr)}

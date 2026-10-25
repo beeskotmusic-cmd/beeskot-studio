@@ -3,6 +3,12 @@
 // Pour une nouvelle version : ajouter un bloc EN HAUT de la liste. Une ligne courte par point : « Onglet : ce qui change. »
 // =====================================================================
 BK.NOUVEAUTES = [
+  { v: '0.9.67', titre: '', l: [
+    ['›', 'Une languette sur chaque bord (haut, gauche, droite, bas) replie ce qui est à côté, pour plus de place.'],
+    ['⤢', 'Tout replier d\'un coup : Ctrl + Maj + F, ou double-clic sur le titre de la page.'],
+    ['📸', 'Social Photo : le preset choisi reste affiché (« modifié » si tu retouches).'],
+    ['✂', 'Social Photo : couper une photo en deux images qui se suivent (panorama), raccord invisible.'],
+    ['💾', 'Social Photo : « Enregistrer pour plus tard » et un onglet « Posts enregistrés » (dans le Drive, pour tout le groupe).'] ] },
   { v: '0.9.66', titre: '', l: [
     ['✨', 'Nouveaux pictos maison (tampon, brodé) à la place des emojis, partout dans le logiciel.'],
     ['🎧', 'Notes et retours : si on change de morceau ou de version vite, le son qui joue est toujours celui affiché (plus de Glamorous Sky à la place d\'OPP).'] ] },
@@ -237,7 +243,9 @@ BK.TUTO = [
       'Clic sur le patch de Miette en haut : 📖 Tout relire, 🔄 Actualiser, 📜 Voir les updates des membres (« 10h25 · Pierre a ajouté des notes dans Notes et retours »), et qui est en ligne. Un membre qui ne fait rien pendant 20 min passe hors ligne.',
       'Chaque cadre avec un titre se replie d\'un clic sur ce titre (▾ / ▸). Tire son bord du bas pour l\'agrandir ; double-clic sur ce bord = taille normale. C\'est gardé sur ton PC.',
       'Chaque titre du menu de gauche (Audiovisuel, Organisation…) se replie d\'un clic.',
-      'La petite languette ‹ au bord du menu le replie : il ne reste que les traits de couleur, la page prend plus de place. La languette devient jaune : clique dessus pour redéplier. Passe la souris sur un trait pour voir le nom de l\'onglet.' ] },
+      'La petite languette ‹ au bord du menu le replie : il ne reste que les traits de couleur, la page prend plus de place. La languette devient jaune : clique dessus pour redéplier. Passe la souris sur un trait pour voir le nom de l\'onglet.',
+      'Une languette sur chaque bord replie ce qui est juste à côté : en haut le bandeau, à gauche le menu, à droite la colonne de droite, en bas la barre du bas. Repliée, elle devient jaune : clique pour redéplier. C\'est gardé sur ton PC.',
+      'Tout replier ou tout déplier d\'un coup : Ctrl + Maj + F, ou double-clic sur le titre de la page.' ] },
   { o: 'Accueil', ic: '🏠', quoi: 'Le résumé du moment : la dernière action faite par un membre, ce qui s\'est passé cette semaine (Discord et mails), le prochain rendez-vous, la prochaine sortie et ce qu\'il reste à faire.',
     comment: [
       ['Mettre le résumé de la semaine à jour', 'Clique ↻ dans la case « Cette semaine », ou la biscotte jaune. Miette relit les messages et les mails des 7 derniers jours.'],
@@ -396,6 +404,9 @@ BK.TUTO = [
       ['Faire un post', '+ Ajouter des photos → la fenêtre Médias s\'ouvre (dossiers, Discord, et « Filtrer » en haut : clique une rubrique puis une étiquette en dessous pour voir ce qu\'elle contient) → choisis les photos → Ajouter au post. Puis De quoi parle le post ? ▾, le format (Story 9:16, Portrait 4:5, Carré, Paysage), règle chaque photo → Exporter les images.'],
       ['Régler une photo', 'Clique-la dans la bande → Cadrage (Entière, Remplir, Centrer), Zoom (glisse la souris sur la case), glisse l\'image dans l\'aperçu pour la déplacer. Double-clic sur un réglage (zoom, contraste, lumière, saturation, intensité, taille du cadre) = sa valeur par défaut ; tape un chiffre pour l\'écrire.'],
       ['Mettre une couleur ou un effet', 'Preset : un menu de looks tout prêts (Été 70, Souvenir Polaroid, Super 8, Diapo 70, Coucher de soleil, Vieux sépia…) qui règle couleur, effet, contraste, lumière, saturation et cadre d\'un coup ; tu peux tout retoucher après. Si tu avais déjà réglé des choses à la main, le logiciel te demande avant de les remplacer. Réglages : contraste, lumière, saturation (glisse la souris sur la case). Couleur : un filtre ou ta LUT, avec son intensité. Effet : vintage, délavé années 70, Polaroid, Super 8, sépia, noir et blanc, fuites de lumière (orange, dorée, rose), pellicule brûlée, halo, grain, VHS… À côté, Intensité : de 0 % (rien) à 100 % (plein effet). L\'effet va sur toutes les photos du carrousel. Cadre : la photo posée dans un Polaroid, une vieille photo, une pellicule 35 mm, un négatif scanné ou une diapositive ; Taille : un cadre fin ou épais.'],
+      ['Garder le preset en vue', 'Le preset choisi reste écrit dans la case. Si tu retouches un réglage ensuite, il devient « (modifié) ».'],
+      ['Couper une photo en deux (panorama)', 'Clique la photo dans la bande → ✂ En deux : elle devient deux images qui se suivent quand on swipe. Zoom, glisser, preset, couleur, effet et cadre vont sur la grande image entière : le raccord est invisible. ⛓ Réunir pour revenir à une seule photo. Les deux moitiés bougent et s\'effacent ensemble.'],
+      ['Enregistrer un post pour plus tard', 'En bas, 💾 Enregistrer pour plus tard : photos, ordre, réglages et légende vont dans le Drive BEESKOT. En haut, « Posts enregistrés » : tout le groupe les retrouve, Ouvrir pour continuer, ✕ pour retirer (rangé dans la corbeille). Réenregistrer un post ouvert le met à jour.'],
       ['Trouver une légende', '✨ Idées de légende : Miette en propose. Copier la légende pour la coller sur Instagram.'] ],
     astuces: [ 'Tourner : la molette pour pencher la photo (double-clic = droite), ⟲ / ⟳ pour un quart de tour.', 'Sans photo, le téléphone montre une photo du groupe un peu effacée, pour voir le rendu : clique dessus pour ajouter tes photos.' ] },
   { o: 'Reels Vidéo', ic: '🎞', quoi: 'Monte une vidéo verticale (1080×1920) : couper, recadrer, couleur, effet, sous-titres calés sur la musique, export MP4.',
