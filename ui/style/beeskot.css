@@ -1909,3 +1909,8 @@ body.glisse-media #nav .tab.depot-ok{box-shadow:0 0 0 2px #ffb23e,0 0 10px rgba(
 .ec-n.regle,.ret-n.regle{height:auto!important;margin-top:0!important;font:inherit!important;color:inherit!important}
 .ec-mq.regle{height:10px!important;margin-top:0!important}
 .ec-mq.passage.regle{height:10px!important}
+
+/* ---------- pictos maison (js/pictos.js) : l'emoji reste dans le texte mais caché ---------- */
+.pic{display:inline-block;width:1.25em;height:1.25em;vertical-align:-.25em;overflow:hidden;white-space:nowrap;text-indent:-9em;background:center/contain no-repeat;line-height:1}
+/* tampon : une encre qui prend la couleur du texte (clair sur fond sombre, foncé sur fond clair) */
+.pic.a{background:currentColor;-webkit-mask-size:contain;mask-size:contain;-webkit-mask-repeat:no-repeat;mask-repeat:no-repeat;-webkit-mask-position:center;mask-position:center}

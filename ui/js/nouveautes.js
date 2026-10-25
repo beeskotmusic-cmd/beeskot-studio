@@ -3,6 +3,9 @@
 // Pour une nouvelle version : ajouter un bloc EN HAUT de la liste. Une ligne courte par point : « Onglet : ce qui change. »
 // =====================================================================
 BK.NOUVEAUTES = [
+  { v: '0.9.66', titre: '', l: [
+    ['✨', 'Nouveaux pictos maison (tampon, brodé) à la place des emojis, partout dans le logiciel.'],
+    ['🎧', 'Notes et retours : si on change de morceau ou de version vite, le son qui joue est toujours celui affiché (plus de Glamorous Sky à la place d\'OPP).'] ] },
   { v: '0.9.65', titre: '', l: [
     ['✓', 'Notes et retours, Notes vidéos : une note « réglée » ne s\'écrase plus sur les autres.'],
     ['▶', 'Historique des notes : « Ouvrir » est juste sous le nom du morceau.'],

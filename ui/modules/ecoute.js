@@ -91,12 +91,14 @@ BK.module('ecoute', function (page) {
     return opts;
   }
   async function choisirMorceau() {
-    stop(); const id = $('#ecMorceau').value; BK.regler('ecoute.morceau', id);
+    stop(); const tour = E.tourM = (E.tourM || 0) + 1;   // numéro de ce chargement : si on change de morceau avant la fin, l'ancien est jeté
+    const id = $('#ecMorceau').value; BK.regler('ecoute.morceau', id);
     E.m = E.morceaux.find(x => x.id === id) || null; $('#ecNomH').textContent = E.m ? E.m.nom.toUpperCase() : '—';
-    E.bufA = E.bufB = null; E.A = E.B = null; dessiner();
+    E.bufA = E.bufB = null; E.A = E.B = null; E.tourA = (E.tourA || 0) + 1; E.tourB = (E.tourB || 0) + 1; dessiner();
     if (!E.m) { $('#ecA').innerHTML = $('#ecB').innerHTML = ''; return chargerNotes(); }
     $('#ecA').innerHTML = $('#ecB').innerHTML = '<option>recherche…</option>';
-    E.opts = await versions(E.m);
+    const opts = await versions(E.m); if (tour !== E.tourM) return;
+    E.opts = opts;
     const html = E.opts.length ? E.opts.map(o => `<option value="${esc(o.v)}">${o.v === E.m.exportPrincipal ? '★ ' : ''}${o.ou} ${esc(o.nom)}</option>`).join('') : '<option value="">aucun export trouvé</option>';
     $('#ecA').innerHTML = html; $('#ecB').innerHTML = '<option value="">— Aucun (un seul mix)</option>' + (E.opts.length ? html : '');
     // A = la version choisie dans la fiche (Bibliothèque), sinon la plus récente ; B = celle choisie dans la fiche, sinon celle d'avant.
@@ -112,6 +114,7 @@ BK.module('ecoute', function (page) {
     const b0 = bGarde ? (E.m.ecouteB === '-' ? null : E.opts.find(o => o.v === E.m.ecouteB && o !== a0) || tous.find(o => o !== a0)) : tous.find(o => o !== a0);
     if (a0) $('#ecA').value = a0.v; $('#ecB').value = b0 ? b0.v : '';                     // une seule version : B = aucun
     await Promise.all([chargerCote('A'), chargerCote('B')]);
+    if (tour !== E.tourM) return;
     chargerNotes();
   }
   // une version gardée qui n'est plus dans la liste (glissée depuis Médias…) : on la remet avec son nom
@@ -126,11 +129,14 @@ BK.module('ecoute', function (page) {
     return BK.fichier.lireOctets(v);
   }
   async function chargerCote(c) {
-    const v = $('#ec' + c).value;
+    const v = $('#ec' + c).value, tour = E['tour' + c] = (E['tour' + c] || 0) + 1;   // un chargement plus récent du même côté annule celui-ci
     if (!v) { E[c] = null; E['buf' + c] = null; solo(); dessiner(); $('#ecPlay').disabled = !(E.bufA || E.bufB); return; }
     E[c] = v; msg('Chargement de la version ' + c + '…');
-    try { E['buf' + c] = await BK.audio.decoder(await octetsDe(v)); }
-    catch (e) { E['buf' + c] = null; msg('Version ' + c + ' illisible'); }
+    let buf = null;
+    try { buf = await BK.audio.decoder(await octetsDe(v)); }
+    catch (e) { if (tour === E['tour' + c]) msg('Version ' + c + ' illisible'); }
+    if (tour !== E['tour' + c]) return;   // trop tard : on a changé de version ou de morceau entre-temps
+    E['buf' + c] = buf;
     E.decal = (BK.reglage('ecoute.decal', {})[E.A + '|' + E.B]) || 0; majDecal();
     $('#ecPlay').disabled = !(E.bufA || E.bufB); $('#ecVide').classList.toggle('hidden', !!(E.bufA || E.bufB));
     solo(); dessiner(); msg(E.bufA && E.bufB ? 'Prêt : A et B · Tab pour passer de l\'une à l\'autre' : 'Prêt');
