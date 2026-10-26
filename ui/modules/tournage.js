@@ -75,6 +75,9 @@ BK.module('tournage', function (page) {
   }
 
   // ---------- la fiche ----------
+  // largeurs des colonnes du découpage : celles que Dari a réglées sur ce PC, sinon des valeurs de départ
+  const COLS0 = { cadrage: 150, duree: 70, notes: 300, imgs: 150 };
+  const largeurCol = k => (BK.reglage('tournage.cols', {}) || {})[k] || COLS0[k];
   function rendreFiche() {
     const t = T.courant, z = $('#toFiche');
     $('#toPdf').disabled = !t || T.vue !== 'fiche'; $('#toCal').disabled = T.vue !== 'tournage';
@@ -120,7 +123,7 @@ BK.module('tournage', function (page) {
           <label class="large"><span class="eng">L'idée en une phrase</span><input class="fld" data-c="idee" value="${esc(t.idee)}" placeholder="ex. ambiance VHS, lumière rouge, plans serrés sur les mains"></label>
         </div></div>
       <div class="box"><div class="ligne-titre"><span class="lb">Moodboard</span><button class="btn xs miette-aide" id="toMoodMiette" style="margin-left:auto" title="Miette cherche les images de moodboard de ce tournage dans le Drive et sur Discord">Trouver</button></div>
-        <div class="to-mood" id="toMood">${t.moodboard.map((u, i) => `<div class="to-img"${BK.img.bg(u)}><button class="md-x" data-mx="${i}">✕</button></div>`).join('')}
+        <div class="to-mood" id="toMood">${t.moodboard.map((u, i) => `<div class="to-img" draggable="true" data-mi="${i}" title="Glisse cette image sur un plan du découpage"${BK.img.bg(u)}><b class="to-n">${i + 1}</b><button class="md-x" data-mx="${i}">✕</button></div>`).join('')}
           <button class="to-img to-plus to-plus-tag" id="toMoodTag" title="Depuis Médias (dossiers, Discord, étiquettes)">＋<small>Ajouter des images</small></button><button class="to-img to-plus" id="toMoodPlus" title="Images de ce PC">💻<small>Ce PC</small></button></div>
         ${(t.moodboardDocs || []).length ? `<div class="to-docs">${t.moodboardDocs.map((d, i) => `<span class="to-doc"><a href="#" data-url="${esc(d.url)}">📄 ${esc(d.nom)}</a><button class="md-x" data-dx="${i}">✕</button></span>`).join('')}</div>` : ''}
         ${t.moodboardAuto ? '<span class="nt">🍞 Rempli par Miette depuis le dossier moodboard du Drive.</span>' : ''}
@@ -130,12 +133,14 @@ BK.module('tournage', function (page) {
           <div class="to-refs-add"><input class="fld" id="toRefUrl" placeholder="Colle un lien (https://…)"><input class="fld" id="toRefNote" placeholder="En un mot : pourquoi (facultatif)"><button class="btn sm" id="toRefAdd">+ Ajouter</button></div></div></div>
       <div class="box"><div class="ligne-titre"><span class="lb">Découpage</span>
           <button class="btn xs miette-aide" id="toRenfort" style="margin-left:auto" title="Miette propose un découpage plan par plan">Proposer</button></div>
-        <table class="to-plans"><thead><tr><th>#</th><th>Cadrage</th><th>Ce qu'on voit / ce qui se passe</th><th>Durée</th><th>Notes</th><th></th></tr></thead>
+        <table class="to-plans"><colgroup><col style="width:28px"><col style="width:${largeurCol('cadrage')}px"><col><col style="width:${largeurCol('duree')}px"><col style="width:${largeurCol('notes')}px"><col style="width:${largeurCol('imgs')}px"><col style="width:76px"></colgroup>
+          <thead><tr><th>#</th><th>Cadrage<i class="to-rz" data-rz="cadrage" title="Tirer pour changer la largeur"></i></th><th>Ce qu'on voit / ce qui se passe</th><th>Durée<i class="to-rz" data-rz="duree" title="Tirer pour changer la largeur"></i></th><th>Notes<i class="to-rz" data-rz="notes" title="Tirer pour changer la largeur"></i></th><th>Images<i class="to-rz" data-rz="imgs" title="Tirer pour changer la largeur"></i></th><th></th></tr></thead>
           <tbody>${t.plans.map((p, i) => `<tr data-i="${i}"><td class="mono">${i + 1}</td>
             <td><select class="fld" data-p="cadrage"><option value="">—</option>${CADRAGES.map(c => `<option${p.cadrage === c ? ' selected' : ''}>${c}</option>`).join('')}</select></td>
-            <td>${p.reel ? `<div class="to-reel"><b>${esc(p.reel)}</b><span>${esc([p.audio, p.horaire, p.lieu, p.camera ? '🎥 cameraman' : ''].filter(Boolean).join(' · '))}</span><button class="btn xs" data-audio="${i}">→ Audio</button></div>` : ''}<input class="fld" data-p="action" value="${esc(p.action)}"></td>
+            <td>${p.reel ? `<div class="to-reel"><b>${esc(p.reel)}</b><span>${esc([p.audio, p.horaire, p.lieu, p.camera ? '🎥 cameraman' : ''].filter(Boolean).join(' · '))}</span><button class="btn xs" data-audio="${i}">→ Audio</button></div>` : ''}<textarea class="fld auto" rows="1" data-p="action">${esc(p.action)}</textarea></td>
             <td><input class="fld court" data-p="duree" value="${esc(p.duree)}" placeholder="5 s"></td>
-            <td><input class="fld" data-p="notes" value="${esc(p.notes)}"></td>
+            <td><textarea class="fld auto" rows="1" data-p="notes">${esc(p.notes)}</textarea></td>
+            <td class="to-pim" data-drop="${i}">${(p.imgs || []).map((u, k) => { const n = t.moodboard.indexOf(u) + 1; return `<span class="to-vig"${BK.img.bg(u)} data-vu="${i}|${k}" title="Agrandir">${n ? `<b class="to-n">${n}</b>` : ''}<button class="md-x" data-vx="${i}|${k}" title="Détacher de ce plan">✕</button></span>`; }).join('')}<button class="btn xs to-pim-plus" data-ia="${i}" title="Ajouter une image à ce plan (ou glisse-la ici depuis le moodboard)">＋</button></td>
             <td class="to-btns"><button class="btn xs" data-haut="${i}" title="Monter">↑</button><button class="btn xs" data-px="${i}" title="Retirer">✕</button></td></tr>`).join('')}</tbody></table>
         <button class="btn xs" id="toPlan" style="margin-top:8px">+ Ajouter un plan</button></div>
       <div class="deux-box">
@@ -204,12 +209,49 @@ BK.module('tournage', function (page) {
         await BK.db.ecrire('tournages', t); msg(n + ' photo(s) de tenue ajoutée(s)'); rendreFiche(); };
     };
     $$('.to-plans tr[data-i]', z).forEach(tr => $$('[data-p]', tr).forEach(c => c.oninput = c.onchange = () => { t.plans[+tr.dataset.i][c.dataset.p] = c.value; sauver(t); }));
+    // ---------- découpage : champs qui s'agrandissent, colonnes réglables, images liées aux plans ----------
+    const grandir = ta => { if (!ta.offsetParent) return; ta.style.height = 'auto'; ta.style.height = ta.scrollHeight + 'px'; };
+    const grandirTous = () => $$('.to-plans textarea.auto', z).forEach(grandir);
+    $$('.to-plans textarea.auto', z).forEach(ta => ta.addEventListener('input', () => grandir(ta)));
+    requestAnimationFrame(grandirTous);
+    $$('[data-rz]', z).forEach(h => h.onpointerdown = e => {                       // tirer la bordure d'une colonne
+      e.preventDefault(); e.stopPropagation(); h.setPointerCapture(e.pointerId);
+      const k = h.dataset.rz, th = h.parentElement, col = $('.to-plans colgroup', z).children[[...th.parentElement.children].indexOf(th)], x0 = e.clientX, w0 = th.getBoundingClientRect().width;
+      h.onpointermove = ev => { col.style.width = Math.max(50, Math.min(700, w0 + ev.clientX - x0)) + 'px'; };
+      h.onpointerup = () => { h.onpointermove = h.onpointerup = null; const c = { ...BK.reglage('tournage.cols', {}) }; c[k] = Math.round(parseFloat(col.style.width)); BK.regler('tournage.cols', c); grandirTous(); }; });
+    const ajouterAuPlan = (i, u) => { const p = t.plans[i]; p.imgs = p.imgs || []; if (u && !p.imgs.includes(u)) p.imgs.push(u); };
+    // glisser une image du moodboard sur un plan
+    $$('.to-img[data-mi]', z).forEach(el => el.addEventListener('dragstart', e => { e.dataTransfer.setData('text/bk-moodimg', el.dataset.mi); e.dataTransfer.effectAllowed = 'copy'; }));
+    $$('.to-plans tr[data-i]', z).forEach(tr => {
+      tr.addEventListener('dragover', e => { if ([...e.dataTransfer.types].includes('text/bk-moodimg')) { e.preventDefault(); e.stopPropagation(); tr.classList.add('survol'); } }, true);
+      tr.addEventListener('dragleave', e => { if (!tr.contains(e.relatedTarget)) tr.classList.remove('survol'); });
+      tr.addEventListener('drop', e => { const m = e.dataTransfer.getData('text/bk-moodimg'); if (m === '') return; e.preventDefault(); e.stopPropagation(); tr.classList.remove('survol');
+        ajouterAuPlan(+tr.dataset.i, t.moodboard[+m]); sauver(t); rendreFiche(); }, true); });
+    $$('[data-vx]', z).forEach(b => b.onclick = e => { e.stopPropagation(); const [i, k] = b.dataset.vx.split('|'); t.plans[+i].imgs.splice(+k, 1); sauver(t); rendreFiche(); });
+    $$('[data-vu]', z).forEach(b => b.onclick = () => { const [i, k] = b.dataset.vu.split('|'), u = t.plans[+i].imgs[+k];       // agrandir
+      const v = document.createElement('div'); v.className = 'voile'; v.innerHTML = `<img${BK.img.src(u)} style="max-width:92vw;max-height:92vh;border-radius:4px;box-shadow:0 8px 30px #000">`; v.onclick = () => v.remove(); document.body.appendChild(v); });
+    $$('[data-ia]', z).forEach(b => b.onclick = e => {                                                     // le petit « + » : le moodboard, ou Médias
+      e.stopPropagation(); $$('.to-pop').forEach(x => x.remove()); const i = +b.dataset.ia, r = b.getBoundingClientRect();
+      const pop = document.createElement('div'); pop.className = 'to-pop';
+      pop.innerHTML = (t.moodboard.length ? `<span class="eng">Du moodboard</span><div class="to-pop-g">${t.moodboard.map((u, k) => `<span class="to-vig${(t.plans[i].imgs || []).includes(u) ? ' on' : ''}"${BK.img.bg(u)} data-pk="${k}"><b class="to-n">${k + 1}</b></span>`).join('')}</div>` : '<span class="nt">Le moodboard est vide.</span>')
+        + '<button class="btn xs" data-pm="1">＋ Depuis Médias…</button>';
+      pop.style.left = Math.max(8, Math.min(r.left, innerWidth - 300)) + 'px'; pop.style.top = Math.min(r.bottom + 4, innerHeight - 260) + 'px';
+      document.body.appendChild(pop);
+      pop.onclick = async ev => { ev.stopPropagation(); const k = ev.target.closest('[data-pk]'), m = ev.target.closest('[data-pm]');
+        if (k) { const u = t.moodboard[+k.dataset.pk], p = t.plans[i]; p.imgs = p.imgs || []; const j = p.imgs.indexOf(u); if (j >= 0) p.imgs.splice(j, 1); else p.imgs.push(u); pop.remove(); sauver(t); rendreFiche(); }
+        if (m) { pop.remove(); if (!BK.drive.relie()) return msg('Relie d\'abord le Drive');
+          const l = await BK.choisirDansMedias({ titre: 'Images pour le plan ' + (i + 1), bouton: 'Ajouter au plan', type: 'image', sujet: 'c:moodboard' }); if (!l || !l.length) return;
+          msg('Ajout des images…'); const tags = ['t:' + t.id, 'c:moodboard', 'c:tournage'];
+          for (const x of l) { try { const d = await BK.img.depuisChoix(x, 'moodboard'); if (d.ref) { if (!t.moodboard.includes(d.ref)) t.moodboard.push(d.ref); ajouterAuPlan(i, d.ref); }
+              if (d.id) for (const g of tags) await BK.etiquettes.basculer(d.id, g, true); } catch (er) { console.warn(er); } await BK.audio.pause(); }
+          BK.dossiers.oublier && BK.dossiers.oublier(); t.moodboardAuto = false; await BK.db.ecrire('tournages', t); msg(l.length + ' image(s) ajoutée(s) au plan ' + (i + 1) + ' et au moodboard'); rendreFiche(); } };
+      setTimeout(() => document.addEventListener('pointerdown', ev => { if (!pop.contains(ev.target)) pop.remove(); }, { once: true }), 0); });
     $('#toPlan').onclick = () => { t.plans.push({ cadrage: '', action: '', duree: '', notes: '' }); sauver(t); rendreFiche(); const l = $$('.to-plans [data-p="action"]'); l.length && l[l.length - 1].focus(); };
     $$('[data-px]', z).forEach(b => b.onclick = () => { t.plans.splice(+b.dataset.px, 1); sauver(t); rendreFiche(); });
     $$('[data-haut]', z).forEach(b => b.onclick = () => { const i = +b.dataset.haut; if (!i) return; [t.plans[i - 1], t.plans[i]] = [t.plans[i], t.plans[i - 1]]; sauver(t); rendreFiche(); });
     $$('.to-doc a', z).forEach(a => a.onclick = e => { e.preventDefault(); BK.ouvrirLien(a.dataset.url); });
     $$('[data-dx]', z).forEach(b => b.onclick = () => { t.moodboardDocs.splice(+b.dataset.dx, 1); sauver(t); rendreFiche(); });
-    $$('[data-mx]', z).forEach(b => b.onclick = () => { t.moodboard.splice(+b.dataset.mx, 1); sauver(t); rendreFiche(); });
+    $$('[data-mx]', z).forEach(b => b.onclick = () => { const u = t.moodboard.splice(+b.dataset.mx, 1)[0]; t.plans.forEach(p => { if (p.imgs) p.imgs = p.imgs.filter(x => x !== u); }); sauver(t); rendreFiche(); });
     $('#toMoodPlus').onclick = () => $('#toMoodIn').click();
     // en priorité : ce qui est déjà étiqueté dans Médias (moodboard, tenues, ce tournage, le morceau)
     // chaque encadré de la fiche se replie d'un clic sur son titre (et on s'en souvient)
@@ -223,7 +265,7 @@ BK.module('tournage', function (page) {
         lb.insertAdjacentHTML('afterbegin', `<span class="pli-fleche">${plis[cle] ? '▸' : '▾'}</span>`);
         box.classList.toggle('replie', !!plis[cle]);
         lb.onclick = e => { e.stopPropagation(); const p = BK.reglage('tournage.plis', {}); p[cle] = !p[cle]; BK.regler('tournage.plis', p);
-          box.classList.toggle('replie', p[cle]); lb.querySelector('.pli-fleche').textContent = p[cle] ? '▸' : '▾'; };
+          box.classList.toggle('replie', p[cle]); lb.querySelector('.pli-fleche').textContent = p[cle] ? '▸' : '▾'; setTimeout(grandirTous, 0); };
       }
     })();
     $('#toMoodTag').onclick = async () => {
@@ -500,11 +542,11 @@ BK.module('tournage', function (page) {
         <span class="to-af-voile"></span><span class="to-af-txt"><span class="eng">Tournage${tr.fini ? ' · ✓ tourné' : ''}</span><b class="dymo">${esc(tr.titre || 'Tournage')}</b>
           <span class="nt">${esc(jourFr(tr.date))}${tr.heure ? ' · ' + esc(tr.heure) : ''}${tr.lieu ? ' · ' + esc(tr.lieu) : ''}</span>
           <span class="nt to-af-chiffres">${rs.length} reel(s)${rs.length ? ' : ' + esc(rs.map(x => x.titre).join(', ')).slice(0, 120) : ''}</span></span>
-        <span class="to-af-pli">Ouvrir ▸</span></div>`; };
+        <button class="btn xs to-af-x" data-trx="${tr.id}" title="Retirer ce tournage (ses reels restent, le tournage va dans la corbeille du Drive)">🗑 Retirer</button><span class="to-af-pli">Ouvrir ▸</span></div>`; };
     const sans = T.liste.filter(x => !estTour(x) && !x.parent);
     const carteReel = x => `<div class="to-carte" draggable="true" data-tid="${x.id}"><span class="to-c-img"${BK.img.bg(imgDe(x))}>${imgDe(x) ? '' : '♪'}</span>
         <span class="to-c-txt"><span class="eng">${esc(x.type || 'Reel')}${x.morceau ? ' · ' + esc(x.morceau) : ''}</span><b>${esc(x.titre || 'Sans titre')}</b><span class="nt">${(x.plans || []).length} plan(s)</span></span>
-        <span class="to-c-btns"><button class="btn xs" data-ouvre="${x.id}">Ouvrir</button></span></div>`;
+        <span class="to-c-btns"><button class="btn xs" data-ouvre="${x.id}">Ouvrir</button><button class="btn xs" data-reelx="${x.id}" title="Retirer ce reel (corbeille du Drive)">🗑</button></span></div>`;
     z.innerHTML = `<div class="to-jours">
       ${T.vrac.length ? `<div class="to-vrac"><span class="eng">Médias à ranger</span><div class="to-meds">${T.vrac.map(x => vign(x, 'vrac')).join('')}</div></div>` : ''}
       <div class="ligne-titre"><span class="lb">Tournages</span><span class="nt" style="margin:0 0 0 10px">Un tournage = une journée. Glisse un reel sur un tournage pour l'y mettre.</span>
@@ -513,7 +555,13 @@ BK.module('tournage', function (page) {
       <div class="to-jour sans" data-sans="1"><div class="to-jour-t"><span class="eng">Reels pas encore dans un tournage</span><span class="nt">${sans.length}</span></div>
         <div class="to-jour-l">${sans.map(carteReel).join('') || '<span class="nt to-jour-vide">Les reels validés (Miette propose) arrivent ici.</span>'}</div></div></div>`;
     $('#toNvTour').onclick = () => $('#toNouveau').click();
-    $$('.tt-aff', z).forEach(a => a.onclick = () => ouvrirTour(a.dataset.tour));
+    $$('.tt-aff', z).forEach(a => a.onclick = e => { if (e.target.closest('[data-trx]')) return; ouvrirTour(a.dataset.tour); });
+    $$('[data-trx]', z).forEach(b => b.onclick = async e => { e.stopPropagation(); const tr = T.liste.find(x => x.id === b.dataset.trx); if (!tr) return;
+      if (!(await BK.confirmer(`Retirer le tournage « ${tr.titre || 'Tournage'} » ? Ses reels restent (dans « pas encore dans un tournage »). Le tournage va dans la corbeille du Drive.`))) return;
+      for (const r of reelsDe(tr)) { r.parent = ''; await BK.db.ecrire('tournages', r); } await BK.db.supprimer('tournages', tr.id); T.liste = T.liste.filter(x => x.id !== tr.id); await synchroTour(tr).catch(() => {}); T.tour = null; msg('Tournage retiré'); charger(); });
+    $$('[data-reelx]', z).forEach(b => b.onclick = async e => { e.stopPropagation(); const r = T.liste.find(x => x.id === b.dataset.reelx); if (!r) return;
+      if (!(await BK.confirmer(`Retirer le reel « ${r.titre || 'ce reel'} » ? (rangé dans la corbeille du Drive)`))) return;
+      await BK.db.supprimer('tournages', r.id); T.liste = T.liste.filter(x => x.id !== r.id); msg('Reel retiré'); charger(); });
     $$('[data-ouvre]', z).forEach(b => b.onclick = e => { e.stopPropagation(); T.courant = T.liste.find(x => x.id === b.dataset.ouvre); T.vue = 'fiche'; rendreListe(); rendreFiche(); });
     glisser(z);
   }
@@ -645,8 +693,8 @@ BK.module('tournage', function (page) {
   const tenuesHtml = t => { t.tenues = t.tenues || {};
     return Object.values(t.tenues).some(Boolean) || Object.values(t.tenuesPhotos || {}).some(l => l && l.length) ? `<table>${T.membres.filter(m => t.tenues[m] || ((t.tenuesPhotos || {})[m] || []).length).map(m => `<tr><td class="imp-nom">${esc(m)}</td><td>${((t.tenuesPhotos || {})[m] || []).map(u => `<img${BK.img.src(u)} style="height:110px;margin:0 6px 6px 0;border-radius:4px">`).join('')}${t.tenues[m] ? '<br>' + esc(t.tenues[m]) : ''}</td></tr>`).join('')}</table>` : ''; };
   const corpsPdf = (t, h) => { const H = h || 'h2', ten = tenuesHtml(t); t.moodboard = t.moodboard || []; t.plans = t.plans || [];
-    return `${t.moodboard.length ? `<${H}>Moodboard</${H}><div class="imp-mood">${t.moodboard.map(u => `<img${BK.img.src(u)}>`).join('')}</div>` : ''}
-      ${t.plans.length ? `<${H}>Découpage</${H}><table><tr><th>#</th><th>Cadrage</th><th>Ce qu'on voit</th><th>Durée</th><th>Notes</th></tr>${t.plans.map((p, i) => `<tr><td>${i + 1}</td><td>${esc(p.cadrage)}</td><td>${esc(p.action)}</td><td>${esc(p.duree)}</td><td>${esc([p.audio && '♪ ' + p.audio, p.notes].filter(Boolean).join(' · '))}</td></tr>`).join('')}</table>` : ''}
+    return `${t.moodboard.length ? `<${H}>Moodboard</${H}><div class="imp-mood">${t.moodboard.map((u, i) => `<figure class="imp-f"><img${BK.img.src(u)}><figcaption>Image ${i + 1}</figcaption></figure>`).join('')}</div>` : ''}
+      ${t.plans.length ? `<${H}>Découpage</${H}><table><tr><th>#</th><th>Cadrage</th><th>Ce qu'on voit</th><th>Durée</th><th>Notes</th><th>Images</th></tr>${t.plans.map((p, i) => `<tr><td>${i + 1}</td><td>${esc(p.cadrage)}</td><td>${esc(p.action)}</td><td>${esc(p.duree)}</td><td>${esc([p.audio && '♪ ' + p.audio, p.notes].filter(Boolean).join(' · '))}</td><td>${(p.imgs || []).map(u => `<img class="imp-vig"${BK.img.src(u)}>`).join('')}</td></tr>`).join('')}</table>` : ''}
       ${ten ? `<${H}>Tenues</${H}>${ten}` : ''}
       ${t.materiel ? `<${H}>Matériel</${H}><p class="imp-txt">${esc(t.materiel)}</p>` : ''}
       ${t.notes ? `<${H}>Notes</${H}><p class="imp-txt">${esc(t.notes)}</p>` : ''}`; };

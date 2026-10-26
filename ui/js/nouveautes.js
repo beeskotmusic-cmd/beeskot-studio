@@ -3,6 +3,10 @@
 // Pour une nouvelle version : ajouter un bloc EN HAUT de la liste. Une ligne courte par point : « Onglet : ce qui change. »
 // =====================================================================
 BK.NOUVEAUTES = [
+  { v: '0.9.71', titre: '', l: [
+    ['↔', 'Tournages : les colonnes du découpage se règlent (tire la bordure d\'un titre), et les textes longs s\'affichent en entier.'],
+    ['🖼', 'Tournages : les images du moodboard sont numérotées ; glisse-en une sur un plan, ou clique le petit ＋ du plan (moodboard ou Médias). Elles s\'impriment avec le plan.'],
+    ['🗑', 'Tournages : « Retirer » directement sur chaque tournage et chaque reel de la liste (corbeille du Drive, rien n\'est perdu).'] ] },
   { v: '0.9.70', titre: '', l: [
     ['🗑', 'Externe : un bouton « Supprimer » sur chaque lien (il va dans la corbeille du Drive, les notes déjà reçues restent).'],
     ['Aa', 'Externe : le droit du lien (Voir + écrire…) s\'écrit maintenant dans une police simple et lisible.'] ] },
@@ -398,6 +402,8 @@ BK.TUTO = [
       ['Ajouter les tenues', '＋ Photo sous le nom de chacun (la fenêtre Médias s\'ouvre sur l\'étiquette Tenues), ou le bouton biscotte « Qui porte quoi ? » pour que Miette trouve les photos de tenues sur Discord.'],
       ['Laisser Miette remplir le moodboard et les références', 'Bouton biscotte « Trouver » du Moodboard : les images du dossier Moodboards du Drive et de Discord qui parlent de ce tournage. Bouton biscotte « Trouver » des Références : les liens Instagram, TikTok, YouTube donnés sur Discord. Tu coches ce que tu gardes.'],
       ['Faire le découpage', '+ Ajouter un plan pour chaque plan (cadrage, ce qu\'on voit, durée), ou le bouton biscotte « Proposer » : Miette propose un découpage.'],
+      ['Régler le découpage et lier des images', 'Tire la bordure d\'un titre de colonne pour la régler (retenu sur ce PC). Chaque image du moodboard a un numéro : glisse-la sur un plan, ou clique le ＋ de la colonne Images (le moodboard, ou ＋ Depuis Médias). Un clic sur la petite image l\'agrandit, la croix la détache du plan. Elles sortent dans le PDF.'],
+      ['Retirer un tournage ou un reel', '🗑 Retirer sur la carte, dans la liste : le tournage part dans la corbeille du Drive, ses reels restent (dans « pas encore dans un tournage »).'],
       ['Imprimer la fiche', 'Dans un reel : Imprimer / PDF → « Enregistrer au format PDF » ou ton imprimante.'],
       ['Imprimer tout un tournage', 'Ouvre le tournage (son affiche) → Imprimer / PDF : la journée (date, lieu, tenues, matériel), la liste des reels, puis chaque reel sur sa page.'] ],
     astuces: [ 'Chaque encadré se replie d\'un clic sur son titre.', 'Les images restent dans le Drive : la fiche garde juste leur adresse.' ] },
