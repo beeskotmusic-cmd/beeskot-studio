@@ -343,6 +343,190 @@ body.fsOn{zoom:1}
 #dest{max-width:150px}
 #stsec input[type=file]{max-width:100%}
 
+/* =====================================================================
+   HABILLAGE BEESKOT STUDIO — Light Toast prend exactement le look des autres pages.
+   Posé TOUT À LA FIN du style de TOAST (adapter.py) : il gagne sur tout le reste.
+   Les valeurs viennent de style/dari-look.css (pane, box, lb, nt, btn, fld, seg).
+   ===================================================================== */
+:root{--ink:#efe6d2;--laiton:rgba(168,135,78,.5);--amb:#ffb23e;--mus:#d9a93c;--tx:#efe6d2;--mu:rgba(239,230,210,.55);--ac:#d9a93c}
+html,body{background:transparent!important}
+body,body.fsOn{zoom:1!important;font:400 14px/1.45 Jost,"Work Sans",system-ui,sans-serif!important;color:var(--ink)}
+main{padding:0 0 16px!important}
+
+/* ---------- les trois colonnes = les « panneaux » du logiciel ---------- */
+#lay{gap:16px!important;flex-wrap:nowrap!important}
+#colA,#colC,#colB{display:flex;flex-direction:column;gap:12px;padding:14px 16px!important;border-radius:6px;background:rgba(18,12,8,.55);
+  box-shadow:0 0 0 1px var(--laiton),inset 0 1px 0 rgba(255,255,255,.05),inset 0 0 36px rgba(0,0,0,.4),3px 12px 16px rgba(0,0,0,.5)}
+#colA{flex:0 0 340px!important}#colB{flex:0 0 340px!important}#colC{flex:1 1 0!important;min-width:0}
+/* comme les autres pages : la page ne bouge pas, chaque panneau défile tout seul */
+@media(min-width:1250px){
+  main{height:100vh;padding:0!important}
+  #lay{height:100%;align-items:stretch!important}
+  #colA,#colB,#colC{position:static!important;max-height:none!important;height:100%;overflow-y:auto!important;overflow-x:hidden}
+}
+#colA,#colB,#colC{scrollbar-width:thin;scrollbar-color:rgba(168,135,78,.35) transparent}
+#colA>section,#colB>section,#colC>section{flex:none}
+@media(max-width:1249px){#lay{flex-wrap:wrap!important}#colB{flex:1 1 100%!important;position:static!important;max-height:none!important}}
+@media(max-width:1099px){#colA{flex:1 1 100%!important;position:static!important;max-height:none!important}}
+::-webkit-scrollbar{width:10px;height:10px}::-webkit-scrollbar-thumb{background:rgba(168,135,78,.35);border-radius:5px}::-webkit-scrollbar-track{background:transparent}
+
+/* ---------- chaque section = une « case » (box) ---------- */
+section,section:nth-of-type(n){margin:0!important;padding:14px 16px!important;border:0!important;border-radius:6px!important;color:var(--ink);
+  background:rgba(239,230,210,.04)!important;background-image:none!important;box-shadow:inset 0 0 0 1px rgba(239,230,210,.14)!important}
+.slim{gap:10px 12px}
+#palbar{padding:14px 16px!important}
+
+/* titre de case : petites majuscules espacées (.lb) + flèche pour replier */
+h2,.slim h2,#palbar h2{display:flex;align-items:center;gap:6px;margin:0 0 10px!important;font:600 11px/1.2 Jost,"Work Sans",sans-serif!important;
+  letter-spacing:.16em!important;text-transform:uppercase;color:rgba(239,230,210,.85)!important;text-shadow:none!important;flex:1 1 100%}
+#palbar h2{flex:0 0 auto;margin:0!important}
+h2:hover{color:var(--amb)!important}
+h2::before{display:none!important}
+.tg2,.tg2.g{order:-1;width:12px!important;height:auto!important;padding:0!important;border:0!important;background:none!important;box-shadow:none!important;
+  color:var(--amb)!important;font-size:11px!important;min-height:0!important;letter-spacing:0!important}
+section.col h2{margin-bottom:0!important}
+.inf{width:14px;height:14px;margin-left:4px;border-color:rgba(239,230,210,.35)!important;color:rgba(239,230,210,.6)!important}
+.tip{background:#1b120b!important;border:0!important;border-radius:6px!important;box-shadow:0 0 0 1px var(--laiton),0 10px 26px rgba(0,0,0,.8)!important;
+  font:500 12px/1.45 Jost,"Work Sans",sans-serif!important;color:var(--ink)!important;letter-spacing:.01em!important}
+
+/* petits titres internes et textes d'aide (.eng / .nt) */
+.gh{font:500 12px/1.4 Jost,"Work Sans",sans-serif!important;letter-spacing:.01em!important;text-transform:none!important;color:rgba(239,230,210,.55)!important;margin:8px 0 4px!important}
+.leg,.ctl,.lmb,.tb,.lmh,.sr{font-size:12px!important;font-weight:500;color:rgba(239,230,210,.55)!important;font-family:Jost,"Work Sans",sans-serif}
+.ctl{gap:4px!important}
+.ctl>b,.ctl b{color:var(--ink)!important;font-weight:600}
+label.ctl:not(.k){font:600 9px/1.25 Jost,sans-serif!important;letter-spacing:.2em!important;text-transform:uppercase!important;color:var(--ink)!important}
+label.ctl:not(.k) select,label.ctl:not(.k) input{letter-spacing:normal;text-transform:none}
+#st{display:block;font:500 12px/1.4 'Share Tech Mono','DM Mono',monospace!important;color:rgba(239,230,210,.55)!important;letter-spacing:.03em}
+#sgtxt{font-size:12px!important;color:rgba(239,230,210,.7)!important}
+details{border-top:1px solid rgba(239,230,210,.1)!important;box-shadow:none!important;margin-top:10px!important;padding-top:8px!important}
+summary{font:600 11px/1.2 Jost,sans-serif!important;letter-spacing:.16em;text-transform:uppercase;color:rgba(239,230,210,.85)!important;list-style:none;display:flex;align-items:center;gap:6px}
+summary::-webkit-details-marker{display:none}
+summary::before{content:"▸";color:var(--amb);font-size:11px;width:10px}
+details[open]>summary::before{content:"▾"}
+.kb{font:600 9px/1 'Share Tech Mono',monospace!important;color:var(--amb)!important;background:#0a0604!important;border:0!important;box-shadow:inset 0 1px 2px #000,0 0 0 1px var(--laiton)!important}
+
+/* ---------- les touches (.btn sm / xs) ---------- */
+button,button.g,.db,input[type=file]::file-selector-button{font:600 10.5px/1.1 Jost,sans-serif!important;letter-spacing:.1em!important;text-transform:uppercase;
+  color:var(--ink)!important;background:linear-gradient(180deg,#2e251d,#161009)!important;border:0!important;border-radius:5px!important;text-shadow:none!important;
+  min-height:28px;padding:0 12px!important;box-shadow:0 0 0 1px rgba(239,230,210,.5),inset 0 1px 0 rgba(255,255,255,.1),0 3px 0 #14100a,0 5px 9px rgba(0,0,0,.45)!important;
+  display:inline-flex;align-items:center;justify-content:center;gap:6px;filter:none!important}
+button:hover,button.g:hover{background:linear-gradient(180deg,#3a2f25,#1c140c)!important}
+button:active{transform:translateY(2px)!important}
+button:disabled{opacity:.5!important;cursor:not-allowed}
+/* la touche orange (comme « Écouter » ou « Exporter ») */
+#play,#rec,#sgo,.lt-pri{color:#241709!important;background:linear-gradient(180deg,#e0a43c,#b97c1c)!important;font-size:11px!important;letter-spacing:.14em!important;
+  box-shadow:0 0 0 1px #b8934f,inset 0 1px 0 rgba(255,245,210,.5),0 3px 0 #6e4a0e,0 6px 12px rgba(0,0,0,.5),0 0 16px rgba(255,170,40,.25)!important;min-height:34px;padding:0 18px!important}
+#play:hover,#rec:hover,#sgo:hover,.lt-pri:hover{background:linear-gradient(180deg,#eab04a,#c38624)!important}
+/* touches choisies (allumées) */
+.db.on,.cc.on,#fsbar .chip.on,button[aria-pressed=true]{background:linear-gradient(180deg,#8a4426,#5d2a13)!important;color:#ffe6c8!important;box-shadow:0 0 0 2px #b8934f,inset 0 2px 5px rgba(0,0,0,.4)!important}
+/* petites touches carrées (dans les listes) */
+.db,.tt .x,.pc button,#v3b button,#v3b select,#vwfs,.sh button,.sr button,.sb button,#pop .ph button{min-height:22px!important;padding:0 7px!important;font-size:9.5px!important;letter-spacing:.08em!important}
+.db{width:20px!important;height:20px!important;min-height:20px!important;padding:0!important}
+.gb{min-height:0!important;padding:0!important;box-shadow:0 0 0 1px rgba(0,0,0,.5)!important;text-shadow:none!important}
+.sw{min-height:0!important;padding:0!important}
+.cc{border-left:5px solid var(--c,#fff)!important}
+#ctxm button{box-shadow:none!important;background:none!important;text-transform:none;letter-spacing:.02em!important;font:500 13px Jost,sans-serif!important;justify-content:flex-start}
+#ctxm button:hover{background:rgba(239,230,210,.08)!important}
+
+/* ---------- les champs (.fld : afficheur orange) ---------- */
+select,input[type=text],input[type=number],.nm,.sr input[type=number],.sh input[type=number]{font:400 13px/1.2 'Share Tech Mono','DM Mono',monospace!important;color:var(--amb)!important;
+  background:linear-gradient(180deg,#0a0604,#1b110a)!important;border:0!important;border-radius:4px!important;text-shadow:0 0 6px rgba(255,160,40,.5)!important;
+  box-shadow:inset 0 2px 6px rgba(0,0,0,.95),0 0 0 1px var(--laiton)!important;min-height:30px;padding:0 10px!important}
+select:focus,input:focus{outline:none!important;box-shadow:inset 0 2px 6px rgba(0,0,0,.95),0 0 0 2px var(--mus)!important}
+select option,select optgroup{background:#1b110a!important;color:var(--amb)!important}
+input::placeholder{color:rgba(255,178,62,.4)!important}
+.nm,.pnm{min-height:24px!important;padding:0 6px!important;font-size:12px!important}
+input[type=file]{display:none!important}
+input[type=checkbox]{-webkit-appearance:auto!important;appearance:auto!important;accent-color:var(--mus);width:15px!important;height:15px!important;background:none!important;border:0!important;box-shadow:none!important;border-radius:3px}
+input[type=range]{-webkit-appearance:auto!important;appearance:auto!important;accent-color:var(--mus);height:auto!important;background:none!important}
+input[type=color]{border:0!important;box-shadow:0 0 0 1px var(--laiton)!important;border-radius:4px!important;background:#0a0604!important}
+.pc{background:rgba(0,0,0,.28)!important;border:0!important;box-shadow:inset 0 0 0 1px rgba(239,230,210,.12)!important;border-radius:5px!important}
+.pcr{border:0!important;box-shadow:0 0 0 1px var(--laiton)}
+
+/* listes : lignes discrètes comme ailleurs */
+.sc,.pt{background:rgba(0,0,0,.22)!important;border:0!important;border-radius:5px!important;box-shadow:inset 0 0 0 1px rgba(239,230,210,.1)!important}
+.sc.on{box-shadow:inset 0 0 0 1px var(--amb),0 0 8px rgba(255,178,62,.2)!important}
+#ptl .prow,#etl .prow,.sr{border-top:1px solid rgba(239,230,210,.08)!important;box-shadow:none!important}
+#ptl .tgl,#etl .tgl{font:600 11px Jost,sans-serif!important;letter-spacing:.08em!important}
+#ptl .tgl b,#etl .tgl b{font-size:11px!important;color:var(--ink)!important}
+#ptl .vol,#etl .vol{border-left-color:var(--mus)!important;background:rgba(0,0,0,.25)!important}
+.pk,.cg{background:rgba(0,0,0,.35)!important}
+
+/* ---------- vidéos et frise : écrans encastrés (comme les écrans du logiciel) ---------- */
+#vw,#v3w,#colC #vids #vw{margin:0!important;border-radius:4px!important;background:#000;box-shadow:inset 0 3px 9px #000,0 0 0 1px var(--laiton)!important}
+#tlw{margin:4px 0!important;border-radius:4px!important;box-shadow:inset 0 3px 9px #000,0 0 0 1px var(--laiton)!important}
+#v3t{font:11px 'Share Tech Mono',monospace;color:var(--amb)}
+#tlbox.fs{background:#140c07!important}
+#pop,#ctxm,#cvp{background:#1b120b!important;border:0!important;border-radius:6px!important;box-shadow:0 0 0 1px var(--laiton),0 10px 26px rgba(0,0,0,.8)!important}
+#ph{background:#ffb23e!important;mix-blend-mode:normal!important}
+
+/* ---------- les pictos maison (même rendu que dans le logiciel) ---------- */
+.pic{display:inline-block;width:1.25em;height:1.25em;vertical-align:-.25em;background:center/contain no-repeat;text-indent:-9999px;overflow:hidden;flex:none}
+.pic.a{background:currentColor;-webkit-mask:center/contain no-repeat;mask:center/contain no-repeat}
+
+/* ---------- ajouts BEESKOT Studio : source de la musique, vues, lecture ---------- */
+.lt-seg{display:inline-flex;gap:5px;padding:5px;border-radius:7px;background:#140d08;box-shadow:inset 0 2px 7px #000,0 0 0 1px var(--laiton)}
+.lt-seg button{min-height:30px;padding:0 8px!important;white-space:nowrap;letter-spacing:.08em!important;box-shadow:none!important;background:transparent!important;color:rgba(239,230,210,.75)!important}
+.lt-seg button.on{background:linear-gradient(180deg,#8a4426,#5d2a13)!important;color:#ffe6c8!important;box-shadow:0 0 0 2px #b8934f,inset 0 2px 5px rgba(0,0,0,.4)!important}
+.lt-src{width:100%;display:flex;flex-direction:column;gap:10px}
+.lt-src .lt-seg{width:100%}.lt-src .lt-seg button{flex:1}
+.lt-lab{display:flex;flex-direction:column;gap:4px;font:600 9px/1.25 Jost,sans-serif;letter-spacing:.2em;text-transform:uppercase;color:var(--ink)}
+.lt-lab select{width:100%}
+.lt-ligne{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.lt-hidden{display:none!important}
+#colA .slim{flex-direction:column;flex-wrap:nowrap!important;align-items:stretch}
+#colA .slim>.row{margin:0!important;flex-direction:column;flex-wrap:nowrap!important;align-items:stretch!important}
+#colA .slim>.row>*{width:100%}
+#colA .slim .row button{width:100%}
+#colA .slim .row label.leg{justify-content:flex-start}
+#destw{flex-direction:row!important;align-items:center;gap:8px!important;font:600 9px/1 Jost,sans-serif!important;letter-spacing:.2em!important;text-transform:uppercase;color:var(--ink)!important}
+#destw select{flex:1;max-width:none!important}
+
+.lt-vues{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:0 0 10px}
+.lt-vues .lt-fs{margin-left:auto}
+#ltv{display:flex;flex-direction:column;gap:10px}
+#ltv #vids{gap:12px!important;flex-wrap:nowrap!important}
+#ltv #vids>*{flex:1 1 0!important;min-width:0!important;max-width:none!important}
+#ltv.v-tubes #v3w,#ltv.v-3d #vw{display:none!important}
+#vwfs,#v3fs{display:none!important}
+.lt-bar{display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:6px;background:rgba(0,0,0,.3);box-shadow:inset 0 0 0 1px rgba(239,230,210,.12)}
+.lt-bar button{min-width:38px;min-height:32px}
+.lt-bar .lt-pos{flex:1;min-width:80px}
+.lt-temps{font:400 14px/1 'Share Tech Mono',monospace;color:var(--amb);text-shadow:0 0 6px rgba(255,160,40,.5);background:linear-gradient(180deg,#0a0604,#1b110a);
+  box-shadow:inset 0 2px 6px rgba(0,0,0,.95),0 0 0 1px var(--laiton);border-radius:4px;padding:8px 10px;white-space:nowrap;min-width:118px;text-align:center}
+.vc>.row:first-child{display:none!important}  /* Aperçu / Arrêter : remplacés par la barre de lecture */
+
+/* plein écran : la ou les vidéos choisies + la barre de lecture */
+#ltv:fullscreen{background:#000;padding:14px;gap:12px;justify-content:center}
+#ltv:fullscreen #vids{flex:1 1 auto;min-height:0;align-items:center}
+#ltv:fullscreen #vw,#ltv:fullscreen #v3w{align-self:center!important;width:100%}
+#ltv:fullscreen #vw{aspect-ratio:16/9;max-height:calc(100vh - 90px);max-width:calc((100vh - 90px)*16/9)!important;margin:0 auto!important}
+#ltv:fullscreen #v3w #v3{max-height:calc(100vh - 140px);width:auto!important;max-width:100%;margin:0 auto}
+#ltv:fullscreen .lt-bar{flex:none}
+[hidden]{display:none!important}
+#colB .ctl.k{flex-wrap:wrap;min-width:0;max-width:100%}
+#colB .ctl.k select{flex:1 1 140px;min-width:0;max-width:100%}
+#colB .row{min-width:0}
+#ltv #vids{align-items:flex-start!important}
+#ltv.v-tubes #vw,#ltv.v-3d #v3w{flex:0 1 auto!important;width:100%}
+#ltv:fullscreen #vids{justify-content:center}
+#ltv:fullscreen.v-tubes #vw{flex:none!important;width:min(100%,calc((100vh - 90px)*16/9))!important}
+label.ctl input[type=range]{margin-top:6px!important}
+@media(max-width:1599px){#colB{flex-basis:300px!important}#colA{flex-basis:310px!important}}
+.lt-memb{display:flex;flex-direction:column;gap:8px;margin-top:10px;padding:12px 14px;border-radius:6px;background:rgba(0,0,0,.22);box-shadow:inset 0 0 0 1px rgba(239,230,210,.12)}
+.lt-memb .lt-ligne{gap:14px}
+.lt-lab.lt-in{flex-direction:row;align-items:center;gap:8px}
+.lt-lab.lt-in select{width:auto}
+.lt-mrow{display:grid;grid-template-columns:22px 1fr 1.3fr 1.2fr 1.4fr;gap:8px;align-items:center}
+.lt-mnum{font:400 14px 'Share Tech Mono',monospace;color:var(--amb);text-align:center}
+.lt-rot input{flex:1;min-width:60px}
+#ltMembBt.on{background:linear-gradient(180deg,#8a4426,#5d2a13)!important;color:#ffe6c8!important;box-shadow:0 0 0 2px #b8934f,inset 0 2px 5px rgba(0,0,0,.4)!important}
+.lt-edit{display:flex;align-items:center;flex-wrap:wrap;gap:8px 12px;padding:8px 10px;border-radius:0 0 4px 4px;background:rgba(224,164,60,.12);box-shadow:inset 0 0 0 1px var(--mus)}
+.lt-edsel{font:600 11px/1.2 Jost,sans-serif;letter-spacing:.12em;text-transform:uppercase;color:var(--amb)}
+.lt-edaide{font-size:12px;color:rgba(239,230,210,.55);flex:1}
+.lt-edh{display:inline-flex;gap:4px}
+#ltEdBt.on{background:linear-gradient(180deg,#8a4426,#5d2a13)!important;color:#ffe6c8!important;box-shadow:0 0 0 2px #b8934f,inset 0 2px 5px rgba(0,0,0,.4)!important}
+
 </style></head>
 <body><main>
 <header id="banner"><div id="carpet" role="img" aria-label="BEESKOT Studio"></div><div class="stripes"></div></header>
@@ -369,7 +553,7 @@ body.fsOn{zoom:1}
 <div class="row" id="pal" style="gap:6px"></div><span class="row sgb"><select id="sgst" aria-label="Style de la suggestion"><option value="eq">Équilibré</option><option value="doux">Doux</option><option value="intense">Intense</option></select><button id="sgo" type="button" title="L'application écoute le morceau et propose sections, couleurs, fonds, pêches et effets à partir de ta palette">✨ Suggérer une vidéo</button><button class="g" id="sgun" type="button" hidden>↶ Annuler la suggestion</button></span><div id="sgtxt" class="leg"></div></section>
 <section><h2>4 · Vidéo<span class="inf" tabindex="0" role="note" aria-label="Aide"><i>i</i><span class="tip"><p>L'export est calculé image par image, bien plus vite que la lecture (Chrome ou Edge). Sinon il retombe sur un enregistrement en temps réel.</p><p>Le masque n'est exporté que si la case « Masque LED » est cochée.</p></span></span></h2><div class="vrow"><div id="vids">
 <div id="vw"><canvas id="cv" width="1920" height="1080"></canvas><canvas id="mk" width="800" height="450"></canvas><button class="g" id="vwfs" type="button" title="Plein écran (Échap pour quitter)" aria-label="Plein écran : vidéo des tubes">⛶</button></div>
-<div id="v3w"><div id="v3in"><canvas id="v3" width="960" height="540" aria-label="Vue 3D : les lumières sur un personnage"></canvas><span id="v3t">VUE 3D</span><div id="v3b"><select id="v3s" aria-label="Modèle 3D" title="Choisir le modèle 3D"><option value="1">OPP1</option><option value="2">MOTHER3</option></select><button class="g" id="v3f" type="button" aria-pressed="false" title="Basculer entre 16:9 et 9:16 (smartphone)">Format 16:9</button><button class="g" id="v3c" type="button" title="Point de vue de la caméra du croquis">Caméra</button><button class="g" id="v3l" type="button" title="Vue large : tous les tubes">Vue large</button><button class="g" id="v3fs" type="button" title="Plein écran (Échap pour quitter)" aria-label="Plein écran : vue 3D">⛶</button></div></div><label class="ctl" id="v3gl" title="0 = lumières éteintes, 1 = luminosité actuelle">Luminosité des lumières<input type="range" id="v3g" min="0" max="1" step="0.01" value="1" aria-label="Luminosité des lumières de la vue 3D"></label></div></div>
+<div id="v3w"><div id="v3in"><canvas id="v3" width="960" height="540" aria-label="Vue 3D : les lumières sur un personnage"></canvas><span id="v3t">VUE 3D</span><div id="v3b"><select id="v3s" aria-label="Modèle 3D" title="Choisir le modèle 3D"><option value="1">OPP1</option><option value="2">MOTHER3</option><option value="3">STUDIO BEESKOT</option></select><button class="g" id="v3f" type="button" aria-pressed="false" title="Basculer entre 16:9 et 9:16 (smartphone)">Format 16:9</button><button class="g" id="v3c" type="button" title="Point de vue de la caméra du croquis">Caméra</button><button class="g" id="v3l" type="button" title="Vue large : tous les tubes">Vue large</button><button class="g" id="v3fs" type="button" title="Plein écran (Échap pour quitter)" aria-label="Plein écran : vue 3D">⛶</button></div></div><label class="ctl" id="v3gl" title="0 = lumières éteintes, 1 = luminosité actuelle">Luminosité des lumières<input type="range" id="v3g" min="0" max="1" step="0.01" value="1" aria-label="Luminosité des lumières de la vue 3D"></label></div></div>
 <div class="vc"><div class="row"><button id="play" disabled>Aperçu</button><button class="g" id="stop" disabled>Arrêter</button></div>
 <details id="xv" open><summary>Export et réglages de la vidéo</summary>
 <div class="grid" style="grid-template-columns:1fr 1fr;width:100%;margin-top:8px">
@@ -1119,7 +1303,7 @@ async function writeProject(name,blob){
 async function saveProject(){
   if(!buf){alert("Charge d'abord un morceau.");return}
   const ui={};document.querySelectorAll("input[id],select[id]").forEach(e=>{if(SKIPUI.includes(e.id)||["file","number","text"].includes(e.type))return;ui[e.id]=e.type=="checkbox"?e.checked:e.value});
-  const o={app:"pulse-led",v:3,audioName,ui,secs,manual,dpts,lpts,epts,spts,ppts,autos,chv:[...hidK],pcol,pal,ptypes,etypes,fxev,ecol,stems:stemsSave()};
+  const o={app:"pulse-led",v:3,audioName,ui,secs,manual,dpts,lpts,epts,spts,ppts,autos,chv:[...hidK],pcol,pal,ptypes,etypes,fxev,ecol,stems:stemsSave(),membres:window.v3&&v3.getMembres?v3.getMembres():undefined,decor:window.v3&&v3.getDecor?v3.getDecor():undefined};
   if($("psa").checked&&audioBytes)o.audio=await toB64(audioBytes);
   const nm=await writeProject("projet-"+(audioName||"led").replace(/\.[^.]+$/,"")+".json",new Blob([JSON.stringify(o)],{type:"application/json"}));
   $("st").textContent=nm?"Projet enregistré : "+nm:"Enregistrement annulé.";
@@ -1180,7 +1364,7 @@ async function openProject(o){
     const NP=Array.isArray(o.pal)&&o.pal.length&&o.pal.every(isHex)?[...o.pal]:[];
     secs=normSecs(o.secs,NP)||secs;if(!NP.length)NP.push("#000000","#000000");pal=NP;
     ptypes=normPT(o);etypes=normET(o.etypes,o.ui);
-    stemsLoad(o.stems);manual=normPeches(o.manual,ptypes.length);fxev=normFx(o.fxev,etypes);dpts=normPts(o.dpts,.5);lpts=normPts(o.lpts,1);epts=normPts(o.epts,1);spts=normPts(o.spts,.5);ppts=normPts(o.ppts,1);autos=normAutos(o.autos);hidK=new Set(Array.isArray(o.chv)?o.chv.filter(k=>typeof k=="string"):[]);
+    stemsLoad(o.stems);if(o.membres&&window.v3&&v3.setMembres)v3.setMembres(o.membres);if(o.decor&&window.v3&&v3.setDecor)v3.setDecor(o.decor);manual=normPeches(o.manual,ptypes.length);fxev=normFx(o.fxev,etypes);dpts=normPts(o.dpts,.5);lpts=normPts(o.lpts,1);epts=normPts(o.epts,1);spts=normPts(o.spts,.5);ppts=normPts(o.ppts,1);autos=normAutos(o.autos);hidK=new Set(Array.isArray(o.chv)?o.chv.filter(k=>typeof k=="string"):[]);
     pcol=clampI(+o.pcol||0,ptypes.length);ecol=clampI(+o.ecol||0,etypes.length);selP=null;selS=new Set();selE=null;renderPal();renderPT();renderET();curSnap=snapStr();hist=[];redo=[]};
   if(o.audio){const bin=atob(o.audio),u=new Uint8Array(bin.length);for(let i=0;i<bin.length;i++)u[i]=bin.charCodeAt(i);await loadAudio(u.buffer,o.audioName||"audio",apply)}
   else if(buf&&(!o.audioName||audioName===o.audioName)){apply();classify();redraw()}
@@ -1596,8 +1780,8 @@ if(!gl){document.getElementById("v3t").textContent="WebGL indisponible";return}
 // plan du croquis (mètres) : x vers la droite, z vers la caméra ; mur du fond à z=-3.7 ; murs latéraux à x=±3.85
 const TUBES=[[-3.1,-1.22],[-2.23,-3.09],[1.63,1.56],[1.94,-3.09],[3.18,-1.3]],WALLZ=-3.7,WX=3.85,FRONTZ=3.7,TH=2.45,NS=16,NT3=TUBES.length,NL=NS*NT3;
 const A=[],M={s:0,h:8};
-const XF={x:0,z:0,c:1,s:0};const setXF=(x,z,yaw)=>{XF.x=x;XF.z=z;XF.c=Math.cos(yaw);XF.s=Math.sin(yaw)};
-const V=(p,n,c,id)=>A.push(p[0]*XF.c+p[2]*XF.s+XF.x,p[1],-p[0]*XF.s+p[2]*XF.c+XF.z,n[0]*XF.c+n[2]*XF.s,n[1],-n[0]*XF.s+n[2]*XF.c,c[0],c[1],c[2],id==null?-1:id,M.s,M.h);
+const XF={x:0,z:0,c:1,s:0,k:1};const setXF=(x,z,yaw,k=1)=>{XF.x=x;XF.z=z;XF.c=Math.cos(yaw);XF.s=Math.sin(yaw);XF.k=k};
+const V=(p,n,c,id)=>A.push(p[0]*XF.k*XF.c+p[2]*XF.k*XF.s+XF.x,p[1]*XF.k,-p[0]*XF.k*XF.s+p[2]*XF.k*XF.c+XF.z,n[0]*XF.c+n[2]*XF.s,n[1],-n[0]*XF.s+n[2]*XF.c,c[0],c[1],c[2],id==null?-1:id,M.s,M.h);
 const mat0=(s,h)=>{M.s=s;M.h=h},cnt=()=>A.length/12;
 const sub=(a,b)=>[a[0]-b[0],a[1]-b[1],a[2]-b[2]],add=(a,b)=>[a[0]+b[0],a[1]+b[1],a[2]+b[2]],mul=(a,k)=>[a[0]*k,a[1]*k,a[2]*k];
 const cross=(a,b)=>[a[1]*b[2]-a[2]*b[1],a[2]*b[0]-a[0]*b[2],a[0]*b[1]-a[1]*b[0]],nrm=a=>{const l=Math.hypot(a[0],a[1],a[2])||1;return[a[0]/l,a[1]/l,a[2]/l]},dot=(a,b)=>a[0]*b[0]+a[1]*b[1]+a[2]*b[2];
@@ -1651,7 +1835,7 @@ mat0(.06,8);box(0,.4,-2.08,.66,.1,.6,CH);ell(0,.47,-2.06,.3,.06,.28,CU,20,10);bo
 [-1,1].forEach(sg=>{box(sg*.37,.6,-2.1,.08,.32,.56,CH);ell(sg*.37,.77,-2.1,.055,.03,.3,CU,12,8)});
 mat0(.35,30);[[-.3,-1.8],[.3,-1.8],[-.3,-2.38],[.3,-2.38]].forEach(([x,z])=>cyl([x,0,z],[x,.36,z],.032,WD,-1,10,.024));box(0,.33,-2.1,.6,.04,.54,WD);
 // personnage : pose assise ou debout, face à +z
-function human(o){setXF(o.x,o.z,o.yaw||0);const H=o.hip,SK=o.skin,SH=o.shirt,PA=o.pants,SO=o.shoe,HR=o.hair,sl=o.sleeve==null?.9:o.sleeve;
+function human(o){setXF(o.x,o.z,o.yaw||0,o.k||1);const H=o.hip,SK=o.skin,SH=o.shirt,PA=o.pants,SO=o.shoe,HR=o.hair,sl=o.sleeve==null?.9:o.sleeve;
  const skinD=SK.map(v=>v*.97);
  // pantalon (bassin) et haut (torse)
  mat0(.05,6);loft([{y:H-.12,rx:.168,rz:.118,cx:0,cz:-.012},{y:H-.02,rx:.174,rz:.128,cx:0,cz:-.012},{y:H+.08,rx:.16,rz:.11,cx:0,cz:0},{y:H+.14,rx:.152,rz:.102,cx:0,cz:0}],PA,28);
@@ -1663,12 +1847,12 @@ function human(o){setXF(o.x,o.z,o.yaw||0);const H=o.hip,SK=o.skin,SH=o.shirt,PA=
  mat0(.22,16);sweep([[0,H+.52,-.006],[0,H+.58,-.004],[0,H+.66,.006]],[.054,.049,.046],SK,14);
  const hy=H+.76;
  loft([{y:hy-.118,rx:.012,rz:.012,cx:0,cz:.045},{y:hy-.108,rx:.034,rz:.034,cx:0,cz:.04},{y:hy-.085,rx:.058,rz:.066,cx:0,cz:.026},{y:hy-.05,rx:.076,rz:.09,cx:0,cz:.01},{y:hy-.005,rx:.087,rz:.1,cx:0,cz:0},{y:hy+.04,rx:.09,rz:.102,cx:0,cz:-.004},{y:hy+.08,rx:.08,rz:.092,cx:0,cz:-.008},{y:hy+.108,rx:.052,rz:.062,cx:0,cz:-.01},{y:hy+.122,rx:.02,rz:.026,cx:0,cz:-.01},{y:hy+.126,rx:.002,rz:.002,cx:0,cz:-.01}],SK,28);
- ell(0,hy-.018,.094,.009,.022,.015,SK,8,6);ell(0,hy-.043,.094,.016,.009,.012,SK,8,6); // nez
+ if(!o.sil){ell(0,hy-.018,.094,.009,.022,.015,SK,8,6);ell(0,hy-.043,.094,.016,.009,.012,SK,8,6); // nez
  ell(0,hy-.06,.092,.03,.012,.014,[.78,.52,.46],10,6);ell(0,hy-.075,.088,.026,.009,.012,[.74,.46,.42],10,6); // lèvres
  [-1,1].forEach(sg=>{ell(sg*.091,hy-.012,.0,.011,.031,.019,SK,8,6);ell(sg*.088,hy-.012,-.004,.006,.02,.012,[SK[0]*.85,SK[1]*.7,SK[2]*.65],6,4);
   ell(sg*.036,hy+.015,.088,.017,.011,.011,[.2,.1,.09],8,6); // orbite
   mat0(.5,60);ell(sg*.036,hy+.016,.09,.014,.0085,.01,[.93,.93,.91],8,6);ell(sg*.036,hy+.016,.097,.0065,.0065,.004,o.eye||[.18,.11,.07],6,4);ell(sg*.036,hy+.016,.1,.0025,.0025,.002,[.02,.02,.02],4,3);
-  mat0(.15,10);ell(sg*.037,hy+.043,.088,.024,.005,.009,HR,8,4);mat0(.22,16)});
+  mat0(.15,10);ell(sg*.037,hy+.043,.088,.024,.005,.009,HR,8,4);mat0(.22,16)})}
  mat0(.38,26);
  if(o.style=="long"){ell(0,hy+.097,.0,.098,.068,.111,HR,22,12);ell(0,hy+.0,-.04,.095,.11,.07,HR,18,12);ell(0,hy-.06,-.078,.098,.19,.062,HR,18,12);[-1,1].forEach(sg=>ell(sg*.09,hy-.05,-.025,.026,.14,.07,HR,10,10));ell(0,hy+.12,.05,.07,.022,.05,HR,12,6)}
  else if(o.style!="bald"){ell(0,hy+.097,.0,.097,.066,.111,HR,22,12);ell(0,hy+.02,-.05,.092,.1,.07,HR,16,10);ell(0,hy+.12,.05,.08,.022,.05,HR,12,6)}
@@ -1685,12 +1869,13 @@ function human(o){setXF(o.x,o.z,o.yaw||0);const H=o.hip,SK=o.skin,SH=o.shirt,PA=
   mat0(.05,6)});
  const LP=[[0,.1],[.12,.093],[.3,.075],[.5,.064],[.62,.063],[.72,.066],[.85,.052],[1,.046]],LS=LP.map(([s,r])=>[s,r+.006]);
  [-1,1].forEach(sg=>{const Hp=[sg*.09,H-.03,0],lg=o.legs?o.legs[sg<0?0:1]:null,K=lg?lg.K:[sg*.1,H+o.leg.k[0],o.leg.k[1]],An=lg?lg.A:[sg*.098,.085,o.leg.a];
-  const P=path3(Hp,K,An,6);mat0(.05,6);sweep(P.map(q=>q.p),P.map(q=>prof(LS,q.s)),PA,14);ell(K[0],K[1],K[2],.066,.066,.066,PA,10,8);
+  const P=path3(Hp,K,An,6);if(o.short){mat0(.22,16);sweep(P.map(q=>q.p),P.map(q=>prof(LP,q.s)*.92),SK,14);ell(K[0],K[1],K[2],.058,.058,.058,SK,10,8);const P2=path3(Hp,K,An,6,.42);mat0(.05,6);sweep(P2.map(q=>q.p),P2.map(q=>prof(LS,q.s)+.014),PA,14);if(o.chaussettes){const P3=path3(Hp,K,An,6,1,.82);sweep(P3.map(q=>q.p),P3.map(q=>prof(LP,q.s)*.92+.006),o.chaussettes,12)}}else{mat0(.05,6);sweep(P.map(q=>q.p),P.map(q=>prof(LS,q.s)),PA,14);ell(K[0],K[1],K[2],.066,.066,.066,PA,10,8)}
   // chaussure : semelle + dessus
   mat0(.4,36);const ax=An[0],az=An[2];sweep([[ax,.05,az-.06],[ax,.05,az+.02],[ax,.045,az+.12],[ax,.032,az+.2]],[.04,.052,.05,.032],SO,12,1.05,.82);
   mat0(.15,8);box(ax,.011,az+.06,.1,.022,.27,[.04,.04,.04]);ell(ax,.045,az-.04,.047,.05,.06,SO,10,8)});
- if(o.prop)o.prop();
+ humanPlus(o,H,hy);if(o.prop)o.prop();
 }
+R.deco=[s0,cnt()-s0];
 mat0(.06,6);
 const ARM_STAND={e:[.245,.2,.02],w:[.265,-.03,.05]},LEG_STAND={k:[-.45,.02],a:0};
 human({x:0,z:-2.08,yaw:0,seated:true,hip:.56,skin:[.9,.7,.58],shirt:[.8,.8,.86],pants:[.17,.2,.34],shoe:[.08,.07,.07],hair:[.14,.09,.06],style:"short",arm:{e:[.29,.2,-.02],w:[.335,.215,.25]},leg:{k:[-.03,.4],a:.4},eye:[.25,.15,.08]});
@@ -1728,6 +1913,7 @@ cyl([1.55,.3,-2.66],[1.55,.3,-2.24],.29,PEARL,-1,22);mat0(.5,40);cyl([1.55,.3,-2
 for(const [x,y,z,r,l] of [[1.3,.8,-2.6,.13,.14],[1.8,.8,-2.6,.14,.15],[2.2,.48,-2.5,.23,.2],[1.1,.62,-2.3,.17,.1]])cyl([x,y-l/2,z],[x,y+l/2,z],r,PEARL,-1,22);
 mat0(.7,60);for(const [x,y,z,r] of [[1.0,1.3,-2.9,.2],[2.15,1.25,-2.85,.21],[.75,.98,-2.25,.17],[.5,.98,-2.25,.17]]){cyl([x,0,z],[x,y,z],.011,MET,-1,8);cyl([x,y,z],[x,y+.012,z],r,GOLD,-1,24)}
 mat0(.1,10);for(const [x,z] of [[-1.7,-2.6],[1.65,-3.15]]){cyl([x,.5,z],[x,.54,z],.17,[.12,.12,.13],-1,14);for(let k=0;k<3;k++){const a=k*2.094+.4;cyl([x+Math.cos(a)*.13,0,z+Math.sin(a)*.13],[x,.5,z],.012,MET,-1,6)}}
+R2.deco=[s0,cnt()-s0];
 // guitariste assis en tailleur (personnage central du modèle 1) + guitare
 human({x:-.25,z:-1.15,yaw:.28,hip:.17,skin:[.9,.7,.58],shirt:[.8,.8,.86],pants:[.17,.2,.34],shoe:[.08,.07,.07],hair:[.14,.09,.06],style:"short",eye:[.25,.15,.08],
  armSplit:{L:{e:[.3,.2,.14],w:[.42,.2,.36]},R:{e:[.27,.15,.12],w:[.1,.1,.3]}},
@@ -1746,11 +1932,210 @@ human({x:1.65,z:-3.15,yaw:-.18,hip:.58,skin:[.88,.68,.54],shirt:[.16,.18,.3],pan
 setXF(0,0,0);
 R2.person=[s0,cnt()-s0];
 
+// ===== BEESKOT Studio : modèle 3 « STUDIO BEESKOT » + membres du groupe (poses, tenues, instruments) =====
+// Inséré par adapter.py dans la vue 3D, juste avant la création du tampon WebGL (mêmes outils : box, cyl, ell, loft, sweep, human…).
+// ---------- le studio (pièce des photos) ----------
+const R3={},X3=1.45;  // le studio est étroit : les murs de côté sont au bord du tapis
+const W3=[.72,.7,.65],RED3=[.62,.13,.08],WOOD3=[.6,.44,.27],MET3=[.2,.2,.22],BLK3=[.05,.05,.055];
+mat0(.15,10);quad([-X3,0,FRONTZ],[X3,0,FRONTZ],[X3,0,WALLZ],[-X3,0,WALLZ],[0,1,0],[.52,.53,.55]);R3.floor=[cnt()-6,6];
+s0=cnt();mat0(.08,8);
+quad([-X3,0,WALLZ],[X3,0,WALLZ],[X3,3.2,WALLZ],[-X3,3.2,WALLZ],[0,0,1],W3);
+quad([-X3,0,FRONTZ],[-X3,0,WALLZ],[-X3,3.2,WALLZ],[-X3,3.2,FRONTZ],[1,0,0],W3);
+quad([X3,0,WALLZ],[X3,0,FRONTZ],[X3,3.2,FRONTZ],[X3,3.2,WALLZ],[-1,0,0],W3);
+quad([-X3,3.2,WALLZ],[X3,3.2,WALLZ],[X3,3.2,FRONTZ],[-X3,3.2,FRONTZ],[0,-1,0],[.7,.69,.66]);
+quad([X3,0,FRONTZ],[-X3,0,FRONTZ],[-X3,3.2,FRONTZ],[X3,3.2,FRONTZ],[0,0,-1],W3);
+// plinthes rouges
+mat0(.2,14);box(0,.05,WALLZ+.015,X3*2,.1,.03,RED3);box(-X3+.015,.05,(WALLZ+FRONTZ)/2,.03,.1,FRONTZ-WALLZ,RED3);box(X3-.015,.05,(WALLZ+FRONTZ)/2,.03,.1,FRONTZ-WALLZ,RED3);
+// deux grandes fenêtres étroites (cadre rouge) et leurs rideaux rayés marron
+[-.55,.55].forEach(cx=>{mat0(.7,60);box(cx,1.55,WALLZ+.01,.42,1.9,.01,[.04,.07,.05]);
+ mat0(.25,16);box(cx-.235,1.55,WALLZ+.03,.05,2.0,.05,RED3);box(cx+.235,1.55,WALLZ+.03,.05,2.0,.05,RED3);box(cx,2.53,WALLZ+.03,.52,.06,.05,RED3);box(cx,.57,WALLZ+.03,.52,.06,.05,RED3);
+ mat0(4.04,6);[-1,1].forEach(sg=>{for(let k=0;k<4;k++)box(cx+sg*(.3+k*.035),1.5,WALLZ+.07,.035,2.0,.03,k%2?[.36,.27,.18]:[.26,.19,.13])})});
+// étagère rouge en hauteur (mur de gauche) + mousse noire + matériel posé dessus
+mat0(.25,16);box(-X3+.24,2.32,-.4,.46,.05,2.8,RED3);[-1.6,-.4,.8].forEach(z=>{box(-X3+.03,2.12,z,.04,.42,.06,RED3);box(-X3+.2,2.12,z,.3,.04,.06,RED3)});
+mat0(4.02,6);box(-X3+.22,2.18,-.4,.36,.15,2.5,BLK3);mat0(.3,20);box(-X3+.25,2.47,-1.3,.34,.26,.42,[.08,.08,.09]);box(-X3+.25,2.44,.4,.3,.2,.5,[.1,.09,.08]);
+// panneau de mousse gris-vert au plafond, lampe ronde
+mat0(4.02,6);box(-.35,3.15,-1.1,1.2,.08,2.9,[.2,.24,.2]);mat0(.6,30);ell(.65,3.13,-.4,.24,.08,.24,[1,.97,.9],16,8);
+// la batterie (bordeaux), au fond, tournée vers la caméra
+function drumKit(){const SHL=[.32,.05,.07],HD=[.92,.9,.85],GLD=[.78,.62,.3];
+ mat0(.7,50);cyl([0,.3,.5],[0,.3,.88],.27,SHL,-1,22);mat0(.4,30);cyl([0,.3,.88],[0,.3,.885],.262,HD,-1,22);
+ mat0(.7,50);[[-.22,.82,.55,.12,.13],[.18,.82,.55,.13,.14],[.55,.5,.5,.2,.22],[-.3,.62,.32,.17,.1]].forEach(([x,y,z,r,l])=>{cyl([x,y-l/2,z],[x,y+l/2,z],r,SHL,-1,20);mat0(.4,30);cyl([x,y+l/2,z],[x,y+l/2+.004,z],r-.005,HD,-1,20);mat0(.7,50)});
+ mat0(.7,60);[[-.6,1.28,.6,.2],[.6,1.2,.62,.22],[-.55,.95,.3,.16]].forEach(([x,y,z,r])=>{cyl([x,0,z],[x,y,z],.011,MET3,-1,8);cyl([x,y,z],[x,y+.012,z],r,GLD,-1,24)})}
+// tapis persan
+mat0(3.02,4);quad([-1.2,.006,1.0],[1.2,.006,1.0],[1.2,.006,-2.8],[-1.2,.006,-2.8],[0,1,0],[.4,.12,.11]);
+// fauteuils en velours marron (à droite)
+function fauteuil(x,z,yaw){setXF(x,z,yaw);const VC=[.36,.18,.1];mat0(4.05,6);box(0,.25,0,.8,.3,.75,VC);box(0,.62,-.32,.8,.7,.14,VC);[-1,1].forEach(sg=>box(sg*.35,.48,0,.12,.28,.75,VC));mat0(.3,20);[[-.33,-.3],[.33,-.3],[-.33,.3],[.33,.3]].forEach(([a,b])=>box(a,.05,b,.06,.1,.06,[.15,.08,.05]));setXF(0,0,0)}
+// bureau (mur de gauche, devant) : 2 écrans, clavier maître
+function bureau(x,z,yaw){setXF(x,z,yaw);mat0(.25,16);box(0,.75,0,1.7,.05,.75,WOOD3);[[-.8,-.33],[.8,-.33],[-.8,.33],[.8,.33]].forEach(([a,b])=>box(a,.37,b,.05,.74,.05,[.2,.15,.1]));
+mat0(.5,40);[-.38,.32].forEach(x=>{box(x,1.08,-.25,.58,.36,.03,[.03,.03,.03]);box(x,1.08,-.233,.54,.32,.004,[.62,.68,.74]);box(x,.88,-.27,.05,.2,.05,[.05,.05,.05])});
+mat0(.3,20);box(0,.8,.12,1.0,.04,.22,[.08,.08,.08]);box(0,.825,.16,.92,.012,.12,[.9,.89,.85]);setXF(0,0,0)}
+// lampe sur pied, guitares au mur de droite
+function lampe(x,z){setXF(x,z,0);mat0(.4,30);cyl([0,0,0],[0,1.45,0],.015,MET3,-1,8);cyl([0,0,0],[0,.02,0],.14,MET3,-1,14);mat0(.2,10);cyl([0,1.35,0],[0,1.6,0],.2,[.95,.78,.5],-1,18,.12);setXF(0,0,0)}
+mat0(.5,40);[[-.9,[.55,.33,.15]],[-.2,[.16,.1,.07]]].forEach(([z,c])=>{ell(X3-.07,1.25,z,.035,.22,.16,c,16,10);cyl([X3-.07,1.42,z],[X3-.07,2.05,z],.02,[.3,.2,.1],-1,8)});
+R3.wall=[s0,cnt()-s0];
+// ---------- LE DÉCOR QUI BOUGE (éditeur) : lumières, panneau LED, batterie, meubles, membres ----------
+// Chaque modèle a sa disposition (LAY[1], LAY[2], LAY[3]) : gardée sur ce PC et dans le projet.
+// les 5 lumières du studio : 2 tubes de part et d'autre des fenêtres, 2 tubes derrière la caméra, 1 panneau LED en hauteur
+const TUBES3=[[-1.12,WALLZ+.14],[1.12,WALLZ+.14],[-.9,3.0],[.9,3.0],[0,3.42]],PANY=[1.75,2.55];
+const DEF_LAY=()=>({1:{t:TUBES.map(p=>[...p]),o:{},m:[]},2:{t:TUBES.map(p=>[...p]),o:{},m:[]},
+ 3:{t:TUBES3.map(p=>[...p]),py:[...PANY],pyaw:0,o:{drum:{x:0,z:-3.2,yaw:0},f1:{x:X3-.45,z:1.35,yaw:-Math.PI/2},f2:{x:X3-.45,z:2.4,yaw:-Math.PI/2},bureau:{x:-X3+.42,z:2.2,yaw:Math.PI/2},lampe:{x:X3-.3,z:.75,yaw:0}},m:[]}});
+let LAY=DEF_LAY();try{const q=JSON.parse(localStorage.getItem("toast.decor")||"null");if(q)LAY=normLay(q)}catch(e){}
+function normLay(q){const d=DEF_LAY(),n=v=>Number.isFinite(+v)?+v:0;[1,2,3].forEach(k=>{const a=q&&q[k];if(!a)return;
+ if(Array.isArray(a.t)&&a.t.length==NT3)d[k].t=a.t.map(p=>[n(p[0]),n(p[1])]);if(k==3&&Array.isArray(a.py))d[k].py=[n(a.py[0]),n(a.py[1])];if(k==3)d[k].pyaw=n(a.pyaw);
+ if(a.o)Object.keys(d[k].o).forEach(c=>{if(a.o[c])d[k].o[c]={x:n(a.o[c].x),z:n(a.o[c].z),yaw:n(a.o[c].yaw)}});
+ if(Array.isArray(a.m))d[k].m=a.m.slice(0,6).map(p=>p?{x:n(p.x),z:n(p.z),yaw:n(p.yaw)}:null)});return d}
+const panX=(x,z,w,y0,y1,c,id)=>quad([w/2,y0,0],[-w/2,y0,0],[-w/2,y1,0],[w/2,y1,0],[0,0,-1],c,id);
+// les tubes (et le panneau) de la scène affichée ; glow = le halo lumineux autour
+function tubesGeo(sc,glow){const L=LAY[sc],T=L.t;T.forEach(([x,z],i)=>{
+ if(sc==3&&i==4){const[y0,y1]=L.py,H=(y1-y0)/NS;setXF(x,z,L.pyaw||0);
+  if(glow){for(let k=0;k<NS;k++){const b=y1-k*H;panX(0,0,1.12,b-H,b,[1,1,1],i*NS+k)}}
+  else{mat0(.3,20);setXF(x,z+.01,L.pyaw||0);panX(0,0,1.1,y0-.04,y1+.04,[.06,.06,.065]);setXF(x,z,L.pyaw||0);mat0(0,1);for(let k=0;k<NS;k++){const b=y1-k*H;panX(0,0,1.0,b-H+.002,b-.002,[.08,.08,.09],i*NS+k)}}
+  setXF(0,0,0);return}
+ const H=(TH-.05)/NS;if(glow){for(let k=0;k<NS;k++){const y1=TH-k*H,y0=y1-H;cyl([x,y0,z],[x,y1,z],.16,[1,1,1],i*NS+k,14,undefined,false)}return}
+ mat0(0,1);cyl([x,0,z],[x,.05,z],.1,[.1,.1,.11],-1,18);cyl([x,TH+.02,z],[x,TH+.07,z],.07,[.1,.1,.11],-1,14);for(let k=0;k<NS;k++){const y1=TH-k*H,y0=y1-H;cyl([x,y0+.004,z],[x,y1-.004,z],.045,[.08,.08,.09],i*NS+k,14,undefined,false)}})}
+function meublesGeo(sc){const O=LAY[sc].o;if(sc!=3)return;
+ setXF(O.drum.x,O.drum.z,O.drum.yaw);drumKit();fauteuil(O.f1.x,O.f1.z,O.f1.yaw);fauteuil(O.f2.x,O.f2.z,O.f2.yaw);bureau(O.bureau.x,O.bureau.z,O.bureau.yaw);lampe(O.lampe.x,O.lampe.z);setXF(0,0,0)}
+// lumières de la scène affichée : positions (x, z) et hauteurs (bas, haut) de chacune
+const TYa=new Float32Array(NT3*2);
+const TUB=()=>LAY[SCN].t;
+function setLights(){TUB().forEach(([x,z],i)=>{TP[i*2]=x;TP[i*2+1]=z});for(let i=0;i<NT3;i++){const pan=SCN==3&&i==4;TYa[i*2]=pan?LAY[3].py[0]:.05;TYa[i*2+1]=pan?LAY[3].py[1]:TH}}
+let uTY_=null;const setTY=()=>{if(!uTY_)uTY_=gl.getUniformLocation(pg,"uTY");gl.uniform2fv(uTY_,TYa)};
+
+// ---------- les membres : looks (d'après les photos), poses, instruments ----------
+const LOOKS={
+ yacine:{nom:"Yacine",k:1.05,skin:[.64,.45,.33],eye:[.16,.09,.05],beard:"pleine",beardC:[.05,.04,.04],hairC:[.05,.04,.04],chapeau:"bonnet",boucle:1,
+  tenues:{jour:{shirt:[.3,.22,.17],sleeve:.45,pants:[.1,.13,.26],short:1,chaussettes:[.88,.88,.86],shoe:[.88,.88,.86],chapC:[.06,.06,.07]},
+          scene:{shirt:[.5,.22,.1],sleeve:.92,pants:[.48,.21,.1],shoe:[.07,.05,.04],chapC:[.6,.32,.16]}}},
+ baptiste:{nom:"Baptiste",k:1.0,skin:[.93,.76,.65],eye:[.25,.18,.1],beard:"pleine",beardC:[.42,.24,.12],cheveux:"milong",hairC:[.42,.29,.16],lunettes:[.06,.06,.07],
+  tenues:{jour:{shirt:[.64,.72,.84],sleeve:.78,pants:[.07,.07,.08],shoe:[.88,.88,.86]},
+          scene:{shirt:[.32,.47,.66],sleeve:.92,gilet:[.07,.05,.05],pants:[.45,.28,.15],shoe:[.25,.13,.07]}}},
+ pierre:{nom:"Pierre",k:.95,skin:[.92,.74,.62],eye:[.22,.14,.08],beard:"moustache",beardC:[.18,.11,.07],cheveux:"court",hairC:[.17,.11,.07],lunettes:[.72,.72,.74],
+  tenues:{jour:{shirt:[.5,.38,.1],sleeve:.45,pants:[.09,.1,.18],shoe:[.08,.07,.07]},
+          scene:{shirt:[.42,.21,.1],sleeve:.92,col:1,pants:[.13,.09,.07],shoe:[.25,.13,.07]}}}};
+const INV=[[.85,.66,.52],[.55,.38,.28],[.95,.8,.7]],INVS=[[.75,.75,.78],[.2,.35,.3],[.6,.2,.2]];
+const lookDe=(q,i)=>LOOKS[q]||{nom:"Invité",k:1,skin:INV[i%3],eye:[.15,.1,.06],cheveux:"court",hairC:[.12,.08,.06],
+  tenues:{jour:{shirt:INVS[i%3],sleeve:.9,pants:[.15,.17,.25],shoe:[.08,.07,.07]},scene:{shirt:INVS[(i+1)%3],sleeve:.92,pants:[.12,.1,.08],shoe:[.2,.12,.07]}}};
+const SEATED={k:[-.03,.38],a:.38};
+const POSES={
+ debout:{hip:.92,arm:ARM_STAND,leg:LEG_STAND},
+ leves:{hip:.92,arm:{e:[.33,.74,.04],w:[.36,1.0,.08]},leg:LEG_STAND},
+ croises:{hip:.92,armSplit:{L:{e:[.24,.22,.1],w:[-.08,.32,.15]},R:{e:[.24,.26,.12],w:[-.06,.36,.17]}},leg:LEG_STAND},
+ assis:{hip:.56,arm:{e:[.27,.12,.1],w:[.2,.08,.32]},leg:{k:[-.03,.4],a:.4},siege:1},
+ tailleur:{hip:.17,arm:{e:[.28,.15,.1],w:[.22,.02,.25]},legs:[{K:[-.38,.1,.18],A:[.1,.07,.34]},{K:[.38,.1,.18],A:[-.1,.09,.37]}]},
+ chant:{hip:.92,armSplit:{L:ARM_STAND,R:{e:[.22,.25,.2],w:[.07,.52,.3]}},leg:LEG_STAND,inst:"micro"},
+ guitare:{hip:.92,armSplit:{L:{e:[.3,.25,.12],w:[.42,.4,.25]},R:{e:[.27,.15,.1],w:[.06,.12,.2]}},leg:LEG_STAND,inst:"guitare"},
+ basse:{hip:.92,armSplit:{L:{e:[.3,.32,.1],w:[.4,.5,.2]},R:{e:[.27,.18,.08],w:[.06,.08,.2]}},leg:LEG_STAND,inst:"basse"},
+ batterie:{hip:.58,arm:{e:[.3,.12,.12],w:[.2,.18,.42]},leg:SEATED,siege:1,inst:"batterie"},
+ piano:{hip:.58,arm:{e:[.26,.1,.14],w:[.17,.23,.5]},leg:SEATED,siege:1,inst:"piano"},
+ congas:{hip:.58,armSplit:{L:{e:[.28,.1,.18],w:[.1,.17,.42]},R:{e:[.28,.1,.18],w:[.1,.17,.42]}},legs:[{K:[-.17,.55,.36],A:[-.22,.085,.42]},{K:[.17,.55,.36],A:[.22,.085,.42]}],siege:1,inst:"congas"}};
+const PROPS={
+ siege:h=>()=>{mat0(.4,40);cyl([0,0,-.02],[0,h-.17,-.02],.022,MET3,-1,8);for(let k=0;k<3;k++){const a=k*2.094+.5;cyl([Math.cos(a)*.2,0,Math.sin(a)*.2-.02],[0,.2,-.02],.012,MET3,-1,6)}mat0(.1,8);cyl([0,h-.18,-.02],[0,h-.12,-.02],.18,[.06,.05,.05],-1,18)},
+ micro:()=>{mat0(.5,50);cyl([0,0,.42],[0,.02,.42],.14,MET3,-1,14);cyl([0,0,.42],[0,1.5,.36],.012,MET3,-1,8);cyl([0,1.5,.36],[0,1.57,.22],.018,[.1,.1,.11],-1,10);ell(0,1.59,.19,.032,.036,.032,[.55,.55,.57],10,8)},
+ guitare:()=>{const H=.92;mat0(.4,40);ell(.05,H,.16,.17,.21,.055,[.6,.36,.16],20,10);ell(.05,H+.03,.215,.05,.05,.004,[.05,.04,.03],12,6);cyl([-.05,H+.1,.17],[-.52,H+.4,.22],.02,[.3,.2,.12],-1,8);box(-.56,H+.43,.225,.08,.1,.03,[.15,.1,.06])},
+ basse:()=>{const H=.92;mat0(.6,60);ell(.1,H+.05,.14,.13,.18,.03,[.86,.7,.46],18,10);ell(.07,H+.07,.172,.07,.1,.004,[.95,.92,.85],12,6);cyl([.02,H+.15,.14],[-.55,H+.65,.18],.017,[.75,.5,.25],-1,8);box(-.6,H+.7,.18,.05,.1,.02,[.75,.5,.25])},
+ batterie:()=>drumKit(),
+ piano:()=>{mat0(.4,40);box(0,.82,.6,1.1,.07,.32,[.08,.08,.09]);box(0,.862,.64,1.0,.015,.15,[.92,.9,.86]);for(let k=0;k<20;k++)if(k%7!=2&&k%7!=6)box(-.47+k*.05,.875,.6,.024,.015,.08,[.04,.04,.04]);mat0(.5,50);cyl([-.4,0,.5],[.4,.78,.7],.012,MET3,-1,6);cyl([.4,0,.5],[-.4,.78,.7],.012,MET3,-1,6)},
+ congas:()=>{mat0(.6,50);sweep([[0,.0,.48],[0,.25,.46],[0,.5,.44],[0,.72,.42]],[.1,.14,.135,.12],[.08,.32,.15],18);mat0(.4,30);cyl([0,.72,.42],[0,.725,.42],.118,[.9,.86,.78],-1,18);mat0(.8,70);cyl([0,.69,.42],[0,.73,.42],.127,[.75,.75,.78],-1,18)}};
+// détails qui manquent au personnage d'origine : coiffures, barbes, lunettes, bonnet, boucle d'oreille, gilet, col roulé
+function humanPlus(o,H,hy){const L=o.L,T=o.T;if(!L)return;
+ if(L.cheveux=="milong"){const C=L.hairC;mat0(.38,26);ell(0,hy+.1,-.005,.1,.075,.116,C,22,12);ell(0,hy+.03,-.055,.096,.1,.074,C,16,10);[-1,1].forEach(sg=>ell(sg*.083,hy+.035,-.015,.028,.06,.08,C,10,8));ell(.02,hy+.13,.045,.088,.032,.06,C,12,6)}
+ else if(L.cheveux=="court"){const C=L.hairC;mat0(.3,20);ell(0,hy+.095,0,.094,.058,.108,C,22,12);ell(0,hy+.02,-.05,.088,.085,.066,C,16,10)}
+ if(L.beard){const C=L.beardC,f=L.beard=="pleine"?1:.72;mat0(.08,6);ell(0,hy-.105,.05,.072*f+.01,.05*f,.05,C,16,10);[-1,1].forEach(sg=>ell(sg*.064,hy-.085,.022,.024,.036*f,.048,C,10,8));if(!o.sil)ell(0,hy-.048,.094,.036,.01,.012,C,10,6)}
+ if(L.lunettes&&!o.sil){const C=L.lunettes;mat0(.6,60);[-1,1].forEach(sg=>{const pts=[];for(let i=0;i<=16;i++){const a=i/16*Math.PI*2;pts.push([sg*.037+Math.cos(a)*.028,hy+.016+Math.sin(a)*.024,.106])}sweep(pts,pts.map(()=>.0032),C,6,1,1,false);cyl([sg*.064,hy+.02,.104],[sg*.093,hy+.02,0],.0028,C,-1,6)});cyl([-.01,hy+.022,.108],[.01,hy+.022,.108],.003,C,-1,6)}
+ if(L.chapeau=="bonnet"){const C=T.chapC||[.06,.06,.07];mat0(4.05,6);loft([{y:hy+.02,rx:.1,rz:.112,cx:0,cz:-.006},{y:hy+.07,rx:.103,rz:.115,cx:0,cz:-.006},{y:hy+.12,rx:.088,rz:.1,cx:0,cz:-.008},{y:hy+.15,rx:.055,rz:.062,cx:0,cz:-.01},{y:hy+.162,rx:.002,rz:.002,cx:0,cz:-.01}],C,26);loft([{y:hy+.015,rx:.106,rz:.118,cx:0,cz:-.006},{y:hy+.07,rx:.109,rz:.121,cx:0,cz:-.006}],C,26)}
+ if(L.boucle&&!o.sil){mat0(.8,80);ell(.093,hy-.045,0,.007,.009,.007,[.8,.8,.82],8,6)}
+ if(T.gilet){mat0(4.05,6);loft([{y:H+.11,rx:.166,rz:.116,cx:0,cz:0},{y:H+.2,rx:.158,rz:.11,cx:0,cz:.002},{y:H+.3,rx:.172,rz:.114,cx:0,cz:.004},{y:H+.38,rx:.19,rz:.124,cx:0,cz:.008},{y:H+.47,rx:.2,rz:.126,cx:0,cz:.008}],T.gilet,30)}
+ if(T.col){mat0(.05,6);sweep([[0,H+.52,-.006],[0,H+.6,-.002],[0,H+.645,.004]],[.064,.06,.058],T.shirt,16)}}
+// places dans chaque modèle : batteur derrière la batterie, chanteur au centre, les autres autour
+const SPOTS={
+ 1:{pl:[{x:0,z:-1.6},{x:-1.25,z:-2.95,yaw:.38},{x:1.2,z:-2.95,yaw:-.4},{x:-2.1,z:-1.3,yaw:.5},{x:2.1,z:-1.3,yaw:-.5},{x:0,z:-.6}],chair:{x:0,z:-2.08},drum:{x:-2.3,z:-2.9,yaw:.4,kit:0}},
+ 2:{pl:[{x:-.25,z:-1.15,yaw:.28},{x:-1.15,z:-1.6,yaw:.35},{x:.9,z:-1.3,yaw:-.3},{x:.1,z:-3.15,yaw:-.1},{x:-2.4,z:-.9,yaw:.5},{x:2.4,z:-.9,yaw:-.5}],drum:{x:1.65,z:-3.15,yaw:-.18,kit:1},piano:{x:-1.7,z:-2.6,yaw:.06,kb:1}},
+ 3:{pl:[{x:.42,z:-.95,yaw:-.08},{x:-.7,z:-1.6,yaw:.3},{x:.85,z:-1.85,yaw:-.3},{x:-.65,z:-.25,yaw:.2},{x:.75,z:-.15,yaw:-.2},{x:0,z:.5}],drum:{x:0,z:-3.2,yaw:0,kit:1}}};
+const POSE_LISTE=Object.keys(POSES);
+const DEF_M=()=>({n:3,orig:false,sil:true,l:[{qui:"baptiste",pose:"batterie",tenue:"jour",rot:0},{qui:"pierre",pose:"basse",tenue:"jour",rot:0},{qui:"yacine",pose:"chant",tenue:"jour",rot:0},{qui:"invite",pose:"debout",tenue:"jour",rot:0},{qui:"invite",pose:"croises",tenue:"jour",rot:0},{qui:"invite",pose:"leves",tenue:"jour",rot:0}]});
+let MEMB=DEF_M();try{const q=JSON.parse(localStorage.getItem("toast.membres")||"null");if(q&&Array.isArray(q.l))MEMB=normM(q)}catch(e){}
+function normM(q){const d=DEF_M();return{n:Math.max(0,Math.min(6,+q.n||0)),orig:!!q.orig,sil:q.sil!==false,l:d.l.map((x,i)=>{const y=q.l[i]||{};return{qui:y.qui in LOOKS||y.qui=="invite"?y.qui:x.qui,pose:POSES[y.pose]?y.pose:x.pose,tenue:y.tenue=="scene"?"scene":"jour",rot:Math.max(-180,Math.min(180,+y.rot||0))}})}}
+const membresActifs=()=>SCN==3||!MEMB.orig;
+let PLACES=[];
+function construireMembres(sc){const S=SPOTS[sc],pl=S.pl.map(p=>({...p})),l=MEMB.l.slice(0,MEMB.n);let chair=S.chair?{...S.chair}:null,drum=S.drum?{...S.drum}:null,piano=S.piano?{...S.piano}:null;PLACES=[];
+ if(sc==3&&drum){const d=LAY[3].o.drum;drum={x:d.x,z:d.z,yaw:d.yaw,kit:1}}
+ const ord=l.map((m,i)=>i).sort((a,b)=>(l[b].pose=="chant")-(l[a].pose=="chant"));
+ for(const i of ord){const m=l[i],P=POSES[m.pose]||POSES.debout,L=lookDe(m.qui,i),T=L.tenues[m.tenue]||L.tenues.jour;let sp,inst=P.inst,siege=!!P.siege;
+  if(m.pose=="batterie"&&drum){sp=drum;if(drum.kit)inst=null;drum=null}
+  else if(m.pose=="piano"&&piano){sp=piano;if(piano.kb)inst=null;piano=null}
+  else if(m.pose=="assis"&&chair){sp=chair;siege=false;chair=null}
+  else sp=pl.shift()||{x:(i-2.5)*.7,z:.6};
+  const ov=LAY[sc].m[i],rot=(m.rot||0)*Math.PI/180;sp=ov?{x:ov.x,z:ov.z,yaw:ov.yaw+rot}:{...sp,yaw:(sp.yaw||0)+rot};PLACES[i]={x:sp.x,z:sp.z,yaw:sp.yaw||0};
+  const props=[];if(siege)props.push(PROPS.siege(P.hip));if(inst&&PROPS[inst])props.push(PROPS[inst]);
+  human({x:sp.x,z:sp.z,yaw:sp.yaw||0,k:L.k,hip:P.hip,skin:L.skin,shirt:T.shirt,pants:T.pants,shoe:T.shoe,hair:L.hairC||L.beardC||[.1,.07,.05],style:"bald",sleeve:T.sleeve,eye:L.eye,
+   short:T.short,chaussettes:T.chaussettes,sil:MEMB.sil,L,T,arm:P.arm,armSplit:P.armSplit,leg:P.leg,legs:P.legs,prop:()=>props.forEach(f=>f())})}
+ setXF(0,0,0)}
+// tampon des membres (refait seulement quand le modèle ou les membres changent)
+let bfM=null,nM=0,cleM="";
+function tamponMembres(){const cle=SCN+"|"+JSON.stringify(MEMB)+JSON.stringify(LAY[SCN].m)+JSON.stringify(LAY[3].o.drum);if(cle===cleM&&bfM)return;cleM=cle;
+ const a0=A.length;construireMembres(SCN);const arr=new Float32Array(A.slice(a0));A.length=a0;nM=arr.length/12;
+ if(!bfM)bfM=gl.createBuffer();gl.bindBuffer(gl.ARRAY_BUFFER,bfM);gl.bufferData(gl.ARRAY_BUFFER,arr,gl.STATIC_DRAW);gl.bindBuffer(gl.ARRAY_BUFFER,bf)}
+const ptrs=b=>{gl.bindBuffer(gl.ARRAY_BUFFER,b);[[3,0],[3,3],[3,6],[1,9],[1,10],[1,11]].forEach(([k,o],i)=>gl.vertexAttribPointer(i,k,gl.FLOAT,false,48,o*4))};
+// silhouettes : les membres sont noirs, seuls leurs contours prennent la couleur des tubes
+let uSi_=null;
+function drP(SC){if(!membresActifs())return dr_(SC.person);tamponMembres();if(!nM)return;const surPg=gl.getParameter(gl.CURRENT_PROGRAM)===pg&&MEMB.sil;if(surPg){if(!uSi_)uSi_=gl.getUniformLocation(pg,"uSi");gl.uniform1f(uSi_,1)}
+ ptrs(bfM);gl.drawArrays(gl.TRIANGLES,0,nM);ptrs(bf);if(surPg)gl.uniform1f(uSi_,0)}
+function setMembres(m){MEMB=normM(m||DEF_M());try{localStorage.setItem("toast.membres",JSON.stringify(MEMB))}catch(e){}draw()}
+// ---------- tampons du décor qui bouge : tubes + meubles (+ repère de l'objet choisi), et halos ----------
+let bfO=null,nO=0,cleO="",bfG=null,nG=0,cleG="";
+function tamponDe(geo){const a0=A.length;geo();const arr=new Float32Array(A.slice(a0));A.length=a0;return arr}
+function charge(b,arr){if(!b)b=gl.createBuffer();gl.bindBuffer(gl.ARRAY_BUFFER,b);gl.bufferData(gl.ARRAY_BUFFER,arr,gl.STATIC_DRAW);gl.bindBuffer(gl.ARRAY_BUFFER,bf);return b}
+function drO(){const cle=SCN+"|"+JSON.stringify(LAY[SCN])+"|"+(EDIT&&SEL?SEL.id:"");if(cle!==cleO||!bfO){cleO=cle;
+  const arr=tamponDe(()=>{tubesGeo(SCN,false);meublesGeo(SCN);if(EDIT&&SEL){const c=centre(SEL);if(c){mat0(0,1);cyl([c.x,.004,c.z],[c.x,.014,c.z],.42,[1,.62,.15],-1,32);cyl([c.x,.004,c.z],[c.x,.016,c.z],.36,[.05,.04,.03],-1,32)}}});
+  bfO=charge(bfO,arr);nO=arr.length/12}
+ if(nO){ptrs(bfO);gl.drawArrays(gl.TRIANGLES,0,nO);ptrs(bf)}}
+function drG(){const cle=SCN+"|"+JSON.stringify(LAY[SCN].t)+(SCN==3?JSON.stringify([LAY[3].py,LAY[3].pyaw]):"");if(cle!==cleG||!bfG){cleG=cle;const arr=tamponDe(()=>tubesGeo(SCN,true));bfG=charge(bfG,arr);nG=arr.length/12}
+ if(nG){ptrs(bfG);gl.drawArrays(gl.TRIANGLES,0,nG);ptrs(bf)}}
+
+// ---------- L'ÉDITEUR : clic sur un objet = le choisir ; glisser = le déplacer ; molette = le tourner ----------
+let EDIT=false,SEL=null,GLI=null,surSel=null,rafE=0;
+const NOMS_O={drum:"Batterie",f1:"Fauteuil 1",f2:"Fauteuil 2",bureau:"Bureau",lampe:"Lampe"};
+function objets(){const L=LAY[SCN],out=[];
+ (MEMB.n&&membresActifs()?PLACES.slice(0,MEMB.n):[]).forEach((p,i)=>{if(p)out.push({id:"m"+i,nom:(lookDe(MEMB.l[i].qui,i).nom)+" ("+(i+1)+")",x:p.x,z:p.z,y:1.05,yaw:p.yaw,tourne:1})});
+ L.t.forEach(([x,z],i)=>{const pan=SCN==3&&i==4;out.push({id:"t"+i,nom:pan?"Panneau LED (lumière 5)":"Tube "+(i+1),x,z,y:pan?(L.py[0]+L.py[1])/2:1.25,tourne:pan,pan})});
+ if(SCN==3)Object.keys(L.o).forEach(k=>{const o=L.o[k];out.push({id:"o"+k,nom:NOMS_O[k]||k,x:o.x,z:o.z,y:k=="drum"?.6:k=="lampe"?1.2:.5,yaw:o.yaw,tourne:k!="lampe"})});
+ return out}
+function centre(sel){return objets().find(o=>o.id==sel.id)||null}
+function ecran(o){const{M}=view(),v=[o.x,o.y,o.z,1],c=[0,1,2,3].map(r=>M[r]*v[0]+M[4+r]*v[1]+M[8+r]*v[2]+M[12+r]*v[3]);if(c[3]<=.01)return null;
+ const r=cvs.getBoundingClientRect();return{x:r.left+(c[0]/c[3]*.5+.5)*r.width,y:r.top+(.5-c[1]/c[3]*.5)*r.height}}
+function sol(ev,h=0){const r=cvs.getBoundingClientRect(),nx=(ev.clientX-r.left)/r.width*2-1,ny=1-(ev.clientY-r.top)/r.height*2,{e}=view();
+ const zz=nrm(sub(e,cam.T)),xx=nrm(cross([0,1,0],zz)),yy=cross(zz,xx),t=Math.tan(Math.PI/6),ar=cvs.width/cvs.height,d=nrm(add(add(mul(zz,-1),mul(xx,nx*t*ar)),mul(yy,ny*t)));
+ if(Math.abs(d[1])<1e-4)return null;const k=(h-e[1])/d[1];if(k<=0||k>40)return null;return[e[0]+d[0]*k,e[2]+d[2]*k]}
+function choisir(ev){let best=null,bd=46;objets().forEach(o=>{const p=ecran(o);if(!p)return;const d=Math.hypot(p.x-ev.clientX,p.y-ev.clientY);if(d<bd){bd=d;best=o}});return best}
+const limX=()=>(SCN==3?X3:WX)-.15;
+function poser(id,x,z,yaw){const L=LAY[SCN];x=Math.max(-limX(),Math.min(limX(),x));z=Math.max(WALLZ+.1,Math.min(FRONTZ-.1,z));
+ if(id[0]=="m"){const i=+id.slice(1),p=PLACES[i]||{yaw:0},rot=((MEMB.l[i]||{}).rot||0)*Math.PI/180,f=yaw==null?p.yaw:yaw;L.m[i]={x,z,yaw:f-rot};PLACES[i]={x,z,yaw:f}}
+ else if(id[0]=="t"){const i=+id.slice(1);L.t[i]=[x,z];if(yaw!=null&&SCN==3&&i==4)L.pyaw=yaw}
+ else{const o=L.o[id.slice(1)];o.x=x;o.z=z;if(yaw!=null)o.yaw=yaw}}
+function redessiner(){if(rafE)return;rafE=requestAnimationFrame(()=>{rafE=0;draw()})}
+function garderDecor(){try{localStorage.setItem("toast.decor",JSON.stringify(LAY))}catch(e){}}
+function dire(){if(surSel)surSel(SEL?SEL.nom:"",SEL&&SEL.pan)}
+cvs.addEventListener("pointerdown",ev=>{if(!EDIT)return;const o=choisir(ev);SEL=o;dire();if(!o){redessiner();return}
+ const{e}=view(),zz=nrm(sub(e,cam.T)),r=cvs.getBoundingClientRect();
+ // glisser à l'écran : gauche / droite = de côté ; haut / bas = plus loin / plus près (à la vitesse de l'objet, quelle que soit sa distance)
+ GLI={id:o.id,x0:o.x,z0:o.z,mx:ev.clientX,my:ev.clientY,k:2*Math.tan(Math.PI/6)*Math.hypot(e[0]-o.x,e[1]-o.y,e[2]-o.z)/r.height,xr:nrm([zz[2],0,-zz[0]]),fw:nrm([-zz[0],0,-zz[2]])};cvs.setPointerCapture(ev.pointerId);ev.stopImmediatePropagation();redessiner()},true);
+cvs.addEventListener("pointermove",ev=>{if(!EDIT||!GLI)return;ev.stopImmediatePropagation();const g=GLI,a=(ev.clientX-g.mx)*g.k,b=-(ev.clientY-g.my)*g.k*1.6;poser(g.id,g.x0+g.xr[0]*a+g.fw[0]*b,g.z0+g.xr[2]*a+g.fw[2]*b,null);redessiner()},true);
+cvs.addEventListener("pointerup",ev=>{if(!EDIT||!GLI)return;ev.stopImmediatePropagation();GLI=null;garderDecor();redessiner()},true);
+cvs.addEventListener("wheel",ev=>{if(!EDIT||!SEL)return;const o=centre(SEL);if(!o||!o.tourne)return;ev.preventDefault();ev.stopImmediatePropagation();
+ poser(o.id,o.x,o.z,(o.yaw||0)+(ev.deltaY>0?1:-1)*Math.PI/12);garderDecor();redessiner()},{capture:true,passive:false});
+cvs.addEventListener("dblclick",ev=>{if(EDIT)ev.stopImmediatePropagation()},true);
+const decorAPI={
+ editer(on){EDIT=!!on;if(!EDIT)SEL=null;cvs.style.cursor=EDIT?"pointer":"";dire();draw()},
+ surChoix(f){surSel=f},
+ monter(d){const L=LAY[3];if(!(SEL&&SEL.pan))return;const h=L.py[1]-L.py[0],y0=Math.max(.2,Math.min(3.1-h,L.py[0]+d));L.py=[y0,y0+h];garderDecor();draw()},
+ reset(){const d=DEF_LAY();LAY[SCN]=d[SCN];SEL=null;dire();garderDecor();draw()},
+ getDecor:()=>JSON.parse(JSON.stringify(LAY)),_t:{sol,objets,ecran},
+ setDecor(q){LAY=normLay(q||{});SEL=null;dire();garderDecor();draw()}};
+
 const G=new Float32Array(A),NV=cnt();
 const vs=`attribute vec3 aP;attribute vec3 aN;attribute vec3 aC;attribute float aI;attribute float aS;attribute float aH;
 uniform mat4 uM;uniform vec3 uE[${NL}];varying vec3 vP,vN,vC,vE;varying float vS,vH;
 void main(){vP=aP;vN=aN;vC=aC;vS=aS;vH=aH;vE=vec3(0.);if(aI>-.5){vE=uE[int(aI+.5)];}gl_Position=uM*vec4(aP,1.);}`;
-const fs=`precision mediump float;varying vec3 vP,vN,vC,vE;varying float vS,vH;uniform vec2 uTP[${NT3}];uniform vec3 uTC[${NL}];uniform vec3 uEye;uniform vec3 uAm;uniform float uGl;
+const fs=`precision mediump float;varying vec3 vP,vN,vC,vE;varying float vS,vH;uniform vec2 uTP[${NT3}];uniform vec2 uTY[${NT3}];uniform vec3 uTC[${NL}];uniform vec3 uEye;uniform vec3 uAm;uniform float uSi;uniform float uGl;
 const float TH=${TH.toFixed(2)};const float HS=${((TH-.05)/NS).toFixed(4)};
 void main(){vec3 n=normalize(vN);vec3 v=normalize(uEye-vP);
 if(uGl>.5){float a=pow(abs(dot(n,v)),2.2);gl_FragColor=vec4(vE*a*.4,1.);return;}
@@ -1764,11 +2149,11 @@ else if(vS>=3.){ks=vS-3.;vec2 p=vec2(vP.x,vP.z+.9);float d=max(abs(p.x)/2.7,abs(
  alb=d>1.?outer:mix(fc,border,bd);alb*=.9+.1*fract(sin(dot(floor(vP.xz*180.),vec2(12.9898,78.233)))*43758.5453);}
 else if(vS>=2.){ks=vS-2.;float u=vP.x/.2;float id=floor(u);float hs=fract(sin(id*12.9898)*43758.5453);float fr=fract(u);alb*=(.8+.35*hs)*(.5+.5*smoothstep(0.,.04,fr)*smoothstep(1.,.96,fr))*(.93+.07*sin(vP.z*55.+hs*30.));}
 vec3 lit=uAm*(.75+.25*n.y)+uAm*.9*max(0.,-n.y);vec3 sp=vec3(0.);
-for(int i=0;i<${NT3};i++){float py=clamp(vP.y,.08,TH-.03);vec3 d=vec3(uTP[i].x-vP.x,py-vP.y,uTP[i].y-vP.z);float q=dot(d,d);vec3 l=d*inversesqrt(q+.0001);
- float f=(TH-py)/HS-.5;vec3 col=vec3(0.);for(int k=0;k<${NS};k++){col+=uTC[i*${NS}+k]*max(0.,1.-abs(f-float(k)));}
+for(int i=0;i<${NT3};i++){float py=clamp(vP.y,uTY[i].x+.03,uTY[i].y-.03);vec3 d=vec3(uTP[i].x-vP.x,py-vP.y,uTP[i].y-vP.z);float q=dot(d,d);vec3 l=d*inversesqrt(q+.0001);
+ float f=(uTY[i].y-py)/((uTY[i].y-uTY[i].x)/${NS}.)-.5;vec3 col=vec3(0.);for(int k=0;k<${NS};k++){col+=uTC[i*${NS}+k]*max(0.,1.-abs(f-float(k)));}
  float nl=dot(n,l);float wd=clamp((nl+.35)/1.35,0.,1.);wd*=wd*(3.-2.*wd)*.3+.7;float at=1.25/(.4+.7*sqrt(q)+.3*q);
  lit+=col*wd*at;vec3 h=normalize(l+v);sp+=col*pow(max(dot(n,h),0.),vH)*at*step(0.,nl)*ks;}
-float nv=clamp(dot(n,v),0.,1.);vec3 c=alb*lit+sp*.8+vE*1.15+alb*uAm*pow(1.-nv,3.)*2.2;
+float nv=clamp(dot(n,v),0.,1.);vec3 c=uSi>.5?lit*(.025+.95*pow(1.-nv,2.2)):alb*lit+sp*.8+vE*1.15+alb*uAm*pow(1.-nv,3.)*2.2;
 c=(c*(2.51*c+.03))/(c*(2.43*c+.59)+.14);gl_FragColor=vec4(pow(clamp(c,0.,1.),vec3(.4545)),1.);}`;
 const vsS=`attribute vec3 aP;uniform mat4 uM;uniform vec3 uLs;uniform vec4 uPl;
 void main(){vec3 d=aP-uLs;float den=dot(uPl.xyz,d);float t=(uPl.w-dot(uPl.xyz,uLs))/(den==0.?1e-4:den);
@@ -1791,21 +2176,21 @@ function view(){const ar=cvs.width/cvs.height,f=1/Math.tan(60*Math.PI/360),n=.05
  const Vm=[x[0],y[0],z[0],0,x[1],y[1],z[1],0,x[2],y[2],z[2],0,-(x[0]*e[0]+x[1]*e[1]+x[2]*e[2]),-(y[0]*e[0]+y[1]*e[1]+y[2]*e[2]),-(z[0]*e[0]+z[1]*e[1]+z[2]*e[2]),1];
  const Pm=[f/ar,0,0,0,0,f,0,0,0,0,(fa+n)/(n-fa),-1,0,0,2*fa*n/(n-fa),0],Rm=new Float32Array(16);
  for(let c=0;c<4;c++)for(let r=0;r<4;r++){let s=0;for(let k=0;k<4;k++)s+=Pm[k*4+r]*Vm[c*4+k];Rm[c*4+r]=s}return{M:Rm,e}}
-const dr_=r=>gl.drawArrays(gl.TRIANGLES,r[0],r[1]);let SCN=1;try{if(localStorage.getItem("v3scn")=="2")SCN=2}catch(e){}
-function draw(){const{M:Mx,e}=view();gl.viewport(0,0,cvs.width,cvs.height);gl.clearColor(.012,.01,.01,1);gl.clearStencil(0);gl.clear(gl.COLOR_BUFFER_BIT|gl.DEPTH_BUFFER_BIT|gl.STENCIL_BUFFER_BIT);
+const dr_=r=>gl.drawArrays(gl.TRIANGLES,r[0],r[1]);let SCN=3;try{const q=localStorage.getItem("v3scn");if(q=="1"||q=="2"||q=="3")SCN=+q;if(!localStorage.getItem("v3scn3")){SCN=3;localStorage.setItem("v3scn3","1")}}catch(e){}
+function draw(){setLights();const{M:Mx,e}=view();gl.viewport(0,0,cvs.width,cvs.height);gl.clearColor(.012,.01,.01,1);gl.clearStencil(0);gl.clear(gl.COLOR_BUFFER_BIT|gl.DEPTH_BUFFER_BIT|gl.STENCIL_BUFFER_BIT);
  gl.enable(gl.DEPTH_TEST);gl.depthFunc(gl.LEQUAL);gl.enable(gl.CULL_FACE);gl.cullFace(gl.BACK);gl.frontFace(gl.CCW);gl.disable(gl.BLEND);gl.disable(gl.STENCIL_TEST);
  const gn=gS?Math.max(0,Math.min(1,+gS.value)):1;for(let i=0;i<EM.length;i++)EMg[i]=EM[i]*gn; // luminosité des lumières : 0 = éteintes, 1 = actuelle
- gl.useProgram(pg);gl.uniformMatrix4fv(u.M,false,Mx);gl.uniform3fv(u.E,EMg);gl.uniform2fv(u.TP,TP);gl.uniform3fv(u.TC,EMg);gl.uniform3f(u.Am,AM[0]*gn,AM[1]*gn,AM[2]*gn);gl.uniform3f(u.Eye,e[0],e[1],e[2]);gl.uniform1f(u.Gl,0);
- const SC=SCN==2?R2:R;dr_(SC.floor);dr_(SC.wall);
+ gl.useProgram(pg);gl.uniformMatrix4fv(u.M,false,Mx);gl.uniform3fv(u.E,EMg);gl.uniform2fv(u.TP,TP);setTY();gl.uniform3fv(u.TC,EMg);gl.uniform3f(u.Am,AM[0]*gn,AM[1]*gn,AM[2]*gn);gl.uniform3f(u.Eye,e[0],e[1],e[2]);gl.uniform1f(u.Gl,0);
+ const SC=SCN==3?R3:SCN==2?R2:R;dr_(SC.floor);dr_(SC.wall);if(membresActifs()&&SC.deco)dr_(SC.deco);
  // ombres des personnes et du fauteuil sur le sol et le mur du fond (3 positions par tube = bord doux)
  gl.useProgram(ps);gl.uniformMatrix4fv(us.M,false,Mx);gl.enable(gl.STENCIL_TEST);gl.depthMask(false);gl.disable(gl.CULL_FACE);gl.enable(gl.BLEND);gl.blendFunc(gl.ZERO,gl.ONE_MINUS_SRC_ALPHA);
  gl.stencilFunc(gl.EQUAL,0,255);gl.stencilOp(gl.KEEP,gl.KEEP,gl.INCR);
- TUBES.forEach(([x,z],i)=>{const a=1-Math.pow(1-Math.min(.6,SHW[i]*.5),1/3);if(a<.01)return;
+ TUB().forEach(([x,z],i)=>{const a=1-Math.pow(1-Math.min(.6,SHW[i]*.5),1/3);if(a<.01)return;
   for(let j=0;j<3;j++){gl.clear(gl.STENCIL_BUFFER_BIT);gl.uniform3f(us.L,x+(j-1)*.04,1.55+j*.35,z);gl.uniform1f(us.A,a);
-   gl.uniform4f(us.Pl,0,1,0,.004);dr_(SC.person);gl.uniform4f(us.Pl,0,0,1,WALLZ+.004);dr_(SC.person)}});
+   gl.uniform4f(us.Pl,0,1,0,.004);drP(SC);gl.uniform4f(us.Pl,0,0,1,WALLZ+.004);drP(SC)}});
  gl.disable(gl.STENCIL_TEST);gl.depthMask(true);gl.disable(gl.BLEND);gl.enable(gl.CULL_FACE);
- gl.useProgram(pg);dr_(R.tube);dr_(SC.person);
- gl.depthMask(false);gl.disable(gl.CULL_FACE);gl.enable(gl.BLEND);gl.blendFunc(gl.ONE,gl.ONE);gl.uniform1f(u.Gl,1);dr_(R.glow);gl.uniform1f(u.Gl,0);gl.disable(gl.BLEND);gl.enable(gl.CULL_FACE);gl.depthMask(true)}
+ gl.useProgram(pg);drO();drP(SC);
+ gl.depthMask(false);gl.disable(gl.CULL_FACE);gl.enable(gl.BLEND);gl.blendFunc(gl.ONE,gl.ONE);gl.uniform1f(u.Gl,1);drG();gl.uniform1f(u.Gl,0);gl.disable(gl.BLEND);gl.enable(gl.CULL_FACE);gl.depthMask(true)}
 // couleur de chaque tube = moyenne de la vidéo sous sa fenêtre du masque, en NS hauteurs
 const sm=document.createElement("canvas");sm.width=NT3*4;sm.height=NS*4;const sx=sm.getContext("2d",{willReadFrequently:true});sx.imageSmoothingQuality="high";
 const lin=v=>Math.pow(v/255,2.2);
@@ -1833,7 +2218,7 @@ function setFmt(portrait){FMT.w=portrait?9:16;FMT.h=portrait?16:9;cvs.width=port
 fb.onclick=()=>setFmt(FMT.h<FMT.w);
 let sv=null;try{sv=localStorage.getItem("v3fmt")}catch(e){}
 if(sv=="p")setFmt(true);else{fb.textContent="Format 16:9";setPre("c")}
-window.v3=({cam,draw,EM,setFmt,setScene,canvas:cvs,portrait:()=>FMT.h>FMT.w,setSize:(w,h)=>{cvs.width=w;cvs.height=h},restore:()=>{const p=FMT.h>FMT.w;cvs.width=p?540:960;cvs.height=p?960:540;draw()}});
+window.v3=({cam,draw,EM,setFmt,setScene,getMembres:()=>JSON.parse(JSON.stringify(MEMB)),setMembres,...decorAPI,canvas:cvs,portrait:()=>FMT.h>FMT.w,setSize:(w,h)=>{cvs.width=w;cvs.height=h},restore:()=>{const p=FMT.h>FMT.w;cvs.width=p?540:960;cvs.height=p?960:540;draw()}});
 })();
 
 </script><script>
@@ -2050,5 +2435,164 @@ drawTL=function(){
     s.times.forEach(t=>{if(t<v0||t>v1)return;const px=(t-v0)/L*w;x.beginPath();x.moveTo(px-4,LANE_P-1);x.lineTo(px+4,LANE_P-1);x.lineTo(px,LANE_P-8);x.closePath();x.fill()});
     x.globalAlpha=1});
 };
+
+// ===== BEESKOT Studio : musique (Bibliothèque / Médias / Ce PC), vues des vidéos, barre de lecture, plein écran, pictos =====
+(()=>{
+const LS={get:(k,d)=>{try{const v=localStorage.getItem("toast."+k);return v==null?d:v}catch(e){return d}},set:(k,v)=>{try{localStorage.setItem("toast."+k,v)}catch(e){}}};
+const el=(tag,cls,html)=>{const e=document.createElement(tag);if(cls)e.className=cls;if(html!=null)e.innerHTML=html;return e};
+const esc=s=>String(s==null?"":s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const msg=t=>{$("st").textContent=t};
+
+// ---------- 1. LA MUSIQUE : d'où vient le son ----------
+async function chargerOctets(bytes,nom){const p=pendingProj;pendingProj=null;await loadAudio(bytes,nom,p)}
+const fichierCh=$("file"),src=el("div","lt-src");
+fichierCh.before(src);
+src.innerHTML=(DBS?'<div class="lt-seg" role="tablist" aria-label="D\'où vient la musique"><button type="button" data-s="biblio">Bibliothèque</button><button type="button" data-s="medias">Médias</button><button type="button" data-s="pc">Ce PC</button></div>':'')+
+ '<div class="lt-z" data-z="biblio"><label class="lt-lab">Morceau<select id="ltMorceau"><option value="">— choisir —</option></select></label><label class="lt-lab">Version<select id="ltVersion"><option value="">—</option></select></label></div>'+
+ '<div class="lt-z" data-z="medias"><button type="button" class="lt-pri" id="ltMed">🎵 Choisir dans Médias…</button></div>'+
+ '<div class="lt-z" data-z="pc"><button type="button" class="lt-pri" id="ltPc">💻 Choisir un fichier…</button></div>';
+$("ltPc").onclick=()=>fichierCh.click();
+let morceaux=[];
+function mode(m){
+  if(!DBS)m="pc";LS.set("src",m);
+  src.querySelectorAll(".lt-seg button").forEach(b=>b.classList.toggle("on",b.dataset.s==m));
+  src.querySelectorAll(".lt-z").forEach(z=>z.classList.toggle("lt-hidden",z.dataset.z!=m));
+  if(m=="biblio")remplirMorceaux();
+}
+src.querySelectorAll(".lt-seg button").forEach(b=>b.onclick=()=>mode(b.dataset.s));
+async function remplirMorceaux(){
+  const s=$("ltMorceau"),avant=s.value||LS.get("morceau","");
+  try{morceaux=await DBS.morceaux()}catch(e){morceaux=[]}
+  s.innerHTML='<option value="">— choisir —</option>'+morceaux.map(m=>`<option value="${esc(m.id)}">${esc(m.nom)}</option>`).join("");
+  s.value=avant;if(s.value!==avant)s.value="";
+  if(s.value)remplirVersions(false);
+}
+async function remplirVersions(charger){
+  const s=$("ltVersion"),id=$("ltMorceau").value;
+  if(!id){s.innerHTML='<option value="">—</option>';return}
+  s.innerHTML='<option value="">recherche…</option>';
+  let l=[];try{l=await DBS.versions(id)}catch(e){}
+  if($("ltMorceau").value!==id)return;
+  s.innerHTML=l.length?l.map((o,i)=>`<option value="${esc(o.v)}">${i===0?"★ ":""}${o.ou} ${esc(o.nom)}</option>`).join(""):'<option value="">aucun export : ajoute-le dans la fiche (Bibliothèque › Exports)</option>';
+  const avant=LS.get("version","");if(avant&&l.some(o=>o.v===avant))s.value=avant;
+  if(charger&&l.length)chargerVersion();
+}
+async function chargerVersion(){
+  const s=$("ltVersion"),v=s.value;if(!v)return;LS.set("version",v);
+  const nom=(s.selectedOptions[0]||{}).textContent.replace(/^★ /,"").replace(/^\S+ /,"");
+  msg("Chargement de « "+nom+" »…");
+  try{const r=await DBS.lireVersion(v,nom);await chargerOctets(r.bytes,r.nom)}catch(e){msg("Impossible de charger ce fichier : "+(e&&e.message||e))}
+}
+$("ltMorceau").onchange=()=>{LS.set("morceau",$("ltMorceau").value);LS.set("version","");remplirVersions(true)};
+$("ltVersion").onchange=chargerVersion;
+// Médias : la fenêtre de choix du logiciel (musiques seulement)
+async function depuisMedias(titre,plusieurs){
+  const l=await DBS.choisirMusiques(titre);if(!l||!l.length)return [];
+  return plusieurs?l:[l[0]];
+}
+$("ltMed").onclick=async()=>{
+  try{const l=await depuisMedias("Une musique pour Light Toast",false);if(!l.length)return;msg("Chargement de « "+l[0].nom+" »…");const r=await DBS.lireMedia(l[0]);await chargerOctets(r.bytes,r.nom)}
+  catch(e){msg("Impossible de charger ce fichier : "+(e&&e.message||e))}
+};
+mode(LS.get("src",DBS?"biblio":"pc"));
+
+// pistes audio en plus : Médias ou Ce PC (le reste ne change pas)
+const stf=$("stfile");
+if(stf){const r=el("div","lt-ligne");
+  r.innerHTML=(DBS?'<button type="button" id="ltStMed">🎵 Depuis Médias…</button>':'')+'<button type="button" id="ltStPc">💻 Depuis ce PC…</button>';
+  stf.before(r);$("ltStPc").onclick=()=>stf.click();
+  if(DBS)$("ltStMed").onclick=async()=>{
+    try{const l=await depuisMedias("Pistes audio en plus (stems)",true);if(!l.length)return;$("stinfo").textContent="Chargement…";
+      const dt=new DataTransfer();for(const x of l){const r=await DBS.lireMedia(x);dt.items.add(new File([r.bytes],r.nom))}
+      stf.files=dt.files;stf.dispatchEvent(new Event("change"))}catch(e){$("stinfo").textContent="Impossible de charger : "+(e&&e.message||e)}};
+}
+
+// ---------- 2. LES VIDÉOS : les deux / tubes / vue 3D, plein écran, barre de lecture ----------
+const vids=$("vids"),ltv=el("div"),vues=el("div","lt-vues");ltv.id="ltv";
+vues.innerHTML='<div class="lt-seg" aria-label="Vidéos affichées"><button type="button" data-v="deux">Les deux</button><button type="button" data-v="tubes">Tubes LED</button><button type="button" data-v="3d">Vue 3D</button></div><button type="button" class="lt-fs" id="ltFs" title="Plein écran (Échap pour quitter)">⛶ Plein écran</button>';
+vids.before(vues);vids.before(ltv);ltv.append(vids);
+const bar=el("div","lt-bar");
+bar.innerHTML='<button type="button" class="lt-pri" id="ltPlay" title="Lecture / pause (barre d\'espace)">▶</button><button type="button" id="ltStop" title="Arrêter et revenir au début">⏹</button><input type="range" class="lt-pos" id="ltPos" min="0" max="1000" value="0" aria-label="Position dans le morceau"><span class="lt-temps" id="ltT">0:00 / 0:00</span>';
+ltv.append(bar);
+function vue(v){LS.set("vue",v);ltv.className="v-"+v;vues.querySelectorAll("[data-v]").forEach(b=>b.classList.toggle("on",b.dataset.v==v));
+  setTimeout(()=>{window.dispatchEvent(new Event("resize"));if(window.v3&&v3.draw)try{v3.draw()}catch(e){}},30)}
+vues.querySelectorAll("[data-v]").forEach(b=>b.onclick=()=>vue(b.dataset.v));
+vue(LS.get("vue","deux"));
+$("ltFs").onclick=()=>goFs(ltv);
+document.addEventListener("fullscreenchange",()=>{const fe=document.fullscreenElement;
+  if(fe===ltv&&window.v3&&!ltv.classList.contains("v-tubes")){try{const p=v3.portrait(),seul=ltv.classList.contains("v-3d");v3.setSize(p?(seul?1080:720):(seul?1920:1280),p?(seul?1920:1280):(seul?1080:720));v3.draw();v3big=true}catch(e){}}});
+
+const mmss=t=>{t=Math.max(0,t||0);const m=Math.floor(t/60),s=Math.floor(t%60);return m+":"+String(s).padStart(2,"0")};
+let glisse=false,repr=false,etat=null;
+$("ltPlay").onclick=()=>{
+  if(!buf){msg("Charge d'abord un morceau (section 1).");return}
+  if(rec&&rec.state=="recording")return;
+  if(raf){const t=curT;stopAll();curT=startT=t;setPh(t);return}   // pause : on garde la position
+  playFrom(curT>=dur-.2?0:curT);
+};
+$("ltStop").onclick=()=>{if(rec&&rec.state=="recording")return;stopAll();curT=startT=0;if(buf)setPh(0)};
+$("ltPos").oninput=()=>{if(!buf)return;glisse=true;const t=$("ltPos").value/1000*dur;
+  if(raf){repr=true;stopAll()}curT=startT=t;setPh(t);$("ltT").textContent=mmss(t)+" / "+mmss(dur)};
+$("ltPos").onchange=()=>{glisse=false;if(repr){repr=false;playFrom(curT)}};
+setInterval(()=>{if(document.hidden)return;
+  const on=!!raf;if(on!==etat){etat=on;$("ltPlay").textContent=on?"❚❚":"▶";$("ltPlay").title=on?"Pause (barre d'espace)":"Lecture (barre d'espace)"}
+  if(!glisse){$("ltPos").value=dur?Math.round(curT/dur*1000):0;$("ltT").textContent=mmss(curT)+" / "+mmss(dur)}},150);
+
+// ---------- 2b. LES MEMBRES DANS LA VUE 3D : combien, qui, quelle pose, quelle tenue, tournés comment ----------
+if(window.v3&&v3.getMembres){
+  const QUI=[["yacine","Yacine"],["baptiste","Baptiste"],["pierre","Pierre"],["invite","Invité"]];
+  const POSE=[["debout","Debout"],["leves","Bras levés"],["croises","Bras croisés"],["assis","Assis"],["tailleur","Assis en tailleur"],["chant","Chante (micro)"],["guitare","Guitare"],["basse","Basse"],["batterie","Batterie"],["piano","Piano"],["congas","Congas"]];
+  const opts=(l,v)=>l.map(([k,n])=>`<option value="${k}"${k==v?" selected":""}>${n}</option>`).join("");
+  const bt=el("button","","👥 Membres");bt.type="button";bt.id="ltMembBt";bt.title="Les membres dans la vue 3D : combien, qui, pose, tenue";
+  vues.insertBefore(bt,$("ltFs"));
+  const bx=el("div","lt-memb lt-hidden");ltv.after(bx);
+  const ouvert=LS.get("membOuvert","0")=="1";if(ouvert){bx.classList.remove("lt-hidden");bt.classList.add("on")}
+  bt.onclick=()=>{const o=bx.classList.toggle("lt-hidden");bt.classList.toggle("on",!o);LS.set("membOuvert",o?"0":"1")};
+  function rendre(){const m=v3.getMembres();
+    bx.innerHTML=`<div class="lt-ligne"><label class="lt-lab lt-in">Membres sur scène<select id="ltMn">${[0,1,2,3,4,5,6].map(n=>`<option${n==m.n?" selected":""}>${n}</option>`).join("")}</select></label>
+      <label class="leg" title="Membres en ombres noires : seuls les contours prennent la couleur des lumières"><input type="checkbox" id="ltMs"${m.sil?" checked":""}> silhouettes</label><label class="leg"><input type="checkbox" id="ltMo"${m.orig?" checked":""}> personnages d'origine dans OPP1 et MOTHER3</label><button type="button" id="ltMr" title="Revenir à Yacine, Baptiste et Pierre">Réinitialiser</button></div>`+
+      m.l.slice(0,m.n).map((x,i)=>`<div class="lt-mrow" data-i="${i}"><b class="lt-mnum">${i+1}</b>
+        <select data-k="qui" aria-label="Qui">${opts(QUI,x.qui)}</select><select data-k="pose" aria-label="Pose">${opts(POSE,x.pose)}</select>
+        <select data-k="tenue" aria-label="Tenue">${opts([["jour","Tous les jours"],["scene","Scène 70s"]],x.tenue)}</select>
+        <label class="lt-lab lt-in lt-rot">Tourner<input type="range" data-k="rot" min="-180" max="180" step="5" value="${x.rot}"></label></div>`).join("");
+    $("ltMn").onchange=()=>{const q=v3.getMembres();q.n=+$("ltMn").value;v3.setMembres(q);rendre()};
+    $("ltMo").onchange=()=>{const q=v3.getMembres();q.orig=$("ltMo").checked;v3.setMembres(q)};$("ltMs").onchange=()=>{const q=v3.getMembres();q.sil=$("ltMs").checked;v3.setMembres(q)};
+    $("ltMr").onclick=()=>{v3.setMembres(null);rendre()};
+    bx.querySelectorAll(".lt-mrow [data-k]").forEach(c=>{const ev=c.type=="range"?"input":"change";c.addEventListener(ev,()=>{const q=v3.getMembres(),i=+c.closest(".lt-mrow").dataset.i;q.l[i][c.dataset.k]=c.type=="range"?+c.value:c.value;v3.setMembres(q)})});
+  }
+  rendre();
+  // un projet ouvert peut changer les membres : on remet le panneau à jour
+  const sm=v3.setMembres;v3.setMembres=m=>{sm(m);if(!bx.contains(document.activeElement))rendre()};
+}
+
+// ---------- 2c. L'ÉDITEUR DE DÉCOR (vue 3D) ----------
+if(window.v3&&v3.editer){
+  const be=el("button","","✎ Éditer le décor");be.type="button";be.id="ltEdBt";be.title="Déplacer les membres, les tubes, le panneau LED, la batterie et les meubles dans la vue 3D";
+  vues.insertBefore(be,$("ltFs"));
+  const eb=el("div","lt-edit lt-hidden");$("v3w").append(eb);
+  eb.innerHTML='<span class="lt-edsel" id="ltEdSel">Clique sur un membre, un tube, le panneau ou un meuble</span><span class="lt-edaide">glisser = déplacer · molette = tourner</span><span class="lt-edh lt-hidden" id="ltEdH"><button type="button" id="ltEdUp" title="Monter le panneau">▲</button><button type="button" id="ltEdDn" title="Descendre le panneau">▼</button></span><button type="button" id="ltEdR" title="Remet ce modèle 3D comme au départ">Réinitialiser</button><button type="button" class="lt-pri" id="ltEdOk">Terminé</button>';
+  const fin=on=>{be.classList.toggle("on",on);eb.classList.toggle("lt-hidden",!on);v3.editer(on);if(on&&ltv.classList.contains("v-tubes"))vue("3d")};
+  be.onclick=()=>fin(!be.classList.contains("on"));$("ltEdOk").onclick=()=>fin(false);
+  $("ltEdR").onclick=()=>v3.reset();$("ltEdUp").onclick=()=>v3.monter(.1);$("ltEdDn").onclick=()=>v3.monter(-.1);
+  v3.surChoix((nom,pan)=>{$("ltEdSel").textContent=nom?"Choisi : "+nom:"Clique sur un membre, un tube, le panneau ou un meuble";$("ltEdH").classList.toggle("lt-hidden",!pan)});
+}
+
+// ---------- 3. LES PICTOS MAISON (les mêmes que dans le logiciel) ----------
+const PIC=(()=>{try{return parent.BK&&parent.BK.pictos}catch(e){return null}})();
+if(PIC){
+  const cles=Object.keys(PIC).map(c=>c.replace(/[.*+?^${}()|[\]\\]/g,"\\$&")),RE=new RegExp("("+cles.join("|")+")️?","g");
+  const EXCLUS="script,style,textarea,input,select,option,title,canvas,.pic";
+  const texte=n=>{const t=n.nodeValue;if(!t||!RE.test(t)){RE.lastIndex=0;return}RE.lastIndex=0;
+    const f=document.createDocumentFragment();let d=0,m;
+    while((m=RE.exec(t))){if(m.index>d)f.append(t.slice(d,m.index));const s=document.createElement("span"),nom=PIC[m[1]],u="url(../pictos/"+nom+".png)";
+      if(nom[0]=="A"){s.className="pic a";s.style.webkitMaskImage=u;s.style.maskImage=u}else{s.className="pic";s.style.backgroundImage=u}
+      s.textContent=m[0];f.append(s);d=m.index+m[0].length}
+    if(d<t.length)f.append(t.slice(d));n.parentNode.replaceChild(f,n)};
+  const traiter=r=>{if(!r||r.nodeType!==1||r.closest(EXCLUS))return;const w=document.createTreeWalker(r,NodeFilter.SHOW_TEXT,{acceptNode:n=>n.parentNode&&n.parentNode.closest&&n.parentNode.closest(EXCLUS)?2:1}),l=[];let n;while((n=w.nextNode()))l.push(n);l.forEach(texte)};
+  traiter(document.body);
+  new MutationObserver(ms=>ms.forEach(m=>{if(m.type=="childList")m.addedNodes.forEach(n=>traiter(n.nodeType==3?n.parentNode:n));else traiter(m.target.parentNode)}))
+    .observe(document.body,{childList:true,subtree:true,characterData:true});
+}
+})();
 
 </script></body></html>

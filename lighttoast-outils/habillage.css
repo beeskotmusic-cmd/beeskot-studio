@@ -1,0 +1,183 @@
+/* =====================================================================
+   HABILLAGE BEESKOT STUDIO — Light Toast prend exactement le look des autres pages.
+   Posé TOUT À LA FIN du style de TOAST (adapter.py) : il gagne sur tout le reste.
+   Les valeurs viennent de style/dari-look.css (pane, box, lb, nt, btn, fld, seg).
+   ===================================================================== */
+:root{--ink:#efe6d2;--laiton:rgba(168,135,78,.5);--amb:#ffb23e;--mus:#d9a93c;--tx:#efe6d2;--mu:rgba(239,230,210,.55);--ac:#d9a93c}
+html,body{background:transparent!important}
+body,body.fsOn{zoom:1!important;font:400 14px/1.45 Jost,"Work Sans",system-ui,sans-serif!important;color:var(--ink)}
+main{padding:0 0 16px!important}
+
+/* ---------- les trois colonnes = les « panneaux » du logiciel ---------- */
+#lay{gap:16px!important;flex-wrap:nowrap!important}
+#colA,#colC,#colB{display:flex;flex-direction:column;gap:12px;padding:14px 16px!important;border-radius:6px;background:rgba(18,12,8,.55);
+  box-shadow:0 0 0 1px var(--laiton),inset 0 1px 0 rgba(255,255,255,.05),inset 0 0 36px rgba(0,0,0,.4),3px 12px 16px rgba(0,0,0,.5)}
+#colA{flex:0 0 340px!important}#colB{flex:0 0 340px!important}#colC{flex:1 1 0!important;min-width:0}
+/* comme les autres pages : la page ne bouge pas, chaque panneau défile tout seul */
+@media(min-width:1250px){
+  main{height:100vh;padding:0!important}
+  #lay{height:100%;align-items:stretch!important}
+  #colA,#colB,#colC{position:static!important;max-height:none!important;height:100%;overflow-y:auto!important;overflow-x:hidden}
+}
+#colA,#colB,#colC{scrollbar-width:thin;scrollbar-color:rgba(168,135,78,.35) transparent}
+#colA>section,#colB>section,#colC>section{flex:none}
+@media(max-width:1249px){#lay{flex-wrap:wrap!important}#colB{flex:1 1 100%!important;position:static!important;max-height:none!important}}
+@media(max-width:1099px){#colA{flex:1 1 100%!important;position:static!important;max-height:none!important}}
+::-webkit-scrollbar{width:10px;height:10px}::-webkit-scrollbar-thumb{background:rgba(168,135,78,.35);border-radius:5px}::-webkit-scrollbar-track{background:transparent}
+
+/* ---------- chaque section = une « case » (box) ---------- */
+section,section:nth-of-type(n){margin:0!important;padding:14px 16px!important;border:0!important;border-radius:6px!important;color:var(--ink);
+  background:rgba(239,230,210,.04)!important;background-image:none!important;box-shadow:inset 0 0 0 1px rgba(239,230,210,.14)!important}
+.slim{gap:10px 12px}
+#palbar{padding:14px 16px!important}
+
+/* titre de case : petites majuscules espacées (.lb) + flèche pour replier */
+h2,.slim h2,#palbar h2{display:flex;align-items:center;gap:6px;margin:0 0 10px!important;font:600 11px/1.2 Jost,"Work Sans",sans-serif!important;
+  letter-spacing:.16em!important;text-transform:uppercase;color:rgba(239,230,210,.85)!important;text-shadow:none!important;flex:1 1 100%}
+#palbar h2{flex:0 0 auto;margin:0!important}
+h2:hover{color:var(--amb)!important}
+h2::before{display:none!important}
+.tg2,.tg2.g{order:-1;width:12px!important;height:auto!important;padding:0!important;border:0!important;background:none!important;box-shadow:none!important;
+  color:var(--amb)!important;font-size:11px!important;min-height:0!important;letter-spacing:0!important}
+section.col h2{margin-bottom:0!important}
+.inf{width:14px;height:14px;margin-left:4px;border-color:rgba(239,230,210,.35)!important;color:rgba(239,230,210,.6)!important}
+.tip{background:#1b120b!important;border:0!important;border-radius:6px!important;box-shadow:0 0 0 1px var(--laiton),0 10px 26px rgba(0,0,0,.8)!important;
+  font:500 12px/1.45 Jost,"Work Sans",sans-serif!important;color:var(--ink)!important;letter-spacing:.01em!important}
+
+/* petits titres internes et textes d'aide (.eng / .nt) */
+.gh{font:500 12px/1.4 Jost,"Work Sans",sans-serif!important;letter-spacing:.01em!important;text-transform:none!important;color:rgba(239,230,210,.55)!important;margin:8px 0 4px!important}
+.leg,.ctl,.lmb,.tb,.lmh,.sr{font-size:12px!important;font-weight:500;color:rgba(239,230,210,.55)!important;font-family:Jost,"Work Sans",sans-serif}
+.ctl{gap:4px!important}
+.ctl>b,.ctl b{color:var(--ink)!important;font-weight:600}
+label.ctl:not(.k){font:600 9px/1.25 Jost,sans-serif!important;letter-spacing:.2em!important;text-transform:uppercase!important;color:var(--ink)!important}
+label.ctl:not(.k) select,label.ctl:not(.k) input{letter-spacing:normal;text-transform:none}
+#st{display:block;font:500 12px/1.4 'Share Tech Mono','DM Mono',monospace!important;color:rgba(239,230,210,.55)!important;letter-spacing:.03em}
+#sgtxt{font-size:12px!important;color:rgba(239,230,210,.7)!important}
+details{border-top:1px solid rgba(239,230,210,.1)!important;box-shadow:none!important;margin-top:10px!important;padding-top:8px!important}
+summary{font:600 11px/1.2 Jost,sans-serif!important;letter-spacing:.16em;text-transform:uppercase;color:rgba(239,230,210,.85)!important;list-style:none;display:flex;align-items:center;gap:6px}
+summary::-webkit-details-marker{display:none}
+summary::before{content:"▸";color:var(--amb);font-size:11px;width:10px}
+details[open]>summary::before{content:"▾"}
+.kb{font:600 9px/1 'Share Tech Mono',monospace!important;color:var(--amb)!important;background:#0a0604!important;border:0!important;box-shadow:inset 0 1px 2px #000,0 0 0 1px var(--laiton)!important}
+
+/* ---------- les touches (.btn sm / xs) ---------- */
+button,button.g,.db,input[type=file]::file-selector-button{font:600 10.5px/1.1 Jost,sans-serif!important;letter-spacing:.1em!important;text-transform:uppercase;
+  color:var(--ink)!important;background:linear-gradient(180deg,#2e251d,#161009)!important;border:0!important;border-radius:5px!important;text-shadow:none!important;
+  min-height:28px;padding:0 12px!important;box-shadow:0 0 0 1px rgba(239,230,210,.5),inset 0 1px 0 rgba(255,255,255,.1),0 3px 0 #14100a,0 5px 9px rgba(0,0,0,.45)!important;
+  display:inline-flex;align-items:center;justify-content:center;gap:6px;filter:none!important}
+button:hover,button.g:hover{background:linear-gradient(180deg,#3a2f25,#1c140c)!important}
+button:active{transform:translateY(2px)!important}
+button:disabled{opacity:.5!important;cursor:not-allowed}
+/* la touche orange (comme « Écouter » ou « Exporter ») */
+#play,#rec,#sgo,.lt-pri{color:#241709!important;background:linear-gradient(180deg,#e0a43c,#b97c1c)!important;font-size:11px!important;letter-spacing:.14em!important;
+  box-shadow:0 0 0 1px #b8934f,inset 0 1px 0 rgba(255,245,210,.5),0 3px 0 #6e4a0e,0 6px 12px rgba(0,0,0,.5),0 0 16px rgba(255,170,40,.25)!important;min-height:34px;padding:0 18px!important}
+#play:hover,#rec:hover,#sgo:hover,.lt-pri:hover{background:linear-gradient(180deg,#eab04a,#c38624)!important}
+/* touches choisies (allumées) */
+.db.on,.cc.on,#fsbar .chip.on,button[aria-pressed=true]{background:linear-gradient(180deg,#8a4426,#5d2a13)!important;color:#ffe6c8!important;box-shadow:0 0 0 2px #b8934f,inset 0 2px 5px rgba(0,0,0,.4)!important}
+/* petites touches carrées (dans les listes) */
+.db,.tt .x,.pc button,#v3b button,#v3b select,#vwfs,.sh button,.sr button,.sb button,#pop .ph button{min-height:22px!important;padding:0 7px!important;font-size:9.5px!important;letter-spacing:.08em!important}
+.db{width:20px!important;height:20px!important;min-height:20px!important;padding:0!important}
+.gb{min-height:0!important;padding:0!important;box-shadow:0 0 0 1px rgba(0,0,0,.5)!important;text-shadow:none!important}
+.sw{min-height:0!important;padding:0!important}
+.cc{border-left:5px solid var(--c,#fff)!important}
+#ctxm button{box-shadow:none!important;background:none!important;text-transform:none;letter-spacing:.02em!important;font:500 13px Jost,sans-serif!important;justify-content:flex-start}
+#ctxm button:hover{background:rgba(239,230,210,.08)!important}
+
+/* ---------- les champs (.fld : afficheur orange) ---------- */
+select,input[type=text],input[type=number],.nm,.sr input[type=number],.sh input[type=number]{font:400 13px/1.2 'Share Tech Mono','DM Mono',monospace!important;color:var(--amb)!important;
+  background:linear-gradient(180deg,#0a0604,#1b110a)!important;border:0!important;border-radius:4px!important;text-shadow:0 0 6px rgba(255,160,40,.5)!important;
+  box-shadow:inset 0 2px 6px rgba(0,0,0,.95),0 0 0 1px var(--laiton)!important;min-height:30px;padding:0 10px!important}
+select:focus,input:focus{outline:none!important;box-shadow:inset 0 2px 6px rgba(0,0,0,.95),0 0 0 2px var(--mus)!important}
+select option,select optgroup{background:#1b110a!important;color:var(--amb)!important}
+input::placeholder{color:rgba(255,178,62,.4)!important}
+.nm,.pnm{min-height:24px!important;padding:0 6px!important;font-size:12px!important}
+input[type=file]{display:none!important}
+input[type=checkbox]{-webkit-appearance:auto!important;appearance:auto!important;accent-color:var(--mus);width:15px!important;height:15px!important;background:none!important;border:0!important;box-shadow:none!important;border-radius:3px}
+input[type=range]{-webkit-appearance:auto!important;appearance:auto!important;accent-color:var(--mus);height:auto!important;background:none!important}
+input[type=color]{border:0!important;box-shadow:0 0 0 1px var(--laiton)!important;border-radius:4px!important;background:#0a0604!important}
+.pc{background:rgba(0,0,0,.28)!important;border:0!important;box-shadow:inset 0 0 0 1px rgba(239,230,210,.12)!important;border-radius:5px!important}
+.pcr{border:0!important;box-shadow:0 0 0 1px var(--laiton)}
+
+/* listes : lignes discrètes comme ailleurs */
+.sc,.pt{background:rgba(0,0,0,.22)!important;border:0!important;border-radius:5px!important;box-shadow:inset 0 0 0 1px rgba(239,230,210,.1)!important}
+.sc.on{box-shadow:inset 0 0 0 1px var(--amb),0 0 8px rgba(255,178,62,.2)!important}
+#ptl .prow,#etl .prow,.sr{border-top:1px solid rgba(239,230,210,.08)!important;box-shadow:none!important}
+#ptl .tgl,#etl .tgl{font:600 11px Jost,sans-serif!important;letter-spacing:.08em!important}
+#ptl .tgl b,#etl .tgl b{font-size:11px!important;color:var(--ink)!important}
+#ptl .vol,#etl .vol{border-left-color:var(--mus)!important;background:rgba(0,0,0,.25)!important}
+.pk,.cg{background:rgba(0,0,0,.35)!important}
+
+/* ---------- vidéos et frise : écrans encastrés (comme les écrans du logiciel) ---------- */
+#vw,#v3w,#colC #vids #vw{margin:0!important;border-radius:4px!important;background:#000;box-shadow:inset 0 3px 9px #000,0 0 0 1px var(--laiton)!important}
+#tlw{margin:4px 0!important;border-radius:4px!important;box-shadow:inset 0 3px 9px #000,0 0 0 1px var(--laiton)!important}
+#v3t{font:11px 'Share Tech Mono',monospace;color:var(--amb)}
+#tlbox.fs{background:#140c07!important}
+#pop,#ctxm,#cvp{background:#1b120b!important;border:0!important;border-radius:6px!important;box-shadow:0 0 0 1px var(--laiton),0 10px 26px rgba(0,0,0,.8)!important}
+#ph{background:#ffb23e!important;mix-blend-mode:normal!important}
+
+/* ---------- les pictos maison (même rendu que dans le logiciel) ---------- */
+.pic{display:inline-block;width:1.25em;height:1.25em;vertical-align:-.25em;background:center/contain no-repeat;text-indent:-9999px;overflow:hidden;flex:none}
+.pic.a{background:currentColor;-webkit-mask:center/contain no-repeat;mask:center/contain no-repeat}
+
+/* ---------- ajouts BEESKOT Studio : source de la musique, vues, lecture ---------- */
+.lt-seg{display:inline-flex;gap:5px;padding:5px;border-radius:7px;background:#140d08;box-shadow:inset 0 2px 7px #000,0 0 0 1px var(--laiton)}
+.lt-seg button{min-height:30px;padding:0 8px!important;white-space:nowrap;letter-spacing:.08em!important;box-shadow:none!important;background:transparent!important;color:rgba(239,230,210,.75)!important}
+.lt-seg button.on{background:linear-gradient(180deg,#8a4426,#5d2a13)!important;color:#ffe6c8!important;box-shadow:0 0 0 2px #b8934f,inset 0 2px 5px rgba(0,0,0,.4)!important}
+.lt-src{width:100%;display:flex;flex-direction:column;gap:10px}
+.lt-src .lt-seg{width:100%}.lt-src .lt-seg button{flex:1}
+.lt-lab{display:flex;flex-direction:column;gap:4px;font:600 9px/1.25 Jost,sans-serif;letter-spacing:.2em;text-transform:uppercase;color:var(--ink)}
+.lt-lab select{width:100%}
+.lt-ligne{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.lt-hidden{display:none!important}
+#colA .slim{flex-direction:column;flex-wrap:nowrap!important;align-items:stretch}
+#colA .slim>.row{margin:0!important;flex-direction:column;flex-wrap:nowrap!important;align-items:stretch!important}
+#colA .slim>.row>*{width:100%}
+#colA .slim .row button{width:100%}
+#colA .slim .row label.leg{justify-content:flex-start}
+#destw{flex-direction:row!important;align-items:center;gap:8px!important;font:600 9px/1 Jost,sans-serif!important;letter-spacing:.2em!important;text-transform:uppercase;color:var(--ink)!important}
+#destw select{flex:1;max-width:none!important}
+
+.lt-vues{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:0 0 10px}
+.lt-vues .lt-fs{margin-left:auto}
+#ltv{display:flex;flex-direction:column;gap:10px}
+#ltv #vids{gap:12px!important;flex-wrap:nowrap!important}
+#ltv #vids>*{flex:1 1 0!important;min-width:0!important;max-width:none!important}
+#ltv.v-tubes #v3w,#ltv.v-3d #vw{display:none!important}
+#vwfs,#v3fs{display:none!important}
+.lt-bar{display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:6px;background:rgba(0,0,0,.3);box-shadow:inset 0 0 0 1px rgba(239,230,210,.12)}
+.lt-bar button{min-width:38px;min-height:32px}
+.lt-bar .lt-pos{flex:1;min-width:80px}
+.lt-temps{font:400 14px/1 'Share Tech Mono',monospace;color:var(--amb);text-shadow:0 0 6px rgba(255,160,40,.5);background:linear-gradient(180deg,#0a0604,#1b110a);
+  box-shadow:inset 0 2px 6px rgba(0,0,0,.95),0 0 0 1px var(--laiton);border-radius:4px;padding:8px 10px;white-space:nowrap;min-width:118px;text-align:center}
+.vc>.row:first-child{display:none!important}  /* Aperçu / Arrêter : remplacés par la barre de lecture */
+
+/* plein écran : la ou les vidéos choisies + la barre de lecture */
+#ltv:fullscreen{background:#000;padding:14px;gap:12px;justify-content:center}
+#ltv:fullscreen #vids{flex:1 1 auto;min-height:0;align-items:center}
+#ltv:fullscreen #vw,#ltv:fullscreen #v3w{align-self:center!important;width:100%}
+#ltv:fullscreen #vw{aspect-ratio:16/9;max-height:calc(100vh - 90px);max-width:calc((100vh - 90px)*16/9)!important;margin:0 auto!important}
+#ltv:fullscreen #v3w #v3{max-height:calc(100vh - 140px);width:auto!important;max-width:100%;margin:0 auto}
+#ltv:fullscreen .lt-bar{flex:none}
+[hidden]{display:none!important}
+#colB .ctl.k{flex-wrap:wrap;min-width:0;max-width:100%}
+#colB .ctl.k select{flex:1 1 140px;min-width:0;max-width:100%}
+#colB .row{min-width:0}
+#ltv #vids{align-items:flex-start!important}
+#ltv.v-tubes #vw,#ltv.v-3d #v3w{flex:0 1 auto!important;width:100%}
+#ltv:fullscreen #vids{justify-content:center}
+#ltv:fullscreen.v-tubes #vw{flex:none!important;width:min(100%,calc((100vh - 90px)*16/9))!important}
+label.ctl input[type=range]{margin-top:6px!important}
+@media(max-width:1599px){#colB{flex-basis:300px!important}#colA{flex-basis:310px!important}}
+.lt-memb{display:flex;flex-direction:column;gap:8px;margin-top:10px;padding:12px 14px;border-radius:6px;background:rgba(0,0,0,.22);box-shadow:inset 0 0 0 1px rgba(239,230,210,.12)}
+.lt-memb .lt-ligne{gap:14px}
+.lt-lab.lt-in{flex-direction:row;align-items:center;gap:8px}
+.lt-lab.lt-in select{width:auto}
+.lt-mrow{display:grid;grid-template-columns:22px 1fr 1.3fr 1.2fr 1.4fr;gap:8px;align-items:center}
+.lt-mnum{font:400 14px 'Share Tech Mono',monospace;color:var(--amb);text-align:center}
+.lt-rot input{flex:1;min-width:60px}
+#ltMembBt.on{background:linear-gradient(180deg,#8a4426,#5d2a13)!important;color:#ffe6c8!important;box-shadow:0 0 0 2px #b8934f,inset 0 2px 5px rgba(0,0,0,.4)!important}
+.lt-edit{display:flex;align-items:center;flex-wrap:wrap;gap:8px 12px;padding:8px 10px;border-radius:0 0 4px 4px;background:rgba(224,164,60,.12);box-shadow:inset 0 0 0 1px var(--mus)}
+.lt-edsel{font:600 11px/1.2 Jost,sans-serif;letter-spacing:.12em;text-transform:uppercase;color:var(--amb)}
+.lt-edaide{font-size:12px;color:rgba(239,230,210,.55);flex:1}
+.lt-edh{display:inline-flex;gap:4px}
+#ltEdBt.on{background:linear-gradient(180deg,#8a4426,#5d2a13)!important;color:#ffe6c8!important;box-shadow:0 0 0 2px #b8934f,inset 0 2px 5px rgba(0,0,0,.4)!important}

@@ -308,7 +308,7 @@ BK.module('medias', function (page) {
       <span class="dymo md-choix-titre" title="${esc(titre)}">🖼 ${esc(titre)}</span><div class="md-choix-c"></div>
       <div class="md-choix-pied">${pc ? '<button class="btn sm" data-c="pc">💻 Ce PC…</button>' : ''}${retirer ? `<button class="btn sm" data-c="retirer">${esc(retirer)}</button>` : ''}<span class="nt" id="mdChN">Clic = choisir · Ctrl+clic = en ajouter · Maj+clic = une suite · double-clic = choisir et ajouter</span>
         <button class="btn" data-c="x">Annuler</button><button class="btn pri" data-c="ok" disabled>${esc(bouton)}</button>
-        <input type="file" multiple hidden accept="${type === 'video' ? 'video/*' : type === 'image' ? 'image/*' : 'image/*,video/*'}"></div></div>`;
+        <input type="file" multiple hidden accept="${type === 'video' ? 'video/*' : type === 'image' ? 'image/*' : type === 'audio' ? 'audio/*,.wav,.mp3,.aif,.aiff,.flac,.m4a,.ogg' : 'image/*,video/*'}"></div></div>`;
     const c = v.querySelector('.md-choix-c'); c.appendChild(aj); c.appendChild(vit);
     document.body.appendChild(v); v.querySelector('.md-choix').classList.add('md-choix');
     const choisis = () => [...M.sel].map(id => M.vus && M.vus[id]).filter(Boolean)
@@ -377,7 +377,7 @@ BK.module('medias', function (page) {
   const couleurTag = BK.couleurTag;
   function rendre(filtre) {
     const masque = f => BK.etiquettes.liste(M.tags, idTags(f)).includes('c:masque');
-    const garde = f => !M.choix || !M.choix.type || (M.choix.type === 'image' ? /^image\//.test(f.mimeType || '') : M.choix.type === 'video' ? /^video\//.test(f.mimeType || '') : true);
+    const garde = f => !M.choix || !M.choix.type || (M.choix.type === 'image' ? /^image\//.test(f.mimeType || '') : M.choix.type === 'video' ? /^video\//.test(f.mimeType || '') : M.choix.type === 'audio' ? /^audio\//.test(f.mimeType || '') || /\.(wav|mp3|aiff?|flac|m4a|ogg)$/i.test(f.name || '') : true);
     const ds = M.fichiers.filter(f => f.mimeType === DOSSIER), tous = M.fichiers.filter(f => f.mimeType !== DOSSIER && garde(f));
     M.vus = M.vus || {}; for (const f of tous) M.vus[f.id] = f;          // pour retrouver un fichier choisi dans un autre dossier
     const fs = (M.voirCaches ? tous.filter(masque) : tous.filter(f => !masque(f))).filter(passeFiltre).filter(passeType);

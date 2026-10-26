@@ -3,6 +3,12 @@
 // Pour une nouvelle version : ajouter un bloc EN HAUT de la liste. Une ligne courte par point : « Onglet : ce qui change. »
 // =====================================================================
 BK.NOUVEAUTES = [
+  { v: '0.9.74', titre: '', l: [
+    ['💡', 'Light Toast : même look que le reste du logiciel (mêmes polices, tailles, touches, cases et pictos), chaque colonne défile toute seule.'],
+    ['🎵', 'Light Toast : la musique se choisit depuis la Bibliothèque (morceau → version), depuis Médias ou depuis ce PC. Les pistes audio en plus aussi depuis Médias.'],
+    ['▶', 'Light Toast : barre de lecture sous les vidéos (lecture / pause, arrêt, glisser dans le morceau, temps), onglets Les deux / Tubes LED / Vue 3D, et Plein écran.'],
+    ['🎸', 'Light Toast : vue 3D « STUDIO BEESKOT » (le studio, ses 4 tubes et le panneau LED) et bouton « Membres » : Yacine, Baptiste et Pierre en silhouettes (0 à 6 membres), pose, instrument, tenue (tous les jours ou scène 70s) et orientation de chacun.'],
+    ['✎', 'Light Toast : « ✎ Éditer le décor » : clique sur un membre, un tube, le panneau LED (▲ ▼ pour sa hauteur), la batterie ou un meuble, glisse-le pour le déplacer, molette pour le tourner. Gardé dans le projet, pour chaque modèle 3D.'] ] },
   { v: '0.9.73', titre: '', l: [
     ['📸', 'Social Photo : change l\'ordre des photos du carrousel en les glissant-déposant (les boutons ‹ › marchent toujours).'],
     ['🔴', 'Externe : si le lien ne peut pas se créer, une fenêtre t\'explique pourquoi et la case à remplir brille en rouge.'],
@@ -459,7 +465,10 @@ BK.TUTO = [
     astuces: [ 'À afficher seulement sur les PC qui en ont besoin (Réglages › Onglets).' ] },
   { o: 'Light Toast', ic: '💡', quoi: 'TOAST by Beeskot : tu charges un morceau, tu poses des pêches (éclairs, flashs) et des effets sur la frise, tu vois le résultat sur les tubes LED et sur la vue 3D, puis tu exportes la vidéo (.mp4) pour les lumières.',
     comment: [
-      ['Faire un light show', '1) Choisis le morceau (section 1). 2) Choisis les couleurs (palette). 3) Pose des pêches et des effets sur la frise (touche +, pavé numérique), ou « Suggérer une vidéo ». 4) Aperçu, puis Exporter (.mp4).'],
+      ['Faire un light show', '1) Choisis le morceau (section 1 : Bibliothèque, Médias ou Ce PC). 2) Choisis les couleurs (palette). 3) Pose des pêches et des effets sur la frise (touche +, pavé numérique), ou « Suggérer une vidéo ». 4) ▶ sous les vidéos pour voir, puis Exporter (.mp4).'],
+      ['Les membres en 3D', 'Vue 3D → modèle « STUDIO BEESKOT ». Bouton « 👥 Membres » au-dessus des vidéos : combien sur scène (0 à 6), puis pour chacun : qui, pose (debout, bras levés, chante, guitare, basse, batterie, piano, congas…), tenue et « Tourner ». Le batteur se met tout seul derrière la batterie, le chanteur au centre. Tout est gardé dans le projet.'],
+      ['Éditer le décor 3D', 'Bouton « ✎ Éditer le décor » : clique sur un objet (un anneau orange apparaît dessous), glisse-le (gauche / droite = de côté, haut / bas = plus loin / plus près), molette = le tourner. Panneau LED : ▲ ▼ pour le monter ou le descendre. « Réinitialiser » remet le modèle comme au départ, « Terminé » referme l\'éditeur.'],
+      ['Regarder les vidéos', 'Onglets au-dessus : Les deux, Tubes LED ou Vue 3D. La barre en dessous : ▶ / ❚❚ lecture et pause (ou barre d\'espace), ⏹ revient au début, glisse le curseur pour aller n\'importe où. « Plein écran » montre les vidéos choisies en grand avec la barre (Échap pour sortir).'],
       ['Voir les pêches d\'un stem (KICK…)', 'Section « 1b · Pistes audio en plus » → choisis le fichier du stem : de petits repères de couleur montrent toutes les attaques sur la frise. Sensibilité = plus ou moins de repères, Écart mini = on fusionne les repères trop proches. « Créer les pêches » les pose toutes (Ctrl+Z pour annuler).'],
       ['Enregistrer et retrouver', 'Enregistrer sur : Ce PC ou Drive du groupe (dossier Light Toast, dans le Drive BEESKOT). Enregistrer le projet garde tout ; « Ouvrir depuis le Drive » liste les projets du groupe. La vidéo exportée peut aussi partir au Drive.'] ],
     astuces: [ 'Le stem n\'est pas gardé dans le projet : seuls ses repères le sont (ré-importe le stem pour changer la sensibilité).', 'Le programme est le fichier lighttoast/toast.html : pour le mettre à jour, voir lighttoast-outils/adapter.py.' ] },
