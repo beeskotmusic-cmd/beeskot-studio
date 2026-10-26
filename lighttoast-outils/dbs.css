@@ -1,0 +1,8 @@
+/* ===== TOAST dans BEESKOT Studio : le cadre (logo, titre, compteurs) est fourni par DBS ===== */
+.dbs #banner,.dbs #titlebar,.dbs .rainbar{display:none!important}
+.dbs main{padding-top:6px}
+#stsec .stem{border-top:1px solid rgba(239,230,210,.14);margin-top:8px;padding-top:8px;display:flex;flex-direction:column;gap:6px}
+#stsec .sdot{width:12px;height:12px;border-radius:50%;background:var(--sc);box-shadow:0 0 6px var(--sc)}
+#stsec .sname{max-width:210px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#dest{max-width:150px}
+#stsec input[type=file]{max-width:100%}

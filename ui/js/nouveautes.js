@@ -3,6 +3,10 @@
 // Pour une nouvelle version : ajouter un bloc EN HAUT de la liste. Une ligne courte par point : « Onglet : ce qui change. »
 // =====================================================================
 BK.NOUVEAUTES = [
+  { v: '0.9.72', titre: '', l: [
+    ['💡', 'Show : nouvel onglet « Light Toast » : TOAST by Beeskot (musique → vidéo pour les bandes LED) directement dans le logiciel, avec la vue 3D et l\'export mp4.'],
+    ['🥁', 'Light Toast : « Pistes audio en plus » : charge un stem (KICK, caisse claire…) : toutes les pêches possibles s\'affichent sur la frise, puis « Créer les pêches » les pose d\'un coup.'],
+    ['☁', 'Light Toast : le projet et la vidéo s\'enregistrent au choix sur ce PC ou dans le Drive du groupe (Light Toast / Projets et Vidéos), et « Ouvrir depuis le Drive ».'] ] },
   { v: '0.9.71', titre: '', l: [
     ['↔', 'Tournages : les colonnes du découpage se règlent (tire la bordure d\'un titre), et les textes longs s\'affichent en entier.'],
     ['🖼', 'Tournages : les images du moodboard sont numérotées ; glisse-en une sur un plan, ou clique le petit ＋ du plan (moodboard ou Médias). Elles s\'impriment avec le plan.'],
@@ -448,6 +452,12 @@ BK.TUTO = [
       ['Lancer le Light Show', '▶ Ouvrir dans TouchDesigner, ou ▶ Autre programme LED (ce PC).'],
       ['Piloter les lampes Globe', 'Enregistrer et chercher les lampes (une fois) → Allumer / Éteindre chaque lampe.'] ],
     astuces: [ 'À afficher seulement sur les PC qui en ont besoin (Réglages › Onglets).' ] },
+  { o: 'Light Toast', ic: '💡', quoi: 'TOAST by Beeskot : tu charges un morceau, tu poses des pêches (éclairs, flashs) et des effets sur la frise, tu vois le résultat sur les tubes LED et sur la vue 3D, puis tu exportes la vidéo (.mp4) pour les lumières.',
+    comment: [
+      ['Faire un light show', '1) Choisis le morceau (section 1). 2) Choisis les couleurs (palette). 3) Pose des pêches et des effets sur la frise (touche +, pavé numérique), ou « Suggérer une vidéo ». 4) Aperçu, puis Exporter (.mp4).'],
+      ['Voir les pêches d\'un stem (KICK…)', 'Section « 1b · Pistes audio en plus » → choisis le fichier du stem : de petits repères de couleur montrent toutes les attaques sur la frise. Sensibilité = plus ou moins de repères, Écart mini = on fusionne les repères trop proches. « Créer les pêches » les pose toutes (Ctrl+Z pour annuler).'],
+      ['Enregistrer et retrouver', 'Enregistrer sur : Ce PC ou Drive du groupe (dossier Light Toast, dans le Drive BEESKOT). Enregistrer le projet garde tout ; « Ouvrir depuis le Drive » liste les projets du groupe. La vidéo exportée peut aussi partir au Drive.'] ],
+    astuces: [ 'Le stem n\'est pas gardé dans le projet : seuls ses repères le sont (ré-importe le stem pour changer la sensibilité).', 'Le programme est le fichier lighttoast/toast.html : pour le mettre à jour, voir lighttoast-outils/adapter.py.' ] },
   { o: 'Réglages', ic: '⚙', quoi: 'Ce qui est propre à cet ordinateur, plus le Drive, Miette et Ableton. Rangé en onglets : Aide, Ce PC, Onglets, Miette & Discord, Drive, Ableton.',
     comment: [
       ['Revenir en arrière après une erreur', 'Drive › ⏪ Time Machine → choisis l\'onglet et l\'heure d\'avant l\'erreur → Remettre comme avant. Google garde 30 jours d\'historique.'],

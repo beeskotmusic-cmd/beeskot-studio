@@ -1971,3 +1971,7 @@ body.bas-cache .rainure-bas .languette{width:auto;padding:0 12px}
 .pv-seg:has(#pvDeux){grid-template-columns:repeat(4,1fr)}
 
 .to-af-x{position:absolute;top:8px;right:10px;z-index:3;opacity:.0}.tt-aff:hover .to-af-x,.to-af-x:focus{opacity:1}
+
+/* Light Toast : TOAST occupe toute la page */
+.lt-grid{padding:0!important;display:block!important}
+.lt-frame{width:100%;height:100%;min-height:600px;border:0;border-radius:8px;background:#1b1209;display:block}
