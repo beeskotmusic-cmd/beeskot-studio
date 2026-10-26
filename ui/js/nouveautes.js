@@ -3,6 +3,9 @@
 // Pour une nouvelle version : ajouter un bloc EN HAUT de la liste. Une ligne courte par point : « Onglet : ce qui change. »
 // =====================================================================
 BK.NOUVEAUTES = [
+  { v: '0.9.70', titre: '', l: [
+    ['🗑', 'Externe : un bouton « Supprimer » sur chaque lien (il va dans la corbeille du Drive, les notes déjà reçues restent).'],
+    ['Aa', 'Externe : le droit du lien (Voir + écrire…) s\'écrit maintenant dans une police simple et lisible.'] ] },
   { v: '0.9.69', titre: '', l: [
     ['🔗', 'Externe : le lien à envoyer est maintenant court (une petite porte d\'entrée gratuite chez Cloudflare), et le code secret est plus court. Les anciens liens marchent toujours.'] ] },
   { v: '0.9.68', titre: '', l: [
@@ -371,7 +374,7 @@ BK.TUTO = [
       ['Marquer une note d\'une couleur', 'Clic droit sur la note → choisis une couleur (✕ pour l\'enlever). La couleur se voit pour tout le groupe et pour l\'invité.'],
       ['Faire écouter à quelqu\'un de l\'extérieur', 'Sous-onglet « Externe » → Pour qui, le droit, un ou plusieurs morceaux (une version qui est dans le Drive, ＋ Ajouter) → 🔗 Créer le lien. Rien n\'est fabriqué : le fichier du Drive devient lisible avec le lien, et le lien est copié : envoie-le en message privé. « Où ? » : ajouter un morceau à un lien qui existe déjà (ex. le même lien avec un morceau et une vidéo). L\'invité écrit son prénom et laisse des notes, qui arrivent ici marquées « Externe · prénom ».'],
       ['Les trois droits d\'un lien', 'Voir + écrire : l\'invité voit les notes laissées via son lien et vos réponses. Écrire seulement : il ne voit que les siennes. Lire seulement : il écoute et lit, sans écrire. On change le droit à tout moment sur la carte du lien.'],
-      ['Couper un lien ou cacher une note', 'Carte du lien → ✕ Couper (il ne marche plus tout de suite, ↻ Réactiver pour le rallumer). Sur une note externe → « Cacher » : l\'invité ne la voit plus, vous la voyez encore en grisé. Rien n\'est jamais effacé.'],
+      ['Couper un lien ou cacher une note', 'Carte du lien → ✕ Couper (il ne marche plus tout de suite, ↻ Réactiver pour le rallumer). 🗑 Supprimer : le lien disparaît de la liste (corbeille du Drive), les notes reçues restent. Sur une note externe → « Cacher » : l\'invité ne la voit plus, vous la voyez encore en grisé. Rien n\'est jamais effacé.'],
       ['La page web des invités (une fois)', 'Elle tourne chez Google, gratuitement, avec le Gmail BEESKOT. Mode d\'emploi pas à pas : dossier partage-externe du dépôt, fichier LISEZ-MOI. Le lien envoyé à l\'invité est court : il passe par la petite page du dossier porte (hébergée gratuitement chez Cloudflare) qui renvoie vers la page Google. Ensuite, colle son adresse dans Externe › La page web, et la clé gratuite Google dans Externe › Clé gratuite (étape 7 du LISEZ-MOI), et c\'est bon pour tous les PC.'] ],
     astuces: [ 'Espace = lecture / pause. Un clic sur le timecode d\'une note = l\'écouter à cet endroit.', 'Les notes des invités ont un trait cuivré et sont rangées dans un dossier « Externe : notes de … ». Elles n\'ont jamais accès aux notes du groupe.', 'Toutes les notes se retrouvent aussi dans la Bibliothèque : fiche du morceau › Retours › Notes du mix, rangées par version.', 'Couleurs : Yacine jaune, Pierre vert, Baptiste violet (le nom vient de la case « PC : » en haut).' ] },
   { o: 'Notes vidéos', ic: '🎬', quoi: 'Comme Notes et retours, mais pour une vidéo (clip, reel, live) : la vidéo à gauche, les retours à droite, comme Frame.io. On peut dessiner sur l\'image pour montrer de quoi on parle.',

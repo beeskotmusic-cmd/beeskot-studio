@@ -164,13 +164,14 @@ BK.externe = {
       const l = [...X.liens].sort((a, b) => (b.cree || '').localeCompare(a.cree || ''));
       $('#exListe').innerHTML = l.length ? l.map(x => { const ns = X.notes.filter(n => n.partage === x.id), caches = ns.filter(n => n.cache).length, lien = BK.externe.lien(x, X.url);
         return `<div class="ex-lien${x.actif === false ? ' coupe' : ''}" data-l="${x.id}">
-          <div class="ex-lien-t"><b>${esc(x.nom)}</b><span class="dymo ex-dymo">${x.actif === false ? 'Coupé' : nomDroit(x.droit)}</span></div>
+          <div class="ex-lien-t"><b>${esc(x.nom)}</b><span class="ex-etiq">${x.actif === false ? 'Coupé' : nomDroit(x.droit)}</span></div>
           ${icones(x)}
           <div class="nt">${ns.length} note(s) reçue(s)${caches ? ' · ' + caches + ' cachée(s)' : ''}${x.cree ? ' · créé le ' + new Date(x.cree).toLocaleDateString('fr-CA') : ''}</div>
           <div class="ex-lien-b">
             ${x.actif === false ? `<button class="btn xs" data-on="${x.id}">↻ Réactiver</button>` : `<button class="btn xs" data-copier="${x.id}" ${lien ? '' : 'disabled title="Colle d\'abord l\'adresse de la page web"'}>🔗 Copier le lien</button>
             <div class="seg ex-seg">${DROITS.map(d => `<button data-droit="${d[0]}" data-l="${x.id}" class="${x.droit === d[0] ? 'on' : ''}" title="${esc(d[2])}">${d[1]}</button>`).join('')}</div>
             <button class="btn xs" data-off="${x.id}" title="Le lien ne marche plus tout de suite et le fichier n'est plus lisible avec le lien. Rien n'est effacé, on peut le réactiver.">✕ Couper</button>`}
+            <button class="btn xs" data-suppr="${x.id}" title="Enlève le lien de la liste (il va dans la corbeille du Drive). Les notes déjà reçues restent.">🗑 Supprimer</button>
           </div></div>`; }).join('')
         : '<span class="nt">Pas encore de lien. Crée-en un à droite : une personne, un ou plusieurs fichiers du Drive, un droit.</span>';
       $$('[data-copier]').forEach(b => b.onclick = async () => { const x = X.liens.find(y => y.id === b.dataset.copier); try { await navigator.clipboard.writeText(BK.externe.lien(x, X.url)); msg('Lien de ' + x.nom + ' copié : envoie-le en message privé'); } catch (e) { msg('Copie impossible'); } });
@@ -179,6 +180,12 @@ BK.externe = {
         if (!await BK.confirmer('Couper le lien de ' + x.nom + ' ? Il ne marchera plus et le fichier ne sera plus lisible avec le lien (rien n\'est effacé).')) return;
         x.actif = false; await BK.db.ecrire('partages', x, { sansAnnuler: true }); const pb = await BK.externe.synchroAcces(X.liens).catch(e => [e.message]); dessinerListe();
         msg(pb.length ? 'Lien coupé, mais : ' + pb[0] : 'Lien de ' + x.nom + ' coupé, accès au fichier retiré'); });
+      $$('[data-suppr]').forEach(b => b.onclick = async () => { const x = X.liens.find(y => y.id === b.dataset.suppr); if (!x) return;
+        if (!await BK.confirmer('Supprimer le lien de ' + x.nom + ' ? Il ne marchera plus et disparaît de la liste (il va dans la corbeille du Drive). Les notes déjà reçues restent.')) return;
+        b.disabled = true; x.actif = false; await BK.db.ecrire('partages', x, { sansAnnuler: true });
+        const reste = X.liens.filter(y => y !== x), pb = await BK.externe.synchroAcces(reste).catch(e => [e.message]);
+        await BK.db.supprimer('partages', x.id, { sansAnnuler: true }); X.liens = reste; const o = $('#exOu').querySelector('option[value="' + x.id + '"]'); if (o) { if ($('#exOu').value === x.id) { $('#exOu').value = ''; majOu(); } o.remove(); } dessinerListe();
+        msg(pb.length ? 'Lien supprimé, mais : ' + pb[0] : 'Lien de ' + x.nom + ' supprimé, accès au fichier retiré'); });
       $$('[data-on]').forEach(b => b.onclick = async () => { const x = X.liens.find(y => y.id === b.dataset.on); x.actif = true;
         const pb = await BK.externe.synchroAcces(X.liens).catch(e => [e.message]); if (pb.length) { x.actif = false; await BK.externe.synchroAcces(X.liens).catch(() => {}); return msg('Réactivation impossible : ' + pb[0]); }
         await BK.db.ecrire('partages', x, { sansAnnuler: true }); dessinerListe(); msg('Lien de ' + x.nom + ' réactivé'); });

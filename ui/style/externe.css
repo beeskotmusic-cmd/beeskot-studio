@@ -31,7 +31,8 @@
 .ex-lien.coupe{opacity:.55;border-left-color:#6a5a4a}
 .ex-lien-t{display:flex;align-items:center;gap:10px}
 .ex-lien-t b{font-size:14px}
-.ex-dymo{margin-left:auto;font-size:11px!important;padding:4px 8px 3px!important;transform:rotate(1deg)}
+.ex-etiq{margin-left:auto;font:700 12px Jost,'Segoe UI',Arial,sans-serif;letter-spacing:.04em;text-transform:uppercase;padding:3px 9px;border-radius:3px;background:#efe4cc;color:#2a1d14;white-space:nowrap}
+.ex-lien.coupe .ex-etiq{background:#6b5a48;color:#efe4cc}
 .ex-lien-b{display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-top:3px}
 .ex-seg{padding:3px!important;gap:3px!important}
 .ex-seg button{min-height:22px!important;padding:0 7px!important;font-size:9px!important;letter-spacing:.06em!important;min-width:0!important}
