@@ -51,7 +51,7 @@ BK.module('postvis', function (page) {
           </div></div>
           <div class="rv-cote">
             <div class="box"><div class="ligne-titre"><span class="lb">Les photos (ordre du carrousel)</span>
-                <span class="nt" style="margin:0 0 0 auto">Clique une photo pour la régler · ‹ › pour l'ordre</span>
+                <span class="nt" style="margin:0 0 0 auto">Clique une photo pour la régler · glisse-la pour changer l'ordre (ou ‹ ›)</span>
                 <button class="btn sm pri" id="pvAjout" style="flex:none">+ Ajouter des photos</button><input type="file" id="pvInput" accept="image/*" multiple hidden></div>
               <div class="pv-bande" id="pvBande"></div></div>
             <div class="box"><div class="ligne-titre"><span class="lb">De quoi parle le post ?</span>
@@ -174,15 +174,28 @@ BK.module('postvis', function (page) {
     $('#pvPoints').innerHTML = P.slides.length > 1 ? P.slides.map((_, k) => `<i class="${k === P.i ? 'on' : ''}"></i>`).join('') : '';
     $('#pvPrec').classList.toggle('hidden', P.i <= 0); $('#pvSuiv').classList.toggle('hidden', P.i >= P.slides.length - 1);
     $('#pvBande').innerHTML = P.slides.map((w, k) => { const s = src(w);
-      return `<div class="pv-mini${k === P.i ? ' on' : ''}${w.pano ? ' pano p' + w.part : ''}" data-k="${k}" style="background-image:url(${s.url})" title="${w.pano ? 'Photo coupée en deux (' + (w.part ? 'droite' : 'gauche') + ')' : ''}">
+      return `<div class="pv-mini${k === P.i ? ' on' : ''}${w.pano ? ' pano p' + w.part : ''}" draggable="true" data-k="${k}" style="background-image:url(${s.url})" title="${w.pano ? 'Photo coupée en deux (' + (w.part ? 'droite' : 'gauche') + ')' : ''}">
         <span class="pv-n">${k + 1}</span><span class="pv-mb"><button data-g="${k}">‹</button><button data-d="${k}">›</button><button data-x="${k}">✕</button></span></div>`; }).join('')
       || '<span class="nt">Aucune photo pour l\'instant.</span>';
     $$('.pv-mini').forEach(el => el.onclick = e => { if (e.target.closest('button')) return; P.i = +el.dataset.k; majTout(); });
+    // glisser-déposer : on prend une photo et on la dépose à sa nouvelle place (une photo coupée en deux reste ensemble)
+    $$('.pv-mini').forEach(el => {
+      el.ondragstart = e => { e.dataTransfer.setData('text/bk-pvslide', el.dataset.k); e.dataTransfer.effectAllowed = 'move'; el.classList.add('glisse'); };
+      el.ondragend = () => $$('.pv-mini').forEach(x => x.classList.remove('glisse', 'drop-av', 'drop-ap'));
+      el.ondragover = e => { if (![...e.dataTransfer.types].includes('text/bk-pvslide')) return; e.preventDefault(); const r = el.getBoundingClientRect(), av = e.clientX < r.left + r.width / 2;
+        $$('.pv-mini').forEach(x => x.classList.remove('drop-av', 'drop-ap')); el.classList.add(av ? 'drop-av' : 'drop-ap'); };
+      el.ondragleave = () => el.classList.remove('drop-av', 'drop-ap');
+      el.ondrop = e => { const d = e.dataTransfer.getData('text/bk-pvslide'); if (d === '') return; e.preventDefault(); const apres = el.classList.contains('drop-ap'); deposer(+d, +el.dataset.k, apres); };
+    });
     $$('[data-g]', $('#pvBande')).forEach(b => b.onclick = () => bouger(+b.dataset.g, -1));
     $$('[data-d]', $('#pvBande')).forEach(b => b.onclick = () => bouger(+b.dataset.d, 1));
     $$('[data-x]', $('#pvBande')).forEach(b => b.onclick = () => { const [a, n] = bloc(+b.dataset.x); URL.revokeObjectURL(src(P.slides[a]).url); P.slides.splice(a, n); P.i = Math.min(P.i, P.slides.length - 1); P.i = Math.max(0, P.i); majTout(); });
     dessiner();
   }
+  function deposer(k, cible, apres) {                               // la photo (ou le bloc « en deux ») k va avant / après la photo cible
+    const [a, n] = bloc(k), [ta, tn] = bloc(cible); if (ta === a) return;
+    let ou = apres ? ta + tn : ta; const moi = P.slides.splice(a, n); if (ou > a) ou -= n;
+    P.slides.splice(ou, 0, ...moi); P.i = ou + (k - a); majTout(); }
   function bouger(k, d) {                                          // un bloc (photo, ou photo coupée en deux) passe de l'autre côté du bloc voisin
     const [a, n] = bloc(k), voisin = d < 0 ? a - 1 : a + n; if (voisin < 0 || voisin >= P.slides.length) return;
     const [va, vn] = bloc(voisin), moi = P.slides.splice(a, n), ou = d < 0 ? va : va + vn - n;

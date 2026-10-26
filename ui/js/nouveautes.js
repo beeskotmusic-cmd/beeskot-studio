@@ -3,6 +3,10 @@
 // Pour une nouvelle version : ajouter un bloc EN HAUT de la liste. Une ligne courte par point : « Onglet : ce qui change. »
 // =====================================================================
 BK.NOUVEAUTES = [
+  { v: '0.9.73', titre: '', l: [
+    ['📸', 'Social Photo : change l\'ordre des photos du carrousel en les glissant-déposant (les boutons ‹ › marchent toujours).'],
+    ['🔴', 'Externe : si le lien ne peut pas se créer, une fenêtre t\'explique pourquoi et la case à remplir brille en rouge.'],
+    ['🅰', 'Externe : avec 2 morceaux (ou 2 vidéos), « Proposer en A/B » : l\'invité bascule entre A et B sans perdre sa place, et ses notes sont marquées (A) ou (B). Il faut recoller la page chez Google (voir LISEZ-MOI).'] ] },
   { v: '0.9.72', titre: '', l: [
     ['💡', 'Show : nouvel onglet « Light Toast » : TOAST by Beeskot (musique → vidéo pour les bandes LED) directement dans le logiciel, avec la vue 3D et l\'export mp4.'],
     ['🥁', 'Light Toast : « Pistes audio en plus » : charge un stem (KICK, caisse claire…) : toutes les pêches possibles s\'affichent sur la frise, puis « Créer les pêches » les pose d\'un coup.'],
@@ -381,6 +385,7 @@ BK.TUTO = [
       ['Réagir à une note', '👍 (j\'aime) ou ✕ (pas d\'accord) sous la note ; re-clic pour enlever. Les petits ronds disent qui a réagi.'],
       ['Marquer une note d\'une couleur', 'Clic droit sur la note → choisis une couleur (✕ pour l\'enlever). La couleur se voit pour tout le groupe et pour l\'invité.'],
       ['Faire écouter à quelqu\'un de l\'extérieur', 'Sous-onglet « Externe » → Pour qui, le droit, un ou plusieurs morceaux (une version qui est dans le Drive, ＋ Ajouter) → 🔗 Créer le lien. Rien n\'est fabriqué : le fichier du Drive devient lisible avec le lien, et le lien est copié : envoie-le en message privé. « Où ? » : ajouter un morceau à un lien qui existe déjà (ex. le même lien avec un morceau et une vidéo). L\'invité écrit son prénom et laisse des notes, qui arrivent ici marquées « Externe · prénom ».'],
+      ['Proposer un A/B', 'Mets 2 morceaux (ou 2 vidéos) dans le lien, puis coche « Proposer en A/B ». L\'invité a deux gros boutons A et B, change de version sans perdre sa place, et ses notes arrivent marquées (A) ou (B). Si ça bloque, une fenêtre explique quoi remplir et la case brille en rouge.'],
       ['Les trois droits d\'un lien', 'Voir + écrire : l\'invité voit les notes laissées via son lien et vos réponses. Écrire seulement : il ne voit que les siennes. Lire seulement : il écoute et lit, sans écrire. On change le droit à tout moment sur la carte du lien.'],
       ['Couper un lien ou cacher une note', 'Carte du lien → ✕ Couper (il ne marche plus tout de suite, ↻ Réactiver pour le rallumer). 🗑 Supprimer : le lien disparaît de la liste (corbeille du Drive), les notes reçues restent. Sur une note externe → « Cacher » : l\'invité ne la voit plus, vous la voyez encore en grisé. Rien n\'est jamais effacé.'],
       ['La page web des invités (une fois)', 'Elle tourne chez Google, gratuitement, avec le Gmail BEESKOT. Mode d\'emploi pas à pas : dossier partage-externe du dépôt, fichier LISEZ-MOI. Le lien envoyé à l\'invité est court : il passe par la petite page du dossier porte (hébergée gratuitement chez Cloudflare) qui renvoie vers la page Google. Ensuite, colle son adresse dans Externe › La page web, et la clé gratuite Google dans Externe › Clé gratuite (étape 7 du LISEZ-MOI), et c\'est bon pour tous les PC.'] ],

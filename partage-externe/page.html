@@ -5,10 +5,10 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>BEESKOT · Espace de partage</title>
 <link href="https://fonts.googleapis.com/css2?family=Jost:wght@400;500;600;700&family=Share+Tech+Mono&family=Barlow+Condensed:wght@600;700&family=Work+Sans:wght@400;500;600&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/beeskotmusic-cmd/beeskot-studio@caea79f3eff55ad859e6546b1707ac0c23a9b1c9/ui/style/base.css">
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/beeskotmusic-cmd/beeskot-studio@caea79f3eff55ad859e6546b1707ac0c23a9b1c9/ui/style/dari-look.css">
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/beeskotmusic-cmd/beeskot-studio@caea79f3eff55ad859e6546b1707ac0c23a9b1c9/ui/style/beeskot.css">
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/beeskotmusic-cmd/beeskot-studio@caea79f3eff55ad859e6546b1707ac0c23a9b1c9/ui/style/externe.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/beeskotmusic-cmd/beeskot-studio@caea79f/ui/style/base.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/beeskotmusic-cmd/beeskot-studio@caea79f/ui/style/dari-look.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/beeskotmusic-cmd/beeskot-studio@caea79f/ui/style/beeskot.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/beeskotmusic-cmd/beeskot-studio@caea79f/ui/style/externe.css">
 <style>
 /* ===== Espace de partage : seulement ce qui est propre à la page de l'invité (le reste vient du logiciel) ===== */
 html,body{height:auto;min-height:100%}
@@ -28,7 +28,7 @@ body{overflow:auto}
 .ec-vide{color:rgba(255,178,62,.6)}
 .ec-n-o{display:flex;gap:4px;flex-wrap:wrap;justify-content:flex-end}
 .ec-n-t.tout{color:#cbbfa8;letter-spacing:.08em}
-.pic.pouce{-webkit-mask-image:url(https://cdn.jsdelivr.net/gh/beeskotmusic-cmd/beeskot-studio@caea79f3eff55ad859e6546b1707ac0c23a9b1c9/ui/pictos/A_pouce.png);mask-image:url(https://cdn.jsdelivr.net/gh/beeskotmusic-cmd/beeskot-studio@caea79f3eff55ad859e6546b1707ac0c23a9b1c9/ui/pictos/A_pouce.png)}
+.pic.pouce{-webkit-mask-image:url(https://cdn.jsdelivr.net/gh/beeskotmusic-cmd/beeskot-studio@caea79f/ui/pictos/A_pouce.png);mask-image:url(https://cdn.jsdelivr.net/gh/beeskotmusic-cmd/beeskot-studio@caea79f/ui/pictos/A_pouce.png)}
 .rond{width:13px;height:13px;border-radius:50%;background:conic-gradient(#d9a93c,#c65d2a,#7a2430,#3f6b3a,#2f7377,#2a3f6a,#d9a93c);display:inline-block}
 .sign{margin:6px 0 10px;text-align:center;font-size:11px;letter-spacing:.2em;text-transform:uppercase;color:rgba(239,230,210,.5)}
 .sign b{color:var(--mus);font-weight:600}
@@ -49,12 +49,14 @@ body{overflow:auto}
 @media (max-width:900px){.ec-cols{flex-direction:column}.ec-cols .ec-vit{min-width:0!important}.ec-panneau{flex:none!important;width:100%!important}}
 @media (max-width:700px){.ec-n{grid-template-columns:auto 1fr}.ec-n-o{grid-column:1 / -1;justify-content:flex-start}.hdr .sub{display:none}.top .patch{height:60px}.sysgrid{display:none}}
 
+.chip.abtn{min-width:96px;font-weight:700}.chip.abtn .badge{font-size:1.1em}
+
 </style>
 </head>
 <body>
 <div class="app">
   <header class="top">
-    <img class="patch" src="https://cdn.jsdelivr.net/gh/beeskotmusic-cmd/beeskot-studio@caea79f3eff55ad859e6546b1707ac0c23a9b1c9/ui/look/logo-beeskot-studio.png" alt="DARI · BEESKOT Studio">
+    <img class="patch" src="https://cdn.jsdelivr.net/gh/beeskotmusic-cmd/beeskot-studio@caea79f/ui/look/logo-beeskot-studio.png" alt="DARI · BEESKOT Studio">
     <div class="sys"><div class="sysgrid">
       <span class="vfd"><b>POUR :</b> <span id="pour">—</span></span>
       <span class="vfd"><b>TOI :</b> <span id="toi">—</span></span>
@@ -101,7 +103,7 @@ body{overflow:auto}
 
 <div class="voile hidden" id="voile"><div class="stopbox" role="dialog">
   <span class="screw tl" style="--r:60deg"></span><span class="screw tr" style="--r:5deg"></span><span class="screw bl" style="--r:-30deg"></span><span class="screw br" style="--r:85deg"></span>
-  <img class="stopbox-patch" src="https://cdn.jsdelivr.net/gh/beeskotmusic-cmd/beeskot-studio@caea79f3eff55ad859e6546b1707ac0c23a9b1c9/ui/look/logo-beeskot-studio.png" alt="">
+  <img class="stopbox-patch" src="https://cdn.jsdelivr.net/gh/beeskotmusic-cmd/beeskot-studio@caea79f/ui/look/logo-beeskot-studio.png" alt="">
   <span class="dymo" style="align-self:center">Bienvenue</span>
   <p class="nt" style="margin:0;text-align:center" id="voileTxt">Écris ton prénom : il apparaîtra à côté de tes notes.</p>
   <input class="fld" id="prenom" placeholder="Ton prénom" maxlength="30">
@@ -141,14 +143,16 @@ function demarrer() {
     S.lien = l; S.droit = l.droit; $('#pour').textContent = (l.nom || S.prenom).toUpperCase();
     $('#mot').textContent = l.mot || 'Écoute et laisse des notes minutées'; $('#toi').textContent = S.prenom.toUpperCase();
     $('#form').classList.toggle('hidden', l.droit === 'lire');
-    $('#elements').innerHTML = l.elements.map(function (m, i) { return '<button class="chip' + (i ? '' : ' on') + '" data-el="' + esc(m.id) + '"><span class="badge">' + (m.type === 'video' ? 'VIDÉO' : 'SON') + '</span> ' + esc(m.nom) + (m.versionNom ? ' <span class="nt">· ' + esc(m.versionNom) + '</span>' : '') + '</button>'; }).join('') || '<span class="nt">Rien à écouter pour l\'instant.</span>';
-    $$('[data-el]').forEach(function (b) { b.onclick = function () { choisir(b.dataset.el); }; });
+    var ab = !!l.ab; $('#elements').classList.toggle('ab', ab);
+    $('#elements').innerHTML = l.elements.map(function (m, i) { return '<button class="chip' + (i ? '' : ' on') + (ab ? ' abtn' : '') + '" data-el="' + esc(m.id) + '"><span class="badge">' + (ab ? (i ? 'B' : 'A') : (m.type === 'video' ? 'VIDÉO' : 'SON')) + '</span> ' + esc(m.nom) + (m.versionNom ? ' <span class="nt">· ' + esc(m.versionNom) + '</span>' : '') + '</button>'; }).join('') || '<span class="nt">Rien à écouter pour l\'instant.</span>';
+    $$('[data-el]').forEach(function (b) { b.onclick = function () { choisir(b.dataset.el, false, S.lien.ab); }; });
     if (l.elements.length) { S.notes = l.notes || []; choisir(l.elements[0].id, true); }
   }).catch(function (e) { msg(e.message || e); $('#vide').textContent = e.message || 'Ce lien n\'est plus actif.'; $('#form').classList.add('hidden'); });
 }
 
 // ---------- choisir un morceau / une vidéo : le lecteur lit le fichier du Drive directement ----------
-function choisir(id, dejaNotes) {
+function choisir(id, dejaNotes, garder) {
+  var reprise = garder && S.el && S.el.id !== id ? { t: media.currentTime || 0, jouait: !media.paused } : null;   // A/B : on garde la place et la lecture
   media.pause(); var el = null; S.lien.elements.forEach(function (x) { if (x.id === id) el = x; }); if (!el) return;
   S.el = el; $('#nomH').textContent = (el.nom || '—').toUpperCase().slice(0, 22); S.buf = null; S.sel = null; S.pos = 0; S.traits = []; crayon(false); montrer(null); majSel(); var tour = S.tour = (S.tour || 0) + 1;
   $$('[data-el]').forEach(function (b) { b.classList.toggle('on', b.dataset.el === id); });
@@ -158,6 +162,7 @@ function choisir(id, dejaNotes) {
   $('#vide').classList.remove('hidden'); $('#vide').textContent = 'Chargement de ' + el.nom + '…'; $('#play').disabled = true;
   if (!dejaNotes) { S.notes = []; dessinerNotes(); appel('notes', CLE, id, S.prenom).then(function (n) { if (S.el === el) { S.notes = n; dessinerNotes(); } }); } else dessinerNotes();
   media.src = source(el); media.load(); dessiner();
+  if (reprise) { var rep = function () { media.removeEventListener('loadedmetadata', rep); try { media.currentTime = Math.min(reprise.t, media.duration || reprise.t); } catch (e) {} if (reprise.jouait) media.play().catch(function () {}); }; media.addEventListener('loadedmetadata', rep); }
   // la forme du son (audio seulement, et pas pour un fichier énorme) : en arrière-plan, la lecture n'attend pas
   if (!video() && window.fetch && (!el.taille || el.taille < 80e6)) {
     var AC = window.AudioContext || window.webkitAudioContext;

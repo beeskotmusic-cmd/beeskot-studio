@@ -83,7 +83,7 @@ function prenomNet(p) { return String(p || '').trim().slice(0, 30).replace(/[<>]
 // à l'ouverture : le nom du lien, le droit, la liste des morceaux / vidéos (avec l'identifiant de leur fichier Drive)
 function ouvrir(cle, prenom) {
   var lien = trouverLien(cle), els = lien.elements || [];
-  return { nom: lien.nom || '', droit: droitDe(lien), mot: lien.mot || '', cleApi: lien.cleApi || '',
+  return { nom: lien.nom || '', droit: droitDe(lien), mot: lien.mot || '', cleApi: lien.cleApi || '', ab: !!lien.ab && els.length === 2 && (els[0].type === 'video') === (els[1].type === 'video'),
     elements: els.map(function (e) { return { id: e.id, type: e.type === 'video' ? 'video' : 'audio', nom: e.nom || '', versionNom: e.versionNom || '', fichier: e.fichier || '', taille: e.taille || 0 }; }),
     notes: els.length ? notes(cle, els[0].id, prenom) : [] };
 }
@@ -96,7 +96,7 @@ function notes(cle, idEl, prenom) {
     if (!n || n.partage !== lien.id || n.cache) continue;
     if (video ? n.video !== 'drive:' + el.fichier : n.morceau !== el.morceau) continue;
     if (droit === 'ecrire' && n.prenom !== prenom) continue;        // « écrire seulement » : on ne voit que ses propres notes
-    out.push({ id: n.id, t: n.t || 0, fin: n.fin || null, tout: !!n.tout, texte: n.texte || '', prenom: n.prenom || '', quand: n.quand || '', regle: !!n.regle,
+    out.push({ id: n.id, ab: n.ab || '', t: n.t || 0, fin: n.fin || null, tout: !!n.tout, texte: n.texte || '', prenom: n.prenom || '', quand: n.quand || '', regle: !!n.regle,
       reactions: n.reactions || {}, couleur: n.couleur || '', dessin: n.dessin || null,
       reponses: (n.reponses || []).map(function (r) { return { par: r.par || '', texte: r.texte || '', quand: r.quand || '' }; }) });
   }
@@ -120,6 +120,7 @@ function ecrireNote(cle, idEl, prenom, note) {
   var lien = trouverLien(cle), droit = droitDe(lien);
   if (droit === 'lire') throw new Error('Ce lien permet seulement d\'écouter.');
   var el = elementDe(lien, idEl), video = el.type === 'video';
+  var lesEls = lien.elements || [], etiq = lien.ab && lesEls.length === 2 ? (lesEls[0].id === el.id ? 'A' : 'B') : '';
   prenom = prenomNet(prenom);
   var texte = String((note && note.texte) || '').trim().slice(0, MAX_TEXTE);
   if (!prenom) throw new Error('Il faut un prénom.');
@@ -131,12 +132,12 @@ function ecrireNote(cle, idEl, prenom, note) {
   var id = 'ext-' + lien.id + '-' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
   var quand = new Date().toISOString(), tout = !!note.tout;
   var base = { id: id, t: tout ? 0 : Math.max(0, Math.round((+note.t || 0) * 10) / 10), fin: !tout && note.fin ? Math.round(+note.fin * 10) / 10 : null, tout: tout,
-    texte: texte, auteur: 'Externe · ' + prenom, par: 'Externe', externe: true, prenom: prenom, partage: lien.id, quand: quand, maj: quand, reponses: [], regle: false, cache: false };
+    texte: texte, auteur: 'Externe · ' + prenom + (etiq ? ' (' + etiq + ')' : ''), ab: etiq, par: 'Externe', externe: true, prenom: prenom, partage: lien.id, quand: quand, maj: quand, reponses: [], regle: false, cache: false };
   var fiche;
   if (video) { fiche = base; fiche.video = 'drive:' + el.fichier; fiche.videoNom = el.nom || ''; fiche.lien = el.lien || ''; var d = nettoyerDessin(note.dessin); if (d && !tout) fiche.dessin = d; }
   else { fiche = base; fiche.morceau = el.morceau; fiche.version = el.version || ''; fiche.versionNom = el.versionNom || ''; fiche.contre = ''; fiche.contreNom = ''; }
   dossierNotesDe(el).createFile(id + '.json', JSON.stringify(fiche, null, 1), 'application/json');
-  return { id: id, t: fiche.t, fin: fiche.fin, tout: fiche.tout, texte: texte, prenom: prenom, quand: quand, regle: false, reponses: [], reactions: {}, couleur: '', dessin: fiche.dessin || null };
+  return { id: id, t: fiche.t, fin: fiche.fin, tout: fiche.tout, texte: texte, prenom: prenom, ab: etiq, quand: quand, regle: false, reponses: [], reactions: {}, couleur: '', dessin: fiche.dessin || null };
 }
 
 // ---------- réagir (pouce / croix) ou marquer d'une couleur une note qu'on voit ----------

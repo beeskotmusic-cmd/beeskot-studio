@@ -31,14 +31,16 @@ function demarrer() {
     S.lien = l; S.droit = l.droit; $('#pour').textContent = (l.nom || S.prenom).toUpperCase();
     $('#mot').textContent = l.mot || 'Écoute et laisse des notes minutées'; $('#toi').textContent = S.prenom.toUpperCase();
     $('#form').classList.toggle('hidden', l.droit === 'lire');
-    $('#elements').innerHTML = l.elements.map(function (m, i) { return '<button class="chip' + (i ? '' : ' on') + '" data-el="' + esc(m.id) + '"><span class="badge">' + (m.type === 'video' ? 'VIDÉO' : 'SON') + '</span> ' + esc(m.nom) + (m.versionNom ? ' <span class="nt">· ' + esc(m.versionNom) + '</span>' : '') + '</button>'; }).join('') || '<span class="nt">Rien à écouter pour l\'instant.</span>';
-    $$('[data-el]').forEach(function (b) { b.onclick = function () { choisir(b.dataset.el); }; });
+    var ab = !!l.ab; $('#elements').classList.toggle('ab', ab);
+    $('#elements').innerHTML = l.elements.map(function (m, i) { return '<button class="chip' + (i ? '' : ' on') + (ab ? ' abtn' : '') + '" data-el="' + esc(m.id) + '"><span class="badge">' + (ab ? (i ? 'B' : 'A') : (m.type === 'video' ? 'VIDÉO' : 'SON')) + '</span> ' + esc(m.nom) + (m.versionNom ? ' <span class="nt">· ' + esc(m.versionNom) + '</span>' : '') + '</button>'; }).join('') || '<span class="nt">Rien à écouter pour l\'instant.</span>';
+    $$('[data-el]').forEach(function (b) { b.onclick = function () { choisir(b.dataset.el, false, S.lien.ab); }; });
     if (l.elements.length) { S.notes = l.notes || []; choisir(l.elements[0].id, true); }
   }).catch(function (e) { msg(e.message || e); $('#vide').textContent = e.message || 'Ce lien n\'est plus actif.'; $('#form').classList.add('hidden'); });
 }
 
 // ---------- choisir un morceau / une vidéo : le lecteur lit le fichier du Drive directement ----------
-function choisir(id, dejaNotes) {
+function choisir(id, dejaNotes, garder) {
+  var reprise = garder && S.el && S.el.id !== id ? { t: media.currentTime || 0, jouait: !media.paused } : null;   // A/B : on garde la place et la lecture
   media.pause(); var el = null; S.lien.elements.forEach(function (x) { if (x.id === id) el = x; }); if (!el) return;
   S.el = el; $('#nomH').textContent = (el.nom || '—').toUpperCase().slice(0, 22); S.buf = null; S.sel = null; S.pos = 0; S.traits = []; crayon(false); montrer(null); majSel(); var tour = S.tour = (S.tour || 0) + 1;
   $$('[data-el]').forEach(function (b) { b.classList.toggle('on', b.dataset.el === id); });
@@ -48,6 +50,7 @@ function choisir(id, dejaNotes) {
   $('#vide').classList.remove('hidden'); $('#vide').textContent = 'Chargement de ' + el.nom + '…'; $('#play').disabled = true;
   if (!dejaNotes) { S.notes = []; dessinerNotes(); appel('notes', CLE, id, S.prenom).then(function (n) { if (S.el === el) { S.notes = n; dessinerNotes(); } }); } else dessinerNotes();
   media.src = source(el); media.load(); dessiner();
+  if (reprise) { var rep = function () { media.removeEventListener('loadedmetadata', rep); try { media.currentTime = Math.min(reprise.t, media.duration || reprise.t); } catch (e) {} if (reprise.jouait) media.play().catch(function () {}); }; media.addEventListener('loadedmetadata', rep); }
   // la forme du son (audio seulement, et pas pour un fichier énorme) : en arrière-plan, la lecture n'attend pas
   if (!video() && window.fetch && (!el.taille || el.taille < 80e6)) {
     var AC = window.AudioContext || window.webkitAudioContext;

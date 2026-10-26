@@ -45,3 +45,7 @@
 .ec-palette button{width:24px;height:24px;border:0;border-radius:50%;background:var(--c);cursor:pointer;box-shadow:inset 0 -2px 3px rgba(0,0,0,.35),0 1px 2px rgba(0,0,0,.5)}
 .ec-palette button.on{box-shadow:0 0 0 2px #efe6d2,inset 0 -2px 3px rgba(0,0,0,.35)}
 .ec-palette button.aucune{background:#161009;color:#bfae92;font-size:11px}
+
+.ex-ab{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.ex-rouge{outline:2px solid #ff3b2f!important;box-shadow:0 0 12px 3px rgba(255,59,47,.85)!important;animation:exRouge 1s ease-in-out infinite}
+@keyframes exRouge{50%{box-shadow:0 0 3px 1px rgba(255,59,47,.5)}}

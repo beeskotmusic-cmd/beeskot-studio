@@ -130,6 +130,7 @@ BK.externe = {
           ${audio ? `<div class="ex-ligne ex-ajout"><select class="fld" id="exM"><option value="">— morceau</option></select><select class="fld" id="exV"><option value="">— version</option></select><button class="btn sm" id="exPlus">＋ Ajouter</button></div>`
             : `<div class="ex-ligne ex-ajout"><button class="btn sm" id="exMed">🎥 Choisir dans Médias…</button><select class="fld" id="exRel" title="Le morceau ou le tournage de cette vidéo (comme dans Notes)"><option value="">— relié à : morceau ou tournage —</option></select></div>`}
           <div class="ex-choisis" id="exChoisis"></div>
+          <label class="ex-ab hidden" id="exABbox"><input type="checkbox" id="exAB"> <b>Proposer en A/B</b> <span class="nt">· l'invité bascule entre les 2 versions sans perdre sa place, et ses notes sont marquées A ou B</span></label>
           <div class="ex-ligne"><button class="btn pri" id="exCreer">🔗 Créer le lien</button><span class="nt">Rien n'est fabriqué ni envoyé : le fichier du Drive devient lisible avec le lien, et c'est retiré quand tu coupes le lien.</span></div>
         </div>
         <div class="box ex-url" id="exCleBox">
@@ -203,6 +204,7 @@ BK.externe = {
       $('#exChoisis').innerHTML = X.choisis.length ? X.choisis.map((c, i) => `<div class="ex-choisi">${ICONE[c.type]} <b>${esc(c.nom)}</b><span class="nt">${c.versionNom ? '· ' + esc(c.versionNom) : ''}${c.taille ? ' · ' + Math.round(c.taille / 1e6) + ' Mo' : ''}</span><button class="btn xs" data-ret="${i}" title="Retirer">✕</button></div>`).join('')
         : `<span class="nt">${audio ? 'Aucun morceau pour l\'instant. Choisis un morceau et sa version, puis ＋ Ajouter.' : 'Aucune vidéo pour l\'instant. Choisis-en une dans Médias.'}</span>`;
       $$('[data-ret]').forEach(b => b.onclick = () => { X.choisis.splice(+b.dataset.ret, 1); dessinerChoisis(); });
+      const peutAB = X.choisis.length === 2 && X.choisis[0].type === X.choisis[1].type; $('#exABbox').classList.toggle('hidden', !peutAB); if (!peutAB) $('#exAB').checked = false;
     }
     dessinerChoisis();
     const ajoutElement = async (el) => {
@@ -236,17 +238,24 @@ BK.externe = {
       zone._remplir = remplirRel;
     }
 
+    // un lien bloqué : fenêtre qui explique, et ce qu'il faut remplir brille en rouge
+    const bloque = async (texte, cible) => { const el = typeof cible === 'string' ? $(cible) : cible;
+      if (el) { el.classList.remove('ex-rouge'); void el.offsetWidth; el.classList.add('ex-rouge'); el.scrollIntoView && el.scrollIntoView({ block: 'center' }); setTimeout(() => el.classList.remove('ex-rouge'), 6000);
+        const off = () => { el.classList.remove('ex-rouge'); el.removeEventListener('input', off); el.removeEventListener('change', off); }; el.addEventListener('input', off); el.addEventListener('change', off); }
+      msg(texte); await BK.confirmer(texte, { oui: 'OK', non: 'Fermer' }); if (el && el.focus) el.focus(); };
     // ---- créer le lien (ou ajouter à un lien) : on ouvre l'accès aux fichiers, on vérifie, puis on range la fiche ----
     $('#exCreer').onclick = async () => {
       const existant = X.liens.find(l => l.id === $('#exOu').value), nom = $('#exNom').value.trim();
-      if (!existant && !nom) { $('#exNom').focus(); return msg('Pour qui est ce lien ?'); }
-      if (!X.choisis.length) return msg(audio ? 'Ajoute au moins un morceau' : 'Ajoute au moins une vidéo');
-      if (!BK.drive.relie()) return msg('Il faut le Drive relié (Réglages › Drive)');
-      if (!X.cle) { $('#exCle').focus(); return msg('Il manque la clé gratuite Google (en bas à droite)'); }
+      if (!existant && !nom) return bloque('Écris d\'abord pour qui est ce lien (le prénom de la personne).', '#exNom');
+      if (!X.choisis.length) return bloque(audio ? 'Tu dois d\'abord ajouter au moins un morceau ! Choisis un morceau et sa version, puis clique sur ＋ Ajouter.' : 'Tu dois d\'abord ajouter au moins une vidéo ! Clique sur « Choisir dans Médias… ».', audio ? '#exPlus' : '#exMed');
+      if (!BK.drive.relie()) return bloque('Il faut d\'abord relier le Drive (Réglages › Drive).', null);
+      if (!X.cle) return bloque('Il manque la clé gratuite Google (la case en bas à droite). Sans elle, le lien ne peut pas lire les fichiers.', '#exCle');
+      if (!existant && !X.url) return bloque('Il manque l\'adresse de la page web (la case en bas à droite). Sans elle, le lien ne peut pas s\'ouvrir.', '#exUrl');
       const b = $('#exCreer'); b.disabled = true;
       try {
         const l = existant || { nom, droit: $('#exDroit').value, mot: $('#exMot').value.trim(), cle: cle(), actif: true, elements: [], cree: new Date().toISOString(), cleApi: X.cle };
         const avant = [...(l.elements || [])]; l.elements = [...avant, ...X.choisis.filter(c => !avant.some(a => a.id === c.id))]; l.cleApi = X.cle;
+        l.ab = $('#exAB').checked && l.elements.length === 2 && l.elements[0].type === l.elements[1].type;
         msg('Ouverture de l\'accès aux fichiers…');
         const autres = existant ? X.liens : [...X.liens, l], pb = await BK.externe.synchroAcces(autres).catch(e => [e.message || String(e)]);
         if (pb.length) { l.elements = avant; await BK.externe.synchroAcces(X.liens).catch(() => {}); throw new Error(pb[0]); }

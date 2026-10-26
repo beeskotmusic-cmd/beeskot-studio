@@ -36,3 +36,5 @@ body{overflow:auto}
 #voile .fld{width:100%}
 @media (max-width:900px){.ec-cols{flex-direction:column}.ec-cols .ec-vit{min-width:0!important}.ec-panneau{flex:none!important;width:100%!important}}
 @media (max-width:700px){.ec-n{grid-template-columns:auto 1fr}.ec-n-o{grid-column:1 / -1;justify-content:flex-start}.hdr .sub{display:none}.top .patch{height:60px}.sysgrid{display:none}}
+
+.chip.abtn{min-width:96px;font-weight:700}.chip.abtn .badge{font-size:1.1em}
