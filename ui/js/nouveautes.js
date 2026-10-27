@@ -3,6 +3,13 @@
 // Pour une nouvelle version : ajouter un bloc EN HAUT de la liste. Une ligne courte par point : « Onglet : ce qui change. »
 // =====================================================================
 BK.NOUVEAUTES = [
+  { v: '0.9.77', titre: '', l: [
+    ['🖱', 'Storyline - Mood : clic droit sur le board = le menu « Ajouter », et l\'élément arrive là où tu as cliqué. Clic droit sur un élément = écrire, mettre devant, dupliquer, retirer.'],
+    ['🎨', 'Storyline - Mood : une barre au-dessus de l\'élément choisi : 12 couleurs + couleur libre, taille du texte (P, M, G, XL), gras, rond / rectangle plein ou contour, épaisseur des flèches, ✎ Écrire.'],
+    ['📍', 'Storyline - Mood : écoute la chanson du board (choix de la version) et pose des marqueurs sur le son (📍 Marquer ou touche M). Chaque marqueur arrive sur le board : clique son ▶ pour réécouter à partir de là. Espace = lecture / pause.'],
+    ['▴', 'Partout : la languette du haut replie aussi le grand titre de la page (plus de place).'] ] },
+  { v: '0.9.76', titre: '', l: [
+    ['🖼', 'Storyline - Mood : les images et les miniatures gardent leur forme d\'origine (plus d\'images écrasées ou coupées). Maj + coin orange pour déformer volontairement.'] ] },
   { v: '0.9.75', titre: '', l: [
     ['🎬', 'Tournages : nouveau sous-onglet « Storyline - Mood » : un grand board par chanson (ou Général). « ＋ Ajouter » : média (Drive / Médias / PC), lien (YouTube, reel Insta, TikTok, site), texte, rond, rectangle, flèche.'],
     ['▶', 'Storyline - Mood : les vidéos YouTube et du Drive se lisent directement dans le board ; tout se glisse, se redimensionne (coin orange), molette = zoom presque infini. Les ronds et rectangles emportent ce qu\'il y a dedans.'],
@@ -414,7 +421,8 @@ BK.TUTO = [
     astuces: [ 'Espace = lecture / pause. La vidéo tourne en boucle.', 'Miette annonce les nouveaux retours vidéo dans #annonce-miette sur Discord.', 'Une vidéo de ce PC : les autres voient les notes, mais pour la regarder il faut qu\'ils aient le fichier (mieux : passer par Médias / Drive).' ] },
   { o: 'Tournages', ic: '🎥', quoi: 'Une fiche par tournage ou shooting : l\'idée, le moodboard, des références, le découpage plan par plan, les tenues, le matériel. On l\'imprime en PDF pour l\'équipe.',
     comment: [
-      ['Storyline - Mood (le grand board)', 'Sous-onglet en haut. Choisis la chanson (ou Général), puis « ＋ Ajouter » : média, lien externe, texte, rond, rectangle ou flèche. Glisse les éléments où tu veux ; coin orange = agrandir ; double-clic = écrire ; ● change la couleur, ⇡ met devant, ✕ retire. Glisse le fond pour te déplacer, molette pour zoomer, « Tout voir » pour tout recadrer. Mets plusieurs éléments dans un rond ou un rectangle : ils bougent avec lui. Tu peux aussi glisser des fichiers du PC sur le board. Tout le groupe voit le même board.'],
+      ['Storyline - Mood (le grand board)', 'Sous-onglet en haut. Choisis la chanson (ou Général), puis « ＋ Ajouter » : média, lien externe, texte, rond, rectangle ou flèche. Clic droit sur le fond = ajouter à cet endroit. Glisse les éléments où tu veux ; coin orange = agrandir ; double-clic = écrire. Clique un élément : la barre au-dessus change la couleur, la taille du texte, le gras, plein / contour, l\'épaisseur des flèches ; ⇡ met devant, ⧉ duplique, ✕ retire. Glisse le fond pour te déplacer, molette pour zoomer, « Tout voir » pour tout recadrer. Mets plusieurs éléments dans un rond ou un rectangle : ils bougent avec lui. Tu peux aussi glisser des fichiers du PC sur le board. Tout le groupe voit le même board.'],
+      ['Écouter la chanson et poser des marqueurs', 'Sur le board d\'une chanson, la ligne « Son » : choisis la version, ▶ pour écouter (Espace aussi). Au bon moment, 📍 Marquer (ou touche M) : un marqueur avec le temps arrive sur le board, écris son nom puis Entrée. Clique le ▶ du marqueur (ou son trait rouge sur la barre du son) pour réécouter à partir de là. Relie-le à une image avec une flèche.'],
       ['Un tournage, ses reels', 'Un tournage = une journée (date, heure, lieu : il va dans le Calendrier). Clique son affiche : tu vois ses reels. Chaque reel se déplie (infos, moodboard, découpage, tenues, matériel). Glisse un reel sur l\'affiche d\'un tournage pour l\'y mettre.'],
       ['Les tenues', 'Glisse une photo (« Médias à ranger », Assets, ou une autre tenue) sur la ligne d\'un membre : elle est étiquetée tenue + ce membre + le morceau. Dans le tournage = pour tous les reels ; dans un reel = rien que pour lui. Une même photo peut aller à Pierre ET à Yacine.'],
       ['Ce qui est déjà dans Médias', 'Les photos déjà étiquetées pour ce tournage ou ce reel arrivent en vert à leur place : ✓ pour valider.'],

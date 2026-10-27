@@ -1,6 +1,6 @@
 // =====================================================================
 // LES LANGUETTES SUR LES BORDS : chaque languette replie ce qui est juste à côté d'elle.
-//   en haut   → le bandeau (logo, STOP, CHARGE…)        classe body : haut-cache
+//   en haut   → le bandeau (logo, STOP, CHARGE…) + le titre de la page    classe body : haut-cache
 //   à gauche  → le menu (languette déjà dans coeur.js) classe body : menu-etroit
 //   à droite  → la colonne de droite de la page        classe body : droite-cachee
 //   en bas    → la barre du bas de la page (PRÊT, Export…) classe body : bas-cache
@@ -10,7 +10,7 @@
 (function () {
   var body = document.body;
   var BORDS = {
-    haut:   { cls: 'haut-cache',    cle: 'bord.haut',   ouvert: '▴', ferme: '▾', nom: 'le bandeau du haut' },
+    haut:   { cls: 'haut-cache',    cle: 'bord.haut',   ouvert: '▴', ferme: '▾', nom: 'le bandeau du haut et le titre de la page' },
     droite: { cls: 'droite-cachee', cle: 'bord.droite', ouvert: '›', ferme: '‹', nom: 'la colonne de droite' },
     bas:    { cls: 'bas-cache',     cle: 'bord.bas',    ouvert: '▾', ferme: '▴', nom: 'la barre du bas' }
   };
