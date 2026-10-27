@@ -103,7 +103,7 @@ BK.module('agenda', function (page) {
     if (cfg && cfg.ics) { $('#agIcs').value = cfg.ics; await lireGoogle(cfg.ics, true); }
     const ms = await BK.db.liste('morceaux');
     // le pont avec la To-do list : une tâche avec une date apparaît aussi ici, avec le nom de qui s'en occupe
-    A.taches = (await BK.db.liste('taches')).filter(t => t.date && !t.fait).map(t => ({ type: 'autre', tache: true, titre: '☐ ' + t.texte + (t.qui ? ' · ' + t.qui : ''), morceau: t.morceau, qui: t.qui, debut: new Date(t.date + 'T12:00'), journee: true }));
+    A.taches = (await BK.db.liste('taches')).filter(t => t.date && !t.fait).map(t => ({ type: 'autre', tache: true, titre: '☐ ' + t.texte + (t.qui ? ' · ' + [t.qui, ...(t.aussi || [])].join(' + ') : ''), morceau: t.morceau, qui: t.qui, debut: new Date(t.date + 'T12:00'), journee: true }));
     A.sorties = ms.filter(m => m.sortie).map(m => ({ type: 'sortie', titre: 'Sortie · ' + m.nom, morceau: m.nom, debut: new Date(m.sortie + 'T12:00'), journee: true, fiche: true }));
     const pl = (await BK.db.liste('veille')).find(d => d.id === 'planning'); A.planning = pl;
     A.dispos = await lireDispos();

@@ -99,21 +99,26 @@ BK.module('taches', function (page) {
   BK.tachesRecharger = charger;
 
   const tri = (a, b) => (a.fait - b.fait) || (a.ordre ?? 0) - (b.ordre ?? 0);
-  function carte(t, auj) {
-    const meta = [t.morceau, t.date && 'pour le ' + new Date(t.date + 'T12:00').toLocaleDateString('fr-CA', { day: 'numeric', month: 'short' })].filter(Boolean);
+  // une tâche peut être pour plusieurs personnes : t.qui (la première) + t.aussi (les autres). Elle s'affiche dans chaque panier.
+  const gens = t => [t.qui, ...(t.aussi || [])].filter(Boolean);
+  const pour = (t, qui) => qui ? gens(t).includes(qui) : !gens(t).length;
+  function carte(t, auj, panier) {
+    const avec = gens(t).filter(x => x !== panier);
+    const meta = [panier !== undefined && avec.length && gens(t).length > 1 ? 'avec ' + avec.join(', ') : '', t.morceau, t.date && 'pour le ' + new Date(t.date + 'T12:00').toLocaleDateString('fr-CA', { day: 'numeric', month: 'short' })].filter(Boolean);
     return `<div class="carte${t.fait ? ' faite' : ''}${!t.fait && t.date && t.date < auj ? ' retard' : ''}${T.choisie === t.id ? ' choisie' : ''}${t.miette ? ' mi-prop' : ''}" data-id="${t.id}"${t.miette ? ' title="Ajoutée par Miette : vérifie-la, puis ✓ Valider"' : ''}>
       <button class="ta-case${t.fait ? ' on' : ''}" data-case="${t.id}" title="Fait">${t.fait ? '✓' : ''}</button>
       <div class="carte-c"><span class="carte-t">${esc(t.texte)}</span>${meta.length ? `<span class="carte-m">${meta.map(esc).join(' · ')}</span>` : ''}</div>
-      ${t.miette ? `<button class="mi-val" data-mival="${t.id}" title="C'est bon : valider">✓</button>` : ''}<button class="carte-x" data-x="${t.id}" title="Retirer">✕</button></div>`;
+      ${t.miette ? `<button class="mi-val" data-mival="${t.id}" title="C'est bon : valider">✓</button>` : ''}<button class="carte-qui${gens(t).length > 1 ? ' on' : ''}" data-qui="${t.id}" title="Pour qui ? (une tâche peut être pour plusieurs personnes)">👥</button><button class="carte-x" data-x="${t.id}" title="Retirer">✕</button>
+      ${T.quiOuvert === t.id + '|' + (panier || '') ? `<div class="carte-gens">${[...T.membres, GROUPE].map(m => `<button class="chip${gens(t).includes(m) ? ' on' : ''}" data-pour="${t.id}" data-m="${esc(m)}">${esc(m)}</button>`).join('')}</div>` : ''}</div>`;
   }
 
   function rendre() {
     const auj = new Date().toISOString().slice(0, 10), afaire = T.taches.filter(t => !t.fait);
     $('#taNb').textContent = String(afaire.length).padStart(2, '0');
     $('#taRet').textContent = String(afaire.filter(t => t.date && t.date < auj).length).padStart(2, '0');
-    const de = qui => T.taches.filter(t => (t.qui || '') === qui && !(T.masquerFaites && t.fait)).sort(tri);
+    const de = qui => T.taches.filter(t => pour(t, qui) && !(T.masquerFaites && t.fait)).sort(tri);
     const vrac = de('');
-    $('#taVrac').innerHTML = vrac.length ? vrac.map(t => carte(t, auj)).join('')
+    $('#taVrac').innerHTML = vrac.length ? vrac.map(t => carte(t, auj, '')).join('')
       : '<span class="nt vrac-vide">Aucune tâche en vrac. Écris-en une au-dessus.</span>';
     $('#taPaniers').style.gridTemplateColumns = `repeat(${T.membres.length + 1}, minmax(0, 1fr))`;
     $('#taPaniers').innerHTML = [...T.membres, GROUPE].map(c => {
@@ -122,18 +127,18 @@ BK.module('taches', function (page) {
       return `<div class="panier zone${c === GROUPE ? ' groupe' : ''}${serre ? ' serre' : ''}" data-zone="${esc(c)}">
         <button class="panier-tete" data-serre="${esc(c)}" title="${serre ? 'Tout afficher' : 'Mettre en liste'}"><span class="ta-nom">${esc(c)}</span>
           <span class="col-nb">${l.filter(t => !t.fait).length || ''}</span><span class="panier-pli">${serre ? '▸' : '▾'}</span></button>
-        <div class="panier-cartes">${l.map(t => carte(t, auj)).join('')}</div></div>`;
+        <div class="panier-cartes">${l.map(t => carte(t, auj, c)).join('')}</div></div>`;
     }).join('');
     $('.todo-vit').classList.toggle('en-choix', !!T.choisie);
     $$('[data-serre]').forEach(b => b.onclick = e => { e.stopPropagation(); const c = b.dataset.serre;
-      const l = T.taches.filter(t => (t.qui || '') === c && !(T.masquerFaites && t.fait));
+      const l = T.taches.filter(t => pour(t, c) && !(T.masquerFaites && t.fait));
       T.serres[c] = !(T.serres[c] ?? (l.length > 3)); BK.regler('todo.serres', T.serres); rendre(); });
     // l'historique : tout ce qui a été fait, et par qui
     const faites = T.taches.filter(t => t.fait).sort((a, b) => (b.faitLe || b.maj || '').localeCompare(a.faitLe || a.maj || ''));
     $('.ta-faites-box').classList.toggle('replie', T.faitesPli);
     $('#taFaitesPli').innerHTML = `${T.faitesPli ? '▸' : '▾'} ✓ Déjà fait <span id="taNbF">${faites.length ? '(' + faites.length + ')' : ''}</span>`;
     $('#taFaites').innerHTML = faites.length ? faites.slice(0, 60).map(t => `<div class="ta-f"><span class="ta-f-t">${esc(t.texte)}</span>
-        <span class="ta-f-m">${esc(t.qui || 'en vrac')}${t.faitLe ? ' · ' + new Date(t.faitLe).toLocaleDateString('fr-CA', { day: 'numeric', month: 'short' }) : ''}${t.faitPar ? ' · coché sur ' + esc(t.faitPar) : ''}</span>
+        <span class="ta-f-m">${esc(gens(t).join(' + ') || 'en vrac')}${t.faitLe ? ' · ' + new Date(t.faitLe).toLocaleDateString('fr-CA', { day: 'numeric', month: 'short' }) : ''}${t.faitPar ? ' · coché sur ' + esc(t.faitPar) : ''}</span>
         <button class="btn xs" data-case="${t.id}" title="Remettre à faire">↩</button></div>`).join('') : '<span class="nt">Rien de fait pour l\'instant.</span>';
   }
 
@@ -171,12 +176,17 @@ Réponds en JSON : {"taches":[{"texte":"phrase courte, commence par un verbe","q
   $('#taTexte').addEventListener('keydown', e => { e.stopPropagation(); if (e.key === 'Enter') { e.preventDefault(); ajouter(); } });
 
   // ---------- déplacer une tâche vers un panier ----------
-  async function deplacer(id, qui) {
+  async function deplacer(id, qui, depuis, ajout) {
     const t = T.taches.find(x => x.id === id); T.choisie = null;
     if (qui === '__fait') { if (!t || t.fait) return rendre(); t.fait = true; t.faitLe = new Date().toISOString(); t.faitPar = BK.reglage('nomPc', '') || 'ce PC'; rendre(); await BK.db.ecrire('taches', t); return msg('Bravo ! (rangée dans « Déjà fait »)'); }
-    if (!t || (t.qui || '') === qui) return rendre();
-    t.qui = qui; t.ordre = Date.now(); rendre();
-    await BK.db.ecrire('taches', t); msg(qui ? 'Pour ' + qui : 'Remise en vrac');
+    if (!t || (qui && gens(t).includes(qui) && !ajout) && depuis === qui) return rendre();
+    let l = gens(t);
+    if (ajout && qui) { if (!l.includes(qui)) l.push(qui); }                         // Ctrl + glisser : une personne de plus
+    else if (depuis && l.includes(depuis) && l.length > 1) l = qui ? l.map(x => x === depuis ? qui : x) : l.filter(x => x !== depuis);   // tâche partagée : on change seulement cette personne
+    else l = qui ? [qui] : [];
+    l = [...new Set(l)]; t.qui = l[0] || ''; t.aussi = l.slice(1); if (!t.aussi.length) delete t.aussi;
+    t.ordre = Date.now(); rendre();
+    await BK.db.ecrire('taches', t); msg(l.length ? 'Pour ' + l.join(' + ') : 'Remise en vrac');
   }
 
   // attraper au clic maintenu (souris ou doigt) ; un simple clic = choisir puis cliquer un panier
@@ -185,7 +195,7 @@ Réponds en JSON : {"taches":[{"texte":"phrase courte, commence par un verbe","q
   const vit = $('.todo-vit');
   vit.addEventListener('pointerdown', e => {
     const c = e.target.closest('.carte'); if (!c || e.button !== 0 || e.target.closest('button') || c.querySelector('[contenteditable=true]')) return;
-    g = { id: c.dataset.id, carte: c, x: e.clientX, y: e.clientY, fantome: null };
+    const z0 = c.closest('.zone'); g = { id: c.dataset.id, carte: c, x: e.clientX, y: e.clientY, fantome: null, depuis: z0 ? z0.dataset.zone || '' : '' };
   });
   window.addEventListener('pointermove', e => {
     if (!g) return;
@@ -202,17 +212,22 @@ Réponds en JSON : {"taches":[{"texte":"phrase courte, commence par un verbe","q
   window.addEventListener('pointerup', e => {
     if (!g) return; const d = g; g = null;
     $$('.todo-vit .zone, .ta-faites-box').forEach(z => z.classList.remove('survol'));
-    if (d.fantome) { d.fantome.remove(); d.carte.classList.remove('glisse'); const z = zoneSous(e.clientX, e.clientY); if (z) deplacer(d.id, z.dataset.zone); return; }
-    T.choisie = T.choisie === d.id ? null : d.id; rendre();             // simple clic : choisir
+    if (d.fantome) { d.fantome.remove(); d.carte.classList.remove('glisse'); const z = zoneSous(e.clientX, e.clientY); if (z) deplacer(d.id, z.dataset.zone, d.depuis, e.ctrlKey || e.metaKey); return; }
+    T.choisie = T.choisie === d.id ? null : d.id; T.choisieDe = d.depuis; rendre();             // simple clic : choisir
     if (T.choisie) msg('Clique sur un panier');
   });
   vit.addEventListener('click', e => {
     if (e.target.closest('.carte') || !T.choisie) return;
-    const z = e.target.closest('.zone'); if (z) deplacer(T.choisie, z.dataset.zone);
+    const z = e.target.closest('.zone'); if (z) deplacer(T.choisie, z.dataset.zone, T.choisieDe, e.ctrlKey || e.metaKey);
   });
 
   // ---------- cocher, retirer, modifier ----------
   vit.addEventListener('click', async e => {
+    const q = e.target.closest('[data-qui]'), pm = e.target.closest('[data-pour]');
+    if (q) { const z = q.closest('.zone'), k = q.dataset.qui + '|' + (z ? z.dataset.zone || '' : ''); T.quiOuvert = T.quiOuvert === k ? null : k; return rendre(); }
+    if (pm) { const t = T.taches.find(y => y.id === pm.dataset.pour); if (!t) return; let l = gens(t); const m = pm.dataset.m;
+      l = l.includes(m) ? l.filter(x => x !== m) : [...l, m]; t.qui = l[0] || ''; t.aussi = l.slice(1); if (!t.aussi.length) delete t.aussi;
+      rendre(); await BK.db.ecrire('taches', t); return msg(l.length ? 'Pour ' + l.join(' + ') : 'Remise en vrac'); }
     const v = e.target.closest('[data-mival]');
     if (v) { const t = T.taches.find(y => y.id === v.dataset.mival); if (t) { delete t.miette; rendre(); await BK.db.ecrire('taches', t); msg('Validée'); } return; }
     const b = e.target.closest('[data-case]'), x = e.target.closest('[data-x]');

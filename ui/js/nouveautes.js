@@ -3,6 +3,11 @@
 // Pour une nouvelle version : ajouter un bloc EN HAUT de la liste. Une ligne courte par point : « Onglet : ce qui change. »
 // =====================================================================
 BK.NOUVEAUTES = [
+  { v: '0.9.75', titre: '', l: [
+    ['🎬', 'Tournages : nouveau sous-onglet « Storyline - Mood » : un grand board par chanson (ou Général). « ＋ Ajouter » : média (Drive / Médias / PC), lien (YouTube, reel Insta, TikTok, site), texte, rond, rectangle, flèche.'],
+    ['▶', 'Storyline - Mood : les vidéos YouTube et du Drive se lisent directement dans le board ; tout se glisse, se redimensionne (coin orange), molette = zoom presque infini. Les ronds et rectangles emportent ce qu\'il y a dedans.'],
+    ['👥', 'Storyline - Mood : tout le groupe voit le même board (enregistré dans le Drive, mis à jour toutes les 15 secondes).'],
+    ['☑', 'To-do : une tâche peut être pour plusieurs personnes : bouton 👥 sur la tâche, puis coche les noms (ou Ctrl + glisser vers un autre panier). Cochée par l\'un = faite pour tous.'] ] },
   { v: '0.9.74', titre: '', l: [
     ['💡', 'Light Toast : même look que le reste du logiciel (mêmes polices, tailles, touches, cases et pictos), chaque colonne défile toute seule.'],
     ['🎵', 'Light Toast : la musique se choisit depuis la Bibliothèque (morceau → version), depuis Médias ou depuis ce PC. Les pistes audio en plus aussi depuis Médias.'],
@@ -360,6 +365,7 @@ BK.TUTO = [
       ['Demander à Miette', 'Écris dans « Dis-le à Miette » (ex. « Pierre réserve le studio avant vendredi ») puis « Miette l\'ajoute ». Ses tâches sont en vert : ✓ pour valider.'],
       ['Ajouter une tâche', 'Écris-la en haut (morceau et date si besoin) → + Ajouter ou Entrée. Elle arrive dans « Tâches en vrac ». Avec une date, elle apparaît aussi dans le Calendrier.'],
       ['Donner une tâche à quelqu\'un', 'Attrape la tâche et lâche-la dans son panier.'],
+      ['Une tâche pour plusieurs personnes', 'Clique 👥 sur la tâche et coche les noms : elle apparaît dans le panier de chacun (« avec … » en dessous). Ou Ctrl + glisser la tâche vers un autre panier. Cochée par l\'un = faite pour tous.'],
       ['Marquer comme fait', 'Glisse-la dans « Déjà fait », ou coche-la dans l\'Accueil.'] ],
     astuces: [ 'Miette propose : les tâches repérées sur Discord et dans les mails, à accepter ou non.' ] },
   { o: 'Budget', ic: '💰', quoi: 'Les dépenses du groupe, qui a payé, et les remboursements entre vous.',
@@ -408,6 +414,7 @@ BK.TUTO = [
     astuces: [ 'Espace = lecture / pause. La vidéo tourne en boucle.', 'Miette annonce les nouveaux retours vidéo dans #annonce-miette sur Discord.', 'Une vidéo de ce PC : les autres voient les notes, mais pour la regarder il faut qu\'ils aient le fichier (mieux : passer par Médias / Drive).' ] },
   { o: 'Tournages', ic: '🎥', quoi: 'Une fiche par tournage ou shooting : l\'idée, le moodboard, des références, le découpage plan par plan, les tenues, le matériel. On l\'imprime en PDF pour l\'équipe.',
     comment: [
+      ['Storyline - Mood (le grand board)', 'Sous-onglet en haut. Choisis la chanson (ou Général), puis « ＋ Ajouter » : média, lien externe, texte, rond, rectangle ou flèche. Glisse les éléments où tu veux ; coin orange = agrandir ; double-clic = écrire ; ● change la couleur, ⇡ met devant, ✕ retire. Glisse le fond pour te déplacer, molette pour zoomer, « Tout voir » pour tout recadrer. Mets plusieurs éléments dans un rond ou un rectangle : ils bougent avec lui. Tu peux aussi glisser des fichiers du PC sur le board. Tout le groupe voit le même board.'],
       ['Un tournage, ses reels', 'Un tournage = une journée (date, heure, lieu : il va dans le Calendrier). Clique son affiche : tu vois ses reels. Chaque reel se déplie (infos, moodboard, découpage, tenues, matériel). Glisse un reel sur l\'affiche d\'un tournage pour l\'y mettre.'],
       ['Les tenues', 'Glisse une photo (« Médias à ranger », Assets, ou une autre tenue) sur la ligne d\'un membre : elle est étiquetée tenue + ce membre + le morceau. Dans le tournage = pour tous les reels ; dans un reel = rien que pour lui. Une même photo peut aller à Pierre ET à Yacine.'],
       ['Ce qui est déjà dans Médias', 'Les photos déjà étiquetées pour ce tournage ou ce reel arrivent en vert à leur place : ✓ pour valider.'],

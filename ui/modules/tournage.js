@@ -17,7 +17,9 @@ BK.module('tournage', function (page) {
   $('.sub', page).textContent = 'Moodboard, découpage, tenues : une fiche à imprimer pour chaque tournage';
   $('.hdr .right', page).innerHTML = `<div><span class="eng" style="font-size:9px">Prochain</span><span class="vfd" id="toProchain" style="width:220px">—</span></div>`;
   $('.grid', page).innerHTML = `
-    <div class="cols">
+    <div class="seg ec-vues" id="toVues"><button data-v="tournages">Tournages</button><button data-v="storyline" title="Un grand board libre par chanson : médias, liens, textes, formes">Storyline - Mood</button></div>
+    <div class="cols hidden" id="toVueS"><section class="pane vit sb-pane" id="toStory"></section></div>
+    <div class="cols" id="toVueT">
       <section class="pane vit to-vit"><div class="to-fiche" id="toFiche"></div></section>
       <section class="pane reg" style="width:270px"><span class="ptitle">② Tournages</span>
         <button class="btn pri" id="toNouveau" style="width:100%;justify-content:center">+ Nouveau tournage</button>
@@ -27,9 +29,15 @@ BK.module('tournage', function (page) {
         <div class="box grow" style="margin-top:10px"><div class="to-liste" id="toListe"></div></div>
       </section>
     </div>
-    <div class="pane abar"><span class="vfd" id="toMsg">PRÊT</span>
+    <div class="pane abar" id="toAbar"><span class="vfd" id="toMsg">PRÊT</span>
       <div class="right"><button class="btn" id="toCal" disabled>📅 Mettre au Calendrier</button><button class="btn pri" id="toPdf" disabled>🖨 Imprimer / PDF</button></div></div>`;
   const msg = t => $('#toMsg').textContent = String(t).toUpperCase();
+  // ---------- les deux sous-onglets : Tournages (les fiches) et Storyline - Mood (le grand board, js : modules/storyline.js) ----------
+  function vueTo(v) { BK.regler('tournage.vue', v); $$('#toVues button').forEach(b => b.classList.toggle('on', b.dataset.v === v));
+    $('#toVueT').classList.toggle('hidden', v !== 'tournages'); $('#toAbar').classList.toggle('hidden', v !== 'tournages'); $('#toVueS').classList.toggle('hidden', v !== 'storyline');
+    if (v === 'storyline') BK.storyline.dessiner($('#toStory')); }
+  $$('#toVues button').forEach(b => b.onclick = () => vueTo(b.dataset.v));
+  setTimeout(() => vueTo(BK.reglage('tournage.vue', 'tournages')), 0);
 
   window.addEventListener('bk:annule', () => charger());   // après « ↶ Annuler » : on relit
   async function charger() {
