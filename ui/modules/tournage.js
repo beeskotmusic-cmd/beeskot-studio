@@ -133,9 +133,9 @@ BK.module('tournage', function (page) {
       <div class="box"><div class="ligne-titre"><span class="lb">Moodboard</span><button class="btn xs miette-aide" id="toMoodMiette" style="margin-left:auto" title="Miette cherche les images de moodboard de ce tournage dans le Drive et sur Discord">Trouver</button></div>
         <div class="to-mood" id="toMood">${t.moodboard.map((u, i) => `<div class="to-img" draggable="true" data-mi="${i}" title="Glisse cette image sur un plan du découpage"${BK.img.bg(u)}><b class="to-n">${i + 1}</b><button class="md-x" data-mx="${i}">✕</button></div>`).join('')}
           <button class="to-img to-plus to-plus-tag" id="toMoodTag" title="Depuis Médias (dossiers, Discord, étiquettes)">＋<small>Ajouter des images</small></button><button class="to-img to-plus" id="toMoodPlus" title="Images de ce PC">💻<small>Ce PC</small></button></div>
-        ${(t.moodboardDocs || []).length ? `<div class="to-docs">${t.moodboardDocs.map((d, i) => `<span class="to-doc"><a href="#" data-url="${esc(d.url)}">📄 ${esc(d.nom)}</a><button class="md-x" data-dx="${i}">✕</button></span>`).join('')}</div>` : ''}
+        ${(t.moodboardDocs || []).length ? `<div class="to-docs">${t.moodboardDocs.map((d, i) => `<span class="to-doc"${d.id ? ` data-drive="${esc(d.id)}"` : ''}><a href="#" data-url="${esc(d.url)}">📄 ${esc(d.nom)}</a><button class="md-x" data-dx="${i}">✕</button></span>`).join('')}</div>` : ''}
         ${t.moodboardAuto ? '<span class="nt">🍞 Rempli par Miette depuis le dossier moodboard du Drive.</span>' : ''}
-        <input type="file" id="toMoodIn" accept="image/*" multiple hidden>
+        <input type="file" id="toMoodIn" accept="image/*,application/pdf,.pdf" multiple hidden>
         <div class="to-refs"><div class="ligne-titre"><span class="lb">Références</span><span class="nt" style="margin:0 0 0 auto">Des liens : Instagram, TikTok, YouTube, Pinterest…</span><button class="btn xs miette-aide" id="toRefMiette" title="Miette cherche les liens donnés sur Discord pour ce tournage">Trouver</button></div>
           <div class="to-refs-l">${(t.references || []).map((r, i) => `<span class="to-ref${r.miette ? ' mi-prop' : ''}"${r.miette ? ' title="Trouvée par Miette sur Discord : ✓ pour valider"' : ''}><a href="#" data-url="${esc(r.url)}" title="${esc(r.url)}">${esc(iconeLien(r.url))} ${esc(r.note || nomLien(r.url))}</a>${r.miette ? `<button class="mi-val" data-rval="${i}" title="C'est bon">✓</button>` : ''}<button class="md-x" data-rx="${i}">✕</button></span>`).join('')}</div>
           <div class="to-refs-add"><input class="fld" id="toRefUrl" placeholder="Colle un lien (https://…)"><input class="fld" id="toRefNote" placeholder="En un mot : pourquoi (facultatif)"><button class="btn sm" id="toRefAdd">+ Ajouter</button></div></div></div>
@@ -404,7 +404,12 @@ BK.module('tournage', function (page) {
   };
 
   async function ajouterImages(t, fichiers) {
-    const fs = [...fichiers].filter(f => /^image\//.test(f.type)); if (!fs.length) return msg('Seulement des images');
+    const tous = [...fichiers], pdfs = tous.filter(f => f.type === 'application/pdf' || /\.pdf$/i.test(f.name)), fs = tous.filter(f => /^image\//.test(f.type));
+    if (!fs.length && !pdfs.length) return msg('Des images ou des PDF');
+    if (pdfs.length) { msg('Envoi des PDF…'); t.moodboardDocs = t.moodboardDocs || [];
+      for (const f of pdfs) { try { const d = await BK.img.versDrive(f, f.name, 'moodboard'); if (d.id) { t.moodboardDocs.push({ nom: f.name, url: BK.driveUrl(d.id), id: d.id });
+          for (const k of ['t:' + t.id, 'c:moodboard', 'c:tournage']) await BK.etiquettes.basculer(d.id, k, true); } else msg('Relie le Drive pour joindre un PDF'); } catch (e) { console.warn(e); msg('PDF pas envoyé : ' + f.name); } }
+      if (!fs.length) { await BK.db.ecrire('tournages', t); msg('PDF ajouté au moodboard'); return rendreFiche(); } }
     if (t.moodboard.length + fs.length > 24) return msg('24 images maximum par moodboard');
     msg('Ajout des images…');
     for (const f of fs) { try { const d = await BK.img.versDrive(f, f.name, 'moodboard'); t.moodboard.push(d.ref || d);   // rangée dans le dossier moodboard du Drive

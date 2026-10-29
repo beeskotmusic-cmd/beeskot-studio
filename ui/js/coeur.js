@@ -7,7 +7,7 @@ const $ = (s, r = document) => r.querySelector(s);
 const $$ = (s, r = document) => [...r.querySelectorAll(s)];
 
 const BK = {
-  version: '0.9.77 bêta',
+  version: '0.9.79 bêta',
   modules: {},
   onglets: [],
   cotes: [],
@@ -392,11 +392,13 @@ const BK = {
     z.querySelector('[data-mm="journal"]').onclick = () => { z.remove(); BK.journalFenetre(); };
     BK.journalLire && BK.journalLire().then(l => { const x = l[0], e = document.getElementById('mmDernier'); if (x && e) { const p = BK.journalPhrase(x); e.textContent = 'Dernier : ' + p.quand + ' · ' + p.txt; } }).catch(() => {});
     z.querySelector('[data-mm="actu"]').onclick = async () => { const b = z.querySelector('[data-mm="actu"] b'); b.innerHTML = '<span class="spin"></span>Actualisation…';
-      try { if (BK.db.viderAttente) await BK.db.viderAttente();          // ce qui attendait ici part d'abord
+      try { if (BK.drive && !BK.drive.relie()) throw new Error('Drive non relié');
+        if (BK.db.viderAttente) await BK.db.viderAttente();          // ce qui attendait ici part d'abord
         BK.dossiers && BK.dossiers.oublier && BK.dossiers.oublier();
         window.dispatchEvent(new CustomEvent('bk:distant', { detail: { cols: (BK.synchro && BK.synchro.COLS) || [] } }));
         BK.presence && await BK.presence.maj(true); await qui(); b.textContent = '✓ À jour'; BK.toast && BK.toast('À jour : ce que les autres ont fait est arrivé'); }
-      catch (e) { b.textContent = '🔄 Drive injoignable, réessaie'; } };
+      catch (e) { b.textContent = '🔄 Drive injoignable'; const sp = z.querySelector('[data-mm="actu"] > span');
+        if (sp) sp.innerHTML = BK.drive && BK.drive.relie() ? '1) Vérifie ta connexion internet, puis clique encore.<br>2) Ça ne marche toujours pas : Réglages › Drive › « Importer une carte d\'accès » (le fichier que Dari t\'envoie en message privé).' : 'Le Drive n\'est pas relié sur ce PC : Réglages › Drive › « Importer une carte d\'accès » (le fichier que Dari t\'envoie en message privé).'; } };
     // qui est en ligne (vu dans les 7 dernières minutes) ou hors ligne (et depuis quand)
     const qui = async () => { const el = document.getElementById('mmQui'); if (!el) return;
       if (!BK.drive || !BK.drive.relie()) { el.innerHTML = '<span class="nt">Relie le Drive pour voir les autres.</span>'; return; }

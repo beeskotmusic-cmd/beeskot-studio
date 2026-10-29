@@ -3,6 +3,13 @@
 // Pour une nouvelle version : ajouter un bloc EN HAUT de la liste. Une ligne courte par point : « Onglet : ce qui change. »
 // =====================================================================
 BK.NOUVEAUTES = [
+  { v: '0.9.79', titre: '', l: [
+    ['☁', 'Partout : clic droit sur une image, un fichier ou une version venue du Drive (moodboards, fiches, Bibliothèque…) = « Ouvrir sur le Drive ».'],
+    ['📄', 'PDF : tu peux en ajouter dans Storyline - Mood (carte avec miniature), dans le moodboard d\'un tournage (📄 en dessous des images) et dans Médias.'],
+    ['🖱', 'Storyline - Mood : clic droit sur un lien = « Ouvrir sur YouTube » (ou Instagram, TikTok…) ; sur une image ou un PDF = « Ouvrir en grand dans le navigateur » ; sur un média = « Ouvrir sur le Drive ».'] ] },
+  { v: '0.9.78', titre: '', l: [
+    ['🎧', 'Notes et retours : les notes sont liées au fichier choisi en A. Tu changes de fichier (nouvelle version du mix) : la liste repart à zéro. Les anciennes notes restent dans l\'onglet « Notes ».'],
+    ['🔄', 'Actualiser : si le Drive ne répond pas, le message dit maintenant quoi faire (internet, puis Réglages › Drive › Importer une carte d\'accès).'] ] },
   { v: '0.9.77', titre: '', l: [
     ['🖱', 'Storyline - Mood : clic droit sur le board = le menu « Ajouter », et l\'élément arrive là où tu as cliqué. Clic droit sur un élément = écrire, mettre devant, dupliquer, retirer.'],
     ['🎨', 'Storyline - Mood : une barre au-dessus de l\'élément choisi : 12 couleurs + couleur libre, taille du texte (P, M, G, XL), gras, rond / rectangle plein ou contour, épaisseur des flèches, ✎ Écrire.'],

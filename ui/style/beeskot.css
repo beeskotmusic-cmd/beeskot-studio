@@ -2081,3 +2081,5 @@ body.bas-cache .rainure-bas .languette{width:auto;padding:0 12px}
 .sb-tl-p{position:absolute;left:0;top:0;bottom:0;width:0;background:linear-gradient(90deg,rgba(224,164,60,.25),rgba(255,178,62,.55));border-right:2px solid #ffb23e;pointer-events:none}
 .sb-tl-m{position:absolute;top:0;bottom:0;width:3px;margin-left:-1px;background:var(--c);box-shadow:0 0 0 1px rgba(0,0,0,.5)}
 .sb-tl-m:hover{width:5px}
+
+.cd-menu{width:210px!important;overflow:visible!important;max-height:none!important}

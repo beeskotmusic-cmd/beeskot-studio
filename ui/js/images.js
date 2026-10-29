@@ -43,12 +43,13 @@ BK.img = {
   // dans le HTML : un fond d'image, ou une image
   bg(v) {
     if (!v) return '';
-    const u = BK.img.vite(v);
-    return u ? ` style="background-image:url('${u}')"` : ` data-img="${v}"`;
+    const u = BK.img.vite(v), r = BK.img.estDrive(v) ? ` data-ref="${v}"` : '';
+    return (u ? ` style="background-image:url('${u}')"` : ` data-img="${v}"`) + r;
   },
   src(v) {
     const u = BK.img.vite(v);
-    return u ? ` src="${u}"` : ` data-img="${v || ''}" src="data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw=="`;
+    const r = BK.img.estDrive(v) ? ` data-ref="${v}"` : '';
+    return (u ? ` src="${u}"` : ` data-img="${v || ''}" src="data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw=="`) + r;
   },
   // remplit les images qui attendaient (appelé tout seul quand l'écran change)
   remplir(racine = document) {
@@ -176,3 +177,20 @@ new MutationObserver(ms => {
     else if (n.querySelector && n.querySelector('[data-img]')) BK.img.remplir(n);
   }
 }).observe(document.documentElement, { childList: true, subtree: true });
+
+// ---------- clic droit « ☁ Ouvrir sur le Drive » : sur toute image venue du Drive (data-ref="drive:ID") ou tout élément data-drive="ID" ----------
+BK.driveUrl = id => 'https://drive.google.com/file/d/' + id + '/view';
+BK.menuDrive = (e, id, plus) => {
+  document.querySelectorAll('.cd-menu').forEach(x => x.remove());
+  const m = document.createElement('div'); m.className = 'md-menu cd-menu';
+  m.innerHTML = (plus || []).map((p, i) => `<button data-p="${i}">${p.nom}</button>`).join('') + '<button data-d="1">☁ Ouvrir sur le Drive</button>';
+  m.style.left = Math.min(e.clientX, innerWidth - 230) + 'px'; m.style.top = Math.min(e.clientY, innerHeight - 90) + 'px'; document.body.appendChild(m);
+  m.onclick = ev => { const b = ev.target.closest('button'); if (!b) return; m.remove(); if (b.dataset.d) BK.ouvrirLien(BK.driveUrl(id)); else (plus[+b.dataset.p] || {}).f && plus[+b.dataset.p].f(); };
+  setTimeout(() => document.addEventListener('pointerdown', ev => { if (!m.contains(ev.target)) m.remove(); }, { once: true, capture: true }), 0);
+};
+document.addEventListener('contextmenu', e => {
+  if (e.defaultPrevented) return;
+  const el = e.target.closest && e.target.closest('[data-drive],[data-ref^="drive:"]'); if (!el) return;
+  const id = el.dataset.drive || String(el.dataset.ref).slice(6); if (!id) return;
+  e.preventDefault(); BK.menuDrive(e, id);
+});

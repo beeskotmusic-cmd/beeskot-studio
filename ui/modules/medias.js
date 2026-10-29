@@ -308,7 +308,7 @@ BK.module('medias', function (page) {
       <span class="dymo md-choix-titre" title="${esc(titre)}">🖼 ${esc(titre)}</span><div class="md-choix-c"></div>
       <div class="md-choix-pied">${pc ? '<button class="btn sm" data-c="pc">💻 Ce PC…</button>' : ''}${retirer ? `<button class="btn sm" data-c="retirer">${esc(retirer)}</button>` : ''}<span class="nt" id="mdChN">Clic = choisir · Ctrl+clic = en ajouter · Maj+clic = une suite · double-clic = choisir et ajouter</span>
         <button class="btn" data-c="x">Annuler</button><button class="btn pri" data-c="ok" disabled>${esc(bouton)}</button>
-        <input type="file" multiple hidden accept="${type === 'video' ? 'video/*' : type === 'image' ? 'image/*' : type === 'audio' ? 'audio/*,.wav,.mp3,.aif,.aiff,.flac,.m4a,.ogg' : 'image/*,video/*'}"></div></div>`;
+        <input type="file" multiple hidden accept="${type === 'video' ? 'video/*' : type === 'image' ? 'image/*' : type === 'audio' ? 'audio/*,.wav,.mp3,.aif,.aiff,.flac,.m4a,.ogg' : 'image/*,video/*,application/pdf,.pdf'}"></div></div>`;
     const c = v.querySelector('.md-choix-c'); c.appendChild(aj); c.appendChild(vit);
     document.body.appendChild(v); v.querySelector('.md-choix').classList.add('md-choix');
     const choisis = () => [...M.sel].map(id => M.vus && M.vus[id]).filter(Boolean)

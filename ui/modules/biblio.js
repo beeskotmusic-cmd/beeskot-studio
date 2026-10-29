@@ -140,7 +140,7 @@ BK.module('biblio', function (page) {
         const deja = new Set((m.exportsManuels || []).filter(x => x.drive).map(x => x.driveId));
         const l = parts.filter(p => p.k === 'cl' || p.k === 'mix' || p.k === 'ailleurs').flatMap(p => p.l).filter(f => !f.groupe && /\.(wav|mp3|aiff?|flac)$/i.test(f.name) && !/tournage/i.test(f.name) && !deja.has(f.id))
           .sort((a, b) => (b.modifiedTime || '').localeCompare(a.modifiedTime || ''));
-        el.innerHTML = l.length ? `<span class="nt drive-sec" style="cursor:default">☁ Dans le Drive (${l.length})</span>` + l.slice(0, 15).map(f => `<div class="ligne-f">
+        el.innerHTML = l.length ? `<span class="nt drive-sec" style="cursor:default">☁ Dans le Drive (${l.length})</span>` + l.slice(0, 15).map(f => `<div class="ligne-f" data-drive="${esc(f.id)}">
             <button class="etoile etoile-b" data-dprinc="${f.id}" data-nom="${esc(f.name)}" data-t="${esc(f.modifiedTime || '')}" title="En faire la version principale">☆</button>
             <a href="#" class="mono f-nom lien" data-url="${esc(f.webViewLink)}">${esc(f.name)}</a>
             <span class="nt f-chemin">📁 ${esc((f.dossiers || []).map(BK.dossiers.joli).join(' / '))}</span><span class="nt f-meta">${date(f.modifiedTime)}</span>
@@ -183,7 +183,7 @@ BK.module('biblio', function (page) {
             <div class="drive-l">${p.l.slice(0, 30).map((f, i) => f.groupe ? `<div class="ligne-f"><span class="etoile">🎚</span>
               <a href="#" class="f-nom lien" data-url="https://drive.google.com/drive/folders/${f.id}">Stems : ${f.n} fichier(s)</a>
               <span class="nt f-chemin">📁 ${esc((f.dossiers || []).map(BK.dossiers.joli).join(' / '))}</span><span class="nt f-meta">ouvrir le dossier</span></div>`
-              : `<div class="ligne-f${i === 0 ? ' recent' : ''}"><span class="etoile">${i === 0 ? '★' : icone(f.name)}</span>
+              : `<div class="ligne-f${i === 0 ? ' recent' : ''}" data-drive="${esc(f.id)}"><span class="etoile">${i === 0 ? '★' : icone(f.name)}</span>
               <a href="#" class="f-nom lien" data-url="${esc(f.webViewLink)}" title="${esc([...(f.dossiers || []), f.name].join(' / '))}">${esc(f.name)}</a><span class="etqs">${puces(f)}</span>
               ${true ? `<span class="nt f-chemin" title="${esc((f.dossiers || []).join(' / '))}">📁 ${esc((f.dossiers || []).map(BK.dossiers.joli).join(' / ') || 'Mon Drive')}</span>` : ''}
               <span class="nt f-meta">${date(f.modifiedTime)}${f.size ? ' · ' + Math.max(1, Math.round(f.size / 1e6)) + ' Mo' : ''}</span>
@@ -288,7 +288,7 @@ BK.module('biblio', function (page) {
         ${tAvance()}
         <span class="eng fiche-grp">Fichiers</span>
         ${t('exports', 'Exports', exps.length ? `${exps.length} fichier(s) · principal : ${esc(exps[0].nom)}` : BK.drive.relie() ? 'voir ceux du Drive' : 'aucun', () => (exps.length ? exps.map((x, i) => `
-          <div class="ligne-f${i === 0 ? ' recent' : ''}"><button class="etoile etoile-b${i === 0 ? ' on' : ''}" data-princ="${esc(x.chemin)}" title="${i === 0 ? 'Version principale' : 'En faire la version principale'}">${i === 0 ? '★' : '☆'}</button>
+          <div class="ligne-f${i === 0 ? ' recent' : ''}"${x.drive ? ` data-drive="${esc(x.driveId)}"` : ''}><button class="etoile etoile-b${i === 0 ? ' on' : ''}" data-princ="${esc(x.chemin)}" title="${i === 0 ? 'Version principale' : 'En faire la version principale'}">${i === 0 ? '★' : '☆'}</button>
             <span class="mono f-nom" title="${esc(x.chemin)}">${esc(x.nom)}</span>
             <span class="nt f-meta">${date(x.modif)} · ${esc(x.pc)}${x.manuel ? ' · ajouté à la main' : ''}</span>
             <input class="fld f-note" data-f="${esc(x.nom)}" placeholder="note…" value="${esc((m.notesExports || {})[x.nom] || '')}">
@@ -302,7 +302,7 @@ BK.module('biblio', function (page) {
           + (BK.drive.relie() ? `<div class="exp-drive" data-m="${m.id}"><span class="nt"><span class="spin"></span>Exports dans le Drive…</span></div>` : '')
           + `<div class="chips" style="margin-top:8px"><button class="btn sm" data-act="ajexport">+ Ajouter un export</button></div>`)}
         ${t('projets', 'Projets Ableton', als.length ? `${als.filter(x => !x.sauvegarde).length} version(s) · ${als.some(x => !x.ici && als[0] === x) ? '⚠ la plus récente n\'est pas sur ce PC' : 'à jour'}` : 'aucun', () => als.length ? als.map((x, i) => `
-          <div class="ligne-f${i === 0 ? ' recent' : ''}"><span class="etoile">${i === 0 ? '★' : ''}</span><span class="mono f-nom" title="${esc(x.chemin)}">${esc(x.nom)}${x.sauvegarde ? ' <em>(sauvegarde auto)</em>' : ''}</span>
+          <div class="ligne-f${i === 0 ? ' recent' : ''}"${x.drive ? ` data-drive="${esc(x.driveId)}"` : ''}><span class="etoile">${i === 0 ? '★' : ''}</span><span class="mono f-nom" title="${esc(x.chemin)}">${esc(x.nom)}${x.sauvegarde ? ' <em>(sauvegarde auto)</em>' : ''}</span>
             <span class="nt f-meta">${date(x.modif)} · ${esc(x.pc)}${/[\\/]my drive[\\/]|[\\/]mon drive[\\/]|^g:/i.test(x.chemin) ? ' · Drive ✓' : ''}</span>
             ${x.ici ? `<button class="btn xs" data-ouvrir="${esc(x.chemin)}">Ouvrir</button>` : '<span class="nt f-meta">sur un autre PC</span>'}</div>`).join('') : '<span class="nt">Aucun projet trouvé. Range-le dans le Drive (Recording › Ableton Project), ou ajoute un dossier de ce PC à droite.</span>')}
         <span class="eng fiche-grp">Orga</span>

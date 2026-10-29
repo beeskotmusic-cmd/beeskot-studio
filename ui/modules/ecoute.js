@@ -50,7 +50,7 @@ BK.module('ecoute', function (page) {
           <div class="ec-form"><span class="vfd" id="ecQuand">0:00</span><span class="ec-sur" id="ecSur">note sur A</span>
             <input class="fld" id="ecTexte" placeholder="Ta note à cet endroit… (Entrée pour ajouter)"><button class="btn sm" id="ecTout" title="La note parle de tout le morceau, pas d'un passage">Tout le morceau</button><button class="btn sm pri" id="ecAjout">＋ Note</button></div>
           <div class="ec-filtres"><div class="seg ec-tri" id="ecTri"><button data-t="membre">Par membre</button><button data-t="temps">Dans le morceau</button><button data-t="date">Par date</button></div>
-            <button class="chip on" data-f="tout">Toutes</button><button class="chip" data-f="ouvertes">À régler</button><button class="chip" data-f="A" title="Seulement les notes de la version A choisie">Cette version</button>
+            <button class="chip on" data-f="tout">Toutes</button><button class="chip" data-f="ouvertes">À régler</button>
             <button class="btn xs miette-aide" id="ecTraduire" style="margin-left:auto" title="Miette traduit les notes en anglais, naturellement (pour l'ingé son). Le français reste.">Traduire en anglais</button>
             <button class="btn xs" id="ecCopier" title="Copie toutes les notes affichées, avec leurs timecodes, dans le presse-papier">📋 Copier</button>
             </div>
@@ -286,9 +286,11 @@ BK.module('ecoute', function (page) {
   }
   BK.ecouteRecharger = () => { if (E.m) chargerNotes(); if (E.vue === 'notes') historique(); };
   const nomVersion = v => ((E.opts.find(o => o.v === v) || {}).nom || 'autre version');
+  // les notes sont liées au fichier (la version A) : un autre fichier = une liste neuve (les anciennes restent dans l'onglet Notes)
+  const notesDeA = () => E.notes.filter(n => (n.version || '') === (E.A || ''));
   function visibles() {
     const f = ($('.ec-filtres .chip.on') || {}).dataset ? $('.ec-filtres .chip.on').dataset.f : 'tout';
-    return E.notes.filter(n => f === 'tout' || (f === 'ouvertes' && !n.regle) || (f === 'A' && n.version === E.A));
+    return notesDeA().filter(n => f !== 'ouvertes' || !n.regle);
   }
   // ---------- trier : dans le morceau (timecode), par date (la plus ancienne en haut), par membre ----------
   const tri = () => BK.reglage('ecoute.tri2', 'membre');
@@ -328,7 +330,7 @@ BK.module('ecoute', function (page) {
     const l = visibles(), D = duree(), P = plies(), G = groupes(l);
     $$('#ecTri button').forEach(b => b.classList.toggle('on', b.dataset.t === tri()));
     const caches = new Set();
-    $('#ecNbH').textContent = String(E.notes.filter(n => !n.regle).length).padStart(2, '0');
+    $('#ecNbH').textContent = String(notesDeA().filter(n => !n.regle).length).padStart(2, '0');
     // les marques sous la forme du son : un point (instant) ou une barre (passage), à la couleur de la personne
     $('#ecMarques').innerHTML = D ? l.filter(n => !caches.has(n.id) && !n.tout).map(n => `<span class="ec-mq${n.fin ? ' passage' : ''}${n.regle ? ' regle' : ''}${E.A && n.version !== E.A ? ' autre' : ''}" data-n="${n.id}" title="${esc(tps(n.t) + (n.fin ? ' → ' + tps(n.fin) : '') + ' · ' + qui(n) + ' : ' + n.texte)}"
       style="left:${Math.min(100, n.t / D * 100)}%;${n.fin ? `width:${Math.max(0.6, (n.fin - n.t) / D * 100)}%;` : ''}--pc:${couleur(qui(n))}"></span>`).join('') : '';

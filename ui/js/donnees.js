@@ -80,7 +80,7 @@ BK.db = {
     // Si on n'a pas réussi à les lire dans le Drive, on ne les écrit pas : on écraserait le travail des autres avec une version vide.
     if (BK.db.drive() && (col === 'config' || col === 'veille') && !/^ici-/.test(fiche.id) && !BK.db.lu[col]) {
       await BK.db.liste(col).catch(() => {});
-      if (!BK.db.lu[col]) { BK.toast && BK.toast('Drive injoignable : rien n\'a été enregistré, réessaie dans un instant'); throw new Error('Drive injoignable : rien n\'a été écrasé'); }
+      if (!BK.db.lu[col]) { BK.toast && BK.toast('Drive injoignable : rien n\'a été enregistré. Vérifie internet et réessaie ; si ça continue : Réglages › Drive › Importer une carte d\'accès'); throw new Error('Drive injoignable : rien n\'a été écrasé'); }
     }
     if (!sansAnnuler) BK.annuler.noter(col, fiche.id, 'ecrire', fiche);
     (BK.db.photo[col] = BK.db.photo[col] || {})[fiche.id] = JSON.stringify(fiche);

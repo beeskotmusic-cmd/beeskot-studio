@@ -79,7 +79,7 @@ function dessinerItem(it) {
       <div class="sb-pied"><b>${esc(L.site)}</b><span>${esc(it.titre || it.url)}</span><button data-a="ouvrir" title="Ouvrir dans le navigateur">↗</button></div>${outils}`; miniatureLien(it); const im = el.querySelector('img[data-forme]'); if (im) garderForme(it, el, im); }
   else if (it.type === 'media') { const video = /^video\//.test(it.mime || ''), son = /^audio\//.test(it.mime || '');
     el.innerHTML = `<div class="sb-c">${son ? '<div class="sb-logo">♫</div>' : '<span class="sb-attente">…</span>'}${video || son ? '<button class="sb-play" data-a="jouer" title="Lire ici">▶</button>' : ''}</div>
-      <div class="sb-pied"><span>${esc(it.nom || '')}</span></div>${outils}`;
+      <div class="sb-pied"><span>${esc(it.nom || '')}</span><button data-a="driveo" title="Ouvrir sur le Drive">↗</button></div>${outils}`;
     if (!son) imageDrive(it).then(u => { const c = el.querySelector('.sb-c'); if (!c || c.querySelector('video,audio')) return; const a = c.querySelector('.sb-attente');
       if (u) { const img = document.createElement('img'); img.src = u; img.alt = ''; img.draggable = false; if (a) a.replaceWith(img); garderForme(it, el, img); } else if (a) a.textContent = video ? '🎬' : '🖼'; }); }
 }
@@ -176,10 +176,11 @@ function menuClicDroit(e) {
   $('#sbMenu', S.zone).classList.add('hidden');
   if (it) { choisir(it.id); const fl = it.type === 'forme' && it.forme === 'fleche';
     m.innerHTML = `<span class="sb-m-t">${{ texte: 'Texte', forme: fl ? 'Flèche' : it.forme === 'rond' ? 'Rond' : 'Rectangle', lien: 'Lien', media: 'Média', marqueur: 'Marqueur' }[it.type] || ''}</span>`
-      + (fl ? '' : '<button data-i="ecrire">✎ Modifier le texte</button>') + (it.type === 'marqueur' ? '<button data-i="aller">▶ Écouter à partir d\'ici</button>' : '') + (it.type === 'lien' ? '<button data-i="ouvrir">↗ Ouvrir dans le navigateur</button>' : '')
+      + (fl ? '' : '<button data-i="ecrire">✎ Modifier le texte</button>') + (it.type === 'marqueur' ? '<button data-i="aller">▶ Écouter à partir d\'ici</button>' : '') + (it.type === 'lien' ? `<button data-i="ouvrir">↗ Ouvrir sur ${esc(lienInfo(it.url).site || 'le site')}</button>` : '')
+      + (it.type === 'media' ? ((/^image\/|^application\/pdf/.test(it.mime || '') ? '<button data-i="grand">🌐 Ouvrir en grand dans le navigateur</button>' : '') + '<button data-i="drive">☁ Ouvrir sur le Drive</button>') : '')
       + '<button data-i="devant">⇡ Mettre devant</button><button data-i="dupli">⧉ Dupliquer</button><button data-i="suppr">✕ Retirer</button>';
     m.onclick = ev => { const b = ev.target.closest('[data-i]'); if (!b) return; m.classList.add('hidden'); const k = b.dataset.i;
-      if (k === 'ecrire') ecrire(it); else if (k === 'aller') aller(it); else if (k === 'ouvrir') BK.ouvrirLien(it.url); else if (k === 'dupli') dupliquer(it); else if (k === 'suppr') retirer(it);
+      if (k === 'ecrire') ecrire(it); else if (k === 'aller') aller(it); else if (k === 'ouvrir') BK.ouvrirLien(it.url); else if (k === 'grand' || k === 'drive') BK.ouvrirLien(BK.driveUrl(it.fid)); else if (k === 'dupli') dupliquer(it); else if (k === 'suppr') retirer(it);
       else if (k === 'devant') { it.z = zMax(); dessinerItem(it); garder(it); } };
   } else {
     m.innerHTML = '<span class="sb-m-t">Ajouter ici</span>' + CHOIX().map(([k, n]) => `<button data-k="${k}">${n}</button>`).join('');
@@ -242,7 +243,7 @@ async function marquer(p) {
 async function poserMedias(l, p) { const c = p || centreVue(); let i = 0;
   for (const x of l) { if (x.retirer) continue; let fid = x.f ? x.id : '', mime = x.mime || (x.fichier && x.fichier.type) || '', nom = x.nom || (x.fichier && x.fichier.name) || '';
     if (x.fichier || x.dc) { msg('Envoi de ' + nom + ' au Drive…'); try { fid = await envoyer(x.fichier || new File([await (await BK.discord.fetch(x.dc.url)).blob()], nom, { type: mime })); } catch (e) { msg('Envoi impossible : ' + nom); continue; } }
-    if (!fid) continue; const port = /^video\/|^image\//.test(mime) ? 1 : 0;
+    if (!fid) continue; const port = /^video\/|^image\/|^application\/pdf/.test(mime) ? 1 : 0;
     await ajouter({ type: 'media', fid, nom, mime, w: 320, h: port ? 240 : 120 }, { x: c.x + i * 40, y: c.y + i * 40 }); i++; }
   msg(i ? i + ' média(s) ajouté(s)' : 'PRÊT'); }
 async function envoyer(fichier) { const dos = await BK.drive.dossier('Storyline', await BK.drive.racine()); const r = await BK.drive.envoyerBlob(fichier, fichier.name, dos); return r.id; }
@@ -291,6 +292,7 @@ function installerSouris(board) {
   board.addEventListener('click', async e => { const b = e.target.closest('[data-a]'), el = e.target.closest('.sb-it'); if (!b || !el) return; const it = S.items[el.dataset.id]; if (!it) return; e.stopPropagation();
     const a = b.dataset.a;
     if (a === 'ouvrir') BK.ouvrirLien(it.url);
+    else if (a === 'driveo') BK.ouvrirLien(BK.driveUrl(it.fid));
     else if (a === 'aller') { choisir(it.id); aller(it); }
     else if (a === 'jouer') { choisir(it.id); if (it.type === 'media') jouerMedia(it, el); else { const L = lienInfo(it.url); el.querySelector('.sb-c').innerHTML = `<iframe src="${esc(L.embed)}" allow="autoplay; encrypted-media; fullscreen; picture-in-picture" allowfullscreen referrerpolicy="strict-origin-when-cross-origin"></iframe>`; } }
   });
@@ -349,7 +351,7 @@ BK.storyline = {
       <div class="sb-board" tabindex="0"><div class="sb-monde"></div><div class="sb-style hidden" id="sbStyle"></div><div class="sb-menu sb-ctx hidden" id="sbCtx"></div>
         <div class="sb-vide" id="sbVide"><b>Board vide</b><span>« ＋ Ajouter » ou clic droit : un média, un lien (YouTube, reel Insta, TikTok…), un texte, un rond pour regrouper les tenues, une flèche…<br>Tu peux aussi glisser des fichiers ici.</span></div>
         <div class="sb-saisie box hidden" id="sbLien"><span class="lb">Lien externe</span><input class="fld" placeholder="https://… (YouTube, Instagram, TikTok, Vimeo, site)"><div class="sb-l-b"><button class="btn sm" data-l="non">Annuler</button><button class="btn pri sm" data-l="ok">Ajouter</button></div></div>
-      </div><input type="file" id="sbFichier" multiple hidden accept="image/*,video/*,audio/*"></div>`;
+      </div><input type="file" id="sbFichier" multiple hidden accept="image/*,video/*,audio/*,application/pdf,.pdf"></div>`;
     await remplirMorceaux();
     $('#sbMorceau', zone).onchange = () => { S.board = $('#sbMorceau', zone).value; BK.regler('sb.board', S.board); S.sel = null; rendre(); chargerVersions(); };
     $('#sbVersion', zone).onchange = () => { const v = $('#sbVersion', zone).value; if (v !== 'pc') { const g = BK.reglage('sb.version', {}); g[S.board] = v; BK.regler('sb.version', g); arreterSon(); } else chargerSon(); };
