@@ -2083,3 +2083,6 @@ body.bas-cache .rainure-bas .languette{width:auto;padding:0 12px}
 .sb-tl-m:hover{width:5px}
 
 .cd-menu{width:210px!important;overflow:visible!important;max-height:none!important}
+
+.to-tph:hover .md-x,.to-tph .md-x:focus{opacity:1}
+.to-tph .md-x{width:20px;height:20px}

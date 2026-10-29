@@ -3,6 +3,9 @@
 // Pour une nouvelle version : ajouter un bloc EN HAUT de la liste. Une ligne courte par point : « Onglet : ce qui change. »
 // =====================================================================
 BK.NOUVEAUTES = [
+  { v: '0.9.80', titre: '', l: [
+    ['📄', 'Tournages : la fenêtre « Depuis Médias » du moodboard montre aussi les PDF du Drive (ils arrivent en 📄 sous les images).'],
+    ['👕', 'Tournages : on peut enfin retirer une photo d\'une tenue (✕ en passant la souris dessus, avec une question pour confirmer). Elle reste dans le Drive.'] ] },
   { v: '0.9.79', titre: '', l: [
     ['☁', 'Partout : clic droit sur une image, un fichier ou une version venue du Drive (moodboards, fiches, Bibliothèque…) = « Ouvrir sur le Drive ».'],
     ['📄', 'PDF : tu peux en ajouter dans Storyline - Mood (carte avec miniature), dans le moodboard d\'un tournage (📄 en dessous des images) et dans Médias.'],

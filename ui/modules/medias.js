@@ -377,7 +377,7 @@ BK.module('medias', function (page) {
   const couleurTag = BK.couleurTag;
   function rendre(filtre) {
     const masque = f => BK.etiquettes.liste(M.tags, idTags(f)).includes('c:masque');
-    const garde = f => !M.choix || !M.choix.type || (M.choix.type === 'image' ? /^image\//.test(f.mimeType || '') : M.choix.type === 'video' ? /^video\//.test(f.mimeType || '') : M.choix.type === 'audio' ? /^audio\//.test(f.mimeType || '') || /\.(wav|mp3|aiff?|flac|m4a|ogg)$/i.test(f.name || '') : true);
+    const garde = f => !M.choix || !M.choix.type || (M.choix.type === 'imagepdf' ? /^image\//.test(f.mimeType || '') || f.mimeType === 'application/pdf' || /\.pdf$/i.test(f.name || '') : M.choix.type === 'image' ? /^image\//.test(f.mimeType || '') : M.choix.type === 'video' ? /^video\//.test(f.mimeType || '') : M.choix.type === 'audio' ? /^audio\//.test(f.mimeType || '') || /\.(wav|mp3|aiff?|flac|m4a|ogg)$/i.test(f.name || '') : true);
     const ds = M.fichiers.filter(f => f.mimeType === DOSSIER), tous = M.fichiers.filter(f => f.mimeType !== DOSSIER && garde(f));
     M.vus = M.vus || {}; for (const f of tous) M.vus[f.id] = f;          // pour retrouver un fichier choisi dans un autre dossier
     const fs = (M.voirCaches ? tous.filter(masque) : tous.filter(f => !masque(f))).filter(passeFiltre).filter(passeType);

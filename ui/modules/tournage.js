@@ -184,7 +184,7 @@ BK.module('tournage', function (page) {
       msg('Ajout des photos…'); t.tenuesPhotos = t.tenuesPhotos || {}; t.tenuesPhotos[qui] = t.tenuesPhotos[qui] || [];
       for (const x of l) { try { const u = await enImage(x, 'outfits'); if (u) t.tenuesPhotos[qui].push(u); } catch (e) { console.warn(e); } await BK.audio.pause(); }
       await BK.db.ecrire('tournages', t); msg(l.length + ' photo(s) pour ' + qui); rendreFiche(); });
-    $$('[data-tpx]', z).forEach(b => b.onclick = async () => { const [qui, i] = b.dataset.tpx.split('|'); t.tenuesPhotos[qui].splice(+i, 1); await BK.db.ecrire('tournages', t); rendreFiche(); });
+    $$('[data-tpx]', z).forEach(b => b.onclick = async () => { if (!await BK.confirmer('Retirer cette photo de la tenue ? (elle reste dans le Drive)')) return; const [qui, i] = b.dataset.tpx.split('|'); t.tenuesPhotos[qui].splice(+i, 1); await BK.db.ecrire('tournages', t); rendreFiche(); });
     // Miette : sur Discord, les photos de tenues (salon « outfit », ou un message qui parle de tenue) et qui les a postées
     $('#toTenuesMiette').onclick = async () => {
       const b = $('#toTenuesMiette'); b.disabled = true; b.innerHTML = '<span class="spin"></span>Miette cherche…';
@@ -279,12 +279,17 @@ BK.module('tournage', function (page) {
     $('#toMoodTag').onclick = async () => {
       if (!BK.drive.relie()) return msg('Relie d\'abord le Drive');
       // toujours par Médias : la fenêtre s'ouvre sur l'étiquette « Moodboard »
-      const l = await BK.choisirDansMedias({ titre: 'Images pour le moodboard', bouton: 'Ajouter au moodboard', type: 'image', sujet: 'c:moodboard' });
+      const l = await BK.choisirDansMedias({ titre: 'Images et PDF pour le moodboard', bouton: 'Ajouter au moodboard', type: 'imagepdf', sujet: 'c:moodboard' });
       if (!l || !l.length) return;
       msg('Ajout des images…');
       const tagsMood = ['t:' + t.id, 'c:moodboard', 'c:tournage'];
       for (const x of l) {
         try {
+          if (x.mime === 'application/pdf' || /\.pdf$/i.test(x.nom || '')) {                  // un PDF : en 📄 sous les images
+            let pid = x.f ? x.id : ''; if (!pid && x.fichier) pid = (await BK.img.versDrive(x.fichier, x.nom, 'moodboard')).id;
+            if (pid) { t.moodboardDocs = t.moodboardDocs || []; if (!t.moodboardDocs.some(q => q.id === pid)) t.moodboardDocs.push({ nom: x.nom || 'PDF', url: BK.driveUrl(pid), id: pid });
+              for (const k of tagsMood) await BK.etiquettes.basculer(pid, k, true); }
+            continue; }
           const d = await BK.img.depuisChoix(x, 'moodboard'), id = d.id, u = d.ref;   // Discord ou ce PC : rangé d'abord dans le Drive (moodboard)
           if (u && !t.moodboard.includes(u)) t.moodboard.push(u);                 // la fiche garde juste l'adresse de l'image
           if (id) for (const k of tagsMood) await BK.etiquettes.basculer(id, k, true);   // étiqueté tournage + moodboard, tout seul
@@ -638,7 +643,7 @@ BK.module('tournage', function (page) {
   function brancherMedias(z) {
     $$('[data-asouv]', z).forEach(b => b.onclick = () => { const o = BK.reglage('tournage.assetsOuverts', {}); o[b.dataset.asouv] = !o[b.dataset.asouv]; BK.regler('tournage.assetsOuverts', o); rendreFiche(); });
     $$('[data-tt]', z).forEach(c => c.oninput = () => { const [id, m] = c.dataset.tt.split('|'), d = T.liste.find(x => x.id === id); (d.tenues = d.tenues || {})[m] = c.value; sauver(d); });
-    $$('[data-ttx]', z).forEach(b => b.onclick = async e => { e.stopPropagation(); const [id, m, i] = b.dataset.ttx.split('|'), d = T.liste.find(x => x.id === id); d.tenuesPhotos[m].splice(+i, 1); await BK.db.ecrire('tournages', d); rendreFiche(); });
+    $$('[data-ttx]', z).forEach(b => b.onclick = async e => { e.stopPropagation(); if (!await BK.confirmer('Retirer cette photo de la tenue ? (elle reste dans le Drive)')) return; const [id, m, i] = b.dataset.ttx.split('|'), d = T.liste.find(x => x.id === id); d.tenuesPhotos[m].splice(+i, 1); await BK.db.ecrire('tournages', d); rendreFiche(); });
     $$('[data-tpv]', z).forEach(b => b.onclick = async e => { e.stopPropagation(); const [id, m, f] = b.dataset.tpv.split('|'); await poser({ x: { id: f }, src: 'prop' }, { doc: id, qui: m }); });
     $$('[data-tph2]', z).forEach(b => b.onclick = async () => { if (!BK.drive.relie()) return msg('Relie d\'abord le Drive'); const [id, m] = b.dataset.tph2.split('|');
       const l = await BK.choisirDansMedias({ titre: 'Tenue de ' + m, bouton: 'Ajouter', type: 'image', sujet: 'c:outfits' }); if (!l || !l.length) return;
