@@ -82,6 +82,7 @@ function dessinerItem(it) {
       <div class="sb-pied"><span>${esc(it.nom || '')}</span><button data-a="driveo" title="Ouvrir sur le Drive">↗</button></div>${outils}`;
     if (!son) imageDrive(it).then(u => { const c = el.querySelector('.sb-c'); if (!c || c.querySelector('video,audio')) return; const a = c.querySelector('.sb-attente');
       if (u) { const img = document.createElement('img'); img.src = u; img.alt = ''; img.draggable = false; if (a) a.replaceWith(img); garderForme(it, el, img); } else if (a) a.textContent = video ? '🎬' : '🖼'; }); }
+  if (it.auteur && it.type !== 'forme') el.insertAdjacentHTML('beforeend', `<i class="qui-pt" style="--pc:${BK.externe.couleurDe(it.auteur)}" title="Ajouté par ${esc(it.auteur)}"></i>`);   // qui l'a ajouté
 }
 function dessinerFleche(it, el) {
   const x = Math.min(it.x, it.x2), y = Math.min(it.y, it.y2), w = Math.abs(it.x2 - it.x) || 1, h = Math.abs(it.y2 - it.y) || 1, m = 20;
@@ -102,7 +103,7 @@ const msg = t => { const e = S.zone && $('#sbMsg', S.zone); if (e) e.textContent
 function centreVue() { const r = $('.sb-board', S.zone).getBoundingClientRect(), v = vue(); return { x: (r.width / 2 - v.x) / v.k, y: (r.height / 2 - v.y) / v.k }; }
 const zMax = () => Math.max(0, ...Object.values(S.items).filter(i => i.board === S.board).map(i => i.z || 0)) + 1;
 async function ajouter(o, p) { let c = p; if (!c) { const n = Object.values(S.items).filter(i => i.board === S.board).length % 8; c = centreVue(); c = { x: c.x + n * 36 / vue().k, y: c.y + n * 28 / vue().k }; }   // pas tous les uns sur les autres
-  const it = { board: S.board, z: zMax(), ...o };
+  const it = { board: S.board, z: zMax(), auteur: BK.reglage('nomPc', '') || '', ...o };
   if (it.type === 'forme' && it.forme === 'fleche') Object.assign(it, { x: c.x - 120, y: c.y, x2: c.x + 120, y2: c.y });
   else Object.assign(it, { x: c.x - (it.w || 300) / 2, y: c.y - (it.h || 200) / 2, w: it.w || 300, h: it.h || 200 });
   const f = await BK.db.ecrire('storyline', it); S.items[f.id] = f; S.sel = f.id; rendre(); return f; }
@@ -111,7 +112,7 @@ function sousSouris(e) { const r = $('.sb-board', S.zone).getBoundingClientRect(
 function choisir(id) { S.sel = id; $$('.sb-it', S.zone).forEach(x => x.classList.toggle('sel', x.dataset.id === id)); majStyle(); }
 async function retirer(it) { if (!await BK.confirmer('Retirer cet élément du board ?')) return; delete S.items[it.id]; const el = elDe(it); el && el.remove(); if (S.sel === it.id) choisir(null); await BK.db.supprimer('storyline', it.id); }
 const elDe = it => S.zone && $('.sb-monde', S.zone).querySelector(`[data-id="${CSS.escape(it.id)}"]`);
-async function dupliquer(it) { const c = JSON.parse(JSON.stringify(it)); delete c.id; c.x += 30; c.y += 30; if (c.x2 != null) { c.x2 += 30; c.y2 += 30; } c.z = zMax();
+async function dupliquer(it) { const c = JSON.parse(JSON.stringify(it)); delete c.id; c.auteur = BK.reglage('nomPc', '') || ''; c.x += 30; c.y += 30; if (c.x2 != null) { c.x2 += 30; c.y2 += 30; } c.z = zMax();
   const f = await BK.db.ecrire('storyline', c); S.items[f.id] = f; S.sel = f.id; rendre(); }
 // écrire dans un élément : le texte, le titre d'une boîte, d'un marqueur, d'un lien ou d'un média
 function ecrire(it, el) { el = el || elDe(it); if (!el) return; const t = el.querySelector('.sb-txt,.sb-titre,.sb-pied span'); if (!t) return;

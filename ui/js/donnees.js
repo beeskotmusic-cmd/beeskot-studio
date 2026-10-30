@@ -82,6 +82,8 @@ BK.db = {
       await BK.db.liste(col).catch(() => {});
       if (!BK.db.lu[col]) { BK.toast && BK.toast('Drive injoignable : rien n\'a été enregistré. Vérifie internet et réessaie ; si ça continue : Réglages › Drive › Importer une carte d\'accès'); throw new Error('Drive injoignable : rien n\'a été écrasé'); }
     }
+    // qui a ajouté quoi : chaque collection peut « signer » ce qui est nouveau depuis la dernière copie connue (ex. les photos d'un tournage)
+    if (BK.db.signer && BK.db.signer[col]) try { BK.db.signer[col](fiche, (BK.db.photo[col] || {})[fiche.id] || null); } catch (e) {}
     if (!sansAnnuler) BK.annuler.noter(col, fiche.id, 'ecrire', fiche);
     (BK.db.photo[col] = BK.db.photo[col] || {})[fiche.id] = JSON.stringify(fiche);
     fiche.maj = new Date().toISOString();

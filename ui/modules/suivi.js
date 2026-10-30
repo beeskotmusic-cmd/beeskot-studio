@@ -141,7 +141,7 @@ BK.module('suivi', function (page) {
         <label><span class="eng">🚀 Sortie prévue</span><span class="su-sortie-l"><input class="fld" data-sortie="${r.id}" value="${esc(r.sortie || '')}" placeholder="une date ou « début novembre »"><button class="btn xs" data-cal="${r.id}" title="Choisir une date">📅</button><input type="date" data-cald="${r.id}" hidden></span>
           <span class="nt">${/^\d{4}-\d{2}-\d{2}$/.test(r.sortie || '') ? (r.evenement ? '✓ dans le Calendrier' : '') : r.sortie ? 'période : pas dans le Calendrier' : ''}</span></label>
       </div>
-      <div class="su-pied">${t ? `<span class="nt">🎬 Dans Tournages${tp ? ' · ' + esc(tp.titre || 'Tournage') : ' · pas encore dans une journée'}${t.fini ? ' · ✓ tourné' : ''}</span><button class="btn sm" data-to="${r.id}">Ouvrir dans Tournages</button>`
+      <div class="su-pied">${t ? `<span class="nt">🎬 Dans Tournages${tp ? ' · ' + esc(tp.titre || 'Tournage') : ' · pas encore dans une journée'}${t.fini ? ' · ✓ tourné' : ''}</span><button class="btn sm pri" data-to="${r.id}">🎬 Voir dans Tournages</button>`
         : `<button class="btn sm pri" data-envt="${r.id}" title="Crée le reel dans Tournages avec ces infos (tu pourras le glisser dans la bonne journée)">🎬 Envoyer dans Tournages</button>`}</div>
     </div>`;
   }
@@ -180,7 +180,24 @@ BK.module('suivi', function (page) {
     $('#suListe').innerHTML = l.length
       ? `<div class="su-affs">${l.map(affiche).join('')}</div>${choisi ? carte(choisi) : ''}`
       : `<span class="nt" style="padding:20px">${R.filtre === 'publie' ? 'Aucun reel publié pour l\'instant.' : 'Aucun reel. Crée-en un à droite, ou reprends ceux des fiches de tournage.'}</span>`;
-    brancher();
+    brancher(); lectureForm();
+  }
+
+  // ---------- le formulaire d'un reel déjà rempli : en LECTURE (« ✎ Modifier » pour changer) ; un reel tout neuf : en édition ----------
+  R.edits = R.edits || new Set(); R.neufs = R.neufs || new Set();
+  function lectureForm() {
+    const c = $('#suListe .su-c[data-id]'), f = c && c.querySelector('.su-form'); if (!f) return;
+    const id = c.dataset.id, fm = f.querySelector('[data-fm]');
+    const plein = [...f.querySelectorAll('input.fld:not([type=date]), textarea.fld')].some(i => i.value.trim()) || !!(fm && fm.value);
+    const b = document.createElement('button'); b.type = 'button'; b.className = 'btn xs su-edit'; f.appendChild(b);
+    const appliquer = lect => { f.classList.toggle('lecture', lect); b.textContent = lect ? '✎ Modifier' : '✓ OK'; b.title = lect ? 'Modifier ce reel' : 'Fini : revenir en lecture';
+      f.querySelectorAll('input.fld, textarea.fld').forEach(i => { i.readOnly = lect; i.tabIndex = lect ? -1 : 0; });
+      f.querySelectorAll('select.fld').forEach(i => { i.disabled = lect; });
+      f.querySelectorAll(':scope > label').forEach(l => { const x = l.querySelector('input.fld:not([type=date]), textarea.fld, select.fld'); l.classList.toggle('vide-l', lect && !!x && !String(x.value || '').trim()); });
+      const au = f.querySelector('.su-f-audio'); if (au) au.classList.toggle('vide-l', lect && ![...au.querySelectorAll('input.fld')].some(i => i.value.trim()) && !au.querySelector('.nt'));
+      f.querySelectorAll('textarea.fld').forEach(a => { a.style.height = ''; if (lect) a.style.height = (a.scrollHeight + 2) + 'px'; }); };
+    appliquer(plein && !R.neufs.has(id) && !R.edits.has(id));
+    b.onclick = e => { e.stopPropagation(); const lect = !f.classList.contains('lecture'); if (lect) R.edits.delete(id); else R.edits.add(id); appliquer(lect); };
   }
 
   // ---------- écouter le passage : on va chercher l'export, sinon le meilleur fichier du Drive ----------
@@ -406,7 +423,7 @@ BK.module('suivi', function (page) {
     const m = R.morceaux.find(x => x.id === mid);
     if (!titre && !m) return msg('Donne un titre ou choisis un morceau');
     const r = await BK.db.ecrire('reels', { titre: titre || ('Reel ' + (m ? m.nom : '')), morceau: mid, statut: 'idee', notes: '' });
-    R.l.push(r); $('#suTitre').value = ''; msg('Reel créé'); rendre();
+    R.neufs.add(r.id); R.l.push(r); $('#suTitre').value = ''; msg('Reel créé'); rendre();
   };
   $('#suTitre').addEventListener('keydown', e => { e.stopPropagation(); if (e.key === 'Enter') $('#suAjout').click(); });
   $('#suMiette').onclick = async () => {

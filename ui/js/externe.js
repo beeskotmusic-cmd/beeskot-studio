@@ -23,7 +23,7 @@ const DROITS = [['voir-ecrire', 'Voir + écrire', 'Voit les notes laissées via 
 const nomDroit = d => (DROITS.find(x => x[0] === d) || DROITS[2])[1];
 const cle = () => { const a = 'abcdefghijkmnpqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ23456789', u = crypto.getRandomValues(new Uint8Array(8)); return [...u].map(x => a[x % a.length]).join(''); };
 const moi = () => BK.reglage('nomPc', '') || 'Quelqu\'un';
-const COULEURS = { Yacine: '#f1c453', Pierre: '#7ee08a', Baptiste: '#c58af0' };
+const COULEURS = { Yacine: '#f1c453', Pierre: '#5fb0ff', Baptiste: '#c58af0' };
 const ICONE = { audio: '♪', video: '🎥' };
 
 BK.externe = {

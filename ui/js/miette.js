@@ -427,7 +427,7 @@ BK.synchro = {
     document.body.appendChild(v);
     v.onclick = e => { if (e.target === v || e.target.closest('[data-j="x"]')) v.remove(); const o = e.target.closest('[data-va]'); if (o) { v.remove(); BK.ouvrir(o.dataset.va); } };
     const remplir = async () => { const z = document.getElementById('jnL'); if (!z) return; const l = (await BK.journalLire()).slice(0, 120);
-      const COUL = { Yacine: '#f1c453', Pierre: '#7ee08a', Baptiste: '#c58af0' };
+      const COUL = { Yacine: '#f1c453', Pierre: '#5fb0ff', Baptiste: '#c58af0' };
       let jour = ''; z.innerHTML = l.length ? l.map(x => { const d = new Date(x.t).toLocaleDateString('fr-CA', { weekday: 'long', day: 'numeric', month: 'long' }), p = BK.journalPhrase(x);
         const t = d !== jour ? `<span class="eng jn-jour">${esc(d)}</span>` : ''; jour = d;
         return t + `<button class="jn-p" data-va="${esc(x.onglet || 'accueil')}" style="--pc:${COUL[x.qui] || '#d9b67a'}"><span class="mono">${hm(new Date(x.t))}</span><b>${esc(x.qui)}</b><span>${esc(x.quoi)}${x.sujet ? ' · <i>' + esc(x.sujet) + '</i>' : ''}</span></button>`; }).join('')

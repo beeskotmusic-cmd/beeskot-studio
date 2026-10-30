@@ -44,7 +44,7 @@ BK.lireIcs = function (txt) {
 };
 
 // la couleur de chaque membre (la même que dans l'onglet Écoute)
-const COUL_M = { Yacine: '#f1c453', Pierre: '#7ee08a', Baptiste: '#c58af0' };
+const COUL_M = { Yacine: '#f1c453', Pierre: '#5fb0ff', Baptiste: '#c58af0' };
 const couleurM = m => COUL_M[m] || BK.couleurTag('m:' + m);
 // les dispos partagées : { jour: { nom: 'oui' | 'non' } }. Les anciennes (une liste de noms dispo) sont reprises telles quelles.
 async function lireDispos() {

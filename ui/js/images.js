@@ -66,9 +66,10 @@ BK.img = {
   },
   // avant d'imprimer : toutes les images prêtes
   async toutes(racine) {
-    const l = [...racine.querySelectorAll('[data-img]')];
+    const refs = [...racine.querySelectorAll('[data-img]')].map(el => el.dataset.img || '');     // AVANT de remplir (remplir retire l'attribut)
     BK.img.remplir(racine);
-    await Promise.all(l.map(el => BK.img.url(el.dataset.img || '')));
+    await Promise.all(refs.map(v => BK.img.url(v)));
+    await new Promise(ok => setTimeout(ok, 60));                                                  // le temps que chaque image reçoive son adresse
     await Promise.all([...racine.querySelectorAll('img')].map(i => i.complete ? 0 : new Promise(ok => { i.onload = i.onerror = ok; setTimeout(ok, 4000); })));
   },
 

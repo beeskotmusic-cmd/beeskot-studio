@@ -3,6 +3,19 @@
 // Pour une nouvelle version : ajouter un bloc EN HAUT de la liste. Une ligne courte par point : « Onglet : ce qui change. »
 // =====================================================================
 BK.NOUVEAUTES = [
+  { v: '0.9.82', titre: '', l: [
+    ['🗓', 'Tournages : chaque journée a un « Type de journée » (Tournage, Photoshoot, Live, Répétition, Autre) : l\'en-tête, le bouton « … fini » et le PDF utilisent ce mot. Plus de « 0 reel(s) ».'],
+    ['🖼', 'Tournages : plus de photo choisie au hasard en fond. « Image de couverture » pour en mettre une toi-même (facultatif).'],
+    ['🔒', 'Tournages et Reels : ce qui est déjà rempli s\'affiche en lecture (propre, sans cases). « ✎ Modifier » pour changer, « ✓ OK » pour refermer. Un reel tout neuf s\'ouvre directement en formulaire.'],
+    ['▦', 'Tournages : la liste des tournages en cartes, 2 ou 3 par ligne, la plus récente en premier. Un clic sur une carte déplie le tournage juste en dessous, un 2e clic le replie (plus de « ← Tous les tournages »).'],
+    ['📄', 'Tournages : « PDF / Imprimer » ouvre une fenêtre BEESKOT : l\'aperçu des vraies pages, Couleur ou Noir et blanc (logo BEESKOT en haut), puis Enregistrer (Documents + Drive), Ouvrir dans le lecteur PDF, ou Imprimer (exactement les pages de l\'aperçu).'],
+    ['🔴', 'Tournages et Storyline : une petite pastille à la couleur de la personne montre qui a ajouté une photo, un plan du découpage ou un élément du board (au survol : son nom). Seulement pour ce qui est ajouté à partir de maintenant.'],
+    ['🎬', 'Prompts Veo 3 : un prompt par plan du découpage, prêt à coller dans Google Flow pour tester un reel en IA avant de tourner. « Miette réécrit » les met en bon anglais de cinéma.'],
+    ['🎬', 'Reels : un reel déjà envoyé affiche « Voir dans Tournages ».'] ] },
+  { v: '0.9.81', titre: '', l: [
+    ['📄', 'Tournages : « Créer le PDF » fabrique un vrai fichier PDF (A4, propre, sans date ni adresse en haut), rangé dans Documents › BEESKOT Studio › Tournages PDF et dans le Drive (dossier « Tournages PDF »), puis l\'ouvre tout seul. Un tournage entier = une page de départ, puis chaque reel sur sa page.'],
+    ['🖨', 'Tournages : le bouton « Imprimer » attend maintenant que toutes les images soient arrivées (avant, elles sortaient blanches).'],
+    ['🎨', 'Le nom de Pierre est maintenant en bleu (le vert reste pour Miette).'] ] },
   { v: '0.9.80', titre: '', l: [
     ['📄', 'Tournages : la fenêtre « Depuis Médias » du moodboard montre aussi les PDF du Drive (ils arrivent en 📄 sous les images).'],
     ['👕', 'Tournages : on peut enfin retirer une photo d\'une tenue (✕ en passant la souris dessus, avec une question pour confirmer). Elle reste dans le Drive.'] ] },
