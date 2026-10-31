@@ -102,7 +102,20 @@ BK.module('tournage', function (page) {
   // largeurs des colonnes du découpage : celles que Dari a réglées sur ce PC, sinon des valeurs de départ
   const COLS0 = { cadrage: 150, duree: 70, notes: 300, imgs: 150 };
   const largeurCol = k => (BK.reglage('tournage.cols', {}) || {})[k] || COLS0[k];
+  // redessiner la page ne doit jamais faire remonter en haut : on garde la hauteur pendant le redessin et on remet la position, dans le même instant (sans latence visible)
   function rendreFiche() {
+    const z = $('#toFiche'), sc = z && z.closest('.to-vit');
+    const cle = T.vue + '|' + (T.vue === 'fiche' ? (T.courant || {}).id : (T.tour || {}).id || '');
+    const garder = !!sc && cle === T.cleRendu && !T.defiler; T.cleRendu = cle;
+    const y = sc ? sc.scrollTop : 0;
+    if (garder) z.style.minHeight = z.offsetHeight + 'px';
+    const fin = () => { if (garder) { sc.scrollTop = y; z.style.minHeight = ''; } };
+    let r; try { r = rendreFicheBrut(); } catch (e) { fin(); throw e; }
+    if (garder) sc.scrollTop = y;
+    if (r && r.then) return r.then(v => { fin(); return v; }, e => { fin(); throw e; });
+    fin(); return r;
+  }
+  function rendreFicheBrut() {
     const t = T.courant, z = $('#toFiche');
     $('#toPdf').disabled = $('#toVeo').disabled = !t || T.vue !== 'fiche'; $('#toCal').disabled = T.vue !== 'tournage';
     if (T.vue === 'tournage') return rendreTournages();                 // un tournage se déplie DANS la liste
@@ -843,7 +856,7 @@ BK.module('tournage', function (page) {
     }
     BK.suiviRecharger && BK.suiviRecharger();
   }
-  const rendreJours = () => rendreTournages();
+  const rendreJours = () => rendreFiche();
 
   // ---------- Imprimer / PDF ----------
   // ---------- Imprimer / PDF : un reel seul, ou un tournage entier (la journée, puis chacun de ses reels) ----------
