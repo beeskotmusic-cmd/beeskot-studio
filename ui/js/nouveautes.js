@@ -3,6 +3,10 @@
 // Pour une nouvelle version : ajouter un bloc EN HAUT de la liste. Une ligne courte par point : « Onglet : ce qui change. »
 // =====================================================================
 BK.NOUVEAUTES = [
+  { v: '0.9.93', titre: '', l: [
+    ['🍞', 'Nouveau look : le viseur Miette. Un clic sur Miette en haut : le curseur devient Miette et les cadres qu\'elle sait remplir s\'entourent de pointillés. Clique celui que tu veux, elle s\'y met. Échap pour sortir. Les boutons « Trouver / Proposer » ne chargent plus les pages.'],
+    ['▾', 'La petite flèche à côté de Miette : son menu habituel (tout relire, actualiser, qui est là).'],
+  ] },
   { v: '0.9.92', titre: '', l: [
     ['🔔', 'Nouveau look : la cloche en haut. Son badge compte ce que les autres ont fait depuis ta dernière visite ; elle ouvre le fil du groupe (qui est là, puis tout, jour par jour). Un clic sur une ligne t\'emmène au bon endroit.'],
     ['🏠', 'Nouveau look : l\'Accueil montre aussi les dernières lignes du fil du groupe.'],
@@ -561,6 +565,7 @@ BK.TUTO = [
       ['Alléger les fiches', 'Drive › 🪶 Alléger les fiches : les vieilles photos recopiées dans les fiches sont rangées dans le Drive. Une seule fois, sur un seul PC.'],
       ['Fabriquer une carte d\'accès', 'Drive › 🎫 Fabriquer la carte d\'accès → elle arrive sur le Bureau. Ne l\'envoie qu\'aux membres, en message privé.'],
       ['Cacher un onglet sur ce PC', 'Onglets → éteins l\'interrupteur de l\'onglet.'],
+      ['Le viseur Miette (nouveau look)', 'Clic sur Miette en haut, puis sur le cadre à remplir (pointillés). Échap ou clic à côté : on sort. La flèche ▾ à côté d\'elle : tout relire, actualiser, qui est là.'],
       ['Changer de look', 'Ce PC › Apparence : « Nouveau look » (menu par sections, un tapis et une couleur par section, les pins du groupe) ou « Ancien look ». Seulement sur ce PC.'],
       ['Mettre BEESKOT Studio sur un téléphone', 'BEESKOT Mobile › Télécharger l\'application : scanne le QR code avec l\'appareil photo (Android). Puis Lier au téléphone › Afficher le QR code, et dans l\'appli : Scanner le QR code du PC.'] ],
     astuces: [ 'Taille de l\'interface : Ce PC › Zoom.', 'Le QR code « Lier » contient la clé du Drive : seulement aux membres du groupe.' ] },

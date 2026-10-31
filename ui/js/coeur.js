@@ -7,7 +7,7 @@ const $ = (s, r = document) => r.querySelector(s);
 const $$ = (s, r = document) => [...r.querySelectorAll(s)];
 
 const BK = {
-  version: '0.9.92 bêta',
+  version: '0.9.93 bêta',
   modules: {},
   onglets: [],
   cotes: [],
@@ -304,7 +304,9 @@ const BK = {
     if (ba) ba.onclick = () => { document.getElementById('stopVoile').classList.add('hidden');
       BK.regler('renfort.aide', 'amelioration'); BK.renfortDemander ? BK.renfortDemander('amelioration', {}) : BK.ouvrir('renforts'); };
     const bm = document.getElementById('btMiette');                 // le bouton jaune : Miette relit tout
-    if (bm) bm.onclick = () => { bm.classList.add('pressed'); setTimeout(() => bm.classList.remove('pressed'), 150); BK.menuMiette(bm); };
+    if (bm) bm.onclick = () => { bm.classList.add('pressed'); setTimeout(() => bm.classList.remove('pressed'), 150);
+      if (BK.viseur && BK.look && BK.look.neuf()) BK.viseur.basculer(); else BK.menuMiette(bm); };   // nouveau look : le viseur Miette (▾ = le menu)
+    BK.viseur && BK.viseur.installer();
     BK.ouvrir(BK.reglage('dernierOnglet', 'accueil'));
     // le reste se construit en arrière-plan, quand le PC est au repos (l'Accueil d'abord, il sert souvent)
     setTimeout(() => BK.construireLeReste(['accueil', 'biblio', 'medias', 'taches', 'agenda', 'suivi', 'tournage', 'budget', ...BK.onglets.map(o => o.id)]), 1200);

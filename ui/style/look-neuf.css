@@ -112,3 +112,29 @@ body.look-neuf[data-section="show"]{--s1:#a77ae0;--s2:#3c3f8a;--s-clair:#dcc4ff;
 .fil-n{margin-left:8px;padding:2px 7px;border-radius:9px;font:700 10px Jost,sans-serif;color:#1d120a;background:#ffb23e}
 .ac-fil .fil-corps{max-height:340px;overflow:auto}
 @media (prefers-reduced-motion:reduce){.fil-tiroir{animation:none}}
+
+/* ---------- le viseur Miette : un clic sur le patch, puis sur ce qu'elle doit remplir ---------- */
+.look-neuf:not(.miette-vise) .miette-aide:not(#taMiAjout){display:none!important}   /* ses boutons passent par le viseur */
+.mi-fleche{width:18px;height:30px;margin-left:-8px;padding:0;border:0;border-radius:5px;cursor:pointer;font-size:11px;color:#bfae92;background:rgba(0,0,0,.3)}
+.mi-fleche:hover{color:#ffcf7a}
+.look-neuf .estop.vise img{filter:drop-shadow(0 0 10px rgba(169,169,90,.95));scale:1.06}
+body.miette-vise,body.miette-vise *{cursor:url(../look/miette-curseur.png) 16 16,crosshair!important}
+body.miette-vise #pages > section:not(.hidden) .box:not(.mi-cible),body.miette-vise #nav,body.miette-vise .hdr{opacity:.45;transition:opacity .2s}
+.mi-cible{position:relative;outline:2px dashed #a9a95a!important;outline-offset:3px;transition:outline-color .15s,box-shadow .15s}
+.mi-cible:hover{outline:2px solid #ffb23e!important;box-shadow:0 0 0 6px rgba(255,178,62,.16),0 0 24px rgba(255,178,62,.3)!important}
+.mi-cible::before{content:attr(data-mi-etiq);position:absolute;top:-13px;left:12px;z-index:5;padding:4px 8px 2px;font:12px 'Impact Label',sans-serif;text-transform:uppercase;color:#f4f1e8;background:#3e3e1f;box-shadow:0 2px 4px rgba(0,0,0,.5);transform:rotate(-1deg);pointer-events:none;white-space:nowrap}
+.mi-cible:hover::before{background:#b97c1c;color:#241709}
+.mi-bandeau{position:fixed;top:62px;left:50%;transform:translateX(-50%);z-index:70;max-width:calc(100vw - 40px);display:flex;align-items:center;flex-wrap:wrap;gap:8px;padding:7px 14px;border-radius:0 0 10px 10px;
+  font:500 12.5px Jost,sans-serif;color:#efe6d2;background:#3e3e1f;box-shadow:0 6px 20px rgba(0,0,0,.55),inset 0 0 0 1px #a9a95a;animation:mi-entre .2s cubic-bezier(.23,1,.32,1)}
+.mi-bandeau img{width:22px;height:22px}
+.mi-bandeau span{color:#d6d6a8}
+.mi-bandeau em{margin-left:6px;font:11px 'Share Tech Mono',monospace;font-style:normal;color:#d6d6a8}
+.mi-puce{height:26px;padding:0 11px;border:0;border-radius:13px;cursor:pointer!important;font:600 10.5px Jost,sans-serif;letter-spacing:.06em;text-transform:uppercase;color:#efe6d2;background:#5a5a2c;box-shadow:inset 0 0 0 1px #a9a95a}
+.mi-puce:hover{color:#241709;background:#ffb23e}
+@keyframes mi-entre{from{opacity:0;transform:translate(-50%,-8px)}to{opacity:1;transform:translateX(-50%)}}
+.mi-choix{position:fixed;z-index:80;display:flex;flex-direction:column;gap:4px;padding:6px;border-radius:8px;background:#22180f;box-shadow:0 8px 24px rgba(0,0,0,.6),inset 0 0 0 1px #a9a95a}
+.mi-choix button{height:32px;padding:0 12px;border:0;border-radius:5px;cursor:pointer!important;text-align:left;font:600 11px Jost,sans-serif;letter-spacing:.05em;text-transform:uppercase;color:#efe6d2;background:#3e3e1f}
+.mi-choix button:hover{background:#b97c1c;color:#241709}
+.mi-travail{outline:2px dashed #a9a95a!important;outline-offset:3px;animation:mi-pense 1s linear infinite}
+@keyframes mi-pense{to{outline-offset:7px;outline-color:rgba(169,169,90,.2)}}
+@media (prefers-reduced-motion:reduce){.mi-bandeau,.mi-travail{animation:none}}
