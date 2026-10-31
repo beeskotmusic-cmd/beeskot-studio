@@ -59,6 +59,7 @@ BK.module('tournage', function (page) {
   async function charger() {
     T.liste = (await BK.db.liste('tournages')).sort((a, b) => (b.date || '').localeCompare(a.date || ''));
     if (await migrer().catch(e => (console.warn('migration tournages', e), false))) T.liste = await BK.db.liste('tournages');
+    T.partageLu = false; prechargerPartage();
     T.reels = await BK.db.liste('reels').catch(() => []);
     T.exports = await BK.exportsAudio.tous().catch(() => []);
     // les étiquettes et fichiers de Médias (pour proposer en vert) : relus au plus toutes les 2 minutes, sans bloquer l'affichage
@@ -614,8 +615,7 @@ BK.module('tournage', function (page) {
   // ---------- la liste des tournages (les affiches) + les reels qui n'ont pas encore de tournage ----------
   async function rendreTournages() {
     const z = $('#toFiche'), auj = BK.auj();
-    const vr = await BK.partage.lire('tournage.vrac', []).catch(() => []); T.vrac = Array.isArray(vr) ? vr : [];
-    const nonL = await BK.partage.lire('tournage.assetsNon', []).catch(() => []); T.non = new Set(Array.isArray(nonL) ? nonL : []);
+    prechargerPartage();                                                // sans attendre le Drive (il est relu en fond à chaque chargement)
     const affiche = tr => { const rs = reelsDe(tr), img = tr.couverture || '';
       return `<div class="to-affiche tt-aff${img ? '' : ' sans'}${(tr.date || '9') < auj ? ' passe' : ''}${tr.fini ? ' fini' : ''}" data-tour="${tr.id}"${BK.img.bg(img)} title="Clic : déplier / replier">
         <span class="to-af-voile"></span><span class="to-af-txt"><span class="eng">${esc(nomJ(tr))}${tr.fini ? ' · ✓ fait' : ''}</span><b class="dymo">${esc(tr.titre || 'Tournage')}</b>
@@ -656,14 +656,24 @@ BK.module('tournage', function (page) {
     }
   }
   // un clic sur un tournage : il se déplie ; un 2e clic : il se replie
+  // les 2 listes partagées du tournage : lues sur ce PC immédiatement (pas d'attente du Drive au clic), puis rafraîchies en fond
+  function prechargerPartage() {
+    const tab = v => Array.isArray(v) ? v : [];
+    if (!T.non) T.non = new Set(tab(BK.reglage('partage.tournage.assetsNon', undefined) ?? BK.reglage('tournage.assetsNon', [])));
+    if (!T.vrac) T.vrac = tab(BK.reglage('partage.tournage.vrac', undefined) ?? BK.reglage('tournage.vrac', []));
+    if (T.partageLu) return; T.partageLu = true;
+    Promise.all([BK.partage.lire('tournage.assetsNon', []).catch(() => null), BK.partage.lire('tournage.vrac', []).catch(() => null)]).then(([n, v]) => {
+      const avant = JSON.stringify([[...T.non], T.vrac]);
+      if (Array.isArray(n)) T.non = new Set(n); if (Array.isArray(v)) T.vrac = v;
+      if (JSON.stringify([[...T.non], T.vrac]) !== avant && T.vue !== 'fiche') rendreFiche(); });
+  }
   function ouvrirTour(id) { const deja = T.tour && T.tour.id === id && T.vue === 'tournage';
     T.tour = deja ? null : T.liste.find(x => x.id === id); T.courant = null; T.vue = deja ? 'jours' : 'tournage'; T.defiler = !deja; rendreListe(); rendreFiche(); }
 
   // ---------- un tournage ouvert : ses infos, ses tenues et son matériel (pour tous), ses assets, et ses reels qui se déplient ----------
   async function rendreTournage(z) {
     const tr = T.tour; if (!tr || !z) return;
-    if (!T.non) { const nonL = await BK.partage.lire('tournage.assetsNon', []).catch(() => []); T.non = new Set(Array.isArray(nonL) ? nonL : []); }
-    if (!T.vrac) { const vr = await BK.partage.lire('tournage.vrac', []).catch(() => []); T.vrac = Array.isArray(vr) ? vr : []; }
+    if (!T.non || !T.vrac) prechargerPartage();                         // tout de suite avec ce que ce PC connaît ; le Drive suit en fond
     const rs = reelsDe(tr), img = tr.couverture || '', ouvert = T.courant && T.courant.parent === tr.id ? T.courant.id : '';
     const etape = r => { const x = (T.reels || []).find(y => y.tournage === r.id); return x ? ETAPES_R[x.statut || 'idee'] : ''; };
     z.innerHTML = `

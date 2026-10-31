@@ -2203,3 +2203,19 @@ body.bas-cache .rainure-bas .languette{width:auto;padding:0 12px}
 /* au clavier (Tab) : un anneau ambre, dans le style du logiciel, à la place du contour bleu de Windows */
 :focus-visible{outline:2px solid #ffb23e;outline-offset:2px}
 .btn:focus:not(:focus-visible),.chip:focus:not(:focus-visible),.tab:focus:not(:focus-visible){outline:none}
+
+/* A/B (Notes et retours) : A toujours bleu, B toujours rouge, comme leurs courbes (allumé = plein, éteint = pâle) */
+body .seg.ec-ab button[data-c="A"]{background:linear-gradient(180deg,#9cc6e4,#6d9fc4)!important;color:#12304a!important}
+body .seg.ec-ab button[data-c="B"]{background:linear-gradient(180deg,#e8a29b,#c9736b)!important;color:#4a1612!important}
+body .seg.ec-ab button[data-c="A"].on{background:linear-gradient(180deg,#4f9bd0,#2f6f9a)!important;color:#fff!important;box-shadow:0 0 10px rgba(79,155,208,.55),inset 0 2px 5px rgba(0,0,0,.3)!important}
+body .seg.ec-ab button[data-c="B"].on{background:linear-gradient(180deg,#d0574f,#9a3a32)!important;color:#fff!important;box-shadow:0 0 10px rgba(208,87,79,.55),inset 0 2px 5px rgba(0,0,0,.3)!important}
+body .seg.ec-ab button:not(.on){opacity:.7}
+
+/* rien ne dépasse de son cadre : les rangées de boutons rétrécissent ou passent à la ligne */
+.seg{max-width:100%;flex-wrap:wrap}
+.chips{min-width:0;max-width:100%}
+.ec-panneau .ec-tri{display:flex;flex-wrap:nowrap;width:100%;margin-right:0}
+.ec-panneau .ec-tri button{flex:1 1 0;min-width:0;white-space:normal;line-height:1.1;padding:2px 6px;text-align:center}
+.ec-l select{min-width:0!important}
+.ec-l>*{flex-shrink:0}.ec-l>select{flex-shrink:1}
+@media (max-width:1500px){.pv-ligne.pv-regl{flex-wrap:wrap!important}}

@@ -24,7 +24,7 @@ const GROUPES = {
   agenda: { titre: 'Planning', ids: ['agenda', 'taches', 'budget'],               noms: ['Calendrier', 'To-do', 'Budget'] },
 };
 const chefDe = id => Object.keys(GROUPES).find(k => GROUPES[k].ids.includes(id)) || null;
-const MEMBRES = ['Yacine', 'Pierre', 'Baptiste'];
+const MEMBRES = ['Yacine', 'Pierre', 'Baptiste', 'Studio'];
 const PIN = n => 'look/pins/' + n.toLowerCase().normalize('NFD').replace(/[^a-z]/g, '') + '.png';
 
 const L = BK.look = {

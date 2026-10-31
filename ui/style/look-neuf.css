@@ -5,10 +5,10 @@
    les boutons et le texte restent les mêmes partout.
    ===================================================================== */
 body.look-neuf{--s1:#ffb23e;--s2:#d2722e;--s-clair:#ffd48e;--s-lueur:rgba(255,170,60,.28);--s-halo:rgba(255,178,62,.07);--tapis:url(../look/bandeau-beeskot.jpg)}
-body.look-neuf[data-section="musique"]{--s1:#d9a93c;--s2:#a8781c;--s-clair:#ffe08a;--s-lueur:rgba(240,190,70,.3);--s-halo:rgba(217,169,60,.09);--tapis:url(../look/tapis/musique.jpg)}
-body.look-neuf[data-section="contenus"]{--s1:#e07a32;--s2:#a8432a;--s-clair:#ffc48e;--s-lueur:rgba(240,130,60,.3);--s-halo:rgba(224,122,50,.09);--tapis:url(../look/tapis/contenus.jpg)}
-body.look-neuf[data-section="orga"]{--s1:#c4485a;--s2:#7a2430;--s-clair:#ffb3b8;--s-lueur:rgba(200,60,80,.3);--s-halo:rgba(184,57,74,.1);--tapis:url(../look/tapis/organisation.jpg)}
-body.look-neuf[data-section="show"]{--s1:#a77ae0;--s2:#3c3f8a;--s-clair:#dcc4ff;--s-lueur:rgba(155,106,214,.32);--s-halo:rgba(155,106,214,.11);--tapis:url(../look/tapis/show.jpg)}
+body.look-neuf[data-section="musique"]{--s1:#e0ae3a;--s2:#a8781c;--s-clair:#ffe08a;--s-lueur:rgba(240,190,70,.34);--s-halo:rgba(217,169,60,.2);--tapis:url(../look/tapis/musique.jpg)}
+body.look-neuf[data-section="contenus"]{--s1:#3fb0a6;--s2:#1d6a6c;--s-clair:#a6f0e6;--s-lueur:rgba(60,185,170,.34);--s-halo:rgba(50,170,160,.2);--tapis:url(../look/tapis/contenus.jpg)}
+body.look-neuf[data-section="orga"]{--s1:#c4485a;--s2:#7a2430;--s-clair:#ffb3b8;--s-lueur:rgba(200,60,80,.34);--s-halo:rgba(184,57,74,.21);--tapis:url(../look/tapis/organisation.jpg)}
+body.look-neuf[data-section="show"]{--s1:#a77ae0;--s2:#3c3f8a;--s-clair:#dcc4ff;--s-lueur:rgba(155,106,214,.36);--s-halo:rgba(155,106,214,.22);--tapis:url(../look/tapis/show.jpg)}
 
 /* ---------- la barre du haut : 56 px, le tapis de la section, les pins au milieu ---------- */
 .look-neuf .top{position:relative;height:56px;padding:0 16px;gap:14px;background:linear-gradient(180deg,rgba(14,7,3,.38),rgba(14,7,3,.55)),var(--tapis) left center/auto 100% repeat-x}
@@ -143,3 +143,11 @@ body.miette-vise #pages > section:not(.hidden) .box:not(.mi-cible),body.miette-v
 .look-neuf .look-sous{flex:none;padding:3px;gap:3px}
 .look-neuf .look-sous button{min-height:28px;padding:0 12px;font-size:11px!important}
 .look-neuf .hdr.a-sous .sub{display:none}
+
+/* l'ambiance de la section, plus marquée : un voile de sa couleur sur le bois, l'en-tête et les cadres teintés */
+.look-neuf .mainc{background:radial-gradient(120% 60% at 70% 0%,var(--s-halo),transparent 65%),radial-gradient(80% 70% at 0% 100%,color-mix(in srgb,var(--s-halo) 70%,transparent),transparent 70%)}
+.look-neuf #nav{background-image:linear-gradient(180deg,color-mix(in srgb,var(--s-halo) 80%,transparent),transparent 55%)}
+.look-neuf .hdr{background-image:linear-gradient(90deg,color-mix(in srgb,var(--s1) 16%,transparent),transparent 55%)!important}
+.look-neuf #pages .box{box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--s1) 34%,rgba(239,230,210,.12)),inset 0 26px 40px -30px color-mix(in srgb,var(--s1) 22%,transparent)}
+.look-neuf #pages .box>.lb,.look-neuf #pages .box>.ligne-titre .lb{color:color-mix(in srgb,var(--s-clair) 70%,#e9dcc0)}
+.look-neuf .stripe{height:7px}

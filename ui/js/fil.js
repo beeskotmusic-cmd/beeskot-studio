@@ -7,7 +7,7 @@
 (() => {
 const $ = s => document.querySelector(s);
 const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
-const COUL = { Yacine: '#f1c453', Pierre: '#5fb0ff', Baptiste: '#c58af0' };
+const COUL = { Yacine: '#f1c453', Pierre: '#5fb0ff', Baptiste: '#c58af0', Studio: '#6fc39a' };
 const hm = d => String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0');
 const jourDe = t => { const d = new Date(t), a = new Date(), h = new Date(Date.now() - 864e5);
   return d.toDateString() === a.toDateString() ? 'Aujourd\'hui' : d.toDateString() === h.toDateString() ? 'Hier' : d.toLocaleDateString('fr-CA', { weekday: 'long', day: 'numeric', month: 'long' }); };
@@ -65,7 +65,7 @@ const F = BK.fil = {
     const moi = BK.reglage('nomPc', ''), ici = (BK.onglets.find(o => o.id === BK.reglage('dernierOnglet', 'accueil')) || {}).titre || '';
     const pres = (BK.presence && BK.presence.derniers) || [];
     la.innerHTML = (moi ? `<span class="fil-p on">● ${esc(moi)} · ${esc(ici)}</span>` : '') + pres.map(x => `<span class="fil-p on">● ${esc(x.qui)}${x.onglet ? ' · ' + esc(x.onglet) : ''}</span>`).join('')
-      + ['Yacine', 'Pierre', 'Baptiste'].filter(m => m !== moi && !pres.some(x => String(x.qui).toLowerCase() === m.toLowerCase())).map(m => `<span class="fil-p">${m} · pas là</span>`).join('');
+      + ['Yacine', 'Pierre', 'Baptiste', 'Studio'].filter(m => m !== moi && !pres.some(x => String(x.qui).toLowerCase() === m.toLowerCase())).map(m => `<span class="fil-p">${m} · pas là</span>`).join('');
     c.innerHTML = lignes.length ? F.liste(lignes.slice(0, 120), F.vuAvant || 0) : '<span class="nt">Rien pour l\'instant. Ce que chacun fait (notes, tâches, dates, reels…) arrive ici.</span>';
   },
   fermer() { const t = $('#filTiroir'); if (t) t.remove(); ouvert = false; $('#btFil') && $('#btFil').classList.remove('on');

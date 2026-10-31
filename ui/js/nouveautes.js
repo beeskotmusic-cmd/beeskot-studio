@@ -3,6 +3,12 @@
 // Pour une nouvelle version : ajouter un bloc EN HAUT de la liste. Une ligne courte par point : « Onglet : ce qui change. »
 // =====================================================================
 BK.NOUVEAUTES = [
+  { v: '0.9.97', titre: '', l: [
+    ['🎧', 'Retours › A/B : le bouton A est bleu et le B rouge, comme leurs courbes.'],
+    ['🎬', 'Tournages : un clic sur un tournage l\'ouvre tout de suite (avant, il attendait le Drive).'],
+    ['🎨', 'Nouveau look : chaque section a une ambiance plus marquée. Musique ambre, Contenus vert sarcelle, Organisation rouge, Show violet.'],
+    ['🔘', 'Le pin S (Studio) rejoint Y, P et B en haut. Plus aucun bouton ne dépasse de son cadre (ex. « Par date » dans les notes).'],
+  ] },
   { v: '0.9.96', titre: '', l: [
     ['🗺', 'Tournages, itinéraire : Google Maps reçoit maintenant les adresses exactes (plus de « 2173 » au lieu de « 2175 », plus de détour en Californie). Les adresses sont cherchées au Québec seulement ; celles qu\'on ne trouve pas sont mises de côté. Recalcule l\'itinéraire une fois.'],
     ['🎬', 'Nouveau look : Tournages retrouve sa propre entrée dans le menu, juste sous Planning.'],
