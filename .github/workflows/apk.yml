@@ -35,9 +35,12 @@ jobs:
           APK_CLE: ${{ secrets.APK_CLE }}
         run: |
           if [ -n "$APK_CLE" ]; then
-            echo "${APK_CLE#*|}" | base64 -d > "$RUNNER_TEMP/cle.jks"
-            echo "APK_CLE_MDP=${APK_CLE%%|*}" >> "$GITHUB_ENV"
-            echo "Clé BEESKOT trouvée."
+            # le secret peut avoir ramassé des retours à la ligne ou des espaces au collage : on nettoie avant de décoder
+            MDP=$(printf '%s' "${APK_CLE%%|*}" | tr -d '\r\n')
+            printf '%s' "${APK_CLE#*|}" | tr -d '\r\n[:space:]' | base64 -di > "$RUNNER_TEMP/cle.jks"
+            keytool -list -keystore "$RUNNER_TEMP/cle.jks" -storepass "$MDP" >/dev/null || { echo "::error::Le secret APK_CLE est illisible (mal collé ?)"; exit 1; }
+            echo "APK_CLE_MDP=$MDP" >> "$GITHUB_ENV"
+            echo "Clé BEESKOT trouvée et vérifiée."
           else
             keytool -genkeypair -keystore "$RUNNER_TEMP/cle.jks" -storepass provisoire -keypass provisoire -alias beeskot -keyalg RSA -keysize 2048 -validity 10000 -dname "CN=BEESKOT Studio provisoire" >/dev/null
             echo "APK_CLE_MDP=provisoire" >> "$GITHUB_ENV"
