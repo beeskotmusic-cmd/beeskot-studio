@@ -121,6 +121,11 @@ BK.module('agenda', function (page) {
       const r = await get(url); if (!r.ok) throw new Error(r.status);
       A.google = BK.lireIcs(await r.text()).map(e => ({ ...e, type: deviner(e.titre) }));
       BK.regler('agenda.copie', A.google.map(e => ({ ...e, debut: e.debut.toISOString() })));     // copie pour marcher sans Internet
+      // une copie dans le Drive pour BEESKOT Mobile (le téléphone ne peut pas lire l'agenda Google lui-même) : seulement si elle a changé
+      const lim0 = Date.now() - 31 * 864e5, lim1 = Date.now() + 200 * 864e5;
+      const pourTel = A.google.filter(e => e.debut.getTime() > lim0 && e.debut.getTime() < lim1).map(e => ({ titre: e.titre || '', lieu: e.lieu || '', debut: e.debut.toISOString(), journee: !!e.journee }));
+      const sig = JSON.stringify(pourTel);
+      if (sig !== BK.reglage('agenda.copieTel', '')) { BK.regler('agenda.copieTel', sig); BK.partage.ecrire('agenda.google', pourTel).catch(() => {}); }
       discret || msg(A.google.length + ' événements Google');
     } catch (e) {
       A.google = BK.reglage('agenda.copie', []).map(x => ({ ...x, debut: new Date(x.debut) }));

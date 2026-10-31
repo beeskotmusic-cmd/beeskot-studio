@@ -4,7 +4,9 @@
 // =====================================================================
 BK.NOUVEAUTES = [
   { v: '0.9.85', titre: '', l: [
-    ['📱', 'BEESKOT Mobile (essai) : Réglages › Aide › « Relier un téléphone » affiche un QR code. Scanné avec le téléphone, il ouvre la page mobile déjà reliée au Drive : la Bibliothèque, et écouter chaque morceau.'],
+    ['📱', 'BEESKOT Mobile (essai) : Réglages › Aide › « Relier un téléphone » affiche un QR code. Scanné avec le téléphone, il ouvre la page mobile déjà reliée au Drive.'],
+    ['🎧', 'Mobile : Bibliothèque (écouter chaque version, paroles), Calendrier, To-do (cocher), Notes et retours (écouter, noter, répondre), Tournages (passage à écouter, moodboard, découpage, fiche PDF).'],
+    ['🗓', 'Calendrier : chaque PC dépose une copie de l\'agenda Google dans le Drive, pour que les téléphones la voient.'],
   ] },
   { v: '0.9.84', titre: '', l: [
     ['📌', 'Tournages : quand tu ajoutes une image, un plan, une tenue… la page reste exactement où tu étais, au lieu de remonter tout en haut (merci Pierre).'],

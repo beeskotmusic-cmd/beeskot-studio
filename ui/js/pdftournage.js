@@ -15,7 +15,7 @@ const net = s => String(s ?? '').replace(/[♪♫]/g, '').replace(/ /g, ' ').re
 
 async function chargerLib() {
   if (window.jspdf && window.jspdf.jsPDF) return window.jspdf.jsPDF;
-  await new Promise((ok, ko) => { const s = document.createElement('script'); s.src = 'js/lib/jspdf.umd.min.js'; s.onload = ok; s.onerror = () => ko(new Error('Bibliothèque PDF introuvable')); document.head.appendChild(s); });
+  await new Promise((ok, ko) => { const s = document.createElement('script'); s.src = (BK.racineUi || '') + 'js/lib/jspdf.umd.min.js'; s.onload = ok; s.onerror = () => ko(new Error('Bibliothèque PDF introuvable')); document.head.appendChild(s); });
   return window.jspdf.jsPDF;
 }
 // une image du Drive (ou autre) → JPEG réduit + sa forme (pour ne jamais la déformer)
@@ -34,14 +34,14 @@ function image(ref, max = 900, gris = false) {
 }
 // le logo BEESKOT à plat (couleur ou noir et blanc), lu une fois
 const logos = {};
-async function logo(nb) { const f = nb ? 'look/logo-beeskot-nb.png' : 'look/logo-beeskot-flat.png';
+async function logo(nb) { const f = (BK.racineUi || '') + (nb ? 'look/logo-beeskot-nb.png' : 'look/logo-beeskot-flat.png');
   if (!logos[f]) logos[f] = (async () => { try { const b = await (await fetch(f)).blob(); const d = await new Promise(ok => { const r = new FileReader(); r.onload = () => ok(r.result); r.readAsDataURL(b); });
     const im = new Image(); im.src = d; await im.decode(); return { d, r: im.naturalWidth / im.naturalHeight }; } catch (e) { return null; } })();
   return logos[f]; }
 // ---------- l'aperçu et l'impression : on dessine nous-mêmes les pages du PDF (pdf.js, chargé à la demande) ----------
 async function pdfjs() {
-  if (!window.pdfjsLib) await new Promise((ok, ko) => { const s = document.createElement('script'); s.src = 'js/lib/pdfjs/pdf.min.js'; s.onload = ok; s.onerror = () => ko(new Error('Aperçu indisponible')); document.head.appendChild(s); });
-  window.pdfjsLib.GlobalWorkerOptions.workerSrc = 'js/lib/pdfjs/pdf.worker.min.js'; return window.pdfjsLib; }
+  if (!window.pdfjsLib) await new Promise((ok, ko) => { const s = document.createElement('script'); s.src = (BK.racineUi || '') + 'js/lib/pdfjs/pdf.min.js'; s.onload = ok; s.onerror = () => ko(new Error('Aperçu indisponible')); document.head.appendChild(s); });
+  window.pdfjsLib.GlobalWorkerOptions.workerSrc = (BK.racineUi || '') + 'js/lib/pdfjs/pdf.worker.min.js'; return window.pdfjsLib; }
 // dessine chaque page dans « zone » (largeur de la zone) ; renvoie le nombre de pages
 BK.pdfApercu = async (bytes, zone, largeur) => {
   const lib = await pdfjs(), doc = await lib.getDocument({ data: bytes.slice() }).promise; zone.innerHTML = '';
