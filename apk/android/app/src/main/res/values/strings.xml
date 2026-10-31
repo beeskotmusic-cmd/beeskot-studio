@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">BEESKOT Studio</string>
+    <string name="title_activity_main">BEESKOT Studio</string>
+    <string name="package_name">com.beeskot.studio</string>
+    <string name="custom_url_scheme">com.beeskot.studio</string>
+</resources>

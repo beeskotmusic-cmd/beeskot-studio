@@ -1,0 +1,59 @@
+# Fabrique l'appli Android (APK) de BEESKOT Studio Mobile et la met à l'adresse fixe :
+#   https://github.com/beeskotmusic-cmd/beeskot-studio/releases/download/mobile/BEESKOT-Studio-Mobile.apk
+# L'APK est une « enveloppe » : elle ouvre la page mobile publiée sur GitHub Pages. Les améliorations de la page
+# arrivent donc toutes seules ; on ne refabrique l'APK que si l'enveloppe change (dossier apk/).
+# Signature : le secret APK_CLE (« motdepasse|base64 du fichier .jks »). S'il manque, une clé provisoire est utilisée
+# (l'appli s'installe, mais il faudra la désinstaller avant d'installer une version signée avec la vraie clé).
+name: Fabriquer BEESKOT Mobile (APK)
+
+on:
+  push:
+    branches: [main]
+    paths: ['apk/**', '.github/workflows/apk.yml']
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  apk:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22 }
+      - uses: actions/setup-java@v4
+        with: { distribution: temurin, java-version: 17 }
+      - name: Préparer le projet Android
+        working-directory: apk
+        run: |
+          npm ci
+          npx cap sync android
+          chmod +x android/gradlew
+      - name: La clé de signature
+        env:
+          APK_CLE: ${{ secrets.APK_CLE }}
+        run: |
+          if [ -n "$APK_CLE" ]; then
+            echo "${APK_CLE#*|}" | base64 -d > "$RUNNER_TEMP/cle.jks"
+            echo "APK_CLE_MDP=${APK_CLE%%|*}" >> "$GITHUB_ENV"
+            echo "Clé BEESKOT trouvée."
+          else
+            keytool -genkeypair -keystore "$RUNNER_TEMP/cle.jks" -storepass provisoire -keypass provisoire -alias beeskot -keyalg RSA -keysize 2048 -validity 10000 -dname "CN=BEESKOT Studio provisoire" >/dev/null
+            echo "APK_CLE_MDP=provisoire" >> "$GITHUB_ENV"
+            echo "::warning::Pas de secret APK_CLE : APK signé avec une clé PROVISOIRE (à désinstaller avant la version définitive)."
+          fi
+          echo "APK_CLE_FICHIER=$RUNNER_TEMP/cle.jks" >> "$GITHUB_ENV"
+          echo "APK_VERSION_CODE=${{ github.run_number }}" >> "$GITHUB_ENV"
+          echo "APK_VERSION_NAME=$(grep -o "version: '[0-9.]*" ui/js/coeur.js | head -1 | cut -d"'" -f2)" >> "$GITHUB_ENV"
+      - name: Fabriquer l'APK
+        working-directory: apk/android
+        run: ./gradlew assembleRelease --no-daemon -q
+      - name: Publier à l'adresse fixe (release « mobile »)
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          cp apk/android/app/build/outputs/apk/release/app-release.apk BEESKOT-Studio-Mobile.apk
+          gh release view mobile >/dev/null 2>&1 || gh release create mobile --prerelease --title "BEESKOT Studio Mobile (Android)" --notes "L'appli Android de BEESKOT Studio. Toujours la dernière version à cette adresse : le QR code dans Réglages › Aide du logiciel PC pointe ici."
+          gh release upload mobile BEESKOT-Studio-Mobile.apk --clobber
+          echo "APK $APK_VERSION_NAME (build $APK_VERSION_CODE) publié."

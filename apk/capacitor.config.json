@@ -1,0 +1,15 @@
+{
+  "appId": "com.beeskot.studio",
+  "appName": "BEESKOT Studio",
+  "webDir": "www",
+  "backgroundColor": "#2b1b11",
+  "server": {
+    "url": "https://beeskotmusic-cmd.github.io/beeskot-studio/mobile/",
+    "androidScheme": "https",
+    "cleartext": false
+  },
+  "android": {
+    "allowMixedContent": false,
+    "backgroundColor": "#2b1b11"
+  }
+}

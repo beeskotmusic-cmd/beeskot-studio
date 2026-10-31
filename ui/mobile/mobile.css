@@ -242,3 +242,8 @@ button,[role=button],.chip,.mo-tab,.mo-case,.mo-img,.mo-cal-j,.mo-seg button,.mo
   @starting-style{.mo-entre{transform:none}}
   .mo-relire.tourne .pic{animation:none;opacity:.5}
 }
+
+/* le bandeau « Ouvrir dans l'appli » (Chrome seulement) */
+.mo-bandeau{display:flex;align-items:center;gap:10px;margin:10px 12px 0;padding:10px 12px;border-radius:9px;font-size:13px;background:rgba(0,0,0,.4);box-shadow:inset 0 0 0 1px rgba(185,138,69,.45)}
+.mo-bandeau span{flex:1}
+.mo-x{width:34px;height:34px;border:0;border-radius:6px;color:var(--creme);background:rgba(255,255,255,.06)}

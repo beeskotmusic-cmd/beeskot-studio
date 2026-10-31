@@ -2,7 +2,7 @@
 // RÉGLAGES — propres à CE PC (onglets visibles, nom du PC, taille)
 // =====================================================================
 // le lien de l'appli Android : la dernière version publiée sur GitHub (le fichier s'appellera toujours pareil)
-BK.LIEN_APK = 'https://github.com/beeskotmusic-cmd/beeskot-studio/releases/latest/download/BEESKOT-Studio-Mobile.apk';
+BK.LIEN_APK = 'https://github.com/beeskotmusic-cmd/beeskot-studio/releases/download/mobile/BEESKOT-Studio-Mobile.apk';   // la release « mobile », toujours la dernière APK
 // la page mobile (pour l'instant une page web, installable sur l'écran d'accueil du téléphone)
 BK.LIEN_MOBILE = 'https://beeskotmusic-cmd.github.io/beeskot-studio/mobile/';
 // le lien qui relie un téléphone : la page mobile + la clé du Drive (après le #, elle ne part jamais sur Internet)
@@ -37,9 +37,9 @@ BK.module('reglages', function (page) {
           <button class="btn sm" id="rgMaj" style="margin-top:8px">🔍 Vérifier les mises à jour</button>
           <span class="nt" id="rgMajTxt">Le logiciel regarde tout seul au démarrage, puis toutes les 20 minutes.</span></div>
         <div data-rgo="aide" class="box rg-mobile"><div class="ligne-titre"><span class="lb">BEESKOT Studio Mobile</span><span class="dymo sm">Essai</span></div>
-          <span class="nt">La version téléphone : Bibliothèque pour commencer (Calendrier, To-do, Notes et retours, Tournages arrivent). Mêmes fiches que le PC, par le Drive.</span>
+          <span class="nt">La version téléphone : Bibliothèque, Calendrier, To-do, Notes et retours, Tournages. Mêmes fiches que le PC, par le Drive. (Sans l'appli : la page marche aussi dans Chrome, ${'<a href="#" data-url="' + BK.LIEN_MOBILE + '">' + BK.LIEN_MOBILE.replace(/^https:\/\//, '') + '</a>'}.)</span>
           <div class="rg-qrs">
-            <div class="rg-qr"><div class="rg-qr-img vrai">${qrVrai(BK.LIEN_MOBILE)}</div><b>1. Ouvrir la page</b><span class="nt">Scanne avec l'appareil photo. Dans Chrome : ⋮ › « Ajouter à l'écran d'accueil » pour l'avoir comme une appli.</span></div>
+            <div class="rg-qr"><div class="rg-qr-img vrai">${qrVrai(BK.LIEN_APK)}</div><b>1. Installer l'appli</b><span class="nt">Scanne avec l'appareil photo : le téléphone télécharge l'appli Android. Autorise « installer depuis Chrome » quand il le demande (une seule fois).</span></div>
             <div class="rg-qr"><div class="rg-qr-img" id="rgQrCle">${qrFactice(13)}</div><b>2. Relier au groupe</b><span class="nt" id="rgQrTxt">Ce QR code ouvre la page déjà reliée au Drive BEESKOT. Ne le montre qu'aux membres.</span>
               <button class="btn xs" id="rgRelierTel"${BK.drive && BK.drive.relie() ? '' : ' disabled title="Relie d\'abord ce PC au Drive"'}>Relier un téléphone</button></div>
           </div></div>
@@ -94,6 +94,7 @@ BK.module('reglages', function (page) {
   BK.sauvegardes && BK.sauvegardes.case($('#rgSauv', page));
   $('#rgMaj', page).onclick = () => BK.verifierMajBouton($('#rgMaj', page), $('#rgMajTxt', page));
   $('#rgNouveau', page).onclick = () => BK.nouveautes.montrer(BK.NOUVEAUTES.slice(0, 3));
+  const lm = $('.rg-mobile a[data-url]', page); if (lm) lm.onclick = e => { e.preventDefault(); BK.ouvrirLien(lm.dataset.url); };
   // relier un téléphone : le vrai QR code (avec la clé) s'affiche 2 minutes, puis se cache
   const rt = $('#rgRelierTel', page);
   if (rt) rt.onclick = () => { const q = $('#rgQrCle', page), t = $('#rgQrTxt', page);

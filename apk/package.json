@@ -1,0 +1,13 @@
+{
+  "name": "beeskot-studio-mobile",
+  "private": true,
+  "version": "0.1.0",
+  "description": "BEESKOT Studio Mobile : l'enveloppe Android de la page mobile (elle charge la page publiée sur GitHub Pages).",
+  "scripts": { "sync": "cap sync android" },
+  "dependencies": {
+    "@capacitor/android": "^7.4.0",
+    "@capacitor/app": "^7.0.0",
+    "@capacitor/core": "^7.4.0"
+  },
+  "devDependencies": { "@capacitor/cli": "^7.4.0" }
+}

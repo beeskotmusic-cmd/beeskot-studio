@@ -74,12 +74,25 @@ window.BKM = (function () {
     if (!c.client_id || !c.client_secret || !c.refresh_token) throw new Error('Clé incomplète');
     BK.regler('drive.conf', c); BK.drive.jeton = null;
   }
-  function lireLien() {
-    const m = location.hash.match(/[#&]k=([A-Za-z0-9_-]+)/); if (!m) return false;
-    history.replaceState(null, '', location.pathname + location.search);          // la clé ne reste pas dans le lien (ni dans l'historique)
-    try { const b = m[1].replace(/-/g, '+').replace(/_/g, '/'); const txt = decodeURIComponent(escape(atob(b + '==='.slice((b.length + 3) % 4))));
+  // la clé dans un lien : après le # (page web) ou dans ?k= (lien beeskot://relier ouvert par l'appli)
+  function cleDe(url) { const m = String(url || '').match(/[#?&]k=([A-Za-z0-9_-]+)/); return m ? m[1] : ''; }
+  function relierDepuis(k) {
+    try { const b = k.replace(/-/g, '+').replace(/_/g, '/'); const txt = decodeURIComponent(escape(atob(b + '==='.slice((b.length + 3) % 4))));
       garderCle(JSON.parse(txt)); return true; }
     catch (e) { msg('Ce QR code n\'est pas valide'); return false; }
+  }
+  function lireLien() {
+    const k = cleDe(location.hash) || cleDe(location.search); if (!k) return false;
+    history.replaceState(null, '', location.pathname);                            // la clé ne reste pas dans le lien (ni dans l'historique)
+    return relierDepuis(k);
+  }
+  // la clé de ce téléphone, encodée comme sur le PC (pour la passer de Chrome à l'appli)
+  const cleEncodee = () => { const c = BK.drive.conf() || {}; const j = JSON.stringify({ i: c.client_id, s: c.client_secret, r: c.refresh_token });
+    return btoa(unescape(encodeURIComponent(j))).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, ''); };
+  const LIEN_APK = 'https://github.com/beeskotmusic-cmd/beeskot-studio/releases/download/mobile/BEESKOT-Studio-Mobile.apk';
+  // Chrome → l'appli Android (si elle n'est pas installée, Chrome propose de télécharger l'APK)
+  function ouvrirDansAppli() {
+    location.href = 'intent://relier?k=' + cleEncodee() + '#Intent;scheme=beeskot;package=com.beeskot.studio;S.browser_fallback_url=' + encodeURIComponent(LIEN_APK) + ';end';
   }
 
   // ---------- 2. les écrans (chaque fichier de mobile/ecrans/ s'inscrit ici) ----------
@@ -114,6 +127,15 @@ window.BKM = (function () {
     clearTimeout(attente);
     if (tour === tourEcran) { page.style.minHeight = ''; etat(BK.db.enLigne ? 'RELIÉ' : 'HORS LIGNE', BK.db.enLigne); }
   }
+  // dans Chrome (pas dans l'appli) : proposer une fois d'ouvrir l'appli Android avec cette clé
+  function proposerAppli() {
+    if (enAppli || !BK.drive.relie() || BK.reglage('mobile.appliVue', false) || document.getElementById('moAppli')) return;
+    const b = document.createElement('div'); b.id = 'moAppli'; b.className = 'mo-bandeau mo-entre';
+    b.innerHTML = `<span>Tu as l'appli Android BEESKOT ?</span><button class="btn sm" data-o>Ouvrir dedans</button><button class="mo-x" data-x aria-label="Fermer">✕</button>`;
+    page.before(b);
+    b.querySelector('[data-o]').onclick = () => { ouvrirDansAppli(); };
+    b.querySelector('[data-x]').onclick = () => { BK.regler('mobile.appliVue', true); b.remove(); };
+  }
   const redessiner = () => ouvrir(actuel);
   // ↻ : relire le Drive maintenant (fiches ET fichiers), quel que soit l'âge de la copie
   $('#moRelire').onclick = async () => {
@@ -129,7 +151,7 @@ window.BKM = (function () {
     page.innerHTML = `<div class="mo-carte mo-relier">
       <span class="dymo">Relier ce téléphone</span>
       <p>Sur un PC du groupe : <b>Réglages › Aide › BEESKOT Studio Mobile › Relier un téléphone</b>.</p>
-      <p>Scanne le QR code avec l'appareil photo du téléphone : cette page s'ouvre, déjà reliée au Drive BEESKOT.</p>
+      <p>Scanne le QR code avec l'appareil photo du téléphone${enAppli ? ' : la page s\'ouvre dans Chrome, puis appuie sur <b>« Ouvrir dedans »</b> pour revenir ici, relié' : ' : cette page s\'ouvre, déjà reliée au Drive BEESKOT'}.</p>
       <p class="mo-nt">Autre façon : importer la carte d'accès (le petit fichier fait sur le PC).</p>
       <label class="btn sm">Importer la carte d'accès<input type="file" id="moCarte" accept=".json,application/json" hidden></label></div>`;
     $('#moCarte').onchange = async e => { const f = e.target.files[0]; if (!f) return;
@@ -196,11 +218,24 @@ window.BKM = (function () {
   }
   const aller = s => { if (son.src) { son.currentTime = Math.max(0, s); son.play(); } };
 
+  // ---------- dans l'appli Android (l'enveloppe Capacitor charge cette page) ----------
+  const enAppli = !!(window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform());
+  if (enAppli) document.documentElement.classList.add('appli');
+  // le bouton Retour du téléphone : ferme le menu ou l'image en grand, revient à la Bibliothèque, puis quitte
+  try { const App = enAppli && window.Capacitor.Plugins && window.Capacitor.Plugins.App;
+    if (App) { App.getLaunchUrl().then(r => { const k = r && cleDe(r.url); if (k && relierDepuis(k)) { msg('Téléphone relié'); demarrer(); } }).catch(() => {});
+      App.addListener('appUrlOpen', r => { const k = cleDe(r && r.url); if (k && relierDepuis(k)) { msg('Téléphone relié'); demarrer(); } }); }
+    if (App) App.addListener('backButton', () => {
+      const z = document.querySelector('.mo-zoom'); if (z) return z.remove();
+      if (document.body.classList.contains('menu-ouvert')) return volet(false);
+      if (actuel !== 'biblio' && BK.drive.relie()) return ouvrir('biblio');
+      App.exitApp(); }); } catch (e) { console.warn(e); }
+
   // ---------- démarrage ----------
   window.addEventListener('bk:annule', () => redessiner());               // « ↶ Annuler » : on relit l'écran
   window.addEventListener('hashchange', () => { if (lireLien()) { msg('Téléphone relié'); demarrer(); } });
-  function demarrer() { lireLien(); if (BK.drive.relie()) { etat('…'); ouvrir(ECRANS[actuel] ? actuel : 'biblio'); } else accueilSansCle(); }
+  function demarrer() { lireLien(); if (BK.drive.relie()) { etat('…'); ouvrir(ECRANS[actuel] ? actuel : 'biblio'); proposerAppli(); } else accueilSansCle(); }
 
-  return { $, esc, msg, moi, couleur, t2, auj, dateFr, ecran, ouvrir, redessiner, liste, versions, sonDe, telecharger, lire, aller, son, L, demarrer,
+  return { $, esc, msg, moi, couleur, t2, auj, dateFr, ecran, ouvrir, redessiner, liste, enAppli, ouvrirDansAppli, versions, sonDe, telecharger, lire, aller, son, L, demarrer,
     get actuel() { return actuel; } };
 })();
