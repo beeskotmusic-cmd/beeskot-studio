@@ -28,7 +28,7 @@ BK.module('reglages', function (page) {
   $('.sub', page).textContent = 'Ce qui est réglé ici ne concerne que cet ordinateur';
   const choix = BK.onglets.filter(o => !o.fixe);
   $('.grid', page).innerHTML = `
-    <div class="rg-tabs" id="rgTabs"><button data-rgt="aide">🍞 Aide</button><button data-rgt="pc">💻 Ce PC</button><button data-rgt="mobile">📱 BEESKOT Mobile</button><button data-rgt="onglets">🗂 Onglets</button><button data-rgt="miette">🍞 Miette & Discord</button><button data-rgt="drive">☁ Drive</button><button data-rgt="ableton">🎛 Ableton</button></div>
+    <div class="rg-tabs" id="rgTabs"><button data-rgt="aide">🍞 Aide</button><button data-rgt="pc">💻 Ce PC</button><button data-rgt="mobile">📱 BEESKOT Mobile</button><button data-rgt="onglets">🗂 Onglets</button><button data-rgt="miette">🍞 Miette & Discord</button><button data-rgt="drive">☁ Drive</button><button data-rgt="ableton">🎛 Ableton</button><button data-rgt="outils" id="rgTabOutils" class="hidden">🧰 Pages</button></div>
     <section class="pane rg-corps" id="rgCorps">
         <div data-rgo="aide" class="box"><span class="lb">Aide</span>
           <div class="chips" style="margin-top:8px"><button class="btn sm pri" id="rgNouveau">✨ Quoi de neuf ?</button><button class="btn sm" id="rgTuto">📖 Tuto : tout le logiciel</button></div>
@@ -88,16 +88,24 @@ BK.module('reglages', function (page) {
           <span class="nt">Un clic : le logiciel trouve Ableton et installe le pont tout seul. Il restera juste à le choisir dans Ableton.</span>
           <div class="chips" style="margin-top:10px"><button class="chip" id="rgAbleton">Relier Ableton (automatique)</button></div></div>
         <div data-rgo="ableton" class="box" id="rgSauv"></div>
+        <div data-rgo="outils" class="box" id="rgOutilsTete"><span class="lb">Les réglages des pages</span><span class="nt">À régler une seule fois : rangés ici pour alléger le Calendrier et la Bibliothèque.</span></div>
     </section>
     <div class="pane abar"><span class="vfd" id="rgMsg">PRÊT</span></div>`;
 
   // ---------- les onglets de Réglages : un seul groupe à la fois ----------
-  const RG = ['aide', 'pc', 'mobile', 'onglets', 'miette', 'drive', 'ableton'];
-  const montrerRg = BK.reglagesOnglet = (k = BK.reglage('reglages.onglet', 'aide')) => { if (!RG.includes(k)) k = 'aide'; BK.regler('reglages.onglet', k);
+  const RG = ['aide', 'pc', 'mobile', 'onglets', 'miette', 'drive', 'ableton', 'outils'];
+  const montrerRg = BK.reglagesOnglet = (k = BK.reglage('reglages.onglet', 'aide')) => { if (!RG.includes(k) || (k === 'outils' && !(BK.look && BK.look.neuf()))) k = 'aide'; BK.regler('reglages.onglet', k);
     $$('#rgTabs button', page).forEach(b => b.classList.toggle('on', b.dataset.rgt === k));
     $$('#rgCorps > [data-rgo]', page).forEach(x => x.classList.toggle('hidden', x.dataset.rgo !== k)); };
   $$('#rgTabs button', page).forEach(b => b.onclick = () => montrerRg(b.dataset.rgt));
-  montrerRg();
+  // nouveau look : les cadres « à régler une fois » des pages (adresse de l'agenda Google, dossiers de ce PC) vont ici
+  //   (on déplace le vrai cadre : ses boutons marchent pareil ; l'ancien look ne bouge pas)
+  const rangerOutils = () => { if (!BK.look || !BK.look.neuf()) return; $('#rgTabOutils', page).classList.remove('hidden');
+    [['#agIcs', 'Calendrier'], ['#biDossiers', 'Bibliothèque']].forEach(([id, d]) => { const x = document.querySelector(id), b = x && x.closest('.box');
+      if (!b || b.dataset.rgo) return; b.dataset.rgo = 'outils'; const lb = b.querySelector('.lb'); lb && lb.insertAdjacentHTML('afterbegin', `<small class="nt rg-de">${d} · </small>`);
+      $('#rgCorps', page).appendChild(b); });
+    montrerRg(); };
+  rangerOutils(); setTimeout(rangerOutils, 0); setTimeout(rangerOutils, 1500);
   $$('.inter', page).forEach(b => b.onclick = () => {
     const o = BK.onglets.find(x => x.id === b.dataset.id), v = !BK.ongletVisible(o);
     BK.regler('visible.' + o.id, v);

@@ -3,6 +3,9 @@
 // Pour une nouvelle version : ajouter un bloc EN HAUT de la liste. Une ligne courte par point : « Onglet : ce qui change. »
 // =====================================================================
 BK.NOUVEAUTES = [
+  { v: '0.9.95', titre: '', l: [
+    ['🧰', 'Nouveau look : l\'adresse de l\'agenda Google (Calendrier) et les dossiers de ce PC à fouiller (Bibliothèque) sont rangés dans Réglages › Pages. Les pages sont plus légères, tout marche pareil.'],
+  ] },
   { v: '0.9.94', titre: '', l: [
     ['🗂', 'Nouveau look : le menu passe à 11 entrées. Reels (Suivi · Audio · Montage), Retours (Mix · Vidéo) et Planning (Calendrier · Tournages · To-do · Budget) ont leurs sous-onglets en haut de la page. Chaque entrée rouvre le dernier sous-onglet utilisé.'],
   ] },
