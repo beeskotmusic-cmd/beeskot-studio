@@ -9,12 +9,13 @@ BK.LIEN_MOBILE = 'https://beeskotmusic-cmd.github.io/beeskot-studio/mobile/';
 BK.lienRelier = () => { const c = BK.drive.conf() || {};
   const j = JSON.stringify({ i: c.client_id, s: c.client_secret, r: c.refresh_token });
   return BK.LIEN_MOBILE + '#k=' + btoa(unescape(encodeURIComponent(j))).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, ''); };
-// un vrai QR code, dans les couleurs du logiciel (brun sur crème)
-function qrVrai(texte) {
+// un vrai QR code, dans les couleurs du logiciel (brun sur crème par défaut ; « Lier » est en vert pour ne pas les confondre)
+function qrVrai(texte, encre = '#2a1d12', fond = '#efe4cc') {
   try { const q = qrcode(0, 'M'); q.addData(texte); q.make();
-    return q.createSvgTag({ cellSize: 4, margin: 2, scalable: true }).replace(/fill="#ffffff"/gi, 'fill="#efe4cc"').replace(/fill="#000000"/gi, 'fill="#2a1d12"'); }
+    return q.createSvgTag({ cellSize: 4, margin: 2, scalable: true }).replace(/fill="(white|#ffffff)"/gi, 'fill="' + fond + '"').replace(/fill="(black|#000000)"/gi, 'fill="' + encre + '"'); }
   catch (e) { return qrFactice(7); }
 }
+const VERT_QR = '#1f4d2e';
 // un faux QR code (gris) en attendant l'appli mobile : juste pour la place
 function qrFactice(graine) {
   let h = graine * 99991; const r = () => (h = (h * 16807) % 2147483647) / 2147483647, n = 25, c = [];
@@ -27,7 +28,7 @@ BK.module('reglages', function (page) {
   $('.sub', page).textContent = 'Ce qui est réglé ici ne concerne que cet ordinateur';
   const choix = BK.onglets.filter(o => !o.fixe);
   $('.grid', page).innerHTML = `
-    <div class="rg-tabs" id="rgTabs"><button data-rgt="aide">🍞 Aide</button><button data-rgt="pc">💻 Ce PC</button><button data-rgt="onglets">🗂 Onglets</button><button data-rgt="miette">🍞 Miette & Discord</button><button data-rgt="drive">☁ Drive</button><button data-rgt="ableton">🎛 Ableton</button></div>
+    <div class="rg-tabs" id="rgTabs"><button data-rgt="aide">🍞 Aide</button><button data-rgt="pc">💻 Ce PC</button><button data-rgt="mobile">📱 BEESKOT Mobile</button><button data-rgt="onglets">🗂 Onglets</button><button data-rgt="miette">🍞 Miette & Discord</button><button data-rgt="drive">☁ Drive</button><button data-rgt="ableton">🎛 Ableton</button></div>
     <section class="pane rg-corps" id="rgCorps">
         <div data-rgo="aide" class="box"><span class="lb">Aide</span>
           <div class="chips" style="margin-top:8px"><button class="btn sm pri" id="rgNouveau">✨ Quoi de neuf ?</button><button class="btn sm" id="rgTuto">📖 Tuto : tout le logiciel</button></div>
@@ -36,13 +37,23 @@ BK.module('reglages', function (page) {
           <span class="vfd" style="margin-top:6px;align-self:flex-start">${String(BK.version || '').replace(/[<>&]/g, '')}</span>
           <button class="btn sm" id="rgMaj" style="margin-top:8px">🔍 Vérifier les mises à jour</button>
           <span class="nt" id="rgMajTxt">Le logiciel regarde tout seul au démarrage, puis toutes les 20 minutes.</span></div>
-        <div data-rgo="aide" class="box rg-mobile"><div class="ligne-titre"><span class="lb">BEESKOT Studio Mobile</span><span class="dymo sm">Essai</span></div>
-          <span class="nt">La version téléphone : Bibliothèque, Calendrier, To-do, Notes et retours, Tournages. Mêmes fiches que le PC, par le Drive. (Sans l'appli : la page marche aussi dans Chrome, ${'<a href="#" data-url="' + BK.LIEN_MOBILE + '">' + BK.LIEN_MOBILE.replace(/^https:\/\//, '') + '</a>'}.)</span>
-          <div class="rg-qrs">
-            <div class="rg-qr"><div class="rg-qr-img vrai">${qrVrai(BK.LIEN_APK)}</div><b>1. Installer l'appli</b><span class="nt">Scanne avec l'appareil photo : le téléphone télécharge l'appli Android. Autorise « installer depuis Chrome » quand il le demande (une seule fois).</span></div>
-            <div class="rg-qr"><div class="rg-qr-img" id="rgQrCle">${qrFactice(13)}</div><b>2. Relier au groupe</b><span class="nt" id="rgQrTxt">Ce QR code ouvre la page déjà reliée au Drive BEESKOT. Ne le montre qu'aux membres.</span>
-              <button class="btn xs" id="rgRelierTel"${BK.drive && BK.drive.relie() ? '' : ' disabled title="Relie d\'abord ce PC au Drive"'}>Relier un téléphone</button></div>
-          </div></div>
+        <div data-rgo="mobile" class="box rg-mobile"><div class="ligne-titre"><span class="lb">Télécharger l'application</span><span class="dymo sm">Android</span></div>
+          <span class="nt">BEESKOT Studio sur le téléphone : Bibliothèque, Calendrier, To-do, Notes et retours, Tournages. Mêmes fiches que le PC, par le Drive.</span>
+          <div class="rg-mob-l">
+            <div class="rg-qr-img vrai" title="Scanne-moi avec l'appareil photo du téléphone">${qrVrai(BK.LIEN_APK)}</div>
+            <div class="rg-mob-t">
+              <button class="rg-store" id="rgStore" title="Télécharger l'appli (fichier APK)"><span class="rg-store-p">▶</span><span class="rg-store-t"><small>TÉLÉCHARGER L'APPLI</small><b>BEESKOT Studio Mobile</b></span></button>
+              <span class="nt"><b>1.</b> Scanne le QR code avec l'appareil photo du téléphone (ou clique le bouton pour avoir le fichier ici).<br><b>2.</b> Chrome demande d'autoriser l'installation : accepte, puis « Installer ».<br>L'appli se met à jour toute seule ensuite.</span>
+              <span class="nt">Sans l'appli, la page marche aussi dans Chrome : <a href="#" data-url="${BK.LIEN_MOBILE}">${BK.LIEN_MOBILE.replace(/^https:\/\//, '')}</a></span>
+            </div></div></div>
+        <div data-rgo="mobile" class="box rg-mobile rg-lier"><div class="ligne-titre"><span class="lb">Lier au téléphone</span><span class="dymo sm vert">Clé du Drive</span></div>
+          <span class="nt">Dans l'appli : <b>Relier ce téléphone › Scanner le QR code du PC</b>. Ce QR code contient la clé du Drive BEESKOT : ne le montre qu'aux membres du groupe.</span>
+          <div class="rg-mob-l">
+            <div class="rg-qr-img lier" id="rgQrCle">${qrFactice(13)}</div>
+            <div class="rg-mob-t">
+              <div class="chips"><button class="btn sm pri" id="rgRelierTel"${BK.drive && BK.drive.relie() ? '' : ' disabled title="Relie d\'abord ce PC au Drive"'}>Afficher le QR code</button><button class="btn sm" id="rgCopierLien"${BK.drive && BK.drive.relie() ? '' : ' disabled'}>Copier le lien</button></div>
+              <span class="nt" id="rgQrTxt">Le QR code s'affiche 2 minutes, le temps de le scanner. « Copier le lien » : si la caméra du téléphone ne marche pas, colle-le dans l'appli (« Ça ne marche pas ? »).</span>
+            </div></div></div>
         <div data-rgo="pc" class="box"><span class="lb">Qui utilise cet ordinateur ?</span>
           <span class="nt">Ton prénom (Yacine, Pierre, Baptiste) ou « Studio ». C'est à ce nom que partent les tâches que tu coches et les reels que tu fais avancer.</span>
           <input class="fld" id="rgNom" style="margin-top:10px" maxlength="16" placeholder="ton prénom, ou Studio" value="${BK.reglage('nomPc', '')}">
@@ -78,7 +89,7 @@ BK.module('reglages', function (page) {
     <div class="pane abar"><span class="vfd" id="rgMsg">PRÊT</span></div>`;
 
   // ---------- les onglets de Réglages : un seul groupe à la fois ----------
-  const RG = ['aide', 'pc', 'onglets', 'miette', 'drive', 'ableton'];
+  const RG = ['aide', 'pc', 'mobile', 'onglets', 'miette', 'drive', 'ableton'];
   const montrerRg = BK.reglagesOnglet = (k = BK.reglage('reglages.onglet', 'aide')) => { if (!RG.includes(k)) k = 'aide'; BK.regler('reglages.onglet', k);
     $$('#rgTabs button', page).forEach(b => b.classList.toggle('on', b.dataset.rgt === k));
     $$('#rgCorps > [data-rgo]', page).forEach(x => x.classList.toggle('hidden', x.dataset.rgo !== k)); };
@@ -95,11 +106,13 @@ BK.module('reglages', function (page) {
   $('#rgMaj', page).onclick = () => BK.verifierMajBouton($('#rgMaj', page), $('#rgMajTxt', page));
   $('#rgNouveau', page).onclick = () => BK.nouveautes.montrer(BK.NOUVEAUTES.slice(0, 3));
   const lm = $('.rg-mobile a[data-url]', page); if (lm) lm.onclick = e => { e.preventDefault(); BK.ouvrirLien(lm.dataset.url); };
-  // relier un téléphone : le vrai QR code (avec la clé) s'affiche 2 minutes, puis se cache
-  const rt = $('#rgRelierTel', page);
+  $('#rgStore', page).onclick = () => BK.ouvrirLien(BK.LIEN_APK);
+  // lier au téléphone : le vrai QR code (avec la clé) s'affiche 2 minutes, puis se cache
+  const rt = $('#rgRelierTel', page), TXT_LIER = $('#rgQrTxt', page).textContent;
   if (rt) rt.onclick = () => { const q = $('#rgQrCle', page), t = $('#rgQrTxt', page);
-    q.innerHTML = qrVrai(BK.lienRelier()); q.classList.add('vrai', 'grand'); rt.disabled = true; t.textContent = 'Scanne-le maintenant avec le téléphone (il se cache dans 2 minutes).';
-    clearTimeout(BK.qrTelT); BK.qrTelT = setTimeout(() => { q.innerHTML = qrFactice(13); q.classList.remove('vrai', 'grand'); rt.disabled = false; t.textContent = 'Ce QR code ouvre la page déjà reliée au Drive BEESKOT. Ne le montre qu\'aux membres.'; }, 120000); };
+    q.innerHTML = qrVrai(BK.lienRelier(), VERT_QR); q.classList.add('vrai', 'grand'); rt.disabled = true; t.textContent = 'Scanne-le maintenant depuis l\'appli (il se cache dans 2 minutes).';
+    clearTimeout(BK.qrTelT); BK.qrTelT = setTimeout(() => { q.innerHTML = qrFactice(13); q.classList.remove('vrai', 'grand'); rt.disabled = false; t.textContent = TXT_LIER; }, 120000); };
+  $('#rgCopierLien', page).onclick = async () => { try { await navigator.clipboard.writeText(BK.lienRelier()); $('#rgMsg', page).textContent = 'LIEN COPIÉ · IL CONTIENT LA CLÉ : MESSAGE PRIVÉ SEULEMENT'; } catch (e) { $('#rgMsg', page).textContent = 'COPIE IMPOSSIBLE'; } };
   $('#rgTuto', page).onclick = () => BK.nouveautes.tuto();
   $('#rgGuide', page).onclick = () => BK.bienvenue.ouvrir(true);
   const nomPc = n => { BK.regler('nomPc', n); $('#rgNom', page).value = n; BK.majNomPc(); $$('#rgNoms .chip', page).forEach(c => c.classList.toggle('on', c.dataset.nom === n));

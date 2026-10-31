@@ -3,6 +3,10 @@
 // Pour une nouvelle version : ajouter un bloc EN HAUT de la liste. Une ligne courte par point : « Onglet : ce qui change. »
 // =====================================================================
 BK.NOUVEAUTES = [
+  { v: '0.9.87', titre: '', l: [
+    ['📱', 'Réglages › BEESKOT Mobile : un onglet à part. « Télécharger l\'application » (QR code + bouton) et « Lier au téléphone » (QR code vert, ou « Copier le lien »).'],
+    ['📱', 'Mobile : dans l\'appli, « Scanner le QR code du PC » ouvre la caméra et relie le téléphone tout seul. Plus besoin de passer par Chrome. (Réinstalle l\'appli une fois : elle demande la caméra.)'],
+  ] },
   { v: '0.9.86', titre: '', l: [
     ['📱', 'Mobile : glisser vers le bas ne recharge plus la page ; un bouton ↻ en haut relit le Drive quand tu veux.'],
     ['📱', 'Mobile : les écrans s\'ouvrent tout de suite (la dernière copie connue), le Drive se relit derrière sans rien faire sauter. Déplier, cocher, filtrer ne remonte plus en haut.'],
@@ -526,13 +530,14 @@ BK.TUTO = [
       ['Voir les pêches d\'un stem (KICK…)', 'Section « 1b · Pistes audio en plus » → choisis le fichier du stem : de petits repères de couleur montrent toutes les attaques sur la frise. Sensibilité = plus ou moins de repères, Écart mini = on fusionne les repères trop proches. « Créer les pêches » les pose toutes (Ctrl+Z pour annuler).'],
       ['Enregistrer et retrouver', 'Enregistrer sur : Ce PC ou Drive du groupe (dossier Light Toast, dans le Drive BEESKOT). Enregistrer le projet garde tout ; « Ouvrir depuis le Drive » liste les projets du groupe. La vidéo exportée peut aussi partir au Drive.'] ],
     astuces: [ 'Le stem n\'est pas gardé dans le projet : seuls ses repères le sont (ré-importe le stem pour changer la sensibilité).', 'Le programme est le fichier lighttoast/toast.html : pour le mettre à jour, voir lighttoast-outils/adapter.py.' ] },
-  { o: 'Réglages', ic: '⚙', quoi: 'Ce qui est propre à cet ordinateur, plus le Drive, Miette et Ableton. Rangé en onglets : Aide, Ce PC, Onglets, Miette & Discord, Drive, Ableton.',
+  { o: 'Réglages', ic: '⚙', quoi: 'Ce qui est propre à cet ordinateur, plus le Drive, Miette et Ableton. Rangé en onglets : Aide, Ce PC, BEESKOT Mobile, Onglets, Miette & Discord, Drive, Ableton.',
     comment: [
       ['Revenir en arrière après une erreur', 'Drive › ⏪ Time Machine → choisis l\'onglet et l\'heure d\'avant l\'erreur → Remettre comme avant. Google garde 30 jours d\'historique.'],
       ['Alléger les fiches', 'Drive › 🪶 Alléger les fiches : les vieilles photos recopiées dans les fiches sont rangées dans le Drive. Une seule fois, sur un seul PC.'],
       ['Fabriquer une carte d\'accès', 'Drive › 🎫 Fabriquer la carte d\'accès → elle arrive sur le Bureau. Ne l\'envoie qu\'aux membres, en message privé.'],
-      ['Cacher un onglet sur ce PC', 'Onglets → éteins l\'interrupteur de l\'onglet.'] ],
-    astuces: [ 'Taille de l\'interface : Ce PC › Zoom.' ] },
+      ['Cacher un onglet sur ce PC', 'Onglets → éteins l\'interrupteur de l\'onglet.'],
+      ['Mettre BEESKOT Studio sur un téléphone', 'BEESKOT Mobile › Télécharger l\'application : scanne le QR code avec l\'appareil photo (Android). Puis Lier au téléphone › Afficher le QR code, et dans l\'appli : Scanner le QR code du PC.'] ],
+    astuces: [ 'Taille de l\'interface : Ce PC › Zoom.', 'Le QR code « Lier » contient la clé du Drive : seulement aux membres du groupe.' ] },
   { o: 'Questions fréquentes', ic: '❓', quoi: 'Les questions qu\'on se pose le plus souvent.',
     comment: [
       ['Je ne vois pas ce qu\'un autre a fait', 'Attends une minute (le partage se fait toutes les minutes). Sinon Réglages › Drive › ↻ Relire le Drive.'],

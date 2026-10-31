@@ -13,7 +13,7 @@ BKM.ecran('reglages', { nom: 'Réglages', ordre: 90, dessiner(z) {
     ${BKM.enAppli ? `<div class="mo-carte"><span class="dymo">L'appli</span>
       <p class="mo-nt">Tu es dans l'appli Android. Elle se met à jour toute seule : rien à réinstaller.</p></div>`
     : `<div class="mo-carte"><span class="dymo">Comme une appli</span>
-      <p class="mo-nt">Le mieux : l'appli Android. Sur un PC, Réglages › Aide › BEESKOT Studio Mobile › « 1. Installer l'appli ». Sinon, cette page peut aussi aller sur l'écran d'accueil.</p>
+      <p class="mo-nt">Le mieux : l'appli Android. Sur un PC, Réglages › BEESKOT Mobile › « Télécharger l'application ». Sinon, cette page peut aussi aller sur l'écran d'accueil.</p>
       <div class="mo-chips"><button class="btn sm pri" id="moOuvrirAppli">Ouvrir dans l'appli</button><button class="btn sm" id="moInstaller">Mettre cette page sur l'écran d'accueil</button></div>
       <p class="mo-nt" id="moInstTxt"></p></div>`}
     <div class="mo-carte"><span class="dymo">Ce téléphone</span>

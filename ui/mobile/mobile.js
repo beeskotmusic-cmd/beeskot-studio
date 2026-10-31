@@ -150,13 +150,51 @@ window.BKM = (function () {
     etat('NON RELIÉ'); $('#moMenu').innerHTML = `<img class="mo-menu-logo" src="../look/logo-beeskot-studio.png" alt=""><span class="mo-nt">Relie d'abord ce téléphone.</span>`;
     page.innerHTML = `<div class="mo-carte mo-relier">
       <span class="dymo">Relier ce téléphone</span>
-      <p>Sur un PC du groupe : <b>Réglages › Aide › BEESKOT Studio Mobile › Relier un téléphone</b>.</p>
-      <p>Scanne le QR code avec l'appareil photo du téléphone${enAppli ? ' : la page s\'ouvre dans Chrome, puis appuie sur <b>« Ouvrir dedans »</b> pour revenir ici, relié' : ' : cette page s\'ouvre, déjà reliée au Drive BEESKOT'}.</p>
-      <p class="mo-nt">Autre façon : importer la carte d'accès (le petit fichier fait sur le PC).</p>
-      <label class="btn sm">Importer la carte d'accès<input type="file" id="moCarte" accept=".json,application/json" hidden></label></div>`;
+      <p>Sur un PC du groupe : <b>Réglages › BEESKOT Mobile › Lier au téléphone</b>. Un QR code s'affiche.</p>
+      <button class="btn pri mo-scan-btn" id="moScanner"><span class="pic a" style="-webkit-mask-image:url(../pictos/A_scan.png);mask-image:url(../pictos/A_scan.png)"></span>Scanner le QR code du PC</button>
+      <p class="mo-nt">La caméra s'ouvre ici, dans l'appli. Vise le QR : c'est relié tout seul.</p>
+      <details class="mo-autre"><summary>Ça ne marche pas ?</summary>
+        <p class="mo-nt">Colle ici le lien « Relier » (sur le PC : bouton « Copier le lien ») :</p>
+        <div class="mo-ligne"><input class="fld" id="moLien" placeholder="https://…#k=…" autocomplete="off" spellcheck="false"><button class="btn sm" id="moLienOk">Relier</button></div>
+        <p class="mo-nt">Ou importe la carte d'accès (le petit fichier fait sur le PC).</p>
+        <label class="btn sm">Importer la carte d'accès<input type="file" id="moCarte" accept=".json,application/json" hidden></label></details></div>`;
+    $('#moScanner').onclick = () => scanner(txt => { const k = cleDe(txt); if (!k) { msg('Ce QR code n\'est pas celui du PC'); return false; }
+      if (!relierDepuis(k)) return false; msg('Téléphone relié'); demarrer(); return true; });
+    $('#moLienOk').onclick = () => { const k = cleDe($('#moLien').value.trim()); if (!k) return msg('Ce lien n\'est pas un lien « Relier »');
+      if (relierDepuis(k)) { msg('Téléphone relié'); demarrer(); } };
     $('#moCarte').onchange = async e => { const f = e.target.files[0]; if (!f) return;
       try { const j = JSON.parse(await f.text()); if (j.type && j.type !== 'carte-acces-beeskot') throw 0; garderCle(j); msg('Téléphone relié'); demarrer(); }
       catch (er) { msg('Ce n\'est pas une carte d\'accès BEESKOT'); } };
+  }
+  // ---------- le scanner de QR code (caméra arrière, dans la page) ----------
+  // « trouve(texte) » est appelé à chaque QR lu : il renvoie vrai quand c'est le bon (le scanner se ferme alors).
+  let jsqrPret = null;
+  const chargerJsqr = () => jsqrPret || (jsqrPret = new Promise((ok, non) => { if (window.jsQR) return ok();
+    const s = document.createElement('script'); s.src = 'lib/jsQR.js'; s.onload = ok; s.onerror = () => { jsqrPret = null; non(new Error('Lecteur de QR non chargé')); }; document.head.appendChild(s); }));
+  async function scanner(trouve) {
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) return msg('Pas de caméra disponible ici');
+    const v = document.createElement('div'); v.className = 'mo-scan';
+    v.innerHTML = `<video playsinline muted autoplay></video><div class="mo-scan-cadre"></div>
+      <p class="mo-scan-txt" id="moScanTxt">Vise le QR code affiché sur le PC</p><button class="btn sm mo-scan-x" id="moScanX">Annuler</button>`;
+    document.body.appendChild(v); document.body.classList.add('scan-ouvert');
+    const video = v.querySelector('video'), txt = v.querySelector('#moScanTxt'); let flux = null, fini = false, boucle = 0;
+    const fermer = () => { if (fini) return; fini = true; cancelAnimationFrame(boucle); if (flux) flux.getTracks().forEach(t => t.stop()); v.remove(); document.body.classList.remove('scan-ouvert'); };
+    v.querySelector('#moScanX').onclick = fermer;
+    try {
+      const [, f] = await Promise.all([chargerJsqr(), navigator.mediaDevices.getUserMedia({ video: { facingMode: { ideal: 'environment' }, width: { ideal: 1280 }, height: { ideal: 720 } }, audio: false })]);
+      if (fini) { f.getTracks().forEach(t => t.stop()); return; }
+      flux = f; video.srcObject = f; await video.play();
+    } catch (e) { fermer(); return msg(/denied|permission|NotAllowed/i.test(e.name + e.message) ? 'Autorise la caméra pour scanner (Réglages du téléphone › Applis › BEESKOT)' : 'Caméra impossible : ' + (e.message || e)); }
+    const c = document.createElement('canvas'), ctx = c.getContext('2d', { willReadFrequently: true }); let dernier = 0;
+    const lire = t => { if (fini) return; boucle = requestAnimationFrame(lire);
+      if (t - dernier < 120 || video.readyState < 2) return; dernier = t;                 // ~8 lectures par seconde suffisent, le téléphone ne chauffe pas
+      const w = video.videoWidth, h = video.videoHeight; if (!w) return;
+      const s = Math.min(w, h) * .7, x = (w - s) / 2, y = (h - s) / 2;                     // on lit seulement le carré du cadre, à taille réduite : plus rapide
+      c.width = c.height = 400; ctx.drawImage(video, x, y, s, s, 0, 0, 400, 400);
+      const r = window.jsQR(ctx.getImageData(0, 0, 400, 400).data, 400, 400, { inversionAttempts: 'dontInvert' });
+      if (!r || !r.data) return;
+      if (trouve(r.data)) { v.classList.add('ok'); setTimeout(fermer, 250); } else { txt.textContent = 'Ce n\'est pas le QR code « Lier au téléphone »'; } };
+    boucle = requestAnimationFrame(lire);
   }
 
   // ---------- 3. les sons : seulement ceux du Drive (le téléphone ne voit pas les fichiers des PC) ----------
@@ -236,6 +274,6 @@ window.BKM = (function () {
   window.addEventListener('hashchange', () => { if (lireLien()) { msg('Téléphone relié'); demarrer(); } });
   function demarrer() { lireLien(); if (BK.drive.relie()) { etat('…'); ouvrir(ECRANS[actuel] ? actuel : 'biblio'); proposerAppli(); } else accueilSansCle(); }
 
-  return { $, esc, msg, moi, couleur, t2, auj, dateFr, ecran, ouvrir, redessiner, liste, enAppli, ouvrirDansAppli, versions, sonDe, telecharger, lire, aller, son, L, demarrer,
+  return { $, esc, msg, moi, couleur, t2, auj, dateFr, ecran, ouvrir, redessiner, liste, enAppli, ouvrirDansAppli, scanner, versions, sonDe, telecharger, lire, aller, son, L, demarrer,
     get actuel() { return actuel; } };
 })();
