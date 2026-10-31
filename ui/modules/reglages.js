@@ -58,6 +58,9 @@ BK.module('reglages', function (page) {
           <span class="nt">Ton prénom (Yacine, Pierre, Baptiste) ou « Studio ». C'est à ce nom que partent les tâches que tu coches et les reels que tu fais avancer.</span>
           <input class="fld" id="rgNom" style="margin-top:10px" maxlength="16" placeholder="ton prénom, ou Studio" value="${BK.reglage('nomPc', '')}">
           <div class="chips" style="margin-top:8px" id="rgNoms">${['Yacine', 'Pierre', 'Baptiste', 'Studio'].map(n => `<button class="chip${BK.reglage('nomPc', '') === n ? ' on' : ''}" data-nom="${n}">${n}</button>`).join('')}</div></div>
+        <div data-rgo="pc" class="box"><span class="lb">Apparence</span>
+          <span class="nt">Le nouveau look : menu rangé (Musique, Contenus, Organisation, Show), un tapis et une couleur par section, les pins du groupe en haut, tout plus compact. Seulement sur ce PC.</span>
+          <div class="chips" style="margin-top:10px"><button class="chip${BK.look && BK.look.neuf() ? ' on' : ''}" data-look="neuf">Nouveau look</button><button class="chip${BK.look && !BK.look.neuf() ? ' on' : ''}" data-look="ancien">Ancien look</button></div></div>
         <div data-rgo="pc" class="box"><span class="lb">Taille de l'interface</span>
           <div class="knobs" style="justify-content:center"><div class="kb">
             <input id="rgZoom" type="range" min="80" max="130" step="5" value="${BK.reglage('zoom', 100)}" class="knobify" data-ticks="80,,,,,130" data-fmt="{} %"><span class="lb">Zoom</span></div></div></div>
@@ -116,8 +119,9 @@ BK.module('reglages', function (page) {
   $('#rgTuto', page).onclick = () => BK.nouveautes.tuto();
   $('#rgGuide', page).onclick = () => BK.bienvenue.ouvrir(true);
   const nomPc = n => { BK.regler('nomPc', n); $('#rgNom', page).value = n; BK.majNomPc(); $$('#rgNoms .chip', page).forEach(c => c.classList.toggle('on', c.dataset.nom === n));
-    BK.presence && BK.presence.maj(true); $('#rgMsg', page).textContent = n ? 'CET ORDINATEUR : ' + n.toUpperCase() : 'PRÊT'; };
+    BK.presence && BK.presence.maj(true); BK.look && BK.look.pins(BK.presence && BK.presence.derniers); $('#rgMsg', page).textContent = n ? 'CET ORDINATEUR : ' + n.toUpperCase() : 'PRÊT'; };
   $('#rgNom', page).onchange = e => nomPc(e.target.value.trim());
+  $$('[data-look]', page).forEach(c => c.onclick = () => BK.look && BK.look.choisir(c.dataset.look));   // le logiciel se recharge dans le look choisi
   $$('#rgNoms .chip', page).forEach(c => c.onclick = () => nomPc(c.dataset.nom));
   // ---------- TIME MACHINE : remettre des fiches comme elles étaient avant une heure donnée ----------
   const COLS_RETOUR = [

@@ -3,6 +3,11 @@
 // Pour une nouvelle version : ajouter un bloc EN HAUT de la liste. Une ligne courte par point : « Onglet : ce qui change. »
 // =====================================================================
 BK.NOUVEAUTES = [
+  { v: '0.9.91', titre: 'Nouveau look', l: [
+    ['✨', 'BEESKOT Studio fait peau neuve (au choix, sur chaque PC) : menu rangé en Musique, Contenus, Organisation, Show ; un tapis et une couleur pour chaque section ; tout plus compact ; les barres vides disparaissent.'],
+    ['👥', 'Nouveau look : les pins brodés du groupe en haut. Allumé = sur BEESKOT Studio en ce moment (survol : dans quel onglet). Le tien se clique pour changer de nom.'],
+    ['⚙', 'Réglages › Ce PC › Apparence : nouveau look ou ancien, quand tu veux. Aucune fonction n\'a été retirée.'],
+  ] },
   { v: '0.9.90', titre: '', l: [
     ['⬇', 'Mobile : ⬇ à côté d\'une version la garde sur le téléphone. Elle se lit tout de suite, même sans réseau. Réglages › Sons sur ce téléphone : la place prise, retirer, ou « Télécharger toutes les ★ » (Wi-Fi conseillé).'],
     ['✓', 'Mobile : la To-do complète. « + Ajouter une tâche » (pour qui, quand, quel morceau), toucher une tâche pour la modifier ou la supprimer, appui long puis glisser pour changer l\'ordre (le même que sur le PC).'],
@@ -552,6 +557,7 @@ BK.TUTO = [
       ['Alléger les fiches', 'Drive › 🪶 Alléger les fiches : les vieilles photos recopiées dans les fiches sont rangées dans le Drive. Une seule fois, sur un seul PC.'],
       ['Fabriquer une carte d\'accès', 'Drive › 🎫 Fabriquer la carte d\'accès → elle arrive sur le Bureau. Ne l\'envoie qu\'aux membres, en message privé.'],
       ['Cacher un onglet sur ce PC', 'Onglets → éteins l\'interrupteur de l\'onglet.'],
+      ['Changer de look', 'Ce PC › Apparence : « Nouveau look » (menu par sections, un tapis et une couleur par section, les pins du groupe) ou « Ancien look ». Seulement sur ce PC.'],
       ['Mettre BEESKOT Studio sur un téléphone', 'BEESKOT Mobile › Télécharger l\'application : scanne le QR code avec l\'appareil photo (Android). Puis Lier au téléphone › Afficher le QR code, et dans l\'appli : Scanner le QR code du PC.'] ],
     astuces: [ 'Taille de l\'interface : Ce PC › Zoom.', 'Le QR code « Lier » contient la clé du Drive : seulement aux membres du groupe.' ] },
   { o: 'Questions fréquentes', ic: '❓', quoi: 'Les questions qu\'on se pose le plus souvent.',

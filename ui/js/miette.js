@@ -290,6 +290,7 @@ BK.presence = {
     const z = document.getElementById('syQuiL'), b = document.getElementById('syQui'); if (!z) return;
     if (ecrire || Date.now() - BK.presence.dernierEnvoi > 3 * 60e3) await BK.presence.battre();
     const l = await BK.presence.lire();
+    BK.presence.derniers = l; BK.look && BK.look.pins(l);              // nouveau look : les pins du groupe
     if (!b) return;
     b.style.display = BK.drive && BK.drive.relie() ? '' : 'none';
     const moi = BK.reglage('nomPc', '') || 'ce PC';

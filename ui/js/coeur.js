@@ -7,7 +7,7 @@ const $ = (s, r = document) => r.querySelector(s);
 const $$ = (s, r = document) => [...r.querySelectorAll(s)];
 
 const BK = {
-  version: '0.9.90 bêta',
+  version: '0.9.91 bêta',
   modules: {},
   onglets: [],
   cotes: [],
@@ -46,8 +46,11 @@ const BK = {
   construireMenu() {
     const nav = $('#nav');
     let html = '';
-    for (const c of BK.cotes) {
-      const liste = BK.onglets.filter(o => o.cote === c.id && BK.ongletVisible(o));
+    // les groupes : ceux du registre (ancien look), ou les sections du nouveau look (js/look.js)
+    const neuf = BK.look && BK.look.neuf();
+    const groupes = neuf ? BK.look.groupes() : BK.cotes.map(c => ({ id: c.id, titre: c.titre, ids: BK.onglets.filter(o => o.cote === c.id).map(o => o.id) }));
+    for (const c of groupes) {
+      const liste = c.ids.map(id => BK.onglets.find(o => o.id === id)).filter(o => o && BK.ongletVisible(o) && !(neuf && BK.look.pasPret(o.id)));
       if (!liste.length) continue;
       // chaque côté (Audio, Visuel, Show, Organisation) se replie d'un clic ; l'onglet ouvert reste toujours visible
       const replie = c.titre && BK.reglage('menu.replie', {})[c.id];
@@ -155,6 +158,7 @@ const BK = {
       $('.led', t).classList.toggle('amb', on);
     });
     BK.regler('dernierOnglet', id);
+    if (BK.look) { BK.look.section(id); BK.look.pins(BK.presence && BK.presence.derniers); }   // nouveau look : tapis + couleur de la section
     if (BK.surOuvrir && BK.surOuvrir[id]) BK.surOuvrir[id]();      // un onglet peut se rafraîchir quand on l'ouvre
   },
 
@@ -280,6 +284,7 @@ const BK = {
       // les outils d'édition (Reels Audio / Photo / Vidéo, Ableton) : les autres PC n'ont pas besoin de suivre chaque réglage, seulement les exports
       if (BK.OUTILS_EDITION.includes(page.id.replace(/^p-/, '')) && !/export|upload|drive|enregistr|prêt|zipp|envoy/i.test(el.textContent)) return;
       BK.presence && BK.presence.noter(el.textContent); });
+    BK.look && BK.look.appliquer();                                   // nouveau ou ancien look (choisi sur ce PC)
     BK.construireMenu();
     BK.construirePages();
     // d'abord ce qui sert partout (Miette AI range ses réglages dans Réglages), puis l'onglet qu'on ouvre
@@ -303,6 +308,7 @@ const BK = {
     // le reste se construit en arrière-plan, quand le PC est au repos (l'Accueil d'abord, il sert souvent)
     setTimeout(() => BK.construireLeReste(['accueil', 'biblio', 'medias', 'taches', 'agenda', 'suivi', 'tournage', 'budget', ...BK.onglets.map(o => o.id)]), 1200);
     setTimeout(() => BK.bienvenue && BK.bienvenue.ouvrir(), 600);      // premier lancement : le petit guide
+    setTimeout(() => BK.look && BK.look.proposer(), 900);              // une fois par PC : nouveau look ou ancien ?
     setTimeout(BK.verifierMaj, 3000);
     BK.nouveautes && BK.nouveautes.verifier();                  // juste après une mise à jour : « Quoi de neuf ? »
     const sv = document.getElementById('stVerif'); if (sv) sv.onclick = () => BK.verifierMajBouton(sv, document.getElementById('stVerifTxt'));

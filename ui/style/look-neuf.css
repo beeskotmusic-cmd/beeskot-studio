@@ -1,0 +1,86 @@
+/* =====================================================================
+   LE NOUVEAU LOOK (Réglages › Ce PC › Apparence) — tout est sous body.look-neuf : l'ancien look n'est jamais touché.
+   Une couleur par section (Musique, Contenus, Organisation, Show) : le tapis, la fine bande, l'onglet ouvert,
+   le ruban sous le titre, les sous-onglets, le liseré des cadres, les afficheurs, une lueur douce. Le bois, le laiton,
+   les boutons et le texte restent les mêmes partout.
+   ===================================================================== */
+body.look-neuf{--s1:#ffb23e;--s2:#d2722e;--s-clair:#ffd48e;--s-lueur:rgba(255,170,60,.28);--s-halo:rgba(255,178,62,.07);--tapis:url(../look/bandeau-beeskot.jpg)}
+body.look-neuf[data-section="musique"]{--s1:#d9a93c;--s2:#a8781c;--s-clair:#ffe08a;--s-lueur:rgba(240,190,70,.3);--s-halo:rgba(217,169,60,.09);--tapis:url(../look/tapis/musique.jpg)}
+body.look-neuf[data-section="contenus"]{--s1:#e07a32;--s2:#a8432a;--s-clair:#ffc48e;--s-lueur:rgba(240,130,60,.3);--s-halo:rgba(224,122,50,.09);--tapis:url(../look/tapis/contenus.jpg)}
+body.look-neuf[data-section="orga"]{--s1:#c4485a;--s2:#7a2430;--s-clair:#ffb3b8;--s-lueur:rgba(200,60,80,.3);--s-halo:rgba(184,57,74,.1);--tapis:url(../look/tapis/organisation.jpg)}
+body.look-neuf[data-section="show"]{--s1:#a77ae0;--s2:#3c3f8a;--s-clair:#dcc4ff;--s-lueur:rgba(155,106,214,.32);--s-halo:rgba(155,106,214,.11);--tapis:url(../look/tapis/show.jpg)}
+
+/* ---------- la barre du haut : 56 px, le tapis de la section, les pins au milieu ---------- */
+.look-neuf .top{position:relative;height:56px;padding:0 16px;gap:14px;background:linear-gradient(180deg,rgba(14,7,3,.38),rgba(14,7,3,.55)),var(--tapis) left center/auto 100% repeat-x}
+.look-neuf .top>*:not(.tapis-avant){position:relative;z-index:1}
+.look-neuf .tapis-avant{position:absolute;inset:0;z-index:0;background-position:left center;background-size:auto 100%;background-repeat:repeat-x;pointer-events:none;transition:opacity .3s cubic-bezier(.23,1,.32,1)}
+.look-neuf .top .patch{height:46px;margin-top:0}
+.look-neuf .sys{margin-left:0;gap:10px}
+.look-neuf .sysgrid{display:none}
+.look-neuf .estop{width:46px;height:46px;gap:0}
+.look-neuf .top .estop{height:46px}
+.look-neuf .estop img{width:40px;height:40px}
+.look-neuf .estop .led{right:1px;top:1px;width:6px;height:6px}
+.look-neuf .pins{margin:0 auto;display:flex;align-items:center;gap:8px}
+.look-neuf .pin{position:relative;width:38px;height:38px;padding:0;border:0;background:none;cursor:default;transition:scale .12s cubic-bezier(.23,1,.32,1)}
+.look-neuf .pin img{display:block;width:100%;height:100%;filter:grayscale(.9) brightness(.55) drop-shadow(0 2px 2px rgba(0,0,0,.6));transition:filter .3s}
+.look-neuf .pin.la img{filter:drop-shadow(0 3px 3px rgba(0,0,0,.65))}
+.look-neuf .pin.la::after{content:"";position:absolute;right:0;bottom:1px;width:10px;height:10px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#d6ffd0,#4bc23a 55%,#1f5a16);box-shadow:0 0 0 2px #1d120a,0 0 6px #6be05a}
+.look-neuf .pin.moi{cursor:pointer}
+.look-neuf .pin.moi:active{scale:.94}
+.look-neuf .pin-qui{height:26px;padding:0 10px;border:0;border-radius:13px;cursor:pointer;font:12px 'Share Tech Mono',monospace;color:#241709;background:#ffb23e;box-shadow:0 2px 0 #6e4610}
+
+/* ---------- la fine bande sous le tapis : la couleur de la section ---------- */
+.look-neuf .stripe{height:6px;background:linear-gradient(90deg,var(--s1),var(--s2));box-shadow:0 2px 4px rgba(0,0,0,.45)}
+
+/* ---------- l'espace de travail : plus de place pour la page ---------- */
+.look-neuf .rowm{gap:12px;padding:10px 12px 12px}
+.look-neuf .side{width:204px}
+.look-neuf .mainc{gap:10px;background:radial-gradient(120% 50% at 70% 0%,var(--s-halo),transparent 60%)}
+
+/* ---------- le menu : plus court, l'onglet ouvert et son groupe à la couleur de la section ---------- */
+.look-neuf #nav{gap:4px!important;padding:10px 10px 10px!important}
+.look-neuf #nav .tab{min-height:36px;padding-top:4px;padding-bottom:4px}
+.look-neuf #nav .tab.mini{height:30px;min-height:30px}
+.look-neuf #nav .cote{padding:10px 4px 2px!important;font-size:10.5px!important}
+.look-neuf #nav .cote.on{color:var(--s-clair)}
+.look-neuf #nav .cote.on::after{background:linear-gradient(90deg,var(--s1),var(--s2))!important;opacity:1}
+.look-neuf #nav .cote-groupe{gap:4px}
+.look-neuf #nav .tab.on{background:radial-gradient(ellipse at 50% 50%,var(--s-lueur),transparent 75%),linear-gradient(180deg,#3a2a1a,#1b130b)!important;box-shadow:0 0 0 1px var(--s1),inset 0 2px 5px rgba(0,0,0,.35)!important}
+.look-neuf #nav .tab.on .lab{color:var(--s-clair);text-shadow:0 0 8px var(--s-lueur),0 1px 0 rgba(0,0,0,.5)}
+
+/* ---------- l'en-tête de page : 48 px, le ruban sous l'étiquette à la couleur de la section ---------- */
+.look-neuf .hdr{height:48px;padding:0 18px 3px;gap:14px}
+.look-neuf .hdr::after{height:3px;background:linear-gradient(90deg,var(--s1),var(--s2))}
+.look-neuf .h1{font-size:22px!important;box-shadow:0 2px 4px rgba(0,0,0,.5),inset 0 -3px 0 var(--s1)}
+.look-neuf .hdr .sub{font-size:9px;line-height:1.35}
+.look-neuf .hdr .right{gap:12px}
+.look-neuf .hdr .right .vfd{font-size:12px;color:var(--s-clair)}
+.look-neuf .hdr .screw{display:none}
+
+/* ---------- la barre du bas : 44 px, et cachée quand elle n'a aucun bouton (son texte reste lu pour « qui fait quoi ») ---------- */
+.look-neuf .abar{height:44px;padding:0 14px;gap:10px}
+.look-neuf .abar .vfd{font-size:11px}
+.look-neuf .pane.abar:not(:has(button,input,select,a,.knob,label)){position:absolute!important;width:1px!important;height:1px!important;overflow:hidden!important;clip-path:inset(50%);padding:0!important;opacity:0;pointer-events:none}
+
+/* ---------- les boutons : même style, moins hauts ---------- */
+.look-neuf .btn,.look-neuf .chip,.look-neuf .dec{min-height:34px;letter-spacing:.08em}
+.look-neuf .btn.pri{min-height:40px;padding:0 18px}
+.look-neuf .btn.sm{min-height:28px}
+.look-neuf .btn.xs{min-height:24px}
+.look-neuf .seg button{min-height:30px}
+.look-neuf .seg button.on,.look-neuf .chip.on{background:linear-gradient(180deg,var(--s1),var(--s2))!important;color:#fff6e6!important;box-shadow:0 0 0 1px rgba(255,255,255,.2),inset 0 2px 5px rgba(0,0,0,.3)!important}
+
+/* ---------- les cadres : un liseré très léger à la couleur de la section ---------- */
+.look-neuf #pages .box{box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--s1) 22%,rgba(239,230,210,.14))}
+
+/* ---------- la fenêtre « nouveau look ou ancien ? » ---------- */
+.look-choix{width:640px;max-width:calc(100vw - 40px);align-items:stretch;gap:14px}
+.look-cartes{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.look-carte{display:flex;flex-direction:column;gap:6px;padding:16px;border:0;border-radius:10px;text-align:left;cursor:pointer;font-family:inherit;color:var(--ink);background:rgba(0,0,0,.3);box-shadow:inset 0 0 0 1px rgba(168,135,78,.5);transition:scale .12s cubic-bezier(.23,1,.32,1)}
+.look-carte b{font-size:15px}
+.look-carte .nt{margin:0}
+.look-carte.on{background:rgba(255,178,62,.1);box-shadow:inset 0 0 0 2px #ffb23e,0 0 22px rgba(255,178,62,.16)}
+.look-carte:active{scale:.98}
+
+@media (prefers-reduced-motion:reduce){.look-neuf .tapis-avant,.look-neuf .pin img{transition:none}}
