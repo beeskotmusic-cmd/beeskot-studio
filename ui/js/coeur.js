@@ -7,7 +7,7 @@ const $ = (s, r = document) => r.querySelector(s);
 const $$ = (s, r = document) => [...r.querySelectorAll(s)];
 
 const BK = {
-  version: '0.9.91 bêta',
+  version: '0.9.92 bêta',
   modules: {},
   onglets: [],
   cotes: [],
@@ -285,6 +285,7 @@ const BK = {
       if (BK.OUTILS_EDITION.includes(page.id.replace(/^p-/, '')) && !/export|upload|drive|enregistr|prêt|zipp|envoy/i.test(el.textContent)) return;
       BK.presence && BK.presence.noter(el.textContent); });
     BK.look && BK.look.appliquer();                                   // nouveau ou ancien look (choisi sur ce PC)
+    BK.fil && BK.fil.installer();                                     // nouveau look : la cloche du fil du groupe
     BK.construireMenu();
     BK.construirePages();
     // d'abord ce qui sert partout (Miette AI range ses réglages dans Réglages), puis l'onglet qu'on ouvre

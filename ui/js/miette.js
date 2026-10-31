@@ -360,7 +360,7 @@ BK.synchro = {
       veille:       ['agendaRecharger'],
       config:       ['mediasTags', 'agendaRecharger'],
       notesmix:     ['ecouteRecharger', 'biblioRecharger'],      // étiquettes, dispos du Calendrier…
-      activite:     ['accueilDerniere', 'journalMaj'],
+      activite:     ['accueilDerniere', 'journalMaj', 'filMaj'],
       notesvid:     ['notesvidRecharger'],
       partages:     ['externeRecharger'],
       renforts:     ['veilleurMaj'],

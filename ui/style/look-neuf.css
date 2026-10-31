@@ -84,3 +84,31 @@ body.look-neuf[data-section="show"]{--s1:#a77ae0;--s2:#3c3f8a;--s-clair:#dcc4ff;
 .look-carte:active{scale:.98}
 
 @media (prefers-reduced-motion:reduce){.look-neuf .tapis-avant,.look-neuf .pin img{transition:none}}
+
+/* ---------- le fil du groupe : la cloche, le tiroir, l'Accueil ---------- */
+.fil-cloche{position:relative;width:38px;height:38px;display:grid;place-items:center;border:0;border-radius:8px;cursor:pointer;color:#efe6d2;background:rgba(0,0,0,.38);box-shadow:0 0 0 1px rgba(168,135,78,.55);transition:scale .12s cubic-bezier(.23,1,.32,1)}
+.fil-cloche:active{scale:.94}
+.fil-cloche.on{color:#fff2dc;background:linear-gradient(180deg,var(--s1),var(--s2));box-shadow:0 0 0 1px rgba(255,255,255,.25)}
+.fil-badge{position:absolute;top:-5px;right:-6px;min-width:18px;height:18px;padding:0 4px;border-radius:9px;display:grid;place-items:center;font:700 11px Jost,sans-serif;color:#1d120a;background:#ffb23e;box-shadow:0 0 0 2px #1d120a}
+.fil-badge[hidden]{display:none}
+.look-neuf #acDernier{display:none!important}
+.fil-tiroir{position:fixed;top:62px;right:0;bottom:0;z-index:60;width:400px;max-width:100vw;display:flex;flex-direction:column;gap:8px;padding:14px;overflow:auto;
+  background:linear-gradient(180deg,#22180f,#150e08);box-shadow:-10px 0 30px rgba(0,0,0,.6),inset 1px 0 0 rgba(168,135,78,.6);animation:fil-entre .28s cubic-bezier(.32,.72,0,1)}
+@keyframes fil-entre{from{transform:translateX(100%)}to{transform:none}}
+.fil-tete{display:flex;align-items:center;gap:8px}
+.fil-tete .dymo{font-size:18px!important;padding:6px 10px 4px;transform:rotate(-.8deg);margin-right:auto}
+.fil-la{display:flex;flex-wrap:wrap;gap:6px}
+.fil-p{padding:3px 9px;border-radius:11px;font:500 11.5px Jost,sans-serif;color:#bfae92;background:rgba(0,0,0,.3)}
+.fil-p.on{color:#d8f5d2;background:rgba(123,211,137,.14);box-shadow:inset 0 0 0 1px rgba(123,211,137,.5)}
+.fil-corps{display:flex;flex-direction:column;gap:5px}
+.fil-jour{align-self:flex-start;margin-top:6px;padding:5px 9px 3px;font:14px 'Impact Label',sans-serif;text-transform:uppercase;color:#f4f1e8;background:#111;transform:rotate(-.6deg)}
+.fil-l{display:flex;gap:9px;align-items:flex-start;width:100%;padding:7px 9px;border:0;border-radius:6px;text-align:left;cursor:pointer;font:500 12.5px/1.4 Jost,sans-serif;color:#efe6d2;background:rgba(0,0,0,.22);transition:background .15s,scale .12s cubic-bezier(.23,1,.32,1)}
+.fil-l:hover{background:rgba(255,178,62,.1)}
+.fil-l:active{scale:.985}
+.fil-l.neuf{background:rgba(255,178,62,.09);box-shadow:inset 3px 0 0 var(--s1)}
+.fil-l i{color:#d9c7a6}
+.fil-h{flex:none;width:40px;font:12px 'Share Tech Mono',monospace;color:#bfae92;padding-top:1px}
+.fil-pied{margin-top:4px}
+.fil-n{margin-left:8px;padding:2px 7px;border-radius:9px;font:700 10px Jost,sans-serif;color:#1d120a;background:#ffb23e}
+.ac-fil .fil-corps{max-height:340px;overflow:auto}
+@media (prefers-reduced-motion:reduce){.fil-tiroir{animation:none}}

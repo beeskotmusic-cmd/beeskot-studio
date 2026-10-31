@@ -3,6 +3,10 @@
 // Pour une nouvelle version : ajouter un bloc EN HAUT de la liste. Une ligne courte par point : « Onglet : ce qui change. »
 // =====================================================================
 BK.NOUVEAUTES = [
+  { v: '0.9.92', titre: '', l: [
+    ['🔔', 'Nouveau look : la cloche en haut. Son badge compte ce que les autres ont fait depuis ta dernière visite ; elle ouvre le fil du groupe (qui est là, puis tout, jour par jour). Un clic sur une ligne t\'emmène au bon endroit.'],
+    ['🏠', 'Nouveau look : l\'Accueil montre aussi les dernières lignes du fil du groupe.'],
+  ] },
   { v: '0.9.91', titre: 'Nouveau look', l: [
     ['✨', 'BEESKOT Studio fait peau neuve (au choix, sur chaque PC) : menu rangé en Musique, Contenus, Organisation, Show ; un tapis et une couleur pour chaque section ; tout plus compact ; les barres vides disparaissent.'],
     ['👥', 'Nouveau look : les pins brodés du groupe en haut. Allumé = sur BEESKOT Studio en ce moment (survol : dans quel onglet). Le tien se clique pour changer de nom.'],

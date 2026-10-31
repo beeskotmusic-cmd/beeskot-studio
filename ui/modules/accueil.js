@@ -108,6 +108,7 @@ BK.module('accueil', function (page) {
         </section>
         <section class="pane reg" aria-label="Côté"><span class="ptitle">② En bref</span>
           ${toutFait ? '' : `<div class="box"><span class="lb">Pour démarrer</span><div class="surv">${d.demarrer.map(x => `<div class="surv-l"><span class="led ${x.ok ? 'grn' : ''}"></span><span class="nt" style="margin:0;flex:1">${x.txt}</span>${x.ok ? '' : `<button class="btn xs" data-va="${x.va}">Y aller</button>`}</div>`).join('')}</div></div>`}
+          ${BK.look && BK.look.neuf() ? '<div class="box ac-fil" id="acFil"></div>' : ''}
           <div class="box"><span class="lb">Alertes</span><div class="surv">${d.alertes.length ? d.alertes.map(a => `<div class="surv-l"><span class="led ${a.led}"></span><span class="nt" style="margin:0">${esc(a.txt)}</span></div>`).join('') : '<span class="nt">Tout va bien.</span>'}</div></div>
           <div class="box grow"><span class="lb">Avancement</span><div class="avances">${d.morceaux.length ? d.morceaux.map(barre).join('') : '<span class="nt">Aucun morceau en chantier.</span>'}</div></div>
         </section>
@@ -116,6 +117,7 @@ BK.module('accueil', function (page) {
         <span class="vfd">${new Date().toLocaleDateString('fr-CA', { weekday: 'long', day: 'numeric', month: 'long' }).toUpperCase()}</span>
         <div class="right"><button class="btn" data-va="agenda">Calendrier</button><button class="btn pri" data-va="biblio">Bibliothèque ▶</button></div></div>`;
     $$('[data-va]', page).forEach(b => b.onclick = e => { e.preventDefault(); BK.ouvrir(b.dataset.va); });
+    BK.fil && BK.fil.accueil();                                        // nouveau look : le fil du groupe
     resume();
     $$('.af-l .ta-case', page).forEach(b => b.onclick = async e => {
       e.stopPropagation(); const x = d.afaire.find(t => t.id === b.dataset.id); if (!x || x.fait) return;
