@@ -46,6 +46,7 @@ function detail(tr, rs) {
   return `<div class="mo-tour-c">
     ${tr.idee ? `<p class="mo-idee">« ${esc(tr.idee)} »</p>` : ''}
     <button class="btn sm" data-pdf="${esc(tr.id)}">Ouvrir la fiche PDF</button>
+    ${itineraire(tr, rs)}
     <span class="mo-eng">Les reels <em>${rs.length}</em></span>
     ${rs.map(r => `<div class="mo-reel${reelOuvert === r.id ? ' ouvert' : ''}">
       <button class="mo-reel-t" data-reel="${esc(r.id)}"><b>${esc(r.titre || 'Reel')}</b><em>${esc([r.type || 'Reel', r.morceau, pasDe(r) && '♪ ' + t2(pasDe(r).debut) + ' → ' + t2(pasDe(r).fin), (r.plans || []).length + ' plan(s)'].filter(Boolean).join(' · '))}</em><span class="mo-pli">${reelOuvert === r.id ? '▴' : '▾'}</span></button>
@@ -53,6 +54,17 @@ function detail(tr, rs) {
     ${ten}
     ${tr.materiel ? `<span class="mo-eng">Matériel</span><p class="mo-texte">${esc(tr.materiel)}</p>` : ''}
     ${tr.notes ? `<span class="mo-eng">Notes</span><p class="mo-texte">${esc(tr.notes)}</p>` : ''}</div>`;
+}
+// l'itinéraire de la journée (calculé sur le PC) : l'ordre des lieux + le bouton « Google Maps » (le GPS du téléphone)
+function itineraire(tr, rs) {
+  const I = BK.itineraire; if (!I) return ''; const v = I.vue(tr, rs);
+  if (v.vide) return '';
+  if (v.aCalculer || !v.etapes.length) return `<span class="mo-eng">Itinéraire</span><p class="mo-nt">${v.n || v.hors.length} lieu(x) dans le découpage : l'itinéraire se calcule sur le PC (Tournages › le tournage › « Calculer l'itinéraire »).</p>`;
+  return `<span class="mo-eng">Itinéraire du jour <em>${v.etapes.length} arrêt${v.etapes.length > 1 ? 's' : ''} · ≈ ${I.kmTxt(v.km)}</em></span>
+    ${v.perime ? '<p class="mo-nt mo-iti-av">Les lieux ont changé depuis le calcul : recalcule sur le PC.</p>' : ''}
+    <ol class="mo-iti">${v.etapes.map(e => `<li><span class="mo-iti-n">${e.n}</span><div><b>${esc(e.lieu)}</b><em>${esc(I.plansTxt(e.plans))}${e.n > 1 ? ' · ' + I.kmTxt(e.km) : ''}</em></div></li>`).join('')}</ol>
+    ${v.hors.length ? `<p class="mo-nt mo-iti-av">À placer à la main : ${v.hors.map(a => esc(a.lieu)).join(' · ')}</p>` : ''}
+    <div class="mo-chips">${v.liens.map((l, i) => `<a class="btn sm${i ? '' : ' pri'}" href="${esc(l.url)}" target="_blank" rel="noopener">${esc(l.titre)}</a>`).join('')}</div>`;
 }
 // un reel déplié
 function reel(r, seul) {
@@ -65,7 +77,7 @@ function reel(r, seul) {
     ${mood.length ? `<span class="mo-eng">Moodboard <em>${mood.length}</em></span><div class="mo-mood">${mood.map(u => `<button class="mo-img" data-zoom="${esc(u)}"${BK.img.bg(u)}></button>`).join('')}</div>` : ''}
     ${(r.references || []).length ? `<span class="mo-eng">Références</span><div class="mo-chips">${r.references.map(x => `<a class="chip" href="${esc(x.url)}" target="_blank" rel="noopener">${esc(x.note || x.url.replace(/^https?:\/\/(www\.)?/, '').slice(0, 28))}</a>`).join('')}</div>` : ''}
     ${(r.plans || []).length ? `<span class="mo-eng">Découpage <em>${r.plans.length} plan(s)</em></span>` + r.plans.map((pl, i) => `<div class="mo-plan">
-        <span class="mo-plan-n">${i + 1}</span><div><b>${esc(pl.cadrage || 'Plan')}</b>${pl.duree ? ` <em>${esc(pl.duree)}</em>` : ''}<p>${esc(pl.action || '')}</p>${pl.notes ? `<p class="mo-nt">${esc(pl.notes)}</p>` : ''}
+        <span class="mo-plan-n">${i + 1}</span><div><b>${esc(pl.cadrage || 'Plan')}</b>${pl.duree ? ` <em>${esc(pl.duree)}</em>` : ''}<p>${esc(pl.action || '')}</p>${pl.notes ? `<p class="mo-nt">${esc(pl.notes)}</p>` : ''}${pl.lieu ? `<p class="mo-lieu">${esc(pl.lieu)}</p>` : ''}
         ${(pl.imgs || []).length ? `<div class="mo-mood petit">${pl.imgs.map(u => `<button class="mo-img" data-zoom="${esc(u)}"${BK.img.bg(u)}></button>`).join('')}</div>` : ''}</div></div>`).join('') : ''}
     ${tenues(r, 'Tenues · ce reel')}
     ${seul && r.materiel ? `<span class="mo-eng">Matériel</span><p class="mo-texte">${esc(r.materiel)}</p>` : ''}

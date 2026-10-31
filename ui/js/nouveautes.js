@@ -3,6 +3,10 @@
 // Pour une nouvelle version : ajouter un bloc EN HAUT de la liste. Une ligne courte par point : « Onglet : ce qui change. »
 // =====================================================================
 BK.NOUVEAUTES = [
+  { v: '0.9.88', titre: '', l: [
+    ['🗺', 'Tournages : un « Lieu » (une adresse) par plan dans le découpage. Dans le tournage, « Itinéraire du jour » trouve l\'ordre le plus court pour tout tourner sans repasser au même endroit (départ facultatif), avec un bouton qui ouvre tout le trajet dans Google Maps. Merci Pierre.'],
+    ['🗺', 'L\'itinéraire est aussi dans le PDF du tournage et dans l\'appli mobile (avec le bouton GPS).'],
+  ] },
   { v: '0.9.87', titre: '', l: [
     ['📱', 'Réglages › BEESKOT Mobile : un onglet à part. « Télécharger l\'application » (QR code + bouton) et « Lier au téléphone » (QR code vert, ou « Copier le lien »).'],
     ['📱', 'Mobile : dans l\'appli, « Scanner le QR code du PC » ouvre la caméra et relie le téléphone tout seul. Plus besoin de passer par Chrome. (Réinstalle l\'appli une fois : elle demande la caméra.)'],
@@ -467,6 +471,7 @@ BK.TUTO = [
       ['Storyline - Mood (le grand board)', 'Sous-onglet en haut. Choisis la chanson (ou Général), puis « ＋ Ajouter » : média, lien externe, texte, rond, rectangle ou flèche. Clic droit sur le fond = ajouter à cet endroit. Glisse les éléments où tu veux ; coin orange = agrandir ; double-clic = écrire. Clique un élément : la barre au-dessus change la couleur, la taille du texte, le gras, plein / contour, l\'épaisseur des flèches ; ⇡ met devant, ⧉ duplique, ✕ retire. Glisse le fond pour te déplacer, molette pour zoomer, « Tout voir » pour tout recadrer. Mets plusieurs éléments dans un rond ou un rectangle : ils bougent avec lui. Tu peux aussi glisser des fichiers du PC sur le board. Tout le groupe voit le même board.'],
       ['Écouter la chanson et poser des marqueurs', 'Sur le board d\'une chanson, la ligne « Son » : choisis la version, ▶ pour écouter (Espace aussi). Au bon moment, 📍 Marquer (ou touche M) : un marqueur avec le temps arrive sur le board, écris son nom puis Entrée. Clique le ▶ du marqueur (ou son trait rouge sur la barre du son) pour réécouter à partir de là. Relie-le à une image avec une flèche.'],
       ['Un tournage, ses reels', 'Un tournage = une journée (date, heure, lieu : il va dans le Calendrier). Clique son affiche : tu vois ses reels. Chaque reel se déplie (infos, moodboard, découpage, tenues, matériel). Glisse un reel sur l\'affiche d\'un tournage pour l\'y mettre.'],
+      ['Préparer l\'itinéraire de la journée', 'Découpage : écris le « Lieu » (une adresse) de chaque plan. Dans le tournage, bloc « Itinéraire du jour » : un départ si tu veux, puis « Calculer l\'itinéraire ». Il range les lieux dans l\'ordre le plus court (distances à vol d\'oiseau) et « Ouvrir dans Google Maps » donne la vraie route. À refaire (« Recalculer ») si un lieu change. Visible aussi dans le PDF et sur le téléphone.'],
       ['Les tenues', 'Glisse une photo (« Médias à ranger », Assets, ou une autre tenue) sur la ligne d\'un membre : elle est étiquetée tenue + ce membre + le morceau. Dans le tournage = pour tous les reels ; dans un reel = rien que pour lui. Une même photo peut aller à Pierre ET à Yacine.'],
       ['Ce qui est déjà dans Médias', 'Les photos déjà étiquetées pour ce tournage ou ce reel arrivent en vert à leur place : ✓ pour valider.'],
       ['Envoyer dans les Reels', '« → Reels » sur un reel : la carte est créée dans l\'onglet Reels, déjà reliée. « Tournage fini » : ses reels passent à « Tourné ».'],

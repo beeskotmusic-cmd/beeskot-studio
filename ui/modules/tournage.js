@@ -171,13 +171,15 @@ BK.module('tournage', function (page) {
           <div class="to-refs-add"><input class="fld" id="toRefUrl" placeholder="Colle un lien (https://…)"><input class="fld" id="toRefNote" placeholder="En un mot : pourquoi (facultatif)"><button class="btn sm" id="toRefAdd">+ Ajouter</button></div></div></div>
       <div class="box"><div class="ligne-titre"><span class="lb">Découpage</span>
           <button class="btn xs miette-aide" id="toRenfort" style="margin-left:auto" title="Miette propose un découpage plan par plan">Proposer</button></div>
+        <datalist id="toLieux">${[...new Set(T.liste.filter(x => x.id === t.id || (t.parent && x.parent === t.parent) || x.id === t.parent).flatMap(x => (x.plans || []).map(p => BK.itineraire.lieuDe(p))).filter(Boolean))].map(l => `<option value="${esc(l)}">`).join('')}</datalist>
         <table class="to-plans"><colgroup><col style="width:28px"><col style="width:${largeurCol('cadrage')}px"><col><col style="width:${largeurCol('duree')}px"><col style="width:${largeurCol('notes')}px"><col style="width:${largeurCol('imgs')}px"><col style="width:76px"></colgroup>
           <thead><tr><th>#</th><th>Cadrage<i class="to-rz" data-rz="cadrage" title="Tirer pour changer la largeur"></i></th><th>Ce qu'on voit / ce qui se passe</th><th>Durée<i class="to-rz" data-rz="duree" title="Tirer pour changer la largeur"></i></th><th>Notes<i class="to-rz" data-rz="notes" title="Tirer pour changer la largeur"></i></th><th>Images<i class="to-rz" data-rz="imgs" title="Tirer pour changer la largeur"></i></th><th></th></tr></thead>
           <tbody>${t.plans.map((p, i) => `<tr data-i="${i}"><td class="mono">${i + 1}${pastille(p.par)}</td>
             <td><select class="fld" data-p="cadrage"><option value="">—</option>${CADRAGES.map(c => `<option${p.cadrage === c ? ' selected' : ''}>${c}</option>`).join('')}</select></td>
             <td>${p.reel ? `<div class="to-reel"><b>${esc(p.reel)}</b><span>${esc([p.audio, p.horaire, p.lieu, p.camera ? '🎥 cameraman' : ''].filter(Boolean).join(' · '))}</span><button class="btn xs" data-audio="${i}">→ Audio</button></div>` : ''}<textarea class="fld auto" rows="1" data-p="action">${esc(p.action)}</textarea></td>
             <td><input class="fld court" data-p="duree" value="${esc(p.duree)}" placeholder="5 s"></td>
-            <td><textarea class="fld auto" rows="1" data-p="notes">${esc(p.notes)}</textarea></td>
+            <td><textarea class="fld auto" rows="1" data-p="notes">${esc(p.notes)}</textarea>
+              <input class="fld lieu-plan" data-p="lieu" list="toLieux" value="${esc(p.lieu || '')}" placeholder="${BK.itineraire.lieuDe(Object.assign({}, p, { lieu: '' })) ? 'Lieu · repéré dans les notes : ' + esc(BK.itineraire.lieuDe(Object.assign({}, p, { lieu: '' }))) : 'Lieu (adresse du plan)'}" autocomplete="off"></td>
             <td class="to-pim" data-drop="${i}">${(p.imgs || []).map((u, k) => { const n = t.moodboard.indexOf(u) + 1; return `<span class="to-vig"${BK.img.bg(u)} data-vu="${i}|${k}" title="Agrandir">${n ? `<b class="to-n">${n}</b>` : ''}<button class="md-x" data-vx="${i}|${k}" title="Détacher de ce plan">✕</button></span>`; }).join('')}<button class="btn xs to-pim-plus" data-ia="${i}" title="Ajouter une image à ce plan (ou glisse-la ici depuis le moodboard)">＋</button></td>
             <td class="to-btns"><button class="btn xs" data-haut="${i}" title="Monter">↑</button><button class="btn xs" data-px="${i}" title="Retirer">✕</button></td></tr>`).join('')}</tbody></table>
         <button class="btn xs" id="toPlan" style="margin-top:8px">+ Ajouter un plan</button></div>
@@ -683,6 +685,7 @@ BK.module('tournage', function (page) {
             <span class="to-c-btns">${(T.reels || []).some(x => x.tournage === r.id) ? `<button class="btn xs" data-voir="${r.id}">Voir le reel</button>` : `<button class="btn xs" data-reel="${r.id}" title="Crée la carte dans l'onglet Reels">→ Reels</button>`}
               <button class="btn xs" data-sortir="${r.id}" title="Le sortir de ce tournage">↩</button><button class="btn xs tt-pli" data-plir="${r.id}">${r.id === ouvert ? '▾ Replier' : '▸ Déplier'}</button></span></div>
           ${r.id === ouvert ? '<div class="tt-reel-corps" id="toReelCorps"></div>' : ''}</div>`).join('') || '<span class="nt">Pas encore de reel : « + Ajouter un reel », ou glisse un reel sur ce tournage depuis la liste des tournages.</span>'}</div>
+      ${boiteItineraire(tr, rs)}
       ${zoneTenues(tr, 'Tenues · pour tous les reels du tournage')}
       ${zoneAssets(tr)}
       <div class="box"><span class="lb">Matériel et notes · tout le tournage</span>
@@ -699,6 +702,7 @@ BK.module('tournage', function (page) {
       if (e.type === 'change' && /titre|date|heure|lieu|journee/.test(c.dataset.tc)) setTimeout(() => synchroTour(tr), 900);
       if (e.type === 'change' && c.dataset.tc === 'journee') { rendreListe(); rendreFiche(); }
       if (e.type === 'change' && c.dataset.tc === 'date' && dateAvant !== tr.date) dateAvant = tr.date; });
+    brancherItineraire(z, tr, rs);
     $('#toNvReel').onclick = async () => { const r = await BK.db.ecrire('tournages', { niveau: 'reel', parent: tr.id, ordre: rs.length, titre: 'Nouveau reel', type: 'Reel', morceau: '', idee: '', moodboard: [], plans: [], tenues: {}, materiel: '', notes: '' });
       T.neufs.add(r.id); T.liste.push(r); T.courant = r; await synchroTour(tr); rendreFiche(); const c = $('#toReelCorps [data-c="titre"]'); c && (c.focus(), c.select()); };
     $$('[data-plir]', z).forEach(b => b.onclick = e => { e.stopPropagation(); T.courant = T.courant && T.courant.id === b.dataset.plir ? null : T.liste.find(x => x.id === b.dataset.plir); rendreFiche(); });
@@ -712,6 +716,29 @@ BK.module('tournage', function (page) {
     glisser(z);
     if (ouvert) { const c = $('#toReelCorps'); c.innerHTML = corpsFiche(T.courant, true); T.zone = c; brancher(T.courant); brancherPas(c, T.courant); T.zone = null; brancherMedias(c); glisser(c); modeLecture(c, T.courant); }
     modeLecture(z, tr, '#toReelCorps');
+  }
+  // ---------- l'itinéraire de la journée : l'ordre le plus court pour faire tous les plans (voir js/itineraire.js) ----------
+  function boiteItineraire(tr, rs) {
+    const v = BK.itineraire.vue(tr, rs), I = BK.itineraire;
+    const corps = v.vide ? `<span class="nt">Écris le <b>Lieu</b> de chaque plan dans le découpage (une adresse suffit, ou la ville + le nom du lieu). Le logiciel trouve l'ordre le plus court pour tout tourner sans repasser au même endroit.</span>`
+      : v.aCalculer ? `<span class="nt">${v.n} lieu${v.n > 1 ? 'x' : ''} dans le découpage${v.sans ? ` · ${v.sans} plan${v.sans > 1 ? 's' : ''} sans lieu` : ''}. Clique « Calculer l'itinéraire ».</span>`
+      : `${v.perime ? '<span class="nt tt-iti-av">Les lieux ou le départ ont changé depuis le dernier calcul : clique « Recalculer ».</span>' : ''}
+        ${v.etapes.length ? `<ol class="tt-iti">${v.etapes.map(e => `<li><span class="tt-iti-n">${e.n}</span><div><b>${esc(e.lieu)}</b><span class="nt">${esc(I.plansTxt(e.plans))}${e.n > 1 || tr.itineraire.dep ? ' · ' + I.kmTxt(e.km) + (e.n > 1 ? ' depuis l\'arrêt précédent' : ' depuis le départ') : ''}</span></div></li>`).join('')}</ol>` : ''}
+        ${v.hors.length ? `<div class="tt-iti-ko"><span class="eng">Pas placés sur la carte</span>${v.hors.map(a => `<span class="nt"><b>${esc(a.lieu)}</b> · ${esc(I.plansTxt(a.plans))} : précise l'adresse (rue, ville) puis « Recalculer ».</span>`).join('')}</div>` : ''}
+        ${v.etapes.length ? `<span class="nt">${v.etapes.length} arrêt${v.etapes.length > 1 ? 's' : ''} · environ ${I.kmTxt(v.km)} à vol d'oiseau (Google Maps calcule la vraie route).</span>` : ''}
+        <div class="chips">${v.liens.map((l, i) => `<button class="btn sm${i ? '' : ' pri'}" data-itiurl="${esc(l.url)}">${esc(l.titre)}</button>`).join('')}</div>`;
+    return `<div class="box tt-itin" data-lect="1"><div class="ligne-titre"><span class="lb">Itinéraire du jour</span>
+        <button class="btn xs pri" id="toItiCalc" style="margin-left:auto"${v.vide ? ' disabled' : ''}>${tr.itineraire ? 'Recalculer' : 'Calculer l\'itinéraire'}</button></div>
+      <label class="large"><span class="eng">Point de départ (facultatif)</span><input class="fld" data-tc="depart" value="${esc(tr.depart || '')}" placeholder="ex. Studio BEESKOT, 1234 rue Saint-Denis, Montréal" autocomplete="off"></label>
+      ${corps}</div>`;
+  }
+  function brancherItineraire(z, tr, rs) {
+    $$('[data-itiurl]', z).forEach(b => b.onclick = () => BK.ouvrirLien(b.dataset.itiurl));
+    const c = $('#toItiCalc', z); if (!c) return;
+    c.onclick = async () => { c.disabled = true; const txt = c.textContent;
+      try { await BK.itineraire.calculer(tr, rs, (i, n, l) => { c.textContent = `Je cherche ${i}/${n}…`; msg('Recherche : ' + l); });
+        await BK.db.ecrire('tournages', tr); const v = BK.itineraire.vue(tr, rs); msg(v.etapes.length + ' arrêt(s) placé(s)' + (v.hors.length ? ' · ' + v.hors.length + ' adresse(s) introuvable(s)' : '')); rendreFiche(); }
+      catch (e) { console.warn(e); c.disabled = false; c.textContent = txt; msg('Itinéraire impossible : ' + (e.message || e)); } };
   }
   // les boutons des zones médias (tenues, assets, propositions vertes)
   function brancherMedias(z) {

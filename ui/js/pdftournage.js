@@ -133,8 +133,21 @@ BK.pdfTournage = async function ({ t, reels, membres, dateFr, mode }) {
     if (x.materiel) { titre('Matériel', sous); para(x.materiel); }
     if (x.notes) { titre('Notes', sous); para(x.notes); } };
 
+  // ----- l'itinéraire de la journée (seulement pour un tournage, quand il a été calculé sur le PC) -----
+  const itineraire = () => {
+    if (!BK.itineraire || t.niveau !== 'tournage') return; const v = BK.itineraire.vue(t, reels || []); if (!v.etapes.length) return;
+    titre('Itinéraire du jour', false, 30 + Math.min(v.etapes.length, 6) * 11);
+    if (v.depart) para('Départ : ' + v.depart, { pt: 9.5, coul: GRIS, apres: 1 });
+    v.etapes.forEach(e => { besoin(12); police(10, true); doc.setFillColor(...ROUGE); doc.circle(M + 3.2, y + 3, 3.2, 'F'); doc.setTextColor(255, 255, 255); doc.text(String(e.n), M + 3.2, y + 4.3, { align: 'center' });
+      police(10, true); doc.text(net(e.lieu), M + 9, y + 3.6);
+      police(8.8, false, GRIS); doc.text(net(BK.itineraire.plansTxt(e.plans) + (e.n > 1 || (t.itineraire && t.itineraire.dep) ? '  ·  ' + BK.itineraire.kmTxt(e.km) : '')), M + 9, y + 8); y += 11.5; });
+    v.hors.forEach(a => para('A placer : ' + a.lieu + ' (' + BK.itineraire.plansTxt(a.plans) + ')', { pt: 9, coul: ROUGE, apres: 0.6 }));
+    police(8.5, false, GRIS); besoin(6); doc.text(net(v.etapes.length + ' arret(s), environ ' + BK.itineraire.kmTxt(v.km) + ' a vol d\'oiseau'), M, y + 3); y += 5;
+    v.liens.forEach(l => { besoin(6); police(8.5, true, ROUGE); doc.textWithLink(net(l.titre), M, y + 3, { url: l.url }); y += 5; }); y += 2; };
+
   entete(t);
   if ((reels || []).length) { titre('Au programme'); reels.forEach((r, i) => para(`${i + 1}.  ${r.titre || 'Reel'}${r.morceau ? '  ·  ' + r.morceau : ''}`, { apres: 0.6 })); y += 2; }
+  itineraire();
   corps(t);
   (reels || []).forEach((r, i) => { doc.addPage(); y = M;
     police(13, true, ROUGE); doc.text(net(/^reel\b/i.test(r.titre || '') ? r.titre : 'Reel ' + (i + 1) + ' · ' + (r.titre || 'Sans titre')).toUpperCase(), M, y + 5, { charSpace: 0.4 }); y += 9;
