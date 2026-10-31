@@ -36,6 +36,8 @@ jobs:
         run: |
           if [ -n "$APK_CLE" ]; then
             # le secret peut avoir ramassé des retours à la ligne ou des espaces au collage : on nettoie avant de décoder
+            # diagnostic sans rien dévoiler : longueur, nombre de « | », caractères hors base64
+            printf 'secret : %s caractères, %s séparateur(s) |, %s caractère(s) hors alphabet\n' "${#APK_CLE}" "$(printf '%s' "$APK_CLE" | tr -cd '|' | wc -c)" "$(printf '%s' "${APK_CLE#*|}" | tr -d 'A-Za-z0-9+/=\r\n ' | wc -c)"
             MDP=$(printf '%s' "${APK_CLE%%|*}" | tr -d '\r\n')
             printf '%s' "${APK_CLE#*|}" | tr -d '\r\n[:space:]' | base64 -di > "$RUNNER_TEMP/cle.jks"
             keytool -list -keystore "$RUNNER_TEMP/cle.jks" -storepass "$MDP" >/dev/null || { echo "::error::Le secret APK_CLE est illisible (mal collé ?)"; exit 1; }
