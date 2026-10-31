@@ -7,7 +7,7 @@ const $ = (s, r = document) => r.querySelector(s);
 const $$ = (s, r = document) => [...r.querySelectorAll(s)];
 
 const BK = {
-  version: '0.9.93 bêta',
+  version: '0.9.94 bêta',
   modules: {},
   onglets: [],
   cotes: [],
@@ -50,16 +50,17 @@ const BK = {
     const neuf = BK.look && BK.look.neuf();
     const groupes = neuf ? BK.look.groupes() : BK.cotes.map(c => ({ id: c.id, titre: c.titre, ids: BK.onglets.filter(o => o.cote === c.id).map(o => o.id) }));
     for (const c of groupes) {
-      const liste = c.ids.map(id => BK.onglets.find(o => o.id === id)).filter(o => o && BK.ongletVisible(o) && !(neuf && BK.look.pasPret(o.id)));
+      const liste = c.ids.map(id => BK.onglets.find(o => o.id === id)).filter(o => o && (neuf ? BK.look.visibleGroupe(o) && !BK.look.membre(o.id) : BK.ongletVisible(o)) && !(neuf && BK.look.pasPret(o.id)));
       if (!liste.length) continue;
       // chaque côté (Audio, Visuel, Show, Organisation) se replie d'un clic ; l'onglet ouvert reste toujours visible
       const replie = c.titre && BK.reglage('menu.replie', {})[c.id];
       if (c.titre) html += `<button class="eng cote cote-${c.id}" data-cote="${c.id}" title="Replier / déplier">${replie ? '▸' : '▾'} ${c.titre}</button>`;
       html += `<div class="cote-groupe${replie ? ' replie' : ''}" data-g="${c.id}">`;
       for (const o of liste) {
-        html += `<button class="tab${o.mini ? ' mini' : ''}${o.pret ? '' : ' bientot'}" data-p="${o.id}" title="${o.titre}">
+        const titre = (neuf && BK.look.titreMenu(o.id)) || o.titre;        // nouveau look : « Reels », « Retours », « Planning » (avec sous-onglets)
+        html += `<button class="tab${o.mini ? ' mini' : ''}${o.pret ? '' : ' bientot'}" data-p="${o.id}" title="${titre}">
           <span class="nchip" style="--c:${o.couleur}"></span>
-          <span class="t"><span class="lab">${o.titre}</span>${o.sous && !o.mini ? `<span class="nsub">${o.sous}</span>` : ''}</span>
+          <span class="t"><span class="lab">${titre}</span>${o.sous && !o.mini ? `<span class="nsub">${o.sous}</span>` : ''}</span>
           <span class="led"></span></button>`;
       }
       html += '</div>';
@@ -72,7 +73,7 @@ const BK = {
         <div class="st"><span id="ledLive" class="led${BK.ableton && BK.ableton.relie ? ' grn' : ''}"></span><span class="eng">Ableton Live</span></div>
       </div>`;
     nav.innerHTML = html;
-    $$('.tab', nav).forEach(b => b.onclick = () => BK.ouvrir(b.dataset.p));
+    $$('.tab', nav).forEach(b => b.onclick = () => BK.ouvrir(BK.look ? BK.look.cible(b.dataset.p) : b.dataset.p));
     const bv = document.getElementById('btVolet');
     if (bv && !bv.onclick) bv.onclick = () => { const e = !BK.reglage('menu.etroit', false); BK.regler('menu.etroit', e); BK.volet(e); };
     BK.volet();
@@ -152,8 +153,9 @@ const BK = {
     if (!$('#p-' + id)) id = 'accueil';
     BK.construire(id);
     $$('#pages > section').forEach(s => s.classList.toggle('hidden', s.id !== 'p-' + id));
+    const chef = BK.look ? BK.look.chef(id) : id;                    // un sous-onglet allume l'entrée de son groupe
     $$('#nav .tab').forEach(t => {
-      const on = t.dataset.p === id;
+      const on = t.dataset.p === chef;
       t.classList.toggle('on', on);
       $('.led', t).classList.toggle('amb', on);
     });

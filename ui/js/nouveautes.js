@@ -3,6 +3,9 @@
 // Pour une nouvelle version : ajouter un bloc EN HAUT de la liste. Une ligne courte par point : « Onglet : ce qui change. »
 // =====================================================================
 BK.NOUVEAUTES = [
+  { v: '0.9.94', titre: '', l: [
+    ['🗂', 'Nouveau look : le menu passe à 11 entrées. Reels (Suivi · Audio · Montage), Retours (Mix · Vidéo) et Planning (Calendrier · Tournages · To-do · Budget) ont leurs sous-onglets en haut de la page. Chaque entrée rouvre le dernier sous-onglet utilisé.'],
+  ] },
   { v: '0.9.93', titre: '', l: [
     ['🍞', 'Nouveau look : le viseur Miette. Un clic sur Miette en haut : le curseur devient Miette et les cadres qu\'elle sait remplir s\'entourent de pointillés. Clique celui que tu veux, elle s\'y met. Échap pour sortir. Les boutons « Trouver / Proposer » ne chargent plus les pages.'],
     ['▾', 'La petite flèche à côté de Miette : son menu habituel (tout relire, actualiser, qui est là).'],

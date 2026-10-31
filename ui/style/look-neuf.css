@@ -138,3 +138,8 @@ body.miette-vise #pages > section:not(.hidden) .box:not(.mi-cible),body.miette-v
 .mi-travail{outline:2px dashed #a9a95a!important;outline-offset:3px;animation:mi-pense 1s linear infinite}
 @keyframes mi-pense{to{outline-offset:7px;outline-color:rgba(169,169,90,.2)}}
 @media (prefers-reduced-motion:reduce){.mi-bandeau,.mi-travail{animation:none}}
+
+/* ---------- les sous-onglets (Reels, Retours, Planning) dans l'en-tête de la page ---------- */
+.look-neuf .look-sous{flex:none;padding:3px;gap:3px}
+.look-neuf .look-sous button{min-height:28px;padding:0 12px;font-size:11px!important}
+.look-neuf .hdr.a-sous .sub{display:none}

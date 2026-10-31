@@ -17,6 +17,13 @@ const SECTIONS = {
   reglages: { titre: '',             ids: ['reglages'] },
 };
 const PAS_PRETS = ['lumieres', 'repete', 'concert'];                  // cachés dans le nouveau look tant qu'ils ne sont pas prêts
+// les onglets réunis : une seule entrée dans le menu, des sous-onglets en haut de la page (chaque module reste à part)
+const GROUPES = {
+  suivi:  { titre: 'Reels',    ids: ['suivi', 'reels', 'reelvis'],               noms: ['Suivi', 'Audio', 'Montage'] },
+  ecoute: { titre: 'Retours',  ids: ['ecoute', 'notesvid'],                       noms: ['Mix', 'Vidéo'] },
+  agenda: { titre: 'Planning', ids: ['agenda', 'tournage', 'taches', 'budget'],   noms: ['Calendrier', 'Tournages', 'To-do', 'Budget'] },
+};
+const chefDe = id => Object.keys(GROUPES).find(k => GROUPES[k].ids.includes(id)) || null;
 const MEMBRES = ['Yacine', 'Pierre', 'Baptiste'];
 const PIN = n => 'look/pins/' + n.toLowerCase().normalize('NFD').replace(/[^a-z]/g, '') + '.png';
 
@@ -24,6 +31,22 @@ const L = BK.look = {
   neuf: () => BK.reglage('look', null) === 'neuf',
   choisi: () => BK.reglage('look', null) !== null,
   pasPret: id => L.neuf() && PAS_PRETS.includes(id),
+  // les sous-onglets (nouveau look) : l'entrée du menu (« chef »), son nom, et l'onglet à rouvrir (le dernier utilisé)
+  chef: id => (L.neuf() && chefDe(id)) || id,
+  membre: id => L.neuf() && !!chefDe(id) && chefDe(id) !== id,
+  titreMenu: id => L.neuf() && GROUPES[id] ? GROUPES[id].titre : '',
+  cible: id => { if (!L.neuf() || !GROUPES[id]) return id; const d = BK.reglage('groupe.' + id, id); return GROUPES[id].ids.includes(d) && BK.ongletVisible(BK.onglets.find(o => o.id === d) || {}) ? d : id; },
+  visibleGroupe: o => !L.neuf() || !GROUPES[o.id] ? BK.ongletVisible(o) : GROUPES[o.id].ids.some(i => BK.ongletVisible(BK.onglets.find(x => x.id === i) || {})),
+  sousOnglets(id) {
+    const g = chefDe(id), p = document.getElementById('p-' + id); if (!g || !p) return;
+    const hdr = p.querySelector('.hdr'); if (!hdr) return;
+    let n = hdr.querySelector('.look-sous');
+    if (!n) { n = document.createElement('nav'); n.className = 'seg look-sous'; n.setAttribute('aria-label', GROUPES[g].titre);
+      n.innerHTML = GROUPES[g].ids.map((i, k) => BK.ongletVisible(BK.onglets.find(o => o.id === i) || {}) ? `<button data-sous="${i}">${GROUPES[g].noms[k]}</button>` : '').join('');
+      const h1 = hdr.querySelector('.h1'); h1 ? h1.after(n) : hdr.prepend(n); hdr.classList.add('a-sous');
+      n.onclick = e => { const b = e.target.closest('[data-sous]'); if (b) BK.ouvrir(b.dataset.sous); }; }
+    n.querySelectorAll('[data-sous]').forEach(b => { const on = b.dataset.sous === id; b.classList.toggle('on', on); b.setAttribute('aria-current', on ? 'page' : 'false'); });
+  },
   sectionDe: id => Object.keys(SECTIONS).find(k => SECTIONS[k].ids.includes(id)) || 'general',
   // les groupes du menu : [{ id, titre, ids }] (les onglets ajoutés plus tard et pas encore rangés : dans le premier groupe)
   groupes() {
@@ -42,6 +65,7 @@ const L = BK.look = {
   // l'onglet ouvert → sa section : le tapis (en fondu), la couleur, le titre du groupe allumé
   section(id) {
     if (!L.neuf()) return;
+    const g = chefDe(id); if (g) { BK.regler('groupe.' + g, id); L.sousOnglets(id); }
     const k = L.sectionDe(id), b = document.body;
     document.querySelectorAll('#nav .cote').forEach(c => c.classList.toggle('on', c.dataset.cote === k));
     if (b.dataset.section === k) return;
