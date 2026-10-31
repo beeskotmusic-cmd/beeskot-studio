@@ -49,13 +49,37 @@ async function detail(m) {
   const liens = (Array.isArray(m.liens) ? m.liens : []).filter(l => l && /^https?:\/\//.test(l.url || ''));
   z.innerHTML = `
     <span class="mo-eng">Versions sur le Drive</span>
-    ${vs.length ? vs.map(v => `<button class="mo-version" data-v="b:${esc(m.id)}:${esc(v.id)}" data-vid="${esc(v.id)}" data-vnom="${esc(v.nom)}">
-        <span>${v.princ ? '★ ' : ''}${esc(v.nom)}</span><em>${v.t ? esc(BKM.dateFr(v.t.slice(0, 10), { day: 'numeric', month: 'short', year: 'numeric' })) : ''}</em></button>`).join('')
+    ${vs.length ? vs.map(v => `<div class="mo-vligne"><button class="mo-version" data-v="b:${esc(m.id)}:${esc(v.id)}" data-vid="${esc(v.id)}" data-vnom="${esc(v.nom)}">
+        <span>${v.princ ? '★ ' : ''}${esc(v.nom)}</span><em>${v.t ? esc(BKM.dateFr(v.t.slice(0, 10), { day: 'numeric', month: 'short', year: 'numeric' })) : ''}</em></button>
+        <button class="mo-dl" data-dl="${esc(v.id)}" data-dlnom="${esc(v.nom)}" data-dlt="${esc(v.t || '')}"></button></div>`).join('')
       : '<p class="mo-nt">Aucune version sur le Drive.</p>'}
+    ${vs.length && BKM.local.possible() ? '<p class="mo-nt">⬇ garde une version sur le téléphone : elle se lit tout de suite, même sans réseau. Réglages › Sons sur ce téléphone pour faire de la place.</p>' : ''}
     ${m.paroles ? `<span class="mo-eng">Paroles</span><pre class="mo-paroles">${esc(m.paroles)}</pre>` : ''}
     ${liens.length ? `<span class="mo-eng">Liens</span><div class="mo-chips">${liens.map(l => `<a class="chip" href="${esc(l.url)}" target="_blank" rel="noopener">${esc(l.titre || l.url.replace(/^https?:\/\/(www\.)?/, '').slice(0, 30))}</a>`).join('')}</div>` : ''}
     ${m.notes ? `<span class="mo-eng">Notes</span><p class="mo-nt">${esc(m.notes)}</p>` : ''}`;
   z.querySelectorAll('[data-vid]').forEach(b => b.onclick = () => lire({ cle: b.dataset.v, titre: m.nom + ' · ' + b.dataset.vnom, id: b.dataset.vid, nom: b.dataset.vnom }));
+  z.querySelectorAll('[data-dl]').forEach(b => { majDl(b); b.onclick = () => basculerDl(b, m); });
   majBoutons();
+}
+// le bouton ⬇ d'une version : ⬇ (pas sur le téléphone) · 42 % (en cours) · ✓ 48 Mo (gardée) · ⬇ nouvelle (le Drive a changé)
+function majDl(b) {
+  const D = BKM.local, id = b.dataset.dl, i = D.info(id), e = D.enCours(id), vieux = D.perime(id, b.dataset.dlt);
+  if (!D.possible()) { b.hidden = true; return; }
+  b.className = 'mo-dl' + (e ? ' charge' : i && !vieux ? ' garde' : vieux ? ' perime' : '');
+  b.textContent = e ? e.pc + ' %' : i && !vieux ? '✓ ' + D.mo(i.taille) : vieux ? '⬇ nouvelle' : '⬇';
+  b.setAttribute('aria-label', e ? 'Téléchargement en cours' : i && !vieux ? 'Sur le téléphone (appuie pour retirer)' : 'Garder sur le téléphone');
+}
+async function basculerDl(b, m) {
+  const D = BKM.local, id = b.dataset.dl, i = D.info(id);
+  if (D.enCours(id)) return;
+  if (i && !D.perime(id, b.dataset.dlt)) {
+    if (!confirm(`Retirer « ${b.dataset.dlnom} » du téléphone ? (il reste sur le Drive)`)) return;
+    await D.retirer(id); msg('Retiré du téléphone'); return majDl(b);
+  }
+  b.disabled = true; const tous = () => document.querySelectorAll(`[data-dl="${CSS.escape(id)}"]`);
+  try { const r = D.garder({ id, nom: b.dataset.dlnom, t: b.dataset.dlt, morceau: m.nom }, () => tous().forEach(majDl)); tous().forEach(majDl);
+    const x = await r; msg('Sur le téléphone : ' + b.dataset.dlnom + ' (' + D.mo(x.taille) + ')'); }
+  catch (e) { msg('Téléchargement impossible : ' + (e.message || e)); }
+  b.disabled = false; tous().forEach(majDl);
 }
 })();

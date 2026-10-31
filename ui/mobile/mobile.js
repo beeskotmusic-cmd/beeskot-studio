@@ -8,7 +8,7 @@
 //   Chaque écran est un petit fichier dans mobile/ecrans/ qui s'inscrit avec BKM.ecran(id, { nom, ordre, dessiner }).
 //   Ajouter un écran = ajouter un fichier + une ligne <script> dans index.html. C'est tout.
 //
-//   Ce que le téléphone ÉCRIT dans le Drive : cocher une tâche, les notes et réponses de Notes et retours.
+//   Ce que le téléphone ÉCRIT dans le Drive : les tâches (ajouter, modifier, cocher, ranger), les notes et réponses de Notes et retours.
 //   Rien d'autre (pas de fiches morceaux, pas de tournages, pas de réglages du groupe).
 // =====================================================================
 window.BKM = (function () {
@@ -16,7 +16,7 @@ window.BKM = (function () {
   const page = $('#moPage');
   BK.etatDrive = () => {};                                   // le voyant DRIVE du PC n'existe pas ici (le nôtre : en haut à droite)
   BK.racineUi = window.BK_RACINE || '../';
-  // PROTECTION : le téléphone n'écrit QUE les tâches (cocher) et les notes de Notes et retours.
+  // PROTECTION : le téléphone n'écrit QUE les tâches et les notes de Notes et retours.
   // Tout le reste (réglages du groupe, dossiers, fiches…) est bloqué ici, même si un outil partagé avec le PC essaie.
   const PERMIS = new Set(['taches', 'notesmix']);
   Object.assign(BK.annuler.NOMS, { notesmix: 'la note', taches: 'la tâche' });
@@ -205,24 +205,66 @@ window.BKM = (function () {
     try { await BK.dossiers.assurer();
       BK.trierStems(await BK.dossiers.duMorceau(m, morceaux)).filter(f => !f.groupe && /\.(wav|mp3|m4a|aiff?|flac)$/i.test(f.name) && !/tournage|reel/i.test(f.name))
         .sort((a, b) => (b.modifiedTime || '').localeCompare(a.modifiedTime || '')).forEach(f => ajout(f.id, f.name, f.modifiedTime)); } catch (e) { console.warn(e); }
+    // sans réseau (ou rien trouvé) : les versions gardées sur le téléphone pour ce morceau
+    for (const x of local.tous()) if (x.morceau === m.nom) ajout(x.id, x.nom, x.t);
     return out.sort((a, b) => b.princ - a.princ);                  // la ★ en premier, puis dans l'ordre trouvé (fiche, puis Drive du plus récent au plus ancien)
   }
   // la version à écouter par défaut : la ★, sinon la plus récente
   async function sonDe(m, morceaux) { const l = await versions(m, morceaux); return l[0] || null; }
 
-  // télécharger un son du Drive une seule fois, en montrant où on en est (les WAV sont lourds)
+  // un son du Drive → ses octets, en montrant où on en est (les WAV sont lourds)
+  const typeDe = nom => /\.mp3$/i.test(nom || '') ? 'audio/mpeg' : /\.m4a$/i.test(nom || '') ? 'audio/mp4' : /\.flac$/i.test(nom || '') ? 'audio/flac' : 'audio/wav';
+  async function octets(id, nom, progres) {
+    const r = await BK.drive.api(`/files/${id}?alt=media`), tot = +r.headers.get('content-length') || 0, type = typeDe(nom);
+    if (!r.body || !tot) return new Blob([await r.arrayBuffer()], { type });
+    const rd = r.body.getReader(), bouts = []; let n = 0;
+    for (;;) { const { done, value } = await rd.read(); if (done) break; bouts.push(value); n += value.length; progres && progres(Math.round(n / tot * 100)); }
+    return new Blob(bouts, { type });
+  }
+  // écouter : d'abord la copie gardée sur le téléphone (immédiat, même sans réseau), sinon le Drive (une seule fois par session)
   const sons = {};
   function telecharger(id, nom, progres) {
     if (sons[id]) return sons[id];
     return sons[id] = (async () => {
-      const r = await BK.drive.api(`/files/${id}?alt=media`), tot = +r.headers.get('content-length') || 0;
-      const type = /\.mp3$/i.test(nom || '') ? 'audio/mpeg' : /\.m4a$/i.test(nom || '') ? 'audio/mp4' : 'audio/wav';
-      if (!r.body || !tot) return URL.createObjectURL(new Blob([await r.arrayBuffer()], { type }));
-      const rd = r.body.getReader(), bouts = []; let n = 0;
-      for (;;) { const { done, value } = await rd.read(); if (done) break; bouts.push(value); n += value.length; progres && progres(Math.round(n / tot * 100)); }
-      return URL.createObjectURL(new Blob(bouts, { type }));
+      const b = await local.blob(id).catch(() => null); if (b) return URL.createObjectURL(b);
+      return URL.createObjectURL(await octets(id, nom, progres));
     })().catch(e => { delete sons[id]; throw e; });
   }
+
+  // ---------- les sons GARDÉS sur le téléphone (bouton ⬇) : dans la mémoire du navigateur / de l'appli ----------
+  // Le fichier va dans le « Cache Storage » (fait pour les gros fichiers) ; la liste (nom, taille, version du Drive) dans les réglages.
+  //   local.info(id) → { nom, morceau, t, taille, quand } ou null     local.perime(id, t) → le Drive a une version plus récente
+  //   local.garder({ id, nom, t, morceau }, progres)     local.retirer(id)     local.tous()     local.place()
+  const CACHE = 'beeskot-sons', cleSon = id => 'https://beeskot.local/son/' + encodeURIComponent(id);
+  const enCours = {};
+  const local = {
+    possible: () => !!(window.caches && window.caches.open),
+    liste: () => BK.reglage('mobile.sons', {}) || {},
+    info: id => local.liste()[id] || null,
+    perime: (id, t) => { const i = local.info(id); return !!(i && t && i.t && i.t !== t); },
+    enCours: id => enCours[id] || null,
+    async blob(id) { if (!local.possible() || !local.info(id)) return null;
+      const r = await (await caches.open(CACHE)).match(cleSon(id)); return r ? await r.blob() : null; },
+    async garder(v, progres) {
+      if (!local.possible()) throw new Error('Ce téléphone ne peut pas garder de fichiers ici');
+      if (enCours[v.id]) return enCours[v.id].p;
+      const e = enCours[v.id] = { pc: 0 };
+      e.p = (async () => {
+        try { navigator.storage && navigator.storage.persist && navigator.storage.persist().catch(() => {}); } catch (er) {}
+        const b = await octets(v.id, v.nom, p => { e.pc = p; progres && progres(p); });
+        await (await caches.open(CACHE)).put(cleSon(v.id), new Response(b, { headers: { 'content-type': b.type, 'content-length': String(b.size) } }));
+        const l = local.liste(); l[v.id] = { nom: v.nom, morceau: v.morceau || '', t: v.t || '', taille: b.size, quand: new Date().toISOString() }; BK.regler('mobile.sons', l);
+        delete sons[v.id];                                                        // la prochaine écoute part de la copie gardée
+        return l[v.id];
+      })().finally(() => { delete enCours[v.id]; });
+      return e.p;
+    },
+    async retirer(id) { const l = local.liste(); delete l[id]; BK.regler('mobile.sons', l); delete sons[id];
+      if (local.possible()) await (await caches.open(CACHE)).delete(cleSon(id)); },
+    tous: () => Object.entries(local.liste()).map(([id, x]) => ({ id, ...x })),
+    place: () => local.tous().reduce((n, x) => n + (x.taille || 0), 0),
+    mo: n => n >= 1e9 ? (n / 1e9).toFixed(1).replace('.', ',') + ' Go' : Math.max(1, Math.round(n / 1e6)) + ' Mo',
+  };
 
   // ---------- 4. le lecteur en bas de l'écran (un seul son à la fois, pour toute l'appli) ----------
   const son = new Audio(); son.preload = 'auto';
@@ -274,6 +316,6 @@ window.BKM = (function () {
   window.addEventListener('hashchange', () => { if (lireLien()) { msg('Téléphone relié'); demarrer(); } });
   function demarrer() { lireLien(); if (BK.drive.relie()) { etat('…'); ouvrir(ECRANS[actuel] ? actuel : 'biblio'); proposerAppli(); } else accueilSansCle(); }
 
-  return { $, esc, msg, moi, couleur, t2, auj, dateFr, ecran, ouvrir, redessiner, liste, enAppli, ouvrirDansAppli, scanner, versions, sonDe, telecharger, lire, aller, son, L, demarrer,
+  return { $, esc, msg, moi, couleur, t2, auj, dateFr, ecran, ouvrir, redessiner, liste, enAppli, ouvrirDansAppli, scanner, versions, sonDe, telecharger, local, lire, aller, son, L, demarrer,
     get actuel() { return actuel; } };
 })();

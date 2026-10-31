@@ -3,6 +3,10 @@
 // Pour une nouvelle version : ajouter un bloc EN HAUT de la liste. Une ligne courte par point : « Onglet : ce qui change. »
 // =====================================================================
 BK.NOUVEAUTES = [
+  { v: '0.9.90', titre: '', l: [
+    ['⬇', 'Mobile : ⬇ à côté d\'une version la garde sur le téléphone. Elle se lit tout de suite, même sans réseau. Réglages › Sons sur ce téléphone : la place prise, retirer, ou « Télécharger toutes les ★ » (Wi-Fi conseillé).'],
+    ['✓', 'Mobile : la To-do complète. « + Ajouter une tâche » (pour qui, quand, quel morceau), toucher une tâche pour la modifier ou la supprimer, appui long puis glisser pour changer l\'ordre (le même que sur le PC).'],
+  ] },
   { v: '0.9.89', titre: '', l: [
     ['🐞', 'Le soir, le logiciel ne croit plus qu\'on est déjà demain : tâches « en retard », jour surligné du Calendrier, tournage du jour, dates données à Miette… tout est à l\'heure de Montréal.'],
     ['✏', 'Ce que tu tapes (paroles, une tâche…) n\'est plus effacé par le rafraîchissement automatique de chaque minute.'],

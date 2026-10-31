@@ -279,3 +279,48 @@ body.scan-ouvert{overflow:hidden}
 .mo-iti-av{color:#ffcf7a}
 .mo-lieu{margin:2px 0 0;font-size:12px;color:var(--ambre)}
 a.btn{display:inline-flex;align-items:center;text-decoration:none}
+
+/* ---------- Bibliothèque : garder une version sur le téléphone (⬇ / 42 % / ✓ 48 Mo) ---------- */
+.mo-vligne{display:flex;gap:6px;align-items:stretch;width:100%;margin-bottom:6px}
+.mo-vligne .mo-version{flex:1;min-width:0;margin-bottom:0}
+.mo-dl{flex:none;min-width:58px;padding:0 10px;border:0;border-radius:8px;font:600 12px/1 "Share Tech Mono",monospace;color:var(--creme);background:rgba(0,0,0,.35);
+  box-shadow:inset 0 0 0 1px rgba(239,228,204,.14);transition:scale .12s cubic-bezier(.23,1,.32,1)}
+.mo-dl:active{scale:.95}
+.mo-dl.garde{color:#9fe0a8;box-shadow:inset 0 0 0 1px rgba(123,211,137,.45)}
+.mo-dl.charge{color:var(--ambre);box-shadow:inset 0 0 0 1px rgba(255,178,62,.5)}
+.mo-dl.perime{color:#ffcf7a;box-shadow:inset 0 0 0 1px rgba(255,207,122,.5)}
+/* Réglages › Sons sur ce téléphone */
+.mo-sons{display:flex;flex-direction:column;gap:6px;width:100%}
+.mo-son{display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:8px;background:rgba(0,0,0,.28)}
+.mo-son div{flex:1;min-width:0;display:flex;flex-direction:column}
+.mo-son b{font-size:13px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.mo-son em{font-size:11px;font-style:normal;opacity:.65}
+.mo-jauge{width:100%;height:6px;border-radius:3px;background:rgba(255,255,255,.08);overflow:hidden}
+.mo-jauge i{display:block;height:100%;background:var(--ambre)}
+
+/* ---------- To-do : ajouter, modifier, glisser pour changer l'ordre ---------- */
+.mo-ajout{width:100%;min-height:48px;margin-bottom:6px;font-size:15px}
+.mo-liste{position:relative}
+.mo-tache{-webkit-touch-callout:none;transition:transform .2s cubic-bezier(.23,1,.32,1),box-shadow .2s,opacity .18s}
+.mo-poignee{flex:none;align-self:center;width:14px;height:22px;margin-left:auto;opacity:.35;
+  background:radial-gradient(circle,var(--creme) 1.6px,transparent 2px) 0 0/7px 7px}
+.mo-tache.attrapee{position:relative;z-index:5;transition:box-shadow .2s;box-shadow:inset 0 0 0 2px var(--ambre),0 12px 24px rgba(0,0,0,.6)}
+.en-glisse .mo-tache:not(.attrapee){opacity:.85}
+.mo-tache .mo-t-txt{flex:1;min-width:0}
+/* le panneau qui monte du bas */
+.mo-feuille-voile{position:fixed;inset:0;z-index:70;display:flex;align-items:flex-end;background:rgba(10,5,2,.55);animation:mo-fondu .2s cubic-bezier(.23,1,.32,1)}
+.mo-feuille-voile.sort{opacity:0;transition:opacity .18s}
+.mo-feuille{width:100%;max-height:92vh;overflow:auto;display:flex;flex-direction:column;gap:10px;padding:10px 16px max(18px,env(safe-area-inset-bottom));border-radius:16px 16px 0 0;
+  background:linear-gradient(180deg,#2b1c12,#1d120b);box-shadow:0 -10px 30px rgba(0,0,0,.6),inset 0 1px 0 rgba(239,228,204,.12);animation:mo-monte .32s cubic-bezier(.32,.72,0,1)}
+.mo-feuille-voile.sort .mo-feuille{transform:translateY(100%);transition:transform .2s cubic-bezier(.32,.72,0,1)}
+@keyframes mo-monte{from{transform:translateY(100%)}to{transform:none}}
+.mo-poignee-f{align-self:center;width:42px;height:5px;border-radius:3px;background:rgba(239,228,204,.25)}
+.mo-feuille .fld{width:100%;font-size:16px}
+.mo-feuille textarea.fld{resize:none;min-height:64px}
+.mo-feuille .chip.on{box-shadow:inset 0 0 0 2px var(--pc,var(--ambre))}
+.mo-ft-2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.mo-ft-2 label{display:flex;flex-direction:column;gap:4px;min-width:0}
+.mo-ft-btns .btn{min-height:44px}
+.mo-ft-suppr{margin-left:auto;color:#ffb0a6}
+body.feuille-ouverte{overflow:hidden}
+@media (prefers-reduced-motion:reduce){.mo-feuille,.mo-feuille-voile{animation:none}.mo-tache{transition:none}}
