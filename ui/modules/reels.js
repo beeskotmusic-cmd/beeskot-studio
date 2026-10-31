@@ -469,7 +469,7 @@ BK.module('reels', function (page) {
     const ab = ctx.createBuffer(f.canaux.length, f.canaux[0].length, f.sr); f.canaux.forEach((c, i) => ab.copyToChannel(c, i));
     const src = ctx.createBufferSource(); src.buffer = ab; R.gain = ctx.createGain(); R.gain.gain.value = R.vol; src.connect(R.gain); R.gain.connect(ctx.destination);
     src.loop = !tournage;                                                // la zone choisie tourne en boucle
-    const v = tournage ? R.v : 1, t0 = ctx.currentTime + 0.05; src.start(t0); R.src = src; b.textContent = '■ Stop'; if (tournage) $('#reEcouteT2').textContent = '■';
+    const v = tournage ? R.v : 1, t0 = ctx.currentTime + 0.05; src.start(t0); R.src = src; b.textContent = '⏹ Stop'; if (tournage) $('#reEcouteT2').textContent = '■';
     src.onended = () => { R.src = null; stop(); };
     const tic = () => { let e = ctx.currentTime - t0 - f.decal; if (src.loop) e = ((ctx.currentTime - t0) % ab.duration) - f.decal; if (e >= 0) montrerTete(R.debut + e * v); R.lecture = requestAnimationFrame(tic); };
     R.lecture = requestAnimationFrame(tic);

@@ -2,7 +2,7 @@
 // BEESKOT STUDIO MOBILE — la page pour le téléphone.
 // Même base que le PC (coeur.js, donnees.js, drive.js) : mêmes fiches, même Drive.
 //
-//   Relier le téléphone : sur un PC, Réglages › Aide › « Relier un téléphone » → QR code
+//   Relier le téléphone : sur un PC, Réglages › BEESKOT Mobile › « Lier au téléphone » → QR code, scanné depuis l'appli
 //   Le QR code ouvre cette page avec la clé dans le lien (#k=…) : la page la garde, puis l'efface du lien.
 //
 //   Chaque écran est un petit fichier dans mobile/ecrans/ qui s'inscrit avec BKM.ecran(id, { nom, ordre, dessiner }).

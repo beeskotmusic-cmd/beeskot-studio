@@ -3,6 +3,13 @@
 // Pour une nouvelle version : ajouter un bloc EN HAUT de la liste. Une ligne courte par point : « Onglet : ce qui change. »
 // =====================================================================
 BK.NOUVEAUTES = [
+  { v: '0.9.89', titre: '', l: [
+    ['🐞', 'Le soir, le logiciel ne croit plus qu\'on est déjà demain : tâches « en retard », jour surligné du Calendrier, tournage du jour, dates données à Miette… tout est à l\'heure de Montréal.'],
+    ['✏', 'Ce que tu tapes (paroles, une tâche…) n\'est plus effacé par le rafraîchissement automatique de chaque minute.'],
+    ['🐞', 'To-do : « Paniers » et « Déjà fait » se rouvrent toujours après avoir été repliés. Menu Miette › Actualiser ne dit plus « Drive injoignable » quand tout va bien. La lumière Ableton ne s\'éteint plus en changeant de réglage.'],
+    ['✨', 'Partout : ce qu\'on clique s\'enfonce un peu (onglets, tuiles, posters, cases), le texte ne se sélectionne plus en cliquant vite, de nouveaux pictos tampon à la place des emojis, et un contour ambre au clavier.'],
+    ['🚀', 'Plus léger : une seule lecture du Drive quand plusieurs onglets demandent la même chose, vignettes de Médias 3 par 3 (et arrêtées si on change de dossier), animations qui ne font plus travailler l\'ordinateur, listes de To-do et Accueil qui ne remontent plus en haut.'],
+  ] },
   { v: '0.9.88', titre: '', l: [
     ['🗺', 'Tournages : un « Lieu » (une adresse) par plan dans le découpage. Dans le tournage, « Itinéraire du jour » trouve l\'ordre le plus court pour tout tourner sans repasser au même endroit (départ facultatif), avec un bouton qui ouvre tout le trajet dans Google Maps. Merci Pierre.'],
     ['🗺', 'L\'itinéraire est aussi dans le PDF du tournage et dans l\'appli mobile (avec le bouton GPS).'],
@@ -534,7 +541,7 @@ BK.TUTO = [
       ['Regarder les vidéos', 'Onglets au-dessus : Les deux, Tubes LED ou Vue 3D. La barre en dessous : ▶ / ❚❚ lecture et pause (ou barre d\'espace), ⏹ revient au début, glisse le curseur pour aller n\'importe où. « Plein écran » montre les vidéos choisies en grand avec la barre (Échap pour sortir).'],
       ['Voir les pêches d\'un stem (KICK…)', 'Section « 1b · Pistes audio en plus » → choisis le fichier du stem : de petits repères de couleur montrent toutes les attaques sur la frise. Sensibilité = plus ou moins de repères, Écart mini = on fusionne les repères trop proches. « Créer les pêches » les pose toutes (Ctrl+Z pour annuler).'],
       ['Enregistrer et retrouver', 'Enregistrer sur : Ce PC ou Drive du groupe (dossier Light Toast, dans le Drive BEESKOT). Enregistrer le projet garde tout ; « Ouvrir depuis le Drive » liste les projets du groupe. La vidéo exportée peut aussi partir au Drive.'] ],
-    astuces: [ 'Le stem n\'est pas gardé dans le projet : seuls ses repères le sont (ré-importe le stem pour changer la sensibilité).', 'Le programme est le fichier lighttoast/toast.html : pour le mettre à jour, voir lighttoast-outils/adapter.py.' ] },
+    astuces: [ 'Le stem n\'est pas gardé dans le projet : seuls ses repères le sont (ré-importe le stem pour changer la sensibilité).', ] },
   { o: 'Réglages', ic: '⚙', quoi: 'Ce qui est propre à cet ordinateur, plus le Drive, Miette et Ableton. Rangé en onglets : Aide, Ce PC, BEESKOT Mobile, Onglets, Miette & Discord, Drive, Ableton.',
     comment: [
       ['Revenir en arrière après une erreur', 'Drive › ⏪ Time Machine → choisis l\'onglet et l\'heure d\'avant l\'erreur → Remettre comme avant. Google garde 30 jours d\'historique.'],
@@ -584,7 +591,7 @@ BK.nouveautes = {
         <span class="screw tl"></span><span class="screw tr"></span><span class="screw bl"></span><span class="screw br"></span>
         <button class="btn xs rt-x" data-tu="x" title="Fermer">✕</button>
         <span class="dymo" style="align-self:center">Tuto</span>
-        <div class="tu-cols"><div class="tu-menu"><input class="fld tu-cherche" id="tuCherche" placeholder="🔍 Chercher…" value="${esc(cherche)}">
+        <div class="tu-cols"><div class="tu-menu"><input class="fld tu-cherche" id="tuCherche" placeholder="Chercher…" value="${esc(cherche)}">
             ${BK.TUTO.map((x, k) => `<button class="${k === i && !cherche ? 'on' : ''}" data-tu="${k}">${x.ic} ${esc(x.o)}</button>`).join('')}</div>
           <div class="tu-c" id="tuC">${contenu()}</div></div></div>`;
       const c = v.querySelector('#tuCherche');

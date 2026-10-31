@@ -46,6 +46,7 @@ BK.fichier = {
 // Pas de Drive → les fiches restent sur ce PC, et partiront dans le Drive à la connexion.
 BK.db = {
   cache: {},
+  enCours: {},
   enLigne: true,
   nouvelId() { return Date.now().toString(36) + Math.random().toString(36).slice(2, 6); },
   drive() { return BK.drive && BK.drive.relie(); },
@@ -53,7 +54,9 @@ BK.db = {
   async liste(col) {
     if (!BK.db.drive()) return Object.values(BK.db.memoire(col));
     try {
-      const out = await BK.drive.liste(col);
+      // plusieurs onglets demandent la même liste en même temps (au démarrage surtout) : une seule lecture du Drive pour tous
+      const enCours = BK.db.enCours[col] || (BK.db.enCours[col] = BK.drive.liste(col).finally(() => { delete BK.db.enCours[col]; }));
+      const out = { ...(await enCours) };
       for (const a of BK.reglage('db.attente', [])) if (a.col === col) { if (a.suppr) delete out[a.id]; else out[a.fiche.id] = a.fiche; }   // pas encore envoyés
       BK.db.cache[col] = out; BK.db.enLigne = true; BK.db.lu[col] = true;
     } catch (e) {
@@ -80,7 +83,7 @@ BK.db = {
     // Si on n'a pas réussi à les lire dans le Drive, on ne les écrit pas : on écraserait le travail des autres avec une version vide.
     if (BK.db.drive() && (col === 'config' || col === 'veille') && !/^ici-/.test(fiche.id) && !BK.db.lu[col]) {
       await BK.db.liste(col).catch(() => {});
-      if (!BK.db.lu[col]) { BK.toast && BK.toast('Drive injoignable : rien n\'a été enregistré. Vérifie internet et réessaie ; si ça continue : Réglages › Drive › Importer une carte d\'accès'); throw new Error('Drive injoignable : rien n\'a été écrasé'); }
+      if (!BK.db.lu[col]) { BK.avis('Drive injoignable : rien n\'a été enregistré. Vérifie internet et réessaie ; si ça continue : Réglages › Drive › Importer une carte d\'accès'); throw new Error('Drive injoignable : rien n\'a été écrasé'); }
     }
     // qui a ajouté quoi : chaque collection peut « signer » ce qui est nouveau depuis la dernière copie connue (ex. les photos d'un tournage)
     if (BK.db.signer && BK.db.signer[col]) try { BK.db.signer[col](fiche, (BK.db.photo[col] || {})[fiche.id] || null); } catch (e) {}
@@ -135,7 +138,9 @@ BK.pousser = async function () {
   await BK.db.viderAttente();
   const ouvert = BK.reglage('dernierOnglet', 'accueil');
   const rafr = { accueil: BK.surOuvrir && BK.surOuvrir.accueil, biblio: BK.biblioRecharger, taches: BK.tachesRecharger, agenda: BK.agendaRecharger };
-  try { rafr[ouvert] && await rafr[ouvert](); } catch (e) {}
+  // jamais pendant qu'on écrit (paroles, une tâche…) : le redessin effacerait ce qui n'est pas encore enregistré
+  const a = document.activeElement, tape = a && (/^(INPUT|TEXTAREA|SELECT)$/.test(a.tagName) || a.isContentEditable);
+  if (!tape) try { rafr[ouvert] && await rafr[ouvert](); } catch (e) {}
   BK.etatDrive();
 };
 
@@ -267,7 +272,7 @@ BK.semerBudget = async function () {
   const deps = await BK.db.liste('depenses');
   if (!deps.some(d => d.id === 'evan-king-1'))
     await BK.db.ecrire('depenses', { id: 'evan-king-1', titre: 'Mixage — Evan King (facture)', montant: 330.46, payePar: 'Yacine', pour: tous,
-      date: new Date().toISOString().slice(0, 10), cat: 'Mixage / master' }, { sansAnnuler: true });
+      date: BK.auj(), cat: 'Mixage / master' }, { sansAnnuler: true });
   BK.regler('budget.v1', true);
 };
 // les petits noms utilisés dans le Drive et sur Discord (OPP, GLAM…) : ajoutés une fois aux fiches

@@ -22,7 +22,7 @@ const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '
 async function donnees() {
   const morceaux = await BK.db.liste('morceaux'), taches = await BK.db.liste('taches');
   const evs = BK.agendaTous ? BK.agendaTous() : [];
-  const maintenant = Date.now(), auj = new Date().toISOString().slice(0, 10);
+  const maintenant = Date.now(), auj = BK.auj();
   const next = evs.find(e => e.debut >= maintenant - 36e5) || null;
   const afaire = taches.filter(t => !t.fait).sort((a, b) => (a.date || '9').localeCompare(b.date || '9'));
   const alertes = [];
@@ -49,7 +49,7 @@ async function donnees() {
 // Si la photo est trop sombre, trop claire ou trop petite : pas d'effet de couleur (juste le cadre), pour qu'elle reste belle.
 // une photo du groupe (affiche / presse), sans effet : l'exemple qu'on voit dans le téléphone vide (Social Photo, Reels Vidéo)
 BK.photoExemple = async () => {
-  const jour = new Date().toISOString().slice(0, 10), garde = BK.reglage('exemple.photo', null);
+  const jour = BK.auj(), garde = BK.reglage('exemple.photo', null);
   if (garde && garde.jour === jour) return garde.u || '';
   if (BK._exemple) return BK._exemple;
   return BK._exemple = (async () => {
@@ -64,56 +64,12 @@ BK.photoExemple = async () => {
     } catch (e) { console.warn('photo d\'exemple', e); return ''; } finally { setTimeout(() => BK._exemple = null, 0); }
   })();
 };
-BK.photoDuJour = async () => {
-  const jour = new Date().toISOString().slice(0, 10), garde = BK.reglage('accueil.photo', null);
-  if (garde && garde.jour === jour) return garde.u || '';
-  if (!BK.drive.relie() || !BK.etiquettes) return '';
-  const tags = await BK.etiquettes.tous();
-  const ids = Object.keys(tags).filter(id => !/^dc:/.test(id) && BK.etiquettes.liste(tags, id).some(k => k === 'c:affiche' || k === 'c:presse'));
-  if (!ids.length) { BK.regler('accueil.photo', { jour, u: '' }); return ''; }
-  let h = 0; for (const c of jour) h = (h * 31 + c.charCodeAt(0)) >>> 0;
-  for (let essai = 0; essai < Math.min(4, ids.length); essai++) {
-    const id = ids[(h + essai) % ids.length];
-    try {
-      const r = await BK.drive.api(`/files/${id}?alt=media`), blob = await r.blob(); if (!/^image\//.test(blob.type) && blob.size > 15e6) continue;
-      const img = await createImageBitmap(await BK.img.reduire(blob, 1200));
-      // la photo est-elle « sûre » pour un effet ? (lumière moyenne et taille)
-      const t = document.createElement('canvas'); t.width = t.height = 32; const x = t.getContext('2d'); x.drawImage(img, 0, 0, 32, 32);
-      const d = x.getImageData(0, 0, 32, 32).data; let lum = 0; for (let i = 0; i < d.length; i += 4) lum += (0.2126 * d[i] + 0.7152 * d[i + 1] + 0.0722 * d[i + 2]) / 255;
-      lum /= 1024; const sur = lum > 0.2 && lum < 0.8 && Math.min(img.width, img.height) >= 400;
-      const L = 600, H = 750, rr = BK.rendu.creer(L, H);
-      rr.dessiner(img, { zoom: 1, x: 0, y: 0 }, 0, '', sur ? { type: h % 2 ? 'kodak' : 'polaroid', t: 0, k: 0.45 } : null);
-      const c = document.createElement('canvas'); c.width = L; c.height = H;
-      BK.rendu.cadre(c.getContext('2d'), rr.sortie, L, H, h % 2 ? 'pellicule' : 'polaroid', 28, h);
-      const u = c.toDataURL('image/jpeg', 0.86); BK.regler('accueil.photo', { jour, u, id }); return u;
-    } catch (e) { console.warn('photo du jour', e); }
-  }
-  return '';
-};
-
-// ---------- LA PHRASE QUI MOTIVE : selon l'avancement des prochaines releases (une différente chaque jour) ----------
-BK.phraseDuJour = d => {
-  const rel = (d.release || []).slice(0, 2), noms = rel.map(m => m.nom), pc = rel.length ? Math.round(rel.reduce((a, m) => a + BK.pourcent(m), 0) / rel.length) : 0;
-  const qui = noms.length > 1 ? noms.slice(0, -1).join(', ') + ' et ' + noms[noms.length - 1] : noms[0] || '';
-  const P = {
-    rien: ['Pas de release prévue ? Parfait, c\'est le moment d\'en lancer une.', 'Page blanche. Les meilleurs morceaux commencent toujours comme ça.', 'Choisissez le prochain son, et on fonce.'],
-    debut: [`${qui} : ${pc} %. Le plus dur, c'est de commencer. Et c'est fait.`, `${pc} % sur ${qui}. Chaque grand morceau a commencé par une boucle pourrie.`, `${qui} démarre. Un pas par jour, les gars.`],
-    route: [`${qui} : ${pc} %. Ça avance, on garde le rythme.`, `${pc} % sur ${qui}. On tient le bon bout, on lâche rien.`, `${qui} prend forme. Encore quelques sessions et ça sonne.`],
-    moitie: [`${qui} : ${pc} %. Plus de la moitié de faite. On lâche pas les gars !`, `${pc} % ! ${qui}, on voit le bout. Pas maintenant qu'on s'arrête.`, `${qui} à ${pc} %. Le gros du boulot est derrière, putain on y est presque.`],
-    fin: [`${qui} : ${pc} %. Dernière ligne droite, on finit en beauté !`, `${pc} %. Plus que les détails : mix, master, et ça part.`, `${qui} est presque prêt. Préparez-vous à le crier partout.`],
-    fini: [`${qui} : 100 %. Putain, on l'a fait !`, `C'est fini. ${qui} est prêt. Bordel, quelle fierté.`, `100 %. On l'a fait, les gars. Maintenant on le fait écouter à tout le monde.`],
-  };
-  const s = d.sortis || 0;
-  const disco = s >= 2 ? [`${s} morceaux déjà sortis : la discographie BEESKOT a commencé, et c'est que le début.`, `${s} sorties au compteur. On construit quelque chose, là.`] : s === 1 ? ['Un morceau déjà dehors. Le prochain va faire encore plus mal.'] : [];
-  const cle = !rel.length ? 'rien' : pc >= 100 ? 'fini' : pc >= 90 ? 'fin' : pc >= 50 ? 'moitie' : pc >= 10 ? 'route' : 'debut';
-  const l = [...P[cle], ...(cle === 'rien' || cle === 'debut' ? disco : [])];
-  let h = 0; for (const c of new Date().toISOString().slice(0, 10)) h = (h * 31 + c.charCodeAt(0)) >>> 0;
-  return l[h % l.length];
-};
 
 BK.module('accueil', function (page) {
   BK.surOuvrir = BK.surOuvrir || {};
-  BK.surOuvrir.accueil = async () => { try { dessiner(await donnees()); BK.accueilDerniere && BK.accueilDerniere(); } catch (e) { console.error(e); } };
+  // (onglet caché : rien à redessiner, il le sera à l'ouverture) ; on garde la position des listes
+  BK.surOuvrir.accueil = async () => { if (page.classList.contains('hidden') && page.dataset.vu) return;
+    try { const d = await donnees(); BK.garderDefilement(page, () => dessiner(d)); page.dataset.vu = '1'; BK.accueilDerniere && BK.accueilDerniere(); } catch (e) { console.error(e); } };
   setTimeout(BK.surOuvrir.accueil, 300);
 
   function dessiner(d) {
@@ -160,7 +116,7 @@ BK.module('accueil', function (page) {
         <span class="vfd">${new Date().toLocaleDateString('fr-CA', { weekday: 'long', day: 'numeric', month: 'long' }).toUpperCase()}</span>
         <div class="right"><button class="btn" data-va="agenda">Calendrier</button><button class="btn pri" data-va="biblio">Bibliothèque ▶</button></div></div>`;
     $$('[data-va]', page).forEach(b => b.onclick = e => { e.preventDefault(); BK.ouvrir(b.dataset.va); });
-    resume(); colonneDroite();
+    resume();
     $$('.af-l .ta-case', page).forEach(b => b.onclick = async e => {
       e.stopPropagation(); const x = d.afaire.find(t => t.id === b.dataset.id); if (!x || x.fait) return;
       b.classList.add('on'); b.textContent = '✓'; b.closest('.af-l').classList.add('faite');          // on voit tout de suite que c'est coché
@@ -190,9 +146,6 @@ BK.module('accueil', function (page) {
         : `<span class="nt">${!pret ? 'Ajoute la clé Gemini (Réglages) et allume l\'interrupteur AI pour avoir le résumé.' : enCours ? 'Miette lit les messages de la semaine…' : 'Pas encore de résumé : clique ↻ (ou attends la prochaine lecture de Miette).'}</span>`}`;
     const b = $('#acResumeMaj', z); if (b) b.onclick = async () => { b.disabled = true;
       try { await BK.discord.ronde(() => {}, true).catch(() => {}); await BK.discord.resume(true); } catch (e) { z.insertAdjacentHTML('beforeend', `<span class="nt">${esc(e.message)}</span>`); } resume(); };
-  }
-  // ---------- colonne de droite : la photo du jour ----------
-  function colonneDroite() {
   }
   async function resume() {
     let doc = BK.reglage('accueil.resume', null);

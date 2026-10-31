@@ -211,7 +211,7 @@ BK.module('renforts', function (page) {
     $('#raIdees').onclick = async e => {
       const r = e.currentTarget.getBoundingClientRect();
       const [ms, ts, tours, evs] = await Promise.all(['morceaux', 'taches', 'tournages', 'evenements'].map(c => BK.db.liste(c).catch(() => [])));
-      const auj = new Date().toISOString().slice(0, 10), q = (k, nom) => ({ k, nom });
+      const auj = BK.auj(), q = (k, nom) => ({ k, nom });
       const etape = m => m.statut === 'sorti' ? 'sorti' : (BK.etapes[Math.min(m.fait || 0, 5)] || {}).nom || '';
       const parMorceau = ms.filter(m => m.statut !== 'sorti').sort((a, b) => (a.sortie || '9').localeCompare(b.sortie || '9') || a.nom.localeCompare(b.nom)).flatMap(m => {
         const l = [];

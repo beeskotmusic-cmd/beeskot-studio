@@ -77,7 +77,7 @@ BK.ia = {
   chaine: n => ({ puissant: ['puissant', 'normal', 'rapide'], normal: ['normal', 'rapide', 'puissant'], rapide: ['rapide', 'normal', 'puissant'] }[n] || ['normal', 'rapide', 'puissant']),
   async _demander(texte, { systeme = '', json = false, temperature = 0.4, niveau = '', vite = false, delai = 90, audio = null, fichiers = null } = {}) {
     if (!BK.ia.active()) throw new Error('L\'AI est coupée (interrupteur en bas du menu)');
-    const c = await BK.ia.config(); if (!c.gemini) throw new Error('Pas de clé Gemini (Réglages › Miette)');
+    const c = await BK.ia.config(); if (!c.gemini) throw new Error('Pas de clé Gemini (Réglages › Miette & Discord)');
     niveau = niveau || c.niveau || 'normal';
     let sansReflexion = false, derniere = '';
     const essais = [...BK.ia.chaine(niveau), ...BK.ia.chaine(niveau)];      // 2 tours au plus : chaque modèle, puis encore une fois
@@ -114,7 +114,7 @@ BK.ia = {
   // ce que le groupe sait déjà (envoyé avec chaque demande pour que la réponse colle à BEESKOT)
   async contexte() {
     const [ms, ts, evs] = await Promise.all([BK.db.liste('morceaux'), BK.db.liste('taches'), BK.db.liste('evenements')]);
-    const auj = new Date().toISOString().slice(0, 10);
+    const auj = BK.auj();
     return [
       `Aujourd'hui : ${auj}. Groupe de musique BEESKOT (prononcé « Biscotte »), membres : Yacine, Pierre, Baptiste.`,
       'Morceaux : ' + ms.map(m => `${m.nom} (${m.statut === 'sorti' ? 'sorti' : BK.etapes[Math.min(m.fait || 0, 5)].nom + (m.statut === 'prochaine' ? ', prévu pour la prochaine sortie' : '')}${m.bpm ? ', ' + m.bpm + ' BPM' : ''}${m.sortie ? ', sortie ' + m.sortie : ''})`).join(' ; '),

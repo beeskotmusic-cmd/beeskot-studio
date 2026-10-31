@@ -18,7 +18,7 @@
 
 /* ---------- le meuble ---------- */
 html,body{height:100%}
-body{margin:0;overflow:hidden;color:var(--ink);font-family:'Jost','Work Sans',system-ui,sans-serif;background:#2a1a10 url(../look/wood.jpg) center/cover fixed}
+body{margin:0;overflow:hidden;color:var(--ink);font-family:'Jost','Work Sans',system-ui,sans-serif;background:#2a1a10 url(../look/wood.jpg) center/cover}
 .app{position:relative;height:100vh;display:flex;flex-direction:column}
 .app::before{content:"";position:absolute;inset:0;background:radial-gradient(130% 100% at 35% 0%,rgba(255,200,140,.06),rgba(8,4,0,.62));pointer-events:none}
 .app>*{position:relative;z-index:1}
@@ -39,7 +39,7 @@ body{margin:0;overflow:hidden;color:var(--ink);font-family:'Jost','Work Sans',sy
 .gauge i.me{background:#5fd3ff;box-shadow:0 0 5px rgba(60,190,255,.9)}
 /* bouton STOP PROCESSUS : simple rond rouge brodé, comme le patch DARI Audio Live */
 .estop{position:relative;width:64px;height:72px;border:0;background:none;padding:0;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:1px;font-family:inherit}
-.estop img{width:52px;height:52px;display:block;filter:drop-shadow(0 3px 3px rgba(0,0,0,.55)) drop-shadow(0 1px 0 rgba(255,235,200,.15));transition:transform .08s,filter .08s}
+.estop img{width:52px;height:52px;display:block;filter:drop-shadow(0 3px 3px rgba(0,0,0,.55)) drop-shadow(0 1px 0 rgba(255,235,200,.15));transition:transform .12s cubic-bezier(.23,1,.32,1)}
 .estop:hover img{transform:scale(1.04);filter:drop-shadow(0 4px 5px rgba(0,0,0,.6)) brightness(1.08)}
 .estop.pressed img,.estop:active img{transform:scale(.95) translateY(1px);filter:drop-shadow(0 1px 1px rgba(0,0,0,.6)) brightness(.95)}
 .estop .plate{font-family:'Barlow Condensed',Jost,sans-serif;font-weight:700;font-size:9px;letter-spacing:.18em;color:#efe2c4;text-shadow:0 1px 0 rgba(0,0,0,.7)}

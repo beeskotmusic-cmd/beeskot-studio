@@ -418,7 +418,7 @@ BK.module('medias', function (page) {
     const lier = $('#mdLier'); if (lier) lier.onclick = () => choisirDossierDrive();
     // écouter un son : dans le lecteur du bas (la Bibliothèque s'arrête)
     $$('[data-ecoute]').forEach(b => b.onclick = async e => { e.stopPropagation(); const id = b.dataset.ecoute, f = M.fichiers.find(x => x.id === id); if (!f) return;
-      M.audio = M.audio || (() => { const a = new Audio(); BK.mini.suivre(a, { page: 'medias', titre: () => 'Médias · ' + (M.audioNom || '') }); a.onpause = a.onplay = () => rendre(!!M.filtre); return a; })();
+      M.audio = M.audio || (() => { const a = new Audio(); BK.mini.suivre(a, { page: 'medias', titre: () => 'Médias · ' + (M.audioNom || '') }); a.onpause = a.onplay = () => $$('[data-ecoute]').forEach(x => { x.textContent = M.joue === x.dataset.ecoute && !a.paused ? '❚❚' : '▶'; }); return a; })();   // seulement les boutons ▶ (pas toute la grille)
       if (M.joue === id && !M.audio.paused) return M.audio.pause();
       if (M.joue !== id) { b.textContent = '…'; try { const r = f.dc ? await BK.discord.fetch(f.dc.url) : await BK.drive.api(`/files/${id}?alt=media`); if (!r.ok) throw 0;
         if (M.audioUrl) URL.revokeObjectURL(M.audioUrl); M.audioUrl = URL.createObjectURL(await r.blob()); M.audio.src = M.audioUrl; M.joue = id; M.audioNom = f.name; } catch (er) { b.textContent = '▶'; return msg('Son illisible'); } }
@@ -459,11 +459,13 @@ BK.module('medias', function (page) {
       await BK.etiquettes.basculer(f.id, 'c:masque', true); M.tags = await BK.etiquettes.tous();   // mis de côté : rien n'est effacé
       msg(`« ${f.name} » masqué · « 🙈 Masqués » pour le revoir`); rendre(!!M.filtre);
     });
-    (async () => { for (const f of fs) {                               // vignettes une par une : léger, et gardées pour la suite
-      if (!f.thumbnailLink || M.vign[f.id]) continue; const u = f.dc ? f.thumbnailLink + '?width=320&height=320' : await BK.drive.vignette(f), el = $(`.md-tuile[data-id="${CSS.escape(f.id)}"] .md-img`);
-      if (u) M.vign[f.id] = u;
-      if (el) { const sp = $('.spin', el); sp && sp.remove(); if (u) el.style.backgroundImage = `url(${u})`; }
-    } })();
+    // vignettes : 3 à la fois (gardées pour la suite) ; si on change de dossier ou de filtre, l'ancienne série s'arrête
+    const gen = M.genVign = (M.genVign || 0) + 1, file = fs.filter(f => f.thumbnailLink && !M.vign[f.id]);
+    const une = async () => { while (file.length && gen === M.genVign) { const f = file.shift();
+      let u = ''; try { u = f.dc ? f.thumbnailLink + '?width=320&height=320' : await BK.drive.vignette(f); } catch (e) {}
+      if (u) M.vign[f.id] = u; if (gen !== M.genVign) return;
+      const el = $(`.md-tuile[data-id="${CSS.escape(f.id)}"] .md-img`); if (el) { const sp = $('.spin', el); sp && sp.remove(); if (u) el.style.backgroundImage = `url(${u})`; } } };
+    une(); une(); une();
   }
 
   // ---------- choisir l'étiquette d'un fichier ----------
@@ -511,7 +513,7 @@ BK.module('medias', function (page) {
       const en = e.target.closest('[data-env]'); if (en) { menu.remove();
         const items = tous.map(i => { const f = M.fichiers.find(x => x.id === i) || (M.vus || {})[i] || {}; return { id: i, nom: f.name, mime: f.mimeType, dc: f.dc || null }; });
         const ok = await BK.glisse.envoyer(en.dataset.env, items);
-        if (!ok) BK.toast ? BK.toast('Ouvre d\'abord la fiche ou le reel où ça va') : null; return; }
+        if (!ok) BK.avis('Ouvre d\'abord la fiche ou le reel où ça va'); return; }
       const x = e.target.closest('[data-m]'); if (!x) return; const k = x.dataset.m;
       if (k === '' || k === '-') { const d = await BK.etiquettes.charger(); for (const i of tous) { const ii = (String(i).startsWith('dc:') && BK.etiquettes.copieDe(i)) || i; if (k) d.map[ii] = ['-']; else delete d.map[ii]; } await BK.db.ecrire('config', d); menu.remove(); }
       else { const l = lireTags(id), mettre = !l.includes(k);

@@ -168,7 +168,7 @@ BK.miette = {
     const j = await BK.discord.journal(3), depuis = new Date(Date.now() - 45 * 864e5).toISOString(), recents = j.filter(l => l.t >= depuis);
     if (!recents.length) return ['rien de nouveau sur Discord'];
     const [ms, ts, evs, deps, tours, props] = await Promise.all(['morceaux', 'taches', 'evenements', 'depenses', 'tournages', 'propositions'].map(c => BK.db.liste(c)));
-    const auj = new Date().toISOString().slice(0, 10), semaine = new Date(Date.now() - 7 * 864e5).toISOString();
+    const auj = BK.auj(), semaine = new Date(Date.now() - 7 * 864e5).toISOString();
     const systeme = `Tu es Miette, l'assistante du groupe de musique BEESKOT (prononcé « Biscotte »). Aujourd'hui : ${auj}.
 Membres : Yacine (Yaya, Dari, pseudo « sneakers »), Pierre (« pierrec1. »), Baptiste (Bat, « drumbli.scott »). « BEESKOT » = tout le groupe.
 Morceaux (nom exact, puis surnoms, puis où il en est) : ${ms.map(m => m.nom + ((m.alias || []).length ? ' (' + m.alias.join(', ') + ')' : '') + ' [' + (m.statut === 'sorti' ? 'sorti' : BK.etapes[Math.min(m.fait || 0, 5)].nom) + (m.sortie ? ', sortie ' + m.sortie : '') + ']').join(' ; ')}.

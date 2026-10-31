@@ -74,7 +74,7 @@ BK.module('biblio', function (page) {
 
   // ---------- chargement ----------
   window.addEventListener('bk:annule', () => charger());
-  window.addEventListener('bk:distant', e => { if (e.detail.cols.includes('morceaux')) charger(); });   // un autre PC a changé une fiche   // après « ↶ Annuler » : on relit
+  // (un autre PC a changé une fiche : c'est js/miette.js qui appelle BK.biblioRecharger, une seule fois et jamais pendant qu'on écrit)
   async function charger() {
     B.morceaux = await BK.db.liste('morceaux');
     B.fichiers = await BK.inv.tous();
@@ -99,7 +99,7 @@ BK.module('biblio', function (page) {
     const liste = $('#biListe');
     if (B.vue === 'ranger') { liste.innerHTML = '<div id="biDriveNeufs"></div>' + rendreOrphelins(O); brancherOrphelins(); neufsDuDrive(); return; }
     const f = BK.inv.normaliser(B.filtre);
-    const auj = new Date().toISOString().slice(0, 10), prochaine = m => m.statut === 'prochaine' || (m.statut !== 'sorti' && m.sortie && m.sortie >= auj);
+    const auj = BK.auj(), prochaine = m => m.statut === 'prochaine' || (m.statut !== 'sorti' && m.sortie && m.sortie >= auj);
     const P = C.filter(prochaine), W = C.filter(m => !prochaine(m));
     // l'ordre : celui qu'on a choisi à la main (rang), sinon le plus récemment touché
     const l = (B.vue === 'sorti' ? S : B.vue === 'prochaine' ? P : W).filter(m => !f || BK.inv.normaliser(m.nom).includes(f))
@@ -225,13 +225,15 @@ BK.module('biblio', function (page) {
       } catch (e) { console.error(e); lecteur.id = null; msg('Lecture impossible'); }
       lecteur.maj();
     },
-    maj(etat) {
-      for (const el of $$('.lecteur', page)) {
+    // seul = vrai pendant la lecture (4 fois par seconde) : on ne touche qu'au lecteur qui joue, et seulement à ce qui change
+    maj(etat, seul) {
+      const pose = (el, v) => { if (el && el.textContent !== v) el.textContent = v; };
+      for (const el of seul ? $$(`.lecteur[data-lect="${CSS.escape(lecteur.id || '')}"]`, page) : $$('.lecteur', page)) {
         const moi = el.dataset.lect === lecteur.id, a = lecteur.audio, d = moi && a.duration ? a.duration : 0;
-        $('.lect-play', el).textContent = moi && etat ? '…' : moi && !a.paused ? '❚❚' : '▶';
+        const p = $('.lect-play', el), v = moi && etat ? '…' : moi && !a.paused ? '❚❚' : '▶'; if (p && p.dataset.v !== v) { p.dataset.v = v; p.textContent = v; }
         $('.lect-barre i', el).style.width = d ? (a.currentTime / d * 100) + '%' : '0';
-        $('.lect-t', el).textContent = d ? `${BK.audio.temps(a.currentTime).replace(/\.\d$/, '')} / ${BK.audio.temps(d).replace(/\.\d$/, '')}` : '';
-        $('.lect-src', el).textContent = lecteur.nom[el.dataset.lect] || '';
+        pose($('.lect-t', el), d ? `${BK.audio.temps(a.currentTime).replace(/\.\d$/, '')} / ${BK.audio.temps(d).replace(/\.\d$/, '')}` : '');
+        pose($('.lect-src', el), lecteur.nom[el.dataset.lect] || '');
       }
     },
   };
@@ -243,7 +245,8 @@ BK.module('biblio', function (page) {
   lecteur.arreter = () => { lecteur.audio.pause(); lecteur.audio.currentTime = 0; lecteur.maj(); };
   BK.mini.suivre(lecteur.audio, { page: 'biblio', precedent: () => lecteur.voisin(-1), suivant: () => lecteur.voisin(1), titre: () => { const m = B.morceaux.find(x => x.id === lecteur.id); return (m ? m.nom + ' · ' : '') + (lecteur.nom[lecteur.id] || ''); } });
 
-  ['timeupdate', 'pause', 'play', 'ended', 'loadedmetadata'].forEach(ev => lecteur.audio.addEventListener(ev, () => lecteur.maj()));
+  lecteur.audio.addEventListener('timeupdate', () => lecteur.maj(false, true));
+  ['pause', 'play', 'ended', 'loadedmetadata'].forEach(ev => lecteur.audio.addEventListener(ev, () => lecteur.maj()));
 
   // morceaux qui ont un dossier dans « Ableton Projects » mais pas encore de fiche
   async function morceauxDuDrive() {
@@ -281,7 +284,7 @@ BK.module('biblio', function (page) {
             <span class="mini-etapes">${(() => { const f = m.fait || 0, demi = (m.enCours || 0) > 0, bout = demi ? f : f - 1;   // le bout : là où on en est (il brille)
               return BK.etapes.map((e, i) => `<i class="${i < f ? 'fait' : i === f ? (demi ? 'demi' : 'suivante') : ''}${i === bout ? ' bout' : ''}" style="flex:${e.poids};--sc:${e.c}"></i>`).join(''); })()}</span>
             <span class="vfd fiche-pc">${pc} %</span><span class="fleche">${ouvert ? '▾' : '▸'}</span></button>
-          <div class="lecteur" data-lect="${m.id}"><button class="lect-pas" data-lp="-1" title="Morceau précédent (re-clic au début)">⏮</button><button class="lect-play" title="Écouter l'export principal">▶</button><button class="lect-pas" data-lp="0" title="Arrêt : on s'arrête et on revient au début">■</button><button class="lect-pas" data-lp="1" title="Morceau suivant">⏭</button><div class="lect-barre"><i></i></div><span class="lect-t mono"></span><span class="nt lect-src"></span></div>
+          <div class="lecteur" data-lect="${m.id}"><button class="lect-pas" data-lp="-1" title="Morceau précédent (re-clic au début)">⏮</button><button class="lect-play" title="Écouter l'export principal">▶</button><button class="lect-pas" data-lp="0" title="Arrêt : on s'arrête et on revient au début">⏹</button><button class="lect-pas" data-lp="1" title="Morceau suivant">⏭</button><div class="lect-barre"><i></i></div><span class="lect-t mono"></span><span class="nt lect-src"></span></div>
         </div>
       </div>
       ${ouvert ? `<div class="fiche-corps">
@@ -650,8 +653,8 @@ BK.parolesPropres = t => String(t || '').split('\n').filter(l => !/^\s*\[.*\]\s*
 BK.pleinEcran = function (titre, texte) {
   const v = document.createElement('div'); v.className = 'voile plein';
   v.innerHTML = `<div class="plein-txt"><span class="dymo">${esc(titre)}</span><pre>${esc(texte || '')}</pre></div><button class="btn sm plein-x">✕ Fermer</button>`;
-  document.body.appendChild(v); const fermer = () => v.remove();
-  $('.plein-x', v).onclick = fermer; document.addEventListener('keydown', function k(e) { if (e.key === 'Escape') { fermer(); document.removeEventListener('keydown', k); } });
+  const k = e => { if (e.key === 'Escape') fermer(); }, fermer = () => { v.remove(); document.removeEventListener('keydown', k); };
+  document.body.appendChild(v); $('.plein-x', v).onclick = fermer; document.addEventListener('keydown', k);
 };
 
 })();

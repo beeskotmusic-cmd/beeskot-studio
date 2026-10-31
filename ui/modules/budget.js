@@ -8,7 +8,7 @@ const B = { dep: [], abos: [], membres: ['Yacine', 'Pierre', 'Baptiste'], mois: 
 const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 const argent = n => (Math.round(n * 100) / 100).toLocaleString('fr-CA', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' $';
 const CATS = ['Studio', 'Abonnement', 'Mixage / master', 'Matériel', 'Tournage', 'Promo', 'Transport', 'Autre'];
-const auj = () => new Date().toISOString().slice(0, 10);
+const auj = () => BK.auj();
 
 // le calcul : chacun = ce qu'il a payé − sa part ; puis le moins de remboursements possible
 BK.budgetSoldes = function (dep, membres) {

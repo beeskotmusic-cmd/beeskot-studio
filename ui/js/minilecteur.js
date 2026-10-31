@@ -47,7 +47,7 @@ BK.mini = {
     const nomPage = ((BK.onglets || []).find(m => m.id === s.page) || {}).titre || s.page;
     if (!z.dataset.pret) {
       z.dataset.pret = '1';
-      z.innerHTML = `<span class="mini-ctl"><button class="btn xs" data-mi="prec" title="Précédent (re-clic au début : le morceau d'avant)">⏮</button><button class="btn xs pri mini-jouer" data-mi="jouer">▶</button><button class="btn xs" data-mi="stop" title="Arrêt : on s'arrête et on revient au début">■</button><button class="btn xs" data-mi="suiv" title="Suivant">⏭</button></span><span class="mini-titre"></span><div class="mini-barre" title="Clique pour aller à cet endroit"><div class="mini-plein"></div></div><span class="mini-t mono"></span>
+      z.innerHTML = `<span class="mini-ctl"><button class="btn xs" data-mi="prec" title="Précédent (re-clic au début : le morceau d'avant)">⏮</button><button class="btn xs pri mini-jouer" data-mi="jouer">▶</button><button class="btn xs" data-mi="stop" title="Arrêt : on s'arrête et on revient au début">⏹</button><button class="btn xs" data-mi="suiv" title="Suivant">⏭</button></span><span class="mini-titre"></span><div class="mini-barre" title="Clique pour aller à cet endroit"><div class="mini-plein"></div></div><span class="mini-t mono"></span>
         <span class="mini-vol" title="Volume"><span class="mini-hp" data-mi="muet">🔊</span><span class="mini-equerre"><span class="mini-niveau"></span><input type="range" min="0" max="1" step="0.01" class="mini-range"></span></span>
         <button class="btn xs" data-mi="page"></button><button class="btn xs" data-mi="fermer" title="Arrêter">✕</button>`;
       z.addEventListener('click', e => { const b = e.target.closest('[data-mi]'), s = BK.mini.actuel; if (!s) return;

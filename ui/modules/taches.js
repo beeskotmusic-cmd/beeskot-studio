@@ -113,7 +113,13 @@ BK.module('taches', function (page) {
   }
 
   function rendre() {
-    const auj = new Date().toISOString().slice(0, 10), afaire = T.taches.filter(t => !t.fait);
+    // cocher, déplacer… redessine les listes : chacune garde sa position de défilement (rien ne remonte en haut)
+    const defil = new Map(); $$('.todo-vit .panier[data-zone] .panier-cartes, #taVrac, #taFaites, .todo-vit').forEach(el => defil.set(el.closest('[data-zone]') && el.classList.contains('panier-cartes') ? 'p:' + el.closest('[data-zone]').dataset.zone : '#' + (el.id || el.className), el.scrollTop));
+    try { return rendreBrut(); } finally {
+      $$('.todo-vit .panier[data-zone] .panier-cartes, #taVrac, #taFaites, .todo-vit').forEach(el => { const k = el.closest('[data-zone]') && el.classList.contains('panier-cartes') ? 'p:' + el.closest('[data-zone]').dataset.zone : '#' + (el.id || el.className); if (defil.get(k)) el.scrollTop = defil.get(k); }); }
+  }
+  function rendreBrut() {
+    const auj = BK.auj(), afaire = T.taches.filter(t => !t.fait);
     $('#taNb').textContent = String(afaire.length).padStart(2, '0');
     $('#taRet').textContent = String(afaire.filter(t => t.date && t.date < auj).length).padStart(2, '0');
     const de = qui => T.taches.filter(t => pour(t, qui) && !(T.masquerFaites && t.fait)).sort(tri);
@@ -155,7 +161,7 @@ BK.module('taches', function (page) {
     if (!(await BK.ia.pret().catch(() => false))) return msg('Il faut la clé Gemini (Réglages) et l\'interrupteur AI allumé');
     b.disabled = true; const avant = b.innerHTML; b.innerHTML = '<span class="spin"></span>Miette réfléchit…';
     try {
-      const auj = new Date().toISOString().slice(0, 10);
+      const auj = BK.auj();
       const r = await BK.ia.demander(`Aujourd'hui : ${auj} (${new Date().toLocaleDateString('fr-CA', { weekday: 'long' })}).
 Membres du groupe : ${T.membres.join(', ')}. « ${GROUPE} » = tout le groupe. Morceaux : ${T.morceaux.join(', ') || '(aucun)'}.
 Transforme cette demande en tâches pour la to-do list : « ${texte} »

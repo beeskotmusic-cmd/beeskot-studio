@@ -227,7 +227,7 @@ BK.module('reelvis', function (page) {
             }
           }
           const mp4 = await BK.rendu.montage(morceaux, { transition: D.transition, voile: D.voile, progression: p => ok.innerHTML = `<span class="spin"></span>Import… ${Math.round(p * 100)} %` });
-          const f = new File([mp4], 'Montage_' + new Date().toISOString().slice(0, 10) + '.mp4', { type: 'video/mp4' });
+          const f = new File([mp4], 'Montage_' + BK.auj() + '.mp4', { type: 'video/mp4' });
           v.remove(); charger(f); if (musique()) $('#rvMusTxt').textContent += ' · calée sur le montage';
         } catch (er) { console.error(er); ok.disabled = false; ok.textContent = 'Importer ces fichiers ▶'; msg('Impossible : ' + (er.message || er)); }
         urls.forEach(u => URL.revokeObjectURL(u));
@@ -485,7 +485,7 @@ BK.module('reelvis', function (page) {
     const a = musique();
     vid.currentTime = V.debut; vid.muted = !!a;
     if (a) { son.src = a.url; son.currentTime = a.debut; son.play(); }
-    vid.play(); $('#rvPlay').textContent = '■ Stop';
+    vid.play(); $('#rvPlay').textContent = '⏹ Stop';
     const fin = a ? Math.min(V.fin, V.debut + a.duree) : V.fin;
     // arrivé à la fin de la zone choisie (I / O) : on repart du début, en boucle (sauf pendant le calage des sous-titres)
     const tic = () => { dessiner(); montrerTete();

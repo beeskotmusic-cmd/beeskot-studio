@@ -200,7 +200,7 @@ BK.discord = {
     if (!pointes.length) { doc.faits = [...faits].slice(-800); await BK.db.ecrire('config', doc, { sansAnnuler: true }).catch(() => {}); return { n: questions.length, ranges: 0, reponses: questions.length }; }
     progression(`Miette range ${pointes.length} message(s) pointé(s)…`);
     const [ms, tours] = await Promise.all([BK.db.liste('morceaux'), BK.db.liste('tournages')]);
-    const auj = new Date().toISOString().slice(0, 10);
+    const auj = BK.auj();
     const systeme = `Tu es Miette, l'assistante du groupe BEESKOT (Yacine, Pierre, Baptiste). Aujourd'hui : ${auj}.
 Ces messages Discord t'ont été POINTÉS exprès : le groupe veut que tu ranges leur contenu dans le logiciel. Sois précis, n'invente rien.
 Morceaux (nom exact) : ${ms.map(m => m.nom + ((m.alias || []).length ? ' (' + m.alias.join(', ') + ')' : '')).join(' ; ')}.
@@ -421,7 +421,7 @@ Si rien n'est décidé, réponds [].`;
       const qui = membres.find(m => m.toLowerCase() === String(a.qui || '').toLowerCase()); if (!qui || !j(a.du)) continue;
       const fin = j(a.au) && a.au >= a.du ? a.au : a.du;
       for (let x = new Date(a.du + 'T12:00'), k = 0; k < 62; k++, x.setDate(x.getDate() + 1)) {
-        const jour = x.toISOString().slice(0, 10); if (jour > fin) break; if (jour < auj) continue;
+        const jour = BK.auj(x); if (jour > fin) break; if (jour < auj) continue;
         const o = d[jour] = d[jour] || {}; if (!o[qui]) { o[qui] = { e: 'non', pourquoi: String(a.pourquoi || '').slice(0, 160) }; n++; }
       }
     }
@@ -443,7 +443,7 @@ Si rien n'est décidé, réponds [].`;
     const j = await BK.discord.journal(3), depuis = new Date(Date.now() - 45 * 864e5).toISOString(), recents = j.filter(l => l.t >= depuis);
     const doc = (await BK.db.liste('veille')).find(d => d.id === 'planning') || { id: 'planning', l: [] };
     if (!recents.length) return doc;
-    const ms = await BK.db.liste('morceaux'), auj = new Date().toISOString().slice(0, 10);
+    const ms = await BK.db.liste('morceaux'), auj = BK.auj();
     const systeme = `Tu tiens le calendrier du groupe de musique BEESKOT à partir de leurs messages Discord (français familier). Aujourd'hui : ${auj}.
 Trouve TOUTES les dates à venir dont on parle : tournages, shootings photo, enregistrements, répétitions, mixages, sorties de morceaux, publications, concerts.
 Les MAILS recopiés par un bot comptent autant : livraison d'un mix promise par l'ingé son, échéance de paiement, date de rendez-vous, délai annoncé par le distributeur.

@@ -73,7 +73,7 @@ BK.veo = {
     q('#veoRecalc').onclick = async () => { if (!(await BK.confirmer('Refaire tous les prompts depuis la fiche ? Les retouches de ce reel seront perdues.'))) return; cur.veo = []; await sauver(cur); dessiner(); };
     q('#veoMiette').onclick = async () => {
       const r = cur, P = r.plans || []; if (!P.length) return msg('Pas de plan à réécrire');
-      if (!(await BK.ia.pret())) return msg('Miette n\'a pas de clé Gemini (Réglages › Miette)');
+      if (!(await BK.ia.pret())) return msg('Miette n\'a pas de clé Gemini (Réglages › Miette & Discord)');
       const b = q('#veoMiette'), avant = b.textContent; b.disabled = true; b.innerHTML = '<span class="spin"></span>Miette écrit…';
       try {
         const entree = { reel: r.titre, morceau: r.morceau, format: /reel/i.test(r.type || 'Reel') ? '9:16 vertical' : '16:9', lieu: r.lieu || (tour && tour.lieu) || '', idee: r.idee || '', personnages: persoDe(r),

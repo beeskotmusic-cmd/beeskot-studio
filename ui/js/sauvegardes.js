@@ -41,7 +41,7 @@ BK.sauvegardes = {
         if (premier && Date.now() - t > 864e5) { deja[p] = t; continue; }
         if (Date.now() - t < 2 * 60e3) continue;                     // il est peut-être en train d'être enregistré : la prochaine fois
         const nom = p.split(/[\\/]/).pop().replace(/\.als$/i, ''), d = new Date(t);
-        const quand = d.toISOString().slice(0, 10) + ' ' + String(d.getHours()).padStart(2, '0') + 'h' + String(d.getMinutes()).padStart(2, '0');
+        const quand = BK.auj(d) + ' ' + String(d.getHours()).padStart(2, '0') + 'h' + String(d.getMinutes()).padStart(2, '0');
         try { await BK.drive.envoyerFichier(p, `${nom} · ${quand}.als`, BK.sauvegardes.DOSSIER);
           deja[p] = t; faits.unshift({ nom, quand, pc: BK.reglage('nomPc', '') || 'ce PC' }); n++; }
         catch (e) { console.warn('sauvegarde', e); }

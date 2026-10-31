@@ -85,7 +85,7 @@
 #nav .tab.on::after{display:none}
 
 /* bois propres à BEESKOT Studio (palissandre) — remplacent le noyer de Dari Audio Live */
-body{background:#24140c url(../look/bois-fond.jpg) center/cover fixed}
+body{background:#24140c url(../look/bois-fond.jpg) center/cover}
 #nav{background:url(../textures/bois-menu.jpg) 0 0/420px!important}
 
 /* ---------- Reels : forme d'onde + bloc du passage ---------- */
@@ -630,7 +630,7 @@ a.lien{color:var(--mus);text-decoration:none}a.lien:hover{text-decoration:underl
 .gd-n{font-size:10px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .gd-o{font-size:9px;opacity:.55;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 /* le petit bandeau « ↶ Annuler » en bas */
-.bk-annuler{position:fixed;left:50%;bottom:52px;transform:translate(-50%,30px);opacity:0;pointer-events:none;transition:.2s;z-index:9999;display:flex;gap:10px;align-items:center;padding:8px 14px;border-radius:10px;background:#1b1712;border:1px solid rgba(232,137,42,.6);box-shadow:0 6px 24px rgba(0,0,0,.5);font-size:12px;color:#f3e7d3}
+.bk-annuler{position:fixed;left:50%;bottom:52px;transform:translate(-50%,30px);opacity:0;pointer-events:none;transition:opacity .2s cubic-bezier(.23,1,.32,1),transform .2s cubic-bezier(.23,1,.32,1);z-index:9999;display:flex;gap:10px;align-items:center;padding:8px 14px;border-radius:10px;background:#1b1712;border:1px solid rgba(232,137,42,.6);box-shadow:0 6px 24px rgba(0,0,0,.5);font-size:12px;color:#f3e7d3}
 .bk-annuler.on{transform:translate(-50%,0);opacity:1;pointer-events:auto}
 /* To-do : les propositions de Miette */
 .todo-miette{display:flex;flex-direction:column;gap:8px}
@@ -717,7 +717,7 @@ a.lien{color:var(--mus);text-decoration:none}a.lien:hover{text-decoration:underl
 .af-l.faite{opacity:.45;transition:opacity .5s}.af-l.faite .af-t{text-decoration:line-through}
 .af-l .ta-case{cursor:pointer}
 /* « Réflexion en cours » : visible partout pendant que Miette (Gemini) travaille */
-.bk-reflexion{position:fixed;right:18px;bottom:52px;z-index:9998;display:flex;align-items:center;gap:8px;padding:8px 14px;border-radius:10px;background:#1b1712;border:1px solid rgba(255,178,62,.6);color:#ffcf7a;font-size:12px;box-shadow:0 6px 24px rgba(0,0,0,.5);opacity:0;transform:translateY(20px);pointer-events:none;transition:.2s}
+.bk-reflexion{position:fixed;right:18px;bottom:52px;z-index:9998;display:flex;align-items:center;gap:8px;padding:8px 14px;border-radius:10px;background:#1b1712;border:1px solid rgba(255,178,62,.6);color:#ffcf7a;font-size:12px;box-shadow:0 6px 24px rgba(0,0,0,.5);opacity:0;transform:translateY(20px);pointer-events:none;transition:opacity .2s cubic-bezier(.23,1,.32,1),transform .2s cubic-bezier(.23,1,.32,1)}
 .bk-reflexion.on{opacity:1;transform:none}
 .bk-reflexion b{font-family:'Share Tech Mono',monospace;color:#ffb23e}
 /* le bouton jaune « Miette relit tout », à côté du bouton rouge */
@@ -803,9 +803,10 @@ body.dropping main>section:not(.hidden) .box.pick::after{content:none!important;
 #raTexteL textarea{resize:vertical}
 
 /* le bouton rouge clignote quand une mise à jour attend */
-.estop.maj img{animation:majBat 1.5s ease-in-out infinite}
+.estop.maj img{filter:drop-shadow(0 0 9px rgba(255,190,80,.9));animation:majBat 1.5s cubic-bezier(.45,0,.55,1) infinite}
 .estop.maj .led{background:#ffb23e;box-shadow:0 0 8px #ffb23e,0 0 16px rgba(255,160,40,.7);animation:blink 1s infinite}
-@keyframes majBat{0%,100%{filter:drop-shadow(0 3px 3px rgba(0,0,0,.55)) brightness(1)}50%{filter:drop-shadow(0 0 10px rgba(255,190,80,.95)) brightness(1.35)}}
+/* la pulsation ne bouge que la taille et l'opacité (rien à repeindre) ; la lueur est fixe */
+@keyframes majBat{0%,100%{transform:scale(1);opacity:.88}50%{transform:scale(1.07);opacity:1}}
 /* To-do : paniers repliables et tâches en liste quand il y en a beaucoup */
 .panier-tete{width:100%;background:rgba(239,230,210,.05);border:0;border-radius:4px;cursor:pointer;color:inherit;font:inherit;gap:8px;padding:5px 8px 6px;transition:background .15s}
 .panier-tete:hover{background:rgba(255,178,62,.16)}
@@ -884,8 +885,8 @@ body.dropping main>section:not(.hidden) .box.pick::after{content:none!important;
 .ac-rel-p{width:34px;height:34px;flex:0 0 34px;border-radius:4px;background:#1b1713 center/cover no-repeat;
   box-shadow:inset 0 0 0 1px rgba(255,255,255,.12),0 1px 3px rgba(0,0,0,.5);display:grid;place-items:center;font-size:14px;color:#6b6257}
 .ac-rel-n{font-size:14px;letter-spacing:.01em}
-.ac-rel-m:hover .ac-rel-n{color:var(--jaune)}
-.ac-rel-m:hover .ac-rel-p{box-shadow:inset 0 0 0 1px var(--jaune),0 1px 3px rgba(0,0,0,.5)}
+.ac-rel-m:hover .ac-rel-n{color:#ffcf7a}
+.ac-rel-m:hover .ac-rel-p{box-shadow:inset 0 0 0 1px #ffcf7a,0 1px 3px rgba(0,0,0,.5)}
 
 /* ---- Budget : rembourser sa part, mensuel / annuel ---- */
 .bu-parts{flex:0 0 100%;display:flex;flex-wrap:wrap;align-items:center;gap:6px;
@@ -898,9 +899,8 @@ body.dropping main>section:not(.hidden) .box.pick::after{content:none!important;
 .bu-v>.vfd{margin-left:4px}
 
 /* le bouton « Installer la version… » clignote lui aussi, pour qu'on le voie tout de suite */
-#stMaj.clignote{animation:majBtn 1.3s ease-in-out infinite}
-@keyframes majBtn{0%,100%{box-shadow:0 1px 2px rgba(0,0,0,.5);filter:brightness(1)}
-  50%{box-shadow:0 0 0 2px #ffb23e,0 0 14px rgba(255,178,62,.8);filter:brightness(1.18)}}
+#stMaj.clignote{position:relative;box-shadow:0 0 0 2px #ffb23e,0 0 14px rgba(255,178,62,.6);animation:majBtn 1.3s cubic-bezier(.45,0,.55,1) infinite}
+@keyframes majBtn{0%,100%{transform:scale(1);opacity:.9}50%{transform:scale(1.03);opacity:1}}
 
 /* ---- Reels : des posters verticaux, comme les banques de sons de Dari Audio Live ---- */
 .su-affs{display:grid;grid-template-columns:repeat(auto-fill,minmax(172px,1fr));gap:14px;padding:2px 2px 10px}
@@ -971,7 +971,7 @@ body.dropping main>section:not(.hidden) .box.pick::after{content:none!important;
 .lb.pliable{cursor:pointer;display:inline-flex;align-items:center;gap:6px;user-select:none}
 .lb.pliable:hover{color:#ffb23e}
 .pli-fleche{font-size:11px;color:#ffb23e;width:10px;display:inline-block}
-.box.replie > :not(.box-tete){display:none!important}
+.box.replie > :not(.box-tete):not(.lb):not(.ligne-titre):not(.ta-plier){display:none!important}
 .box.replie{padding-bottom:10px}
 .to-refs{margin-top:12px;padding-top:10px;border-top:1px solid rgba(239,230,210,.1);display:flex;flex-direction:column;gap:6px}
 .to-refs-l{display:flex;flex-wrap:wrap;gap:6px}
@@ -1283,8 +1283,8 @@ body.sans-miette .miette-aide, body.sans-miette .miette-seul, body.sans-miette #
 /* 🎉 on fête les sorties */
 .fete-voile{overflow:hidden}
 .fete-confettis{position:fixed;inset:0;pointer-events:none}
-.fete-confettis i{position:absolute;top:-20px;width:9px;height:14px;border-radius:2px;opacity:.9;animation:feteTombe linear infinite}
-@keyframes feteTombe{to{top:105vh;transform:rotate(720deg) translateX(40px)}}
+.fete-confettis i{position:absolute;top:-20px;width:9px;height:14px;border-radius:2px;opacity:.9;will-change:transform;animation:feteTombe linear infinite}
+@keyframes feteTombe{to{transform:translateY(calc(105vh + 20px)) rotate(720deg) translateX(40px)}}
 .fete-box{position:relative;display:flex;flex-direction:column;align-items:center;gap:10px;padding:30px 44px 26px;border-radius:14px;background:linear-gradient(180deg,#3a2a1c,#1d140d);box-shadow:0 0 0 1px rgba(255,178,62,.35),0 20px 60px rgba(0,0,0,.6);animation:feteArrive .5s cubic-bezier(.2,1.4,.4,1)}
 @keyframes feteArrive{from{transform:scale(.6);opacity:0}to{transform:scale(1);opacity:1}}
 .fete-biscotte{width:84px;height:84px;border-radius:50%;animation:feteSaute 1s ease-in-out infinite alternate;box-shadow:0 6px 18px rgba(0,0,0,.5)}
@@ -1373,9 +1373,6 @@ body.miette-scan .estop.jaune .led{background:var(--miette-clair);box-shadow:0 0
 /* Reels : petites vignettes et boutons Insérer */
 .su-mini{display:flex;gap:3px;margin:4px 0}.su-mini i{width:28px;height:28px;border-radius:3px;background:#0a0604 center/cover no-repeat;box-shadow:inset 0 0 0 1px rgba(239,230,210,.12)}
 .su-bb{display:flex;gap:4px;margin-top:4px}
-/* Reels : petites vignettes et boutons Insérer */
-.su-mini{display:flex;gap:3px;margin:4px 0}.su-mini i{width:28px;height:28px;border-radius:3px;background:#0a0604 center/cover no-repeat;box-shadow:inset 0 0 0 1px rgba(239,230,210,.12)}
-.su-bb{display:flex;gap:4px;margin-top:4px}
 
 /* Miette change de couleur selon sa réflexion : ⚡ rapide = vert, normal = turquoise, 🧠 intelligent = rouge */
 /* Miette en vert olive (celui du bouton Budget) : plus elle est intelligente, plus elle est claire
@@ -1391,7 +1388,7 @@ body.miette-scan .estop.jaune .led{background:var(--mi-a);box-shadow:0 0 6px var
 .mi-ic,.mi-titre img{box-shadow:0 0 0 2px var(--mi-b);filter:brightness(var(--mi-lum)) hue-rotate(var(--mi-teinte))}
 
 /* ---------- le volet de gauche qui se replie (juste les traits de couleur) ---------- */
-.side{transition:width .25s ease}
+.side{transition:none}
 .volet{flex:none;align-self:center;width:16px;height:74px;margin:0 -17px;z-index:3;border:0;border-radius:0 8px 8px 0;cursor:pointer;padding:0;
   font:700 15px/1 inherit;color:#ffd48e;background:linear-gradient(90deg,#2a1d12,#4a3320);box-shadow:0 0 0 1px var(--laiton),2px 3px 6px rgba(0,0,0,.5);transition:background .2s,color .2s}
 .volet:hover{background:linear-gradient(90deg,#3a2818,#6a4828);color:#fff0c8}
@@ -1426,19 +1423,6 @@ body.menu-etroit .navfoot .eng{display:none}
 .md-voir{height:24px!important;min-height:0!important;padding:0 10px!important;font-size:11px!important;cursor:pointer;min-width:150px;text-align:left;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:240px}
 .md-voir.on{color:#ffb23e;box-shadow:inset 0 0 0 1px #ffb23e}
 #mdRub button.vue:not(.on){box-shadow:inset 0 -2px 0 rgba(255,178,62,.45)}
-/* Calendrier : dispos en couleur (vert = dispo, rouge = pas dispo ; le contour = la couleur du membre), périodes */
-.cal-dispo i{box-shadow:0 0 0 2px var(--m,#d9b67a);color:#1d140e}
-.cal-dispo i.oui{background:#6fbf5a}
-.cal-dispo i.non{background:#d0574f;color:#fff3e6}
-.ag-legende{display:flex;flex-wrap:wrap;align-items:center;gap:14px;margin-top:10px;font-size:11px;color:var(--ink2)}
-.ag-legende span{display:flex;align-items:center;gap:5px}
-.ag-legende i{width:12px;height:12px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font:700 8px/1 Jost,sans-serif;font-style:normal;color:#1d140e;background:#3a2c20;box-shadow:0 0 0 2px var(--m,transparent)}
-.ag-legende i.oui{background:#6fbf5a}.ag-legende i.non{background:#d0574f}
-.ag-legende .nt{margin:0 0 0 auto;font-size:10.5px}
-.ag-pt{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:8px;vertical-align:-1px}
-.ag-pt.oui{background:#6fbf5a}.ag-pt.non{background:#d0574f}
-.cal-ev.periode{border-radius:2px 0 0 2px}
-.cal-ev.periode.suite{border-left-color:transparent;border-radius:0;opacity:.85}
 /* Calendrier : dispos en couleur (vert = dispo, rouge = pas dispo ; le contour = la couleur du membre), périodes */
 .cal-dispo i{box-shadow:0 0 0 2px var(--m,#d9b67a);color:#1d140e}
 .cal-dispo i.oui{background:#6fbf5a}
@@ -1851,7 +1835,7 @@ body.glisse-media #nav .tab.depot-ok{box-shadow:0 0 0 2px #ffb23e,0 0 10px rgba(
 .jn-p{display:flex;align-items:baseline;gap:10px;padding:5px 8px;border-radius:4px;border:0;border-left:3px solid var(--pc);background:rgba(0,0,0,.25);color:var(--ink);font:400 12.5px Jost,sans-serif;text-align:left;cursor:pointer}
 .jn-p:hover{background:rgba(255,178,62,.1)}.jn-p .mono{font-size:11px;color:#a89c86;flex:none}.jn-p b{color:var(--pc);flex:none}.jn-p i{color:#cbbfa8}
 /* un reel sorti : il s'allume */
-.su-aff.sorti{background-blend-mode:normal!important;background-color:#15110e!important;border-color:#ffcf7a!important;box-shadow:0 0 0 1px #ffcf7a,0 0 18px rgba(255,190,80,.55),0 6px 18px rgba(0,0,0,.6)!important;animation:suLueur 3.2s ease-in-out infinite}
+.su-aff.sorti{background-blend-mode:normal!important;background-color:#15110e!important;border-color:#ffcf7a!important;box-shadow:0 0 0 1px #ffcf7a,0 0 18px rgba(255,190,80,.55),0 6px 18px rgba(0,0,0,.6)!important}
 .su-aff.sorti::before{opacity:.25!important}
 @keyframes suLueur{50%{box-shadow:0 0 0 1px #ffcf7a,0 0 28px rgba(255,190,80,.8),0 6px 18px rgba(0,0,0,.6)}}
 .su-sorti-b{font:700 10px Jost,sans-serif;letter-spacing:.14em;color:#2a1a0c;background:linear-gradient(180deg,#ffcf7a,#d48a1c);padding:4px 8px;border-radius:3px;flex:none}
@@ -2193,3 +2177,29 @@ body.bas-cache .rainure-bas .languette{width:auto;padding:0 12px}
 .tt-iti-av{color:#ffcf7a}
 .tt-iti-ko{display:flex;flex-direction:column;gap:3px;margin-top:8px;padding:8px 10px;border-radius:7px;background:rgba(141,27,34,.22);box-shadow:inset 0 0 0 1px rgba(255,120,120,.25)}
 .tt-iti-ko .nt{margin:0;font-size:11px}
+
+/* =====================================================================
+   AU CLIC : comme sur le téléphone. Ce qu'on clique s'enfonce un peu tout de suite (« scale », sans toucher aux
+   transformations déjà là), et le texte des boutons ne se sélectionne plus quand on clique vite ou avec Maj.
+   ===================================================================== */
+:root{--ease-out:cubic-bezier(.23,1,.32,1)}
+.btn,.chip,.dec,.seg button,.tab,.inter,.rg-tabs button,.rg-store,.estop,.volet,.languette,.cote,.md-tuile,.su-aff,.to-item,.fiche-tete,.tiroir-tete,.panier-tete,
+.ta-case,.lect-play,.lect-pas,.md-ico,.mm-l,.md-menu button,.ex-dos,.tu-menu button,.mi-val,.carte-x,.md-x,.su-e,.etape-b,.drive-sec,.pv-seg button,.sb-menu button,
+.tt-aff,.to-carte,.tt-reel-t,.to-affiche{-webkit-user-select:none;user-select:none}
+.tab:active,.rg-tabs button:active,.cote:active,.volet:active,.languette:active,.panier-tete:active,.tiroir-tete:active,.fiche-tete:active,.ta-case:active,.lect-play:active,.lect-pas:active,
+.md-ico:active,.mm-l:active,.md-menu button:active,.ex-dos:active,.tu-menu button:active,.mi-val:active,.carte-x:active,.md-x:active,.su-e:active,.etape-b:active,.drive-sec:active,
+.pv-seg button:active,.sb-menu button:active,.to-item:active{scale:.97}
+.md-tuile:active,.su-aff:active,.tt-aff:active,.to-carte:active,.tt-reel-t:active,.to-affiche:active{scale:.985}
+/* l'avis « À jour » / « Drive injoignable » : en bas à gauche */
+.bk-avis{right:auto;left:18px;max-width:420px}
+
+/* =====================================================================
+   ANIMATIONS RÉDUITES (réglage de Windows) : rien ne clignote ni ne tourne en continu
+   ===================================================================== */
+@media (prefers-reduced-motion:reduce){
+  .estop.maj img,#stMaj.clignote,.maj-go,.maj-biscotte,.estop.maj .led,.fete-confettis i,.fete-biscotte,.img-charge,.sy-pc.a-regler #syPc,body.miette-scan .estop.jaune img,.mini-etapes i.bout::after{animation:none!important}
+  *,*::before,*::after{transition-duration:.01ms!important;scroll-behavior:auto!important}
+}
+/* au clavier (Tab) : un anneau ambre, dans le style du logiciel, à la place du contour bleu de Windows */
+:focus-visible{outline:2px solid #ffb23e;outline-offset:2px}
+.btn:focus:not(:focus-visible),.chip:focus:not(:focus-visible),.tab:focus:not(:focus-visible){outline:none}

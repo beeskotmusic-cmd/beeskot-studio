@@ -88,7 +88,7 @@ BK.module('tournage', function (page) {
   }
 
   function rendreListe() {
-    const auj = new Date().toISOString().slice(0, 10), proch = T.liste.filter(x => estTour(x) && (x.date || '') >= auj).sort((a, b) => a.date.localeCompare(b.date))[0];
+    const auj = BK.auj(), proch = T.liste.filter(x => estTour(x) && (x.date || '') >= auj).sort((a, b) => a.date.localeCompare(b.date))[0];
     $('#toProchain').textContent = proch ? `${new Date(proch.date + 'T12:00').toLocaleDateString('fr-CA', { day: 'numeric', month: 'short' }).toUpperCase()} · ${(proch.titre || '').toUpperCase()}` : '—';
     const trs = tournagesL(), seuls = T.liste.filter(x => !estTour(x) && !x.parent);
     $('#toListe').innerHTML = (trs.length ? trs.map(x => `<button class="to-item${T.tour && T.tour.id === x.id ? ' on' : ''}${(x.date || '9') < auj ? ' passe' : ''}" data-tour="${x.id}">
@@ -613,7 +613,7 @@ BK.module('tournage', function (page) {
 
   // ---------- la liste des tournages (les affiches) + les reels qui n'ont pas encore de tournage ----------
   async function rendreTournages() {
-    const z = $('#toFiche'), auj = new Date().toISOString().slice(0, 10);
+    const z = $('#toFiche'), auj = BK.auj();
     const vr = await BK.partage.lire('tournage.vrac', []).catch(() => []); T.vrac = Array.isArray(vr) ? vr : [];
     const nonL = await BK.partage.lire('tournage.assetsNon', []).catch(() => []); T.non = new Set(Array.isArray(nonL) ? nonL : []);
     const affiche = tr => { const rs = reelsDe(tr), img = tr.couverture || '';

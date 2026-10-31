@@ -17,7 +17,11 @@
     '🎤': 'H_micro', '🎬': 'H_clap', '✨': 'H_etincelle', '🚀': 'H_fusee',
     '🎵': 'H_note', '♪': 'H_note', '💬': 'H_bulle', '📁': 'H_dossier', '📂': 'H_dossier',
     '✅': 'A_coche', '⏪': 'A_precedent', '🎥': 'H_clap', '🎞': 'H_clap',
-    '📣': 'H_megaphone', '📢': 'H_megaphone', '📰': 'H_presse'
+    '📣': 'H_megaphone', '📢': 'H_megaphone', '📰': 'H_presse',
+    '🔎': 'A_loupe', '🔉': 'A_volume', '🔈': 'A_volume', '🔇': 'A_muet',
+    '🍞': 'A_pain', '📋': 'A_presse', '☁': 'A_nuage', '💻': 'A_ecran', '🖥': 'A_ecran', '📄': 'A_feuille', '📝': 'A_feuille', '📜': 'A_feuille',
+    '📅': 'A_calendrier', '🗓': 'A_calendrier', '📆': 'A_calendrier', '🏷': 'A_etiquette', '💡': 'A_ampoule', '🗑': 'A_poubelle', '👥': 'A_groupe',
+    '🖼': 'A_image', '📍': 'A_epingle', '📸': 'A_photo', '📷': 'A_photo', '📱': 'A_telephone', '📲': 'A_telephone', '🗺': 'A_carte'
   };
   // Partout dans l'app, sauf là où on écrit ou où ce n'est pas du texte affiché.
   var EXCLUS = 'script, style, textarea, input, select, option, title, [contenteditable], [contenteditable] *, .pic';
@@ -55,6 +59,10 @@
     }), liste = [], n;
     while ((n = w.nextNode())) liste.push(n);
     liste.forEach(traiterTexte);
+    // les boutons qui ne montrent qu'un picto (✕, ▶, ✎…) : leur infobulle devient aussi leur nom pour les lecteurs d'écran
+    var bs = racine.matches && racine.matches('button[title]') ? [racine] : [];
+    bs = bs.concat([].slice.call(racine.querySelectorAll ? racine.querySelectorAll('button[title]:not([aria-label])') : []));
+    bs.forEach(function (b) { if (!b.hasAttribute('aria-label') && b.textContent.replace(/\s+/g, '').length <= 3) b.setAttribute('aria-label', b.title); });
   }
 
   function demarrer() {

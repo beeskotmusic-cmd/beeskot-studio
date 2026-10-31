@@ -182,7 +182,7 @@ BK.module('mixprep', function (page) {
         <div class="mp-check"><span class="led ${l.length && gel === l.length ? 'grn' : 'amb'}"></span><span class="nt" style="margin:0">Pistes gelées : ${gel} / ${l.length}</span></div>
         <div class="mp-check"><button class="ta-case${M.rassemble ? ' on' : ''}" id="mpRass">${M.rassemble ? '✓' : ''}</button><span class="nt" style="margin:0">J'ai fait <b>Fichier › Rassembler et sauvegarder</b> dans Ableton</span></div></div>
       <div class="box"><span class="lb">Zip</span>
-        <span class="nt">Le zip est créé à côté du dossier du projet : <span class="mono">${esc(propre(M.morceau) || 'MORCEAU')}_MIX_${new Date().toISOString().slice(0, 10)}.zip</span>. Le PC reste utilisable pendant ce temps.</span>
+        <span class="nt">Le zip est créé à côté du dossier du projet : <span class="mono">${esc(propre(M.morceau) || 'MORCEAU')}_MIX_${BK.auj()}.zip</span>. Le PC reste utilisable pendant ce temps.</span>
         <button class="btn pri" id="mpZip" style="margin-top:10px;align-self:flex-start">Zipper le projet ▶</button></div>
       <div class="box"><span class="lb">Envoi dans le Drive BEESKOT</span>
         <span class="nt">${BK.drive.relie() ? (M.zip ? `Prêt à envoyer : <span class="mono">${esc(M.zip.split(/[\\/]/).pop())}</span> → Drive › BEESKOT Studio › Mixages` : 'Fais d\'abord le zip.') : 'Relie d\'abord le Drive (Réglages).'}</span>
@@ -202,7 +202,7 @@ BK.module('mixprep', function (page) {
       if (!BK.estExe) return msg('Disponible dans le logiciel installé');
       if (!M.rassemble) return msg('Fais d\'abord « Rassembler et sauvegarder », puis coche la case');
       const dos = await BK.fichier.choisirDossier('Dossier du projet Ableton à zipper (celui qui contient le .als)'); if (!dos) return;
-      const nom = `${propre(M.morceau) || 'PROJET'}_MIX_${new Date().toISOString().slice(0, 10)}.zip`;
+      const nom = `${propre(M.morceau) || 'PROJET'}_MIX_${BK.auj()}.zip`;
       const parent = dos.replace(/[\\/][^\\/]+$/, ''); let dest = BK.chemin(parent, nom), n = 2;
       while (await BK.fichier.existe(dest)) dest = BK.chemin(parent, nom.replace('.zip', ` (${n++}).zip`));   // ne jamais écraser
       const b = $('#mpZip'); b.disabled = true; b.innerHTML = '<span class="spin"></span>Zip en cours…'; msg('Zip en cours (le PC reste utilisable)');

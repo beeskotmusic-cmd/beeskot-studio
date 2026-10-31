@@ -47,7 +47,7 @@ BK.module('suivi', function (page) {
   const msg = t => $('#suMsg').textContent = String(t).toUpperCase().slice(0, 90);
 
   window.addEventListener('bk:annule', () => charger());
-  window.addEventListener('bk:distant', e => { if (e.detail.cols.some(c => /reels|tournages|morceaux/.test(c))) charger(); });
+  // (changements des autres PC : js/miette.js appelle BK.suiviRecharger)
   async function charger() {
     [R.l, R.morceaux, R.tournages] = await Promise.all([BK.db.liste('reels'), BK.db.liste('morceaux'), BK.db.liste('tournages')]);
     R.exports = await BK.exportsAudio.tous();

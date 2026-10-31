@@ -7,10 +7,12 @@ const $ = (s, r = document) => r.querySelector(s);
 const $$ = (s, r = document) => [...r.querySelectorAll(s)];
 
 const BK = {
-  version: '0.9.88 bêta',
+  version: '0.9.89 bêta',
   modules: {},
   onglets: [],
   cotes: [],
+  // la date du jour (ou d'une date) en heure de Montréal, « 2026-10-31 » : jamais toISOString() (c'est l'heure de Londres : après 20 h, ce serait déjà demain)
+  auj(d = new Date()) { return new Date(d.getTime() - d.getTimezoneOffset() * 6e4).toISOString().slice(0, 10); },
 
   // ---------- réglages propres à CE PC (jamais partagés) ----------
   reglage(cle, defaut) {
@@ -64,7 +66,7 @@ const BK = {
     html += `<div class="navfoot">
         <button class="st bascule${ia ? ' on' : ''}" id="iaBascule" title="Active ou coupe l'AI (Gemini) sur ce PC"><span class="interrupteur"><i></i></span><span class="eng">AI Miette ${ia ? 'activée' : 'coupée'}</span></button>
         <div class="st"><span id="ledDrive" class="led"></span><span class="eng">Drive BEESKOT</span></div>
-        <div class="st"><span id="ledLive" class="led"></span><span class="eng">Ableton Live</span></div>
+        <div class="st"><span id="ledLive" class="led${BK.ableton && BK.ableton.relie ? ' grn' : ''}"></span><span class="eng">Ableton Live</span></div>
       </div>`;
     nav.innerHTML = html;
     $$('.tab', nav).forEach(b => b.onclick = () => BK.ouvrir(b.dataset.p));
@@ -73,7 +75,7 @@ const BK = {
     BK.volet();
     $$('[data-cote]', nav).forEach(b => b.onclick = () => { const r = BK.reglage('menu.replie', {}); r[b.dataset.cote] = !r[b.dataset.cote]; BK.regler('menu.replie', r);
       $(`.cote-groupe[data-g="${b.dataset.cote}"]`, nav).classList.toggle('replie', r[b.dataset.cote]); b.textContent = (r[b.dataset.cote] ? '▸ ' : '▾ ') + b.textContent.replace(/^[▸▾]\s*/, ''); });
-    $('#iaBascule').onclick = () => { BK.regler('ia.active', !BK.reglage('ia.active', true)); const id = ($('#nav .tab.on') || {}).dataset; BK.construireMenu(); BK.etatDrive && BK.etatDrive(); BK.ableton && BK.ableton.majLed && BK.ableton.majLed();
+    $('#iaBascule').onclick = () => { BK.regler('ia.active', !BK.reglage('ia.active', true)); const id = ($('#nav .tab.on') || {}).dataset; BK.construireMenu(); BK.etatDrive && BK.etatDrive();
       if (id && id.p) $$('#nav .tab').forEach(t => { const on = t.dataset.p === id.p; t.classList.toggle('on', on); $('.led', t).classList.toggle('amb', on); });
       window.dispatchEvent(new CustomEvent('bk:ia')); };
   },
@@ -165,11 +167,6 @@ const BK = {
       c.textContent = Math.round(j.cpu) + ' % CPU'; r.textContent = j.ramMo >= 1024 ? (j.ramMo / 1024).toFixed(1) + ' Go' : j.ramMo + ' Mo';
       c.parentElement.classList.toggle('chaud', j.cpu > 60);
     } catch (e) { c.textContent = '—'; }
-  },
-  horloge() {
-    const d = new Date();
-    const dd = document.getElementById('syDate'); if (dd) dd.textContent = d.toLocaleDateString('fr-CA', { weekday: 'short', day: '2-digit', month: 'short' }).toUpperCase();
-    const hh = document.getElementById('syHeure'); if (hh) hh.textContent = d.toLocaleTimeString('fr-CA', { hour: '2-digit', minute: '2-digit' });
   },
 
   // ---------- bouton STOP : relancer / fermer / version ----------
@@ -290,9 +287,8 @@ const BK = {
     $$('#nav .knobify, header .knobify').forEach(BK.knobify);
     $('#syVer').textContent = BK.version.toUpperCase();
     if (BK.T && BK.T.app) BK.T.app.getVersion().then(v => { BK.version = v + ' bêta'; $('#syVer').textContent = $('#stVer').textContent = BK.version.toUpperCase(); });   // le vrai numéro du .exe
-    BK.majNomPc(); $('#syPcB').onclick = () => { BK.ouvrir('reglages'); BK.reglagesOnglet && BK.reglagesOnglet('pc'); };
+    BK.majNomPc(); $('#syPcB').onclick = () => { BK.ouvrir('reglages'); BK.reglagesOnglet && BK.reglagesOnglet('pc'); }; $('#syPcB').onkeydown = e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); $('#syPcB').click(); } };
     BK.etatDrive && BK.etatDrive();
-    BK.horloge(); setInterval(BK.horloge, 20000);   // léger : une mise à jour toutes les 20 s
     BK.charge(); setInterval(BK.charge, 8000);
     BK.appliquerZoom(BK.reglage('zoom', 100));
     BK.synchro && BK.synchro.demarrer();                              // ce qu'un autre PC change arrive ici tout seul
@@ -321,11 +317,15 @@ const BK = {
   // ---------- chaque cadre avec un titre se replie (clic sur le titre) et se tire par le bas (double-clic sur le bord : taille normale) ----------
   // gardé sur ce PC, par onglet et par titre de cadre
   boites: {
-    cle: (id, b) => { const t = b.querySelector(':scope > .lb, :scope > .ligne-titre > .lb'); return t ? id + '|' + t.textContent.trim().slice(0, 40) : ''; },
+    // la clé = le titre sans flèches ni compteurs (« Paniers (3) » et « Paniers (4) » restent le même cadre)
+    cle: (id, b) => { const t = b.querySelector(':scope > .lb, :scope > .ligne-titre > .lb'); return t ? id + '|' + t.textContent.replace(/[▸▾]|\(\d+\)|\d+/g, '').replace(/\s+/g, ' ').trim().slice(0, 40) : ''; },
+    // un cadre qui a déjà son propre bouton pour se replier (To-do, Tournages) : on n'en ajoute pas un deuxième
+    aSonPli: b => !!b.querySelector(':scope > button.lb, :scope > .ligne-titre > button.lb, :scope > .lb.pliable, :scope > .ligne-titre > .lb.pliable'),
     appliquer(p, id) {
       const P = BK.reglage('boites.plies', {}), H = BK.reglage('boites.h', {});
       for (const b of p.querySelectorAll('.box')) {
         if (b.closest('.stopbox,.voile,.md-choix,#impression') || b.classList.contains('md-barre')) continue;
+        if (BK.boites.aSonPli(b)) { if (b.classList.contains('bx')) { b.classList.remove('bx', 'plie'); delete b.dataset.bxk; } continue; }
         const k = BK.boites.cle(id, b); if (!k) continue;
         if (b.dataset.bxk !== k) { b.dataset.bxk = k; b.classList.add('bx'); }
         b.classList.toggle('plie', !!P[k]);
@@ -396,7 +396,7 @@ const BK = {
         if (BK.db.viderAttente) await BK.db.viderAttente();          // ce qui attendait ici part d'abord
         BK.dossiers && BK.dossiers.oublier && BK.dossiers.oublier();
         window.dispatchEvent(new CustomEvent('bk:distant', { detail: { cols: (BK.synchro && BK.synchro.COLS) || [] } }));
-        BK.presence && await BK.presence.maj(true); await qui(); b.textContent = '✓ À jour'; BK.toast && BK.toast('À jour : ce que les autres ont fait est arrivé'); }
+        BK.presence && await BK.presence.maj(true); await qui(); b.textContent = '✓ À jour'; BK.avis('À jour : ce que les autres ont fait est arrivé'); }
       catch (e) { b.textContent = '🔄 Drive injoignable'; const sp = z.querySelector('[data-mm="actu"] > span');
         if (sp) sp.innerHTML = BK.drive && BK.drive.relie() ? '1) Vérifie ta connexion internet, puis clique encore.<br>2) Ça ne marche toujours pas : Réglages › Drive › « Importer une carte d\'accès » (le fichier que Dari t\'envoie en message privé).' : 'Le Drive n\'est pas relié sur ce PC : Réglages › Drive › « Importer une carte d\'accès » (le fichier que Dari t\'envoie en message privé).'; } };
     // qui est en ligne (vu dans les 7 dernières minutes) ou hors ligne (et depuis quand)
@@ -464,4 +464,20 @@ const BK = {
     el.knobMaj = draw;              // pour redessiner le bouton quand la valeur change ailleurs
     draw();
   },
+};
+// un petit avis en bas à gauche, qui s'en va tout seul (« À jour », « Drive injoignable »…)
+BK.avis = (texte, ms = 4500) => {
+  let v = document.getElementById('bkAvis');
+  if (!v) { v = document.createElement('div'); v.id = 'bkAvis'; v.className = 'bk-reflexion bk-avis'; v.setAttribute('role', 'status'); document.body.appendChild(v); }
+  v.textContent = texte; v.classList.add('on'); clearTimeout(BK.avisT); BK.avisT = setTimeout(() => v.classList.remove('on'), ms);
+};
+// redessiner une zone sans que ses listes remontent en haut : on note où chaque liste était, on redessine, on remet
+BK.garderDefilement = (racine, redessiner) => {
+  if (!racine) return redessiner();
+  const chemin = el => { const p = []; for (let x = el; x && x !== racine; x = x.parentElement) p.unshift((x.id ? '#' + x.id : x.className || x.tagName) + ':' + [...x.parentElement.children].indexOf(x)); return p.join('>'); };
+  const avant = [...racine.querySelectorAll('*')].filter(el => el.scrollTop > 0).map(el => [chemin(el), el.scrollTop]);
+  if (racine.scrollTop > 0) avant.push(['', racine.scrollTop]);
+  const fin = () => { if (!avant.length) return; const tous = new Map([...racine.querySelectorAll('*')].map(el => [chemin(el), el])); tous.set('', racine);
+    for (const [k, y] of avant) { const el = tous.get(k); if (el) el.scrollTop = y; } };
+  const r = redessiner(); if (r && r.then) return r.then(v => { fin(); return v; }); fin(); return r;
 };

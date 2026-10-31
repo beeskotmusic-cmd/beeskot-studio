@@ -157,7 +157,7 @@ BK.pdfTournage = async function ({ t, reels, membres, dateFr, mode }) {
   // ----- le pied de chaque page -----
   const n = doc.getNumberOfPages(), nom = net(t.titre || 'Tournage');
   for (let i = 1; i <= n; i++) { doc.setPage(i); police(7.5, false, GRIS); doc.text('BEESKOT Studio · ' + nom, M, H - 8); doc.text(i + ' / ' + n, L - M, H - 8, { align: 'right' }); }
-  const fich = (String(t.titre || 'Tournage').replace(/[\\/:*?"<>|]+/g, ' ').replace(/\s+/g, ' ').trim() || 'Tournage') + ' - ' + new Date().toISOString().slice(0, 10) + (nb ? ' - noir et blanc' : ' - couleur') + '.pdf';
+  const fich = (String(t.titre || 'Tournage').replace(/[\\/:*?"<>|]+/g, ' ').replace(/\s+/g, ' ').trim() || 'Tournage') + ' - ' + BK.auj() + (nb ? ' - noir et blanc' : ' - couleur') + '.pdf';
   return { bytes: new Uint8Array(doc.output('arraybuffer')), nom: fich, pages: n };
 };
 })();

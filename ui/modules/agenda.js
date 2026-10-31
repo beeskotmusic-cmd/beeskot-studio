@@ -93,7 +93,7 @@ BK.module('agenda', function (page) {
     <div class="pane abar"><span class="vfd" id="agMsg">PRÊT</span></div>`;
 
   const msg = t => $('#agMsg').textContent = String(t).toUpperCase();
-  $('#agDate').value = jour(new Date());
+  $('#agDate').value = BK.auj();
 
   window.addEventListener('bk:annule', () => charger());
   window.addEventListener('bk:ia', () => A.locaux && rendre());       // Miette allumée / coupée : ses dates apparaissent / disparaissent
@@ -144,7 +144,7 @@ BK.module('agenda', function (page) {
       (parJour[d0] ||= []).push(e);
       if (e.fin && e.fin > d0) for (let x = new Date(d0 + 'T12:00'), i = 0; i < 120; i++) { x.setDate(x.getDate() + 1); const k = jour(x); if (k > e.fin) break;   // une période : elle continue les jours suivants
         (parJour[k] ||= []).push({ ...e, suite: true }); } }
-    const premier = new Date(an, mo, 1), decal = (premier.getDay() + 6) % 7, nb = new Date(an, mo + 1, 0).getDate(), auj = jour(new Date());
+    const premier = new Date(an, mo, 1), decal = (premier.getDay() + 6) % 7, nb = new Date(an, mo + 1, 0).getDate(), auj = BK.auj();
     let h = ['L', 'M', 'M', 'J', 'V', 'S', 'D'].map(j => `<span class="cal-j">${j}</span>`).join('');
     for (let i = 0; i < decal; i++) h += '<div class="cal-c vide"></div>';
     for (let d = 1; d <= nb; d++) {
@@ -218,7 +218,7 @@ BK.module('agenda', function (page) {
       const m = ms.join(', ');
       const d = await lireDispos();                                   // on relit juste avant : on n'efface pas ce que les autres viennent de cocher
       for (const j of jours) { const o = d[j] || {}; for (const q of ms) if (etat) o[q] = etat; else delete o[q]; if (Object.keys(o).length) d[j] = o; else delete d[j]; }
-      const auj = jour(new Date()); for (const j of Object.keys(d)) if (j < auj) delete d[j];   // les jours passés s'en vont
+      const auj = BK.auj(); for (const j of Object.keys(d)) if (j < auj) delete d[j];   // les jours passés s'en vont
       await BK.partage.ecrire('dispos2', d); A.dispos = d;
       const vieux = {}; for (const [j, o] of Object.entries(d)) { const l = Object.keys(o).filter(k => o[k] === 'oui'); if (l.length) vieux[j] = l; }
       BK.partage.ecrire('dispos', vieux).catch(() => {});             // pour les PC pas encore à jour : l'ancienne liste (seulement les « dispo »)

@@ -140,10 +140,10 @@ BK.module('reglages', function (page) {
       <span class="nt" id="rtMsg" style="min-height:18px;margin-top:8px"></span>
       <div class="stopbox-btns"><button class="btn pri" id="rtGo">⏪ Remettre comme avant</button><button class="btn" id="rtNon">Annuler</button></div></div>`;
     document.body.appendChild(v);
-    const fermer = () => v.remove();
+    const fermer = () => { v.remove(); document.removeEventListener('keydown', echap); };
     v.querySelector('#rtNon').onclick = fermer;
     v.querySelector('#rtX').onclick = fermer;
-    const echap = e => { if (e.key === 'Escape') { fermer(); document.removeEventListener('keydown', echap); } };
+    function echap(e) { if (e.key === 'Escape') fermer(); }
     document.addEventListener('keydown', echap);
     v.addEventListener('click', e => { if (e.target === v) fermer(); });
     v.querySelector('#rtGo').onclick = async () => {
