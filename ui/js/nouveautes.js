@@ -3,6 +3,9 @@
 // Pour une nouvelle version : ajouter un bloc EN HAUT de la liste. Une ligne courte par point : « Onglet : ce qui change. »
 // =====================================================================
 BK.NOUVEAUTES = [
+  { v: '0.9.83', titre: '', l: [
+    ['🎵', 'Tournages › reels : la ligne « Passage du morceau » (début → fin) dans Infos. Tape les temps ou choisis un passage déjà gardé, et « ▶ Écouter » joue juste cet extrait (2e clic : pause). Le passage est partagé avec l\'onglet Reels, affiché sur la carte du reel, dans le PDF et dans les prompts Veo 3.'],
+  ] },
   { v: '0.9.82', titre: '', l: [
     ['🗓', 'Tournages : chaque journée a un « Type de journée » (Tournage, Photoshoot, Live, Répétition, Autre) : l\'en-tête, le bouton « … fini » et le PDF utilisent ce mot. Plus de « 0 reel(s) ».'],
     ['🖼', 'Tournages : plus de photo choisie au hasard en fond. « Image de couverture » pour en mettre une toi-même (facultatif).'],

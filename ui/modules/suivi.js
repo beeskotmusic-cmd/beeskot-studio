@@ -269,7 +269,7 @@ BK.module('suivi', function (page) {
     if (!t) t = { niveau: 'reel', parent: '', ordre: 0, type: r.type || 'Reel', date: '', heure: '', moodboard: [], tenues: {}, notes: '', plans: [] };
     // l'outfit va dans les notes du tournage (une ligne « Outfit : … » qu'on remplace)
     t.notes = [r.outfit ? 'Outfit : ' + r.outfit : '', ...String(t.notes || '').split('\n').filter(l => l && !/^Outfit : /.test(l))].filter(Boolean).join('\n');
-    Object.assign(t, infos);
+    Object.assign(t, infos); t.passage = r.passage ? { debut: r.passage.debut, fin: r.passage.fin } : t.passage;
     t.plans = t.plans || []; if (r.cadrage || pas) { if (!t.plans.length) t.plans.push({ cadrage: '', action: '', duree: '', notes: '' }); t.plans[0].action = t.plans[0].action || r.cadrage || ''; t.plans[0].audio = pas; }
     t = await BK.db.ecrire('tournages', t);
     if (!R.tournages.includes(t)) R.tournages = R.tournages.filter(x => x.id !== t.id).concat(t);

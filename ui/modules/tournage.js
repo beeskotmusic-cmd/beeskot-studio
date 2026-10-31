@@ -145,6 +145,7 @@ BK.module('tournage', function (page) {
           <label><span class="eng">Morceau</span><select class="fld" data-c="morceau"><option value="">—</option>${T.morceaux.map(m => `<option${t.morceau === m ? ' selected' : ''}>${esc(m)}</option>`).join('')}</select></label>
           ${inline ? '' : `<label class="large"><span class="eng">Lieu</span><input class="fld" data-c="lieu" value="${esc(t.lieu)}" placeholder="ex. Studio BEESKOT"></label>`}
           <label class="large"><span class="eng">L'idée en une phrase</span><input class="fld" data-c="idee" value="${esc(t.idee)}" placeholder="ex. ambiance VHS, lumière rouge, plans serrés sur les mains"></label>
+          ${inline ? passageHtml(t) : ''}
         </div></div>
       <div class="box"><div class="ligne-titre"><span class="lb">Moodboard</span><button class="btn xs miette-aide" id="toMoodMiette" style="margin-left:auto" title="Miette cherche les images de moodboard de ce tournage dans le Drive et sur Discord">Trouver</button></div>
         <div class="to-mood" id="toMood">${t.moodboard.map((u, i) => `<div class="to-img" draggable="true" data-mi="${i}" title="Glisse cette image sur un plan du découpage"${BK.img.bg(u)}><b class="to-n">${i + 1}</b>${pastille((t.qui || {})[u])}<button class="md-x" data-mx="${i}">✕</button></div>`).join('')}
@@ -665,7 +666,7 @@ BK.module('tournage', function (page) {
         ${rs.map(r => `<div class="tt-reel${r.id === ouvert ? ' ouvert' : ''}" data-rid="${r.id}">
           <div class="tt-reel-t to-carte" draggable="true" data-tid="${r.id}"><span class="to-c-img"${BK.img.bg(imgDe(r))}>${imgDe(r) ? '' : '♪'}</span>
             <span class="to-c-txt"><span class="eng">${esc(r.type || 'Reel')}${r.morceau ? ' · ' + esc(r.morceau) : ''}${etape(r) ? ' · reel : ' + esc(etape(r)) : ''}</span><b>${esc(r.titre || 'Sans titre')}</b>
-              <span class="nt">${(r.plans || []).length} plan(s) · ${(r.moodboard || []).length} image(s) · ${Object.values(r.tenuesPhotos || {}).flat().length} tenue(s)</span></span>
+              <span class="nt">${pasTexte(r) ? '♪ ' + pasTexte(r) + ' · ' : ''}${(r.plans || []).length} plan(s) · ${(r.moodboard || []).length} image(s) · ${Object.values(r.tenuesPhotos || {}).flat().length} tenue(s)</span></span>
             <span class="to-c-btns">${(T.reels || []).some(x => x.tournage === r.id) ? `<button class="btn xs" data-voir="${r.id}">Voir le reel</button>` : `<button class="btn xs" data-reel="${r.id}" title="Crée la carte dans l'onglet Reels">→ Reels</button>`}
               <button class="btn xs" data-sortir="${r.id}" title="Le sortir de ce tournage">↩</button><button class="btn xs tt-pli" data-plir="${r.id}">${r.id === ouvert ? '▾ Replier' : '▸ Déplier'}</button></span></div>
           ${r.id === ouvert ? '<div class="tt-reel-corps" id="toReelCorps"></div>' : ''}</div>`).join('') || '<span class="nt">Pas encore de reel : « + Ajouter un reel », ou glisse un reel sur ce tournage depuis la liste des tournages.</span>'}</div>
@@ -696,7 +697,7 @@ BK.module('tournage', function (page) {
       for (const r of rs) { r.parent = ''; await BK.db.ecrire('tournages', r); } await BK.db.supprimer('tournages', tr.id); T.liste = T.liste.filter(x => x.id !== tr.id); await synchroTour(tr); T.tour = null; T.vue = 'jours'; msg('Tournage retiré'); charger(); };
     brancherMedias(z);
     glisser(z);
-    if (ouvert) { const c = $('#toReelCorps'); c.innerHTML = corpsFiche(T.courant, true); T.zone = c; brancher(T.courant); T.zone = null; brancherMedias(c); glisser(c); modeLecture(c, T.courant); }
+    if (ouvert) { const c = $('#toReelCorps'); c.innerHTML = corpsFiche(T.courant, true); T.zone = c; brancher(T.courant); brancherPas(c, T.courant); T.zone = null; brancherMedias(c); glisser(c); modeLecture(c, T.courant); }
     modeLecture(z, tr, '#toReelCorps');
   }
   // les boutons des zones médias (tenues, assets, propositions vertes)
@@ -756,6 +757,84 @@ BK.module('tournage', function (page) {
     BK.suiviRecharger && BK.suiviRecharger(); if (silencieux) return;
     msg(t.fini ? `« ${t.titre} » : tourné ✓ (le reel passe à « Tourné »)` : 'Remis à faire'); rendreListe(); rendreFiche();
   }
+
+  // ---------- passage du morceau (début → fin) d'un reel : noté, écoutable, partagé avec l'onglet Reels ----------
+  const enSecP = txt => { const x = String(txt || '').trim().replace(',', '.'); if (!x) return null; const m = x.match(/^(?:(\d+):)?(\d+(?:\.\d+)?)$/); return m ? (+(m[1] || 0)) * 60 + +m[2] : null; };
+  const tpsP = sec => BK.audio.temps(sec);
+  const tpsC = sec => BK.audio.temps(sec).replace(/\.\d$/, '');
+  function pasDe(t) {                                              // le passage gardé, sinon celui écrit « m:ss – m:ss » dans le premier plan
+    if (t.passage && t.passage.fin > t.passage.debut) return t.passage;
+    const a = ((t.plans || [])[0] || {}).audio; return a ? passage(a) : null;
+  }
+  const pasTexte = t => { const p = pasDe(t); return p ? tpsC(p.debut) + ' → ' + tpsC(p.fin) : ''; };
+  function passageHtml(t) {
+    const p = pasDe(t);
+    return `<div class="large to-pas"><span class="eng">🎵 Passage du morceau</span>
+      <div class="to-pas-l"><input class="fld vfd-in" data-pas="debut" value="${p ? esc(tpsP(p.debut)) : ''}" placeholder="début 0:00.0"><span class="to-pas-fl">→</span><input class="fld vfd-in" data-pas="fin" value="${p ? esc(tpsP(p.fin)) : ''}" placeholder="fin 0:30.0">
+        <span class="nt to-pas-d">${p ? Math.round(p.fin - p.debut) + ' s' : 'À choisir'}</span>
+        <button class="btn xs" type="button" data-pas-play title="Écouter le passage (2e clic : pause)">▶ Écouter</button>
+        <select class="fld to-pas-sel" data-pas-sel title="Passages déjà gardés pour ce morceau"><option value="">Passage…</option></select></div></div>`;
+  }
+  const lectP = new Audio(); let lectPFin = 0; const srcP = {};
+  BK.mini.suivre(lectP, { page: 'tournage', titre: () => lectP.titre || 'Passage du reel' });
+  lectP.addEventListener('timeupdate', () => { if (lectPFin && lectP.currentTime >= lectPFin) lectP.pause(); });
+  async function passagesP(m) {
+    if (!m) return [];
+    const l = [], vu = new Set(), aj = p => { if (!p || !(p.fin > p.debut)) return; const k = Math.round(p.debut * 10) + '-' + Math.round(p.fin * 10); if (!vu.has(k)) { vu.add(k); l.push(p); } };
+    try { ((await BK.partage.lire('passages.reels', {}))[m.id] || []).forEach(aj); ((await BK.partage.lire('passages.discord', {}))[m.id] || []).forEach(aj); } catch (e) { console.warn(e); }
+    return l.sort((a, b) => a.debut - b.debut);
+  }
+  async function jouerPas(t) {
+    const m = (T.fiches || []).find(x => x.nom === t.morceau), p = pasDe(t);
+    if (!m) return msg('Choisis d\'abord le morceau');
+    if (!lectP.paused && lectP.dataset.t === t.id) { lectP.pause(); return msg('Pause'); }
+    msg('Chargement…');
+    try {
+      let url = srcP[m.id];
+      if (!url) {
+        const src = await BK.sonDuMorceau(m, T.fiches);
+        if (!src) return msg('Aucun export dans la fiche de ' + m.nom);
+        msg('Chargement de ' + src.nom + '…');
+        const oct = src.drive ? await BK.drive.telecharger(src.drive) : await BK.fichier.lireOctets(src.chemin);
+        url = srcP[m.id] = URL.createObjectURL(new Blob([oct], { type: 'audio/wav' }));
+      }
+      if (lectP.dataset.m !== m.id) { lectP.src = url; lectP.dataset.m = m.id; }
+      lectP.dataset.t = t.id; lectP.titre = m.nom + ' · ' + (t.titre || 'Reel');
+      lectP.currentTime = p ? p.debut : 0; lectPFin = p ? p.fin : 0;
+      await lectP.play(); msg(p ? `▶ ${tpsC(p.debut)} → ${tpsC(p.fin)}` : '▶ le morceau en entier');
+    } catch (e) { console.error(e); msg('Lecture impossible'); }
+  }
+  // enregistre le passage dans le reel du tournage ET dans la carte de l'onglet Reels qui lui est liée
+  async function garderPas(t, p) {
+    t.passage = p; t.plans = t.plans || [];
+    if (t.plans.length || p) { if (!t.plans.length) t.plans.push({ cadrage: '', action: '', duree: '', notes: '' }); t.plans[0].audio = p ? tpsC(p.debut) + ' – ' + tpsC(p.fin) : ''; }
+    sauver(t);
+    const m = (T.fiches || []).find(x => x.nom === t.morceau);
+    for (const r of (T.reels || []).filter(x => x.tournage === t.id)) {
+      if (p) r.passage = { debut: p.debut, fin: p.fin }; else delete r.passage;
+      await BK.db.ecrire('reels', r);
+      if (p && m) { const tout = await BK.partage.lire('passages.reels', {}), l = tout[m.id] = tout[m.id] || [];
+        if (!l.some(x => Math.abs(x.debut - p.debut) < .05 && Math.abs(x.fin - p.fin) < .05)) { l.push({ debut: p.debut, fin: p.fin }); await BK.partage.ecrire('passages.reels', tout); } }
+    }
+    BK.suiviRecharger && BK.suiviRecharger();
+  }
+  function brancherPas(z, t) {
+    const d = z.querySelector('[data-pas="debut"]'), f = z.querySelector('[data-pas="fin"]'); if (!d || !f) return;
+    const info = z.querySelector('.to-pas-d');
+    const lire = async () => {
+      const a = enSecP(d.value), b = enSecP(f.value);
+      if (!d.value.trim() && !f.value.trim()) { info.textContent = 'À choisir'; return garderPas(t, null); }
+      if (a == null || b == null || !(b > a)) { info.textContent = 'Début < fin (ex. 2:34.7)'; return; }
+      info.textContent = Math.round(b - a) + ' s'; await garderPas(t, { debut: Math.round(a * 10) / 10, fin: Math.round(b * 10) / 10 }); };
+    d.onchange = f.onchange = lire;
+    z.querySelector('[data-pas-play]').onclick = () => jouerPas(t);
+    const sel = z.querySelector('[data-pas-sel]');
+    sel.onfocus = sel.onmousedown = async () => { if (sel._ok) return; sel._ok = 1;
+      const l = await passagesP((T.fiches || []).find(x => x.nom === t.morceau)); sel._l = l;
+      sel.innerHTML = `<option value="">${l.length ? 'Passage… (' + l.length + ')' : (t.morceau ? 'Aucun passage gardé' : 'Choisis le morceau')}</option>` + l.map((p, k) => `<option value="${k}">${tpsP(p.debut)} → ${tpsP(p.fin)}</option>`).join(''); };
+    sel.onchange = () => { const p = (sel._l || [])[+sel.value]; if (!p) return; d.value = tpsP(p.debut); f.value = tpsP(p.fin); lire(); };
+  }
+
   async function versReelLie(t) {
     const m = (T.fiches || []).find(x => x.nom === t.morceau);
     for (const r of (T.reels || []).filter(x => x.tournage === t.id)) {

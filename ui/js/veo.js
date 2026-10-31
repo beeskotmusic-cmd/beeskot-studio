@@ -25,7 +25,7 @@ function prompt(r, p, i, n, perso, tour) {
     r.idee ? `Mood: ${r.idee}.` : '',
     p.notes ? `Notes: ${p.notes}.` : '',
     `Characters:\n${perso}`,
-    `Audio: ${p.audio ? `the band performs (${p.audio}); ` : ''}natural ambience only — no added music, no voice-over (the real song is added in editing).`,
+    `Audio: ${(p.audio || (r.passage && r.passage.fin > r.passage.debut ? BK.audio.temps(r.passage.debut).replace(/\.\d$/, '') + ' – ' + BK.audio.temps(r.passage.fin).replace(/\.\d$/, '') : '')) ? `the band performs (song section ${p.audio || (BK.audio.temps(r.passage.debut).replace(/\.\d$/, '') + ' – ' + BK.audio.temps(r.passage.fin).replace(/\.\d$/, ''))}); ` : ''}natural ambience only — no added music, no voice-over (the real song is added in editing).`,
     `Length: ${s ? `about ${s} seconds, ` : ''}one continuous shot.`,
     'No text, no subtitles, no logos, no watermark.'].filter(Boolean).join('\n');
 }

@@ -138,7 +138,7 @@ BK.pdfTournage = async function ({ t, reels, membres, dateFr, mode }) {
   corps(t);
   (reels || []).forEach((r, i) => { doc.addPage(); y = M;
     police(13, true, ROUGE); doc.text(net(/^reel\b/i.test(r.titre || '') ? r.titre : 'Reel ' + (i + 1) + ' · ' + (r.titre || 'Sans titre')).toUpperCase(), M, y + 5, { charSpace: 0.4 }); y += 9;
-    para([r.morceau && r.morceau, r.lieu, r.idee && '« ' + r.idee + ' »'].filter(Boolean).join('  ·  '), { pt: 9.5, coul: GRIS, apres: 2 });
+    para([r.morceau && r.morceau, (r.passage && r.passage.fin > r.passage.debut) && ('♪ ' + BK.audio.temps(r.passage.debut).replace(/\.\d$/, '') + ' → ' + BK.audio.temps(r.passage.fin).replace(/\.\d$/, '')), r.lieu, r.idee && '« ' + r.idee + ' »'].filter(Boolean).join('  ·  '), { pt: 9.5, coul: GRIS, apres: 2 });
     corps(r, true); });
 
   // ----- le pied de chaque page -----
