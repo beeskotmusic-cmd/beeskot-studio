@@ -3,6 +3,9 @@
 // Pour une nouvelle version : ajouter un bloc EN HAUT de la liste. Une ligne courte par point : « Onglet : ce qui change. »
 // =====================================================================
 BK.NOUVEAUTES = [
+  { v: '0.9.85', titre: '', l: [
+    ['📱', 'BEESKOT Mobile (essai) : Réglages › Aide › « Relier un téléphone » affiche un QR code. Scanné avec le téléphone, il ouvre la page mobile déjà reliée au Drive : la Bibliothèque, et écouter chaque morceau.'],
+  ] },
   { v: '0.9.84', titre: '', l: [
     ['📌', 'Tournages : quand tu ajoutes une image, un plan, une tenue… la page reste exactement où tu étais, au lieu de remonter tout en haut (merci Pierre).'],
   ] },

@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex">
+<meta name="referrer" content="no-referrer">
+<meta name="theme-color" content="#2b1b11">
+<title>BEESKOT Mobile</title>
+<link rel="icon" href="../look/beeskot.png">
+<link rel="apple-touch-icon" href="icone-192.png">
+<link rel="manifest" href="manifest.json">
+<link rel="stylesheet" href="../style/fonts.css">
+<link rel="stylesheet" href="../style/base.css">
+<link rel="stylesheet" href="mobile.css">
+</head>
+<body>
+<!-- BEESKOT Studio Mobile : la même base que le PC (coeur, données, Drive), avec un écran pensé pour le téléphone -->
+<header class="mo-haut">
+  <button class="mo-burger" id="moBurger" aria-label="Menu">☰</button>
+  <img class="mo-logo" src="../look/logo-beeskot-studio.png" alt="BEESKOT Studio">
+  <span class="vfd mo-etat" id="moEtat">—</span>
+</header>
+<nav class="mo-menu" id="moMenu" aria-hidden="true"></nav>
+<div class="mo-voile" id="moVoile"></div>
+<main class="mo-page" id="moPage"></main>
+<div class="mo-lecteur" id="moLecteur" hidden>
+  <button class="mo-lp" id="moLp" aria-label="Lecture / pause">▶</button>
+  <div class="mo-lt"><b id="moLtitre">—</b><input type="range" id="moLpos" min="0" max="1000" value="0"><span class="mo-ltemps" id="moLtemps">0:00 / 0:00</span></div>
+</div>
+<div class="mo-toast" id="moToast"></div>
+<script>window.BK_MOBILE = true;</script>
+<script src="../js/coeur.js"></script>
+<script src="../js/donnees.js"></script>
+<script src="../js/drive.js"></script>
+<script src="../js/audio.js"></script>
+<script src="../js/inventaire.js"></script>
+<script src="../js/dossiers.js"></script>
+<script src="mobile.js"></script>
+</body>
+</html>

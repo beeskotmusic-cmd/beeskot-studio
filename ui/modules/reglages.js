@@ -3,6 +3,12 @@
 // =====================================================================
 // le lien de l'appli Android : la dernière version publiée sur GitHub (le fichier s'appellera toujours pareil)
 BK.LIEN_APK = 'https://github.com/beeskotmusic-cmd/beeskot-studio/releases/latest/download/BEESKOT-Studio-Mobile.apk';
+// la page mobile (pour l'instant une page web, installable sur l'écran d'accueil du téléphone)
+BK.LIEN_MOBILE = 'https://beeskotmusic-cmd.github.io/beeskot-studio/mobile/';
+// le lien qui relie un téléphone : la page mobile + la clé du Drive (après le #, elle ne part jamais sur Internet)
+BK.lienRelier = () => { const c = BK.drive.conf() || {};
+  const j = JSON.stringify({ i: c.client_id, s: c.client_secret, r: c.refresh_token });
+  return BK.LIEN_MOBILE + '#k=' + btoa(unescape(encodeURIComponent(j))).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, ''); };
 // un vrai QR code, dans les couleurs du logiciel (brun sur crème)
 function qrVrai(texte) {
   try { const q = qrcode(0, 'M'); q.addData(texte); q.make();
@@ -30,12 +36,12 @@ BK.module('reglages', function (page) {
           <span class="vfd" style="margin-top:6px;align-self:flex-start">${String(BK.version || '').replace(/[<>&]/g, '')}</span>
           <button class="btn sm" id="rgMaj" style="margin-top:8px">🔍 Vérifier les mises à jour</button>
           <span class="nt" id="rgMajTxt">Le logiciel regarde tout seul au démarrage, puis toutes les 20 minutes.</span></div>
-        <div data-rgo="aide" class="box rg-mobile"><div class="ligne-titre"><span class="lb">BEESKOT Studio Mobile</span><span class="dymo sm">Arrive avec la V1</span></div>
-          <span class="nt">L'appli Android du groupe : Bibliothèque, Calendrier, To-do, Médias, Miette… synchronisée avec le Drive, avec des notifications.</span>
+        <div data-rgo="aide" class="box rg-mobile"><div class="ligne-titre"><span class="lb">BEESKOT Studio Mobile</span><span class="dymo sm">Essai</span></div>
+          <span class="nt">La version téléphone : Bibliothèque pour commencer (Calendrier, To-do, Notes et retours, Tournages arrivent). Mêmes fiches que le PC, par le Drive.</span>
           <div class="rg-qrs">
-            <div class="rg-qr"><div class="rg-qr-img vrai">${qrVrai(BK.LIEN_APK)}</div><b>1. Télécharger l'appli</b><span class="nt">Scanne avec l'appareil photo du téléphone (marchera à la sortie de la bêta, avec la V1)</span></div>
-            <div class="rg-qr"><div class="rg-qr-img">${qrFactice(13)}</div><b>2. Relier au groupe</b><span class="nt">À scanner dans l'appli : elle se branche au Drive BEESKOT (aucun fichier, aucun mot de passe)</span>
-              <button class="btn xs" disabled>Relier un téléphone</button></div>
+            <div class="rg-qr"><div class="rg-qr-img vrai">${qrVrai(BK.LIEN_MOBILE)}</div><b>1. Ouvrir la page</b><span class="nt">Scanne avec l'appareil photo. Dans Chrome : ⋮ › « Ajouter à l'écran d'accueil » pour l'avoir comme une appli.</span></div>
+            <div class="rg-qr"><div class="rg-qr-img" id="rgQrCle">${qrFactice(13)}</div><b>2. Relier au groupe</b><span class="nt" id="rgQrTxt">Ce QR code ouvre la page déjà reliée au Drive BEESKOT. Ne le montre qu'aux membres.</span>
+              <button class="btn xs" id="rgRelierTel"${BK.drive && BK.drive.relie() ? '' : ' disabled title="Relie d\'abord ce PC au Drive"'}>Relier un téléphone</button></div>
           </div></div>
         <div data-rgo="pc" class="box"><span class="lb">Qui utilise cet ordinateur ?</span>
           <span class="nt">Ton prénom (Yacine, Pierre, Baptiste) ou « Studio ». C'est à ce nom que partent les tâches que tu coches et les reels que tu fais avancer.</span>
@@ -88,6 +94,11 @@ BK.module('reglages', function (page) {
   BK.sauvegardes && BK.sauvegardes.case($('#rgSauv', page));
   $('#rgMaj', page).onclick = () => BK.verifierMajBouton($('#rgMaj', page), $('#rgMajTxt', page));
   $('#rgNouveau', page).onclick = () => BK.nouveautes.montrer(BK.NOUVEAUTES.slice(0, 3));
+  // relier un téléphone : le vrai QR code (avec la clé) s'affiche 2 minutes, puis se cache
+  const rt = $('#rgRelierTel', page);
+  if (rt) rt.onclick = () => { const q = $('#rgQrCle', page), t = $('#rgQrTxt', page);
+    q.innerHTML = qrVrai(BK.lienRelier()); q.classList.add('vrai', 'grand'); rt.disabled = true; t.textContent = 'Scanne-le maintenant avec le téléphone (il se cache dans 2 minutes).';
+    clearTimeout(BK.qrTelT); BK.qrTelT = setTimeout(() => { q.innerHTML = qrFactice(13); q.classList.remove('vrai', 'grand'); rt.disabled = false; t.textContent = 'Ce QR code ouvre la page déjà reliée au Drive BEESKOT. Ne le montre qu\'aux membres.'; }, 120000); };
   $('#rgTuto', page).onclick = () => BK.nouveautes.tuto();
   $('#rgGuide', page).onclick = () => BK.bienvenue.ouvrir(true);
   const nomPc = n => { BK.regler('nomPc', n); $('#rgNom', page).value = n; BK.majNomPc(); $$('#rgNoms .chip', page).forEach(c => c.classList.toggle('on', c.dataset.nom === n));

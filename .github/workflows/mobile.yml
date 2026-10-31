@@ -1,0 +1,34 @@
+# Publie la page BEESKOT Mobile (et les fichiers qu'elle partage avec le PC) sur GitHub Pages.
+# Adresse : https://beeskotmusic-cmd.github.io/beeskot-studio/mobile/
+# Se lance tout seul quand quelque chose change dans ui/. Ne touche PAS à l'installeur Windows.
+# 1re fois seulement : GitHub › Settings › Pages › Source = « GitHub Actions ».
+name: Publier BEESKOT Mobile
+
+on:
+  push:
+    branches: [main]
+    paths: ['ui/**']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  publier:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deploiement.outputs.page_url }}mobile/
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: ui
+      - id: deploiement
+        uses: actions/deploy-pages@v4

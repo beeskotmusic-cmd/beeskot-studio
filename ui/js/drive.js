@@ -14,7 +14,7 @@ BK.drive = {
   jeton: null, expire: 0, dossiers: {}, ids: {},       // ids[col][nomFichier] = id Google
 
   conf() { return BK.reglage('drive.conf', null); },     // { client_id, client_secret, refresh_token, racine }
-  relie() { const c = BK.drive.conf(); return !!(BK.estExe && c && c.refresh_token); },
+  relie() { const c = BK.drive.conf(); return !!((BK.estExe || window.BK_MOBILE) && c && c.refresh_token); },   // le téléphone (page mobile) aussi
   fetch(url, o) { return (BK.T && BK.T.http ? BK.T.http.fetch : window.fetch)(url, o); },
 
   // ---------- 1. le fichier client Google (téléchargé depuis console.cloud.google.com) ----------
