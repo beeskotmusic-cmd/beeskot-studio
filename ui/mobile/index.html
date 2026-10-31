@@ -6,6 +6,7 @@
 <meta name="robots" content="noindex">
 <meta name="referrer" content="no-referrer">
 <meta name="theme-color" content="#2b1b11">
+<meta name="color-scheme" content="dark">
 <title>BEESKOT Mobile</title>
 <link rel="icon" href="../look/beeskot.png">
 <link rel="apple-touch-icon" href="icone-192.png">
@@ -20,6 +21,7 @@
   <button class="mo-burger" id="moBurger" aria-label="Menu">☰</button>
   <img class="mo-logo" src="../look/logo-beeskot-studio.png" alt="BEESKOT Studio">
   <span class="vfd mo-etat" id="moEtat">—</span>
+  <button class="mo-relire" id="moRelire" aria-label="Relire le Drive" title="Relire le Drive">↻</button>
 </header>
 <nav class="mo-menu" id="moMenu" aria-hidden="true"></nav>
 <div class="mo-voile" id="moVoile"></div>
@@ -29,8 +31,9 @@
   <div class="mo-lt"><b id="moLtitre">—</b><input type="range" id="moLpos" min="0" max="1000" value="0"><span class="mo-ltemps" id="moLtemps">0:00 / 0:00</span></div>
 </div>
 <div class="mo-toast" id="moToast"></div>
-<script>window.BK_MOBILE = true;</script>
+<script>window.BK_MOBILE = true; window.BK_RACINE = '../';</script>
 <script src="../js/coeur.js"></script>
+<script src="../js/pictos.js"></script>
 <script src="../js/donnees.js"></script>
 <script src="../js/drive.js"></script>
 <script src="../js/audio.js"></script>

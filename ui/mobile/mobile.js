@@ -15,7 +15,7 @@ window.BKM = (function () {
   const $ = s => document.querySelector(s), esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
   const page = $('#moPage');
   BK.etatDrive = () => {};                                   // le voyant DRIVE du PC n'existe pas ici (le nôtre : en haut à droite)
-  BK.racineUi = '../';
+  BK.racineUi = window.BK_RACINE || '../';
   // PROTECTION : le téléphone n'écrit QUE les tâches (cocher) et les notes de Notes et retours.
   // Tout le reste (réglages du groupe, dossiers, fiches…) est bloqué ici, même si un outil partagé avec le PC essaie.
   const PERMIS = new Set(['taches', 'notesmix']);
@@ -31,6 +31,42 @@ window.BKM = (function () {
   const t2 = s => { s = isFinite(s) ? Math.max(0, s) : 0; return Math.floor(s / 60) + ':' + String(Math.floor(s % 60)).padStart(2, '0'); };
   const auj = () => { const d = new Date(); return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); };
   const dateFr = (d, o) => d ? new Date(d + 'T12:00').toLocaleDateString('fr-CA', o || { weekday: 'long', day: 'numeric', month: 'long' }) : '';
+
+  // ---------- 0. les données : d'abord la copie déjà connue (instantané), puis le Drive en silence ----------
+  // Chaque écran appelle BKM.liste(col). Si on a déjà une copie, elle s'affiche tout de suite ; le Drive est relu
+  // derrière (au plus une fois par minute), et l'écran se redessine seulement si quelque chose a changé.
+  const FRAIS = {}, SIG = {}, ENCOURS = {};
+  let forcer = false, redessinPrevu = 0;
+  const empreinte = l => l.map(f => f.id + ':' + (f.maj || '')).sort().join('|');
+  function copie(col) {
+    const out = {};
+    if (BK.db.cache[col]) Object.assign(out, BK.db.cache[col]);
+    else for (const x of Object.values(BK.drive.cacheDe(col).c)) if (x && x.fiche) out[x.fiche.id] = x.fiche;
+    for (const a of BK.reglage('db.attente', [])) if (a.col === col) { if (a.suppr) delete out[a.id]; else out[a.fiche.id] = a.fiche; }
+    return Object.values(out);
+  }
+  async function relire(col) {
+    if (ENCOURS[col]) return ENCOURS[col];
+    return ENCOURS[col] = BK.db.liste(col).then(l => { FRAIS[col] = Date.now(); const e = empreinte(l), change = SIG[col] !== undefined && SIG[col] !== e; SIG[col] = e; return { l, change }; })
+      .finally(() => { delete ENCOURS[col]; });
+  }
+  async function liste(col) {
+    const c = copie(col), vieux = Date.now() - (FRAIS[col] || 0) > 60e3;
+    if (!forcer && c.length && !vieux) return c;
+    if (!forcer && c.length) {                                                 // on affiche la copie ; le Drive arrive derrière
+      if (SIG[col] === undefined) SIG[col] = empreinte(c);
+      relire(col).then(r => { if (r.change) redessinDoux(); }).catch(() => {});
+      return c;
+    }
+    return (await relire(col)).l;
+  }
+  // un redessin « doux » : jamais pendant qu'on écrit dans un champ, et une seule fois même si plusieurs collections changent
+  function redessinDoux() {
+    clearTimeout(redessinPrevu);
+    redessinPrevu = setTimeout(() => { const a = document.activeElement;
+      if (a && /^(INPUT|TEXTAREA|SELECT)$/.test(a.tagName)) { a.addEventListener('blur', redessinDoux, { once: true }); return; }
+      redessiner(); }, 150);
+  }
 
   // ---------- 1. la clé : reçue par le QR code (#k=…) ou par la carte d'accès ----------
   function garderCle(j) {
@@ -50,11 +86,11 @@ window.BKM = (function () {
   const ECRANS = {};
   let actuel = BK.reglage('mobile.ecran', 'biblio'), tourEcran = 0;
   const ecran = (id, e) => { ECRANS[id] = { ordre: 50, ...e }; };
-  const liste = () => Object.entries(ECRANS).sort((a, b) => a[1].ordre - b[1].ordre);
+  const ecransTries = () => Object.entries(ECRANS).sort((a, b) => a[1].ordre - b[1].ordre);
 
   function menu() {
     $('#moMenu').innerHTML = `<img class="mo-menu-logo" src="../look/logo-beeskot-studio.png" alt="">`
-      + liste().map(([id, e]) => `<button class="mo-tab${id === actuel ? ' on' : ''}" data-e="${id}"><span>${esc(e.nom)}</span></button>`).join('')
+      + ecransTries().map(([id, e]) => `<button class="mo-tab${id === actuel ? ' on' : ''}" data-e="${id}"><span>${esc(e.nom)}</span></button>`).join('')
       + `<span class="mo-ver">${esc(BK.version || '')} · mobile${BK.reglage('nomPc', '') ? ' · ' + esc(BK.reglage('nomPc', '')) : ''}</span>`;
     $('#moMenu').querySelectorAll('[data-e]').forEach(b => b.onclick = () => { ouvrir(b.dataset.e); volet(false); });
   }
@@ -62,18 +98,29 @@ window.BKM = (function () {
   $('#moBurger').onclick = () => volet(!document.body.classList.contains('menu-ouvert'));
   $('#moVoile').onclick = () => volet(false);
 
-  // ouvre un écran ; « plus » est passé à l'écran (ex. ouvrir directement un tournage)
+  // ouvre un écran ; « plus » est passé à l'écran (ex. ouvrir directement un tournage).
+  // Si c'est le même écran (un redessin), la page garde sa hauteur et sa position : rien ne saute, rien ne clignote.
   async function ouvrir(id, plus) {
     if (!BK.drive.relie()) return accueilSansCle();
+    const nouveau = (ECRANS[id] ? id : 'biblio') !== actuel || !page.querySelector('#moCorps');
     actuel = ECRANS[id] ? id : 'biblio'; BK.regler('mobile.ecran', actuel); menu();
     const tour = ++tourEcran;
-    page.innerHTML = `<h1 class="mo-titre">${esc(ECRANS[actuel].nom)}</h1><div id="moCorps"><p class="mo-nt">Chargement…</p></div>`;
-    window.scrollTo(0, 0);
-    try { await ECRANS[actuel].dessiner($('#moCorps'), plus || {}, () => tour === tourEcran); }
-    catch (e) { console.error(e); if (tour === tourEcran) $('#moCorps').innerHTML = `<p class="mo-nt">Impossible de lire le Drive : ${esc(e.message || e)}</p>`; }
-    if (tour === tourEcran) etat(BK.db.enLigne ? 'RELIÉ' : 'HORS LIGNE', BK.db.enLigne);
+    if (nouveau) { page.innerHTML = `<h1 class="mo-titre">${esc(ECRANS[actuel].nom)}</h1><div id="moCorps"></div>`; window.scrollTo(0, 0); }
+    else page.style.minHeight = page.offsetHeight + 'px';
+    const corps = $('#moCorps');
+    const attente = setTimeout(() => { if (tour === tourEcran && !corps.children.length) corps.innerHTML = '<p class="mo-nt mo-entre">Chargement…</p>'; }, 350);   // seulement si ça dure
+    try { await ECRANS[actuel].dessiner(corps, plus || {}, () => tour === tourEcran); }
+    catch (e) { console.error(e); if (tour === tourEcran) corps.innerHTML = `<p class="mo-nt">Impossible de lire le Drive : ${esc(e.message || e)}</p>`; }
+    clearTimeout(attente);
+    if (tour === tourEcran) { page.style.minHeight = ''; etat(BK.db.enLigne ? 'RELIÉ' : 'HORS LIGNE', BK.db.enLigne); }
   }
   const redessiner = () => ouvrir(actuel);
+  // ↻ : relire le Drive maintenant (fiches ET fichiers), quel que soit l'âge de la copie
+  $('#moRelire').onclick = async () => {
+    const b = $('#moRelire'); if (b.classList.contains('tourne')) return;
+    b.classList.add('tourne'); forcer = true; BK.dossiers.oublier && BK.dossiers.oublier();
+    try { await ouvrir(actuel); msg('Drive relu'); } finally { forcer = false; b.classList.remove('tourne'); }
+  };
   function etat(t, ok) { const e = $('#moEtat'); e.textContent = t; e.classList.toggle('ok', !!ok); }
 
   // ---------- pas encore relié ----------
@@ -154,6 +201,6 @@ window.BKM = (function () {
   window.addEventListener('hashchange', () => { if (lireLien()) { msg('Téléphone relié'); demarrer(); } });
   function demarrer() { lireLien(); if (BK.drive.relie()) { etat('…'); ouvrir(ECRANS[actuel] ? actuel : 'biblio'); } else accueilSansCle(); }
 
-  return { $, esc, msg, moi, couleur, t2, auj, dateFr, ecran, ouvrir, redessiner, versions, sonDe, telecharger, lire, aller, son, L, demarrer,
+  return { $, esc, msg, moi, couleur, t2, auj, dateFr, ecran, ouvrir, redessiner, liste, versions, sonDe, telecharger, lire, aller, son, L, demarrer,
     get actuel() { return actuel; } };
 })();

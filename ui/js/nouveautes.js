@@ -3,6 +3,11 @@
 // Pour une nouvelle version : ajouter un bloc EN HAUT de la liste. Une ligne courte par point : « Onglet : ce qui change. »
 // =====================================================================
 BK.NOUVEAUTES = [
+  { v: '0.9.86', titre: '', l: [
+    ['📱', 'Mobile : glisser vers le bas ne recharge plus la page ; un bouton ↻ en haut relit le Drive quand tu veux.'],
+    ['📱', 'Mobile : les écrans s\'ouvrent tout de suite (la dernière copie connue), le Drive se relit derrière sans rien faire sauter. Déplier, cocher, filtrer ne remonte plus en haut.'],
+    ['📱', 'Mobile : tout répond sous le doigt (boutons, cartes, cases), les pictos maison partout, fini le texte qui se sélectionne à l\'appui long.'],
+  ] },
   { v: '0.9.85', titre: '', l: [
     ['📱', 'BEESKOT Mobile (essai) : Réglages › Aide › « Relier un téléphone » affiche un QR code. Scanné avec le téléphone, il ouvre la page mobile déjà reliée au Drive.'],
     ['🎧', 'Mobile : Bibliothèque (écouter chaque version, paroles), Calendrier, To-do (cocher), Notes et retours (écouter, noter, répondre), Tournages (passage à écouter, moodboard, découpage, fiche PDF).'],

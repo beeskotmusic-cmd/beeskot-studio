@@ -4,7 +4,7 @@
 (() => {
 const { $, esc, msg, t2, L } = BKM;
 const MEMBRES = ['Yacine', 'Pierre', 'Baptiste'];
-let ouvert = '', reelOuvert = '', LISTE = [], MORCEAUX = [];
+let ouvert = '', reelOuvert = '', LISTE = [], MORCEAUX = [], dernier = '';
 const nomJ = t => t.journee || 'Tournage';
 const reelsDe = tr => LISTE.filter(x => x.niveau === 'reel' && x.parent === tr.id).sort((a, b) => (a.ordre || 0) - (b.ordre || 0));
 const passageTxt = txt => { const t = String(txt || '').replace(/\s*:\s*/g, ':'), m = t.match(/(\d{1,2}):(\d{2})\s*[-–—à→]\s*(\d{1,2}):(\d{2})/); return m ? { debut: +m[1] * 60 + +m[2], fin: +m[3] * 60 + +m[4] } : null; };
@@ -13,7 +13,7 @@ const img = (u, cls) => u ? `<span class="${cls || 'mo-img'}"${BK.img.bg(u)}></s
 
 BKM.ecran('tournage', { nom: 'Tournages', ordre: 50, async dessiner(z, plus, frais) {
   if (plus.tour) { ouvert = plus.tour; reelOuvert = ''; }
-  [LISTE, MORCEAUX] = await Promise.all([BK.db.liste('tournages'), BK.db.liste('morceaux')]);
+  [LISTE, MORCEAUX] = await Promise.all([BKM.liste('tournages'), BKM.liste('morceaux')]);
   if (!frais()) return;
   const tours = LISTE.filter(x => x.niveau === 'tournage').sort((a, b) => String(b.date || '9999').localeCompare(String(a.date || '9999')));
   const seuls = LISTE.filter(x => x.niveau === 'reel' && !LISTE.some(t => t.id === x.parent));
@@ -26,6 +26,7 @@ BKM.ecran('tournage', { nom: 'Tournages', ordre: 50, async dessiner(z, plus, fra
         <em>${esc([tr.date ? BKM.dateFr(tr.date, { weekday: 'short', day: 'numeric', month: 'short' }) : 'date à fixer', tr.heure && tr.heure.replace(':', ' h '), tr.lieu].filter(Boolean).join(' · '))}${rs.length ? ' · ' + rs.length + ' reel' + (rs.length > 1 ? 's' : '') : ''}</em>
         <span class="mo-pli">${ouvert === tr.id ? '▴' : '▾'}</span></button>
       ${ouvert === tr.id ? detail(tr, rs) : ''}</div>`; };
+  const cle = ouvert + '/' + reelOuvert, neufT = ouvert && !dernier.startsWith(ouvert + '/'), neufR = reelOuvert && cle !== dernier; dernier = cle;
   z.innerHTML = (tours.map(carte).join('') || '<p class="mo-nt">Pas encore de tournage.</p>')
     + (seuls.length ? `<h2 class="mo-sous">Reels sans tournage <em>${seuls.length}</em></h2>` + seuls.map(r => `<div class="mo-tour${ouvert === r.id ? ' ouvert' : ''}"><button class="mo-tour-t petit" data-tour="${esc(r.id)}"><span class="mo-eng">${esc(r.type || 'Reel')}${r.morceau ? ' · ' + esc(r.morceau) : ''}</span><b>${esc(r.titre || 'Reel')}</b><span class="mo-pli">${ouvert === r.id ? '▴' : '▾'}</span></button>${ouvert === r.id ? `<div class="mo-tour-c">${reel(r, true)}<button class="btn sm" data-pdf="${esc(r.id)}">Ouvrir la fiche PDF</button></div>` : ''}</div>`).join('') : '');
   z.querySelectorAll('[data-tour]').forEach(b => b.onclick = () => { ouvert = ouvert === b.dataset.tour ? '' : b.dataset.tour; reelOuvert = ''; BKM.redessiner();
@@ -34,6 +35,8 @@ BKM.ecran('tournage', { nom: 'Tournages', ordre: 50, async dessiner(z, plus, fra
   z.querySelectorAll('[data-pas]').forEach(b => b.onclick = () => jouerPassage(LISTE.find(x => x.id === b.dataset.pas)));
   z.querySelectorAll('[data-pdf]').forEach(b => b.onclick = () => pdf(LISTE.find(x => x.id === b.dataset.pdf), b));
   z.querySelectorAll('[data-zoom]').forEach(b => b.onclick = () => zoom(b.dataset.zoom));
+  if (neufT) z.querySelectorAll('.mo-tour.ouvert > .mo-tour-c').forEach(e => e.classList.add('mo-entre'));
+  if (neufR) z.querySelectorAll('.mo-reel.ouvert > .mo-reel-c').forEach(e => e.classList.add('mo-entre'));
   majPassages();
 } });
 

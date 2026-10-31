@@ -8,7 +8,7 @@ const auteur = n => n.auteur || n.par;
 
 BKM.ecran('ecoute', { nom: 'Notes et retours', ordre: 40, async dessiner(z, plus, frais) {
   if (plus.m) N.m = plus.m;
-  N.morceaux = (await BK.db.liste('morceaux')).sort((a, b) => String(a.nom).localeCompare(String(b.nom)));
+  N.morceaux = (await BKM.liste('morceaux')).sort((a, b) => String(a.nom).localeCompare(String(b.nom)));
   if (!frais()) return;
   const m = N.morceaux.find(x => x.id === N.m);
   z.innerHTML = `
@@ -16,7 +16,7 @@ BKM.ecran('ecoute', { nom: 'Notes et retours', ordre: 40, async dessiner(z, plus
     <div id="ecSuite">${m ? '<p class="mo-nt">Je cherche les versions…</p>' : '<p class="mo-nt">Choisis un morceau pour écouter ses versions et voir les notes.</p>'}</div>`;
   $('#ecM').onchange = e => { N.m = e.target.value; N.v = ''; BK.regler('mobile.ecoute.m', N.m); BKM.redessiner(); };
   if (!m) return;
-  const [vs, notes] = await Promise.all([BKM.versions(m, N.morceaux), BK.db.liste('notesmix')]);
+  const [vs, notes] = await Promise.all([BKM.versions(m, N.morceaux), BKM.liste('notesmix')]);
   if (!frais() || N.m !== m.id) return;
   N.vs = vs; N.notes = notes.filter(n => n.morceau === m.id);
   // la version : celle d'avant si elle existe encore, sinon celle choisie en A sur le PC, sinon la ★ / la plus récente

@@ -2,8 +2,11 @@
    BEESKOT STUDIO MOBILE — même ambiance que le PC (bois, laiton, étiquettes Dymo, afficheurs ambre),
    en grand pour les doigts. Menu déroulant à gauche (pas de barre en bas).
    ===================================================================== */
-:root{--bois:#2b1b11;--laiton:#b98a45;--creme:#efe4cc;--ambre:#ffb23e;--olive:#3F6B3A}
+:root{--bois:#2b1b11;--laiton:#b98a45;--creme:#efe4cc;--ambre:#ffb23e;--olive:#3F6B3A;
+  --ease-out:cubic-bezier(.23,1,.32,1);--ease-in-out:cubic-bezier(.77,0,.175,1);--ease-tiroir:cubic-bezier(.32,.72,0,1)}
 html,body{height:100%}
+/* le téléphone ne doit pas « tirer pour rafraîchir » (Chrome Android ne l'écoute que sur html), ni flasher en gris au toucher */
+html{overscroll-behavior:none;-webkit-tap-highlight-color:transparent;-webkit-text-size-adjust:100%}
 body{margin:0;color:var(--creme);background:#2b1b11 url(../look/wood.jpg) center/cover fixed;font:400 15px/1.45 "Work Sans",system-ui,sans-serif;-webkit-tap-highlight-color:transparent;overscroll-behavior:none}
 body::before{content:"";position:fixed;inset:0;background:linear-gradient(180deg,rgba(20,10,4,.55),rgba(20,10,4,.75));pointer-events:none;z-index:-1}
 
@@ -18,9 +21,9 @@ body::before{content:"";position:fixed;inset:0;background:linear-gradient(180deg
 
 /* ---------- le menu déroulant à gauche ---------- */
 .mo-menu{position:fixed;top:0;bottom:0;left:0;z-index:40;width:min(78vw,300px);padding:calc(16px + env(safe-area-inset-top)) 14px 16px;display:flex;flex-direction:column;gap:8px;
-  background:#2b1b11 url(../textures/bois-menu.jpg) center/cover;box-shadow:2px 0 0 var(--laiton),8px 0 24px rgba(0,0,0,.6);transform:translateX(-105%);transition:transform .22s ease;overflow-y:auto}
+  background:#2b1b11 url(../textures/bois-menu.jpg) center/cover;box-shadow:2px 0 0 var(--laiton),8px 0 24px rgba(0,0,0,.6);transform:translateX(-105%);transition:transform .26s var(--ease-tiroir);overflow-y:auto;overscroll-behavior:contain}
 body.menu-ouvert .mo-menu{transform:none}
-.mo-voile{position:fixed;inset:0;z-index:30;background:rgba(10,5,2,.55);opacity:0;pointer-events:none;transition:opacity .22s}
+.mo-voile{position:fixed;inset:0;z-index:30;background:rgba(10,5,2,.55);opacity:0;pointer-events:none;transition:opacity .26s var(--ease-tiroir)}
 body.menu-ouvert .mo-voile{opacity:1;pointer-events:auto}
 .mo-menu-logo{width:80%;align-self:center;margin-bottom:8px;filter:drop-shadow(0 2px 3px rgba(0,0,0,.7))}
 .mo-tab{display:flex;align-items:center;gap:8px;min-height:52px;padding:0 16px;border:0;border-radius:8px;text-align:left;font:600 14px "Barlow Condensed","Work Sans",sans-serif;letter-spacing:.08em;text-transform:uppercase;
@@ -61,7 +64,7 @@ body.menu-ouvert .mo-voile{opacity:1;pointer-events:auto}
 
 /* ---------- petit message ---------- */
 .mo-toast{position:fixed;left:50%;bottom:calc(96px + env(safe-area-inset-bottom));z-index:60;max-width:90vw;padding:10px 14px;border-radius:8px;transform:translate(-50%,20px);opacity:0;pointer-events:none;
-  font-size:13px;color:var(--creme);background:rgba(20,10,4,.92);box-shadow:0 0 0 1px var(--laiton);transition:.2s}
+  font-size:13px;color:var(--creme);background:rgba(20,10,4,.92);box-shadow:0 0 0 1px var(--laiton);transition:opacity .2s var(--ease-out),transform .2s var(--ease-out)}
 .mo-toast.on{opacity:1;transform:translate(-50%,0)}
 /* le voyant du haut : afficheur ambre, sans la LED du PC */
 .mo-etat{background:linear-gradient(180deg,#0a0604,#1b110a)!important;color:var(--ambre)!important;border:0!important;box-shadow:inset 0 0 0 1px rgba(185,138,69,.5)!important;font-family:"Share Tech Mono",monospace;border-radius:4px}
@@ -194,8 +197,48 @@ a.chip{text-decoration:none}
 
 /* « ↶ Annuler » (vient du PC) et le menu « Ouvrir sur le Drive » (appui long sur une image) */
 .bk-annuler{position:fixed;left:50%;top:calc(70px + env(safe-area-inset-top));z-index:61;display:flex;align-items:center;gap:10px;padding:8px 12px;border-radius:9px;transform:translate(-50%,-20px);opacity:0;pointer-events:none;
-  font-size:13px;color:var(--creme);background:rgba(20,10,4,.95);box-shadow:0 0 0 1px var(--laiton);transition:.2s}
+  font-size:13px;color:var(--creme);background:rgba(20,10,4,.95);box-shadow:0 0 0 1px var(--laiton);transition:opacity .2s var(--ease-out),transform .2s var(--ease-out)}
 .bk-annuler.on{opacity:1;transform:translate(-50%,0);pointer-events:auto}
 .bk-annuler .nt{display:none}
 .cd-menu{position:fixed;z-index:80;display:flex;flex-direction:column;min-width:200px;padding:4px;border-radius:8px;background:#1b110a;box-shadow:0 0 0 1px var(--laiton),0 8px 20px rgba(0,0,0,.6)}
 .cd-menu button{min-height:44px;padding:0 12px;border:0;border-radius:6px;text-align:left;color:var(--creme);background:none;font-size:14px}
+
+
+/* ===================== étape 1 : répondre au doigt, ne jamais sauter ===================== */
+/* ce qui se touche : pas de sélection de texte à l'appui long, pas de délai d'appui */
+button,[role=button],.chip,.mo-tab,.mo-case,.mo-img,.mo-cal-j,.mo-seg button,.mo-plier,.mo-tour-t,.mo-reel-t,label.btn{
+  user-select:none;-webkit-user-select:none;-webkit-touch-callout:none;touch-action:manipulation}
+/* le survol du PC ne colle pas au doigt */
+@media (hover:none){.btn:hover,.chip:hover{filter:none}}
+/* le retour à l'appui : léger, immédiat (sur le doigt posé, pas au relâchement) */
+.mo-tab,.mo-play,.mo-case,.mo-pli,.mo-version,.mo-ev[data-tour],.mo-seg button,.mo-note-t,.mo-img,.mo-cal-j,.mo-burger,.mo-relire,.mo-lp,.mo-tour-t,.mo-reel-t,.mo-plier{
+  transition:transform .16s var(--ease-out)}
+.mo-tab:active,.mo-play:active,.mo-case:active,.mo-version:active,.mo-ev[data-tour]:active,.mo-seg button:active,.mo-note-t:active,.mo-img:active,.mo-cal-j:active,.mo-burger:active,.mo-relire:active,.mo-lp:active{transform:scale(.96)}
+.mo-tour-t:active,.mo-reel-t:active{transform:scale(.985)}
+.mo-tour-t .mo-pli:active,.mo-reel-t .mo-pli:active{transform:translateY(-50%) scale(.94)}
+.mo-tour-t:active .mo-pli,.mo-reel-t:active .mo-pli{transform:translateY(-50%)}
+/* une carte entière réagit quand on touche l'un de ses boutons */
+.mo-morceau,.mo-tache,.mo-note{transition:transform .16s var(--ease-out),opacity .16s var(--ease-out)}
+.mo-morceau:has(.mo-m-txt:active),.mo-morceau:has(.mo-pli:active){transform:scale(.985)}
+/* ce qui se déplie arrive en douceur (une seule fois, à l'ouverture) */
+.mo-entre{opacity:1;transform:none;transition:opacity .18s var(--ease-out),transform .18s var(--ease-out)}
+@starting-style{.mo-entre{opacity:0;transform:scale(.97)}}
+/* une tâche cochée s'en va vers « Déjà fait » */
+.mo-tache.part{opacity:.35;transform:translateX(14px)}
+.mo-case{transition:transform .16s var(--ease-out),background .16s}
+/* le bouton ↻ du bandeau */
+.mo-relire{width:40px;height:40px;border:0;border-radius:9px;font-size:17px;color:var(--creme);background:rgba(0,0,0,.35);box-shadow:inset 0 0 0 1px rgba(239,228,204,.25)}
+.mo-relire.tourne .pic{animation:mo-tour 1s linear infinite}
+@keyframes mo-tour{to{transform:rotate(360deg)}}
+/* les pictos maison (copie des règles du PC) */
+.pic{display:inline-block;width:1.25em;height:1.25em;vertical-align:-.25em;overflow:hidden;white-space:nowrap;text-indent:-9em;background:center/contain no-repeat;line-height:1}
+.pic.a{background:currentColor;-webkit-mask-size:contain;mask-size:contain;-webkit-mask-repeat:no-repeat;mask-repeat:no-repeat;-webkit-mask-position:center;mask-position:center}
+.mo-burger .pic,.mo-relire .pic{width:1.15em;height:1.15em;vertical-align:-.2em}
+.mo-play .pic,.mo-lp .pic{width:1.1em;height:1.1em;vertical-align:-.15em;transform:translateX(1px)}
+/* « réduire les animations » : on garde les fondus, on enlève les déplacements */
+@media (prefers-reduced-motion:reduce){
+  .mo-menu,.mo-voile,.mo-toast,.bk-annuler,.mo-entre,.mo-tache,.mo-morceau,.mo-note{transition-duration:.01ms}
+  .mo-tache.part{transform:none}
+  @starting-style{.mo-entre{transform:none}}
+  .mo-relire.tourne .pic{animation:none;opacity:.5}
+}

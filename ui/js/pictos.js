@@ -7,7 +7,7 @@
 // =====================================================================
 (function () {
   var PICTOS = {
-    '✕': 'A_croix', '✓': 'A_coche', '✔': 'A_coche', '▶': 'A_lecture',
+    '☰': 'A_menu', '❚❚': 'A_pause', '✕': 'A_croix', '✓': 'A_coche', '✔': 'A_coche', '▶': 'A_lecture',
     '↻': 'A_sync', '⏮': 'A_precedent', '⏭': 'A_suivant',
     '⚙': 'A_engrenage', '🔧': 'A_engrenage', '🔍': 'A_loupe',
     '✎': 'A_crayon', '✏': 'A_crayon', '⬇': 'A_telecharger', '★': 'A_etoile',
@@ -34,7 +34,7 @@
       if (m.index > dernier) frag.appendChild(document.createTextNode(t.slice(dernier, m.index)));
       var s = document.createElement('span');
       s.className = 'pic';
-      var nom = PICTOS[m[1]], url = 'url(pictos/' + nom + '.png)';
+      var nom = PICTOS[m[1]], url = 'url(' + (window.BK_RACINE || '') + 'pictos/' + nom + '.png)';   // BK_RACINE : la page mobile est un dossier plus bas
       if (nom.charAt(0) === 'A') { s.className = 'pic a'; s.style.webkitMaskImage = url; s.style.maskImage = url; } // tampon : prend la couleur du texte
       else s.style.backgroundImage = url;                                                    // brodé : garde ses couleurs
       s.textContent = m[0];

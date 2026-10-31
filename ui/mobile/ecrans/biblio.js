@@ -1,11 +1,11 @@
 // BIBLIOTHÈQUE (mobile) — les morceaux ; un appui : écouter la version ★ ; « ▾ » : toutes les versions, les paroles, les infos
 (() => {
 const { $, esc, msg, lire, versions, L } = BKM;
-let MORCEAUX = [], ouvert = '';
+let MORCEAUX = [], ouvert = '', dernierOuvert = '';
 const ETAPES = ['Maquette', 'Enreg.', 'Mixage', 'Mastering', 'Release', 'Promo'];   // comme sur le PC (Accueil)
 
 BKM.ecran('biblio', { nom: 'Bibliothèque', ordre: 10, async dessiner(z, plus, frais) {
-  MORCEAUX = (await BK.db.liste('morceaux')).sort((a, b) => String(a.nom).localeCompare(String(b.nom)));
+  MORCEAUX = (await BKM.liste('morceaux')).sort((a, b) => String(a.nom).localeCompare(String(b.nom)));
   if (!frais()) return;
   if (!MORCEAUX.length) { z.innerHTML = '<p class="mo-nt">Aucun morceau dans le Drive.</p>'; return; }
   const etape = m => m.statut === 'sorti' ? 'Sorti' : m.statut === 'prochaine' ? 'Next' : ETAPES[Math.min(m.fait || 0, 5)];
@@ -16,12 +16,12 @@ BKM.ecran('biblio', { nom: 'Bibliothèque', ordre: 10, async dessiner(z, plus, f
         <button class="mo-m-txt" data-ouvre="${esc(m.id)}"><b>${esc(m.nom)}</b><span>${esc([m.bpm && m.bpm + ' BPM', m.ton, m.sortie && 'sortie ' + BKM.dateFr(m.sortie, { day: 'numeric', month: 'short' })].filter(Boolean).join(' · ')) || '&nbsp;'}</span></button>
         <span class="dymo sm">${esc(etape(m))}</span>
         <button class="mo-pli" data-ouvre="${esc(m.id)}" aria-label="Détails">${ouvert === m.id ? '▴' : '▾'}</button></div>
-      ${ouvert === m.id ? '<div class="mo-detail" id="moDetail"><p class="mo-nt">Je cherche les versions…</p></div>' : ''}</div>`;
+      ${ouvert === m.id ? `<div class="mo-detail${ouvert !== dernierOuvert ? ' mo-entre' : ''}" id="moDetail"><p class="mo-nt">Je cherche les versions…</p></div>` : ''}</div>`;
   const groupe = (titre, l) => l.length ? `<h2 class="mo-sous">${titre} <em>${l.length}</em></h2>` + l.map(carte).join('') : '';
   z.innerHTML = groupe('En cours', MORCEAUX.filter(m => m.statut !== 'sorti')) + groupe('Sortis', MORCEAUX.filter(m => m.statut === 'sorti'));
   z.querySelectorAll('[data-jouer]').forEach(b => b.onclick = () => jouer(MORCEAUX.find(m => m.id === b.dataset.jouer)));
   z.querySelectorAll('[data-ouvre]').forEach(b => b.onclick = () => { ouvert = ouvert === b.dataset.ouvre ? '' : b.dataset.ouvre; BKM.redessiner(); });
-  majBoutons();
+  majBoutons(); dernierOuvert = ouvert;
   if (ouvert) detail(MORCEAUX.find(m => m.id === ouvert));
 } });
 

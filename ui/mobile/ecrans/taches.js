@@ -6,7 +6,7 @@ const gens = t => [t.qui, ...(t.aussi || [])].filter(Boolean).map(q => ANCIENS[q
 let filtre = BK.reglage('mobile.todo', 'moi'), faitesOuvertes = false;
 
 BKM.ecran('taches', { nom: 'To-do list', ordre: 30, async dessiner(z, plus, frais) {
-  const T = await BK.db.liste('taches'); if (!frais()) return;
+  const T = await BKM.liste('taches'); if (!frais()) return;
   const qui = BK.reglage('nomPc', ''), a = auj();
   const tri = (x, y) => (x.date || '9999').localeCompare(y.date || '9999') || (x.ordre || 0) - (y.ordre || 0);
   const pourFiltre = t => filtre === 'tout' ? true : filtre === 'moi' ? (qui ? gens(t).includes(qui) || gens(t).includes(GROUPE) : true) : !gens(t).length;
@@ -29,10 +29,12 @@ BKM.ecran('taches', { nom: 'To-do list', ordre: 30, async dessiner(z, plus, frai
     const t = T.find(x => x.id === b.dataset.case); if (!t) return;
     t.fait = !t.fait;
     if (t.fait) { t.faitLe = new Date().toISOString(); t.faitPar = moi() + ' (téléphone)'; } else { delete t.faitLe; delete t.faitPar; }
+    // à l'instant : la case, puis la ligne qui s'en va (le Drive est écrit pendant ce temps)
     b.classList.toggle('on', t.fait); b.textContent = t.fait ? '✓' : ''; b.disabled = true;
-    try { await BK.db.ecrire('taches', t); msg(t.fait ? 'Bravo !' : 'Remise à faire'); }
-    catch (e) { msg('Pas enregistré : ' + (e.message || e)); }
-    setTimeout(BKM.redessiner, 500);
+    const ligne = b.closest('.mo-tache'); ligne.classList.add('part');
+    const ecrit = BK.db.ecrire('taches', t).then(() => msg(t.fait ? 'Bravo !' : 'Remise à faire')).catch(e => msg('Pas enregistré : ' + (e.message || e)));
+    await new Promise(r => setTimeout(r, 180)); await ecrit;
+    BKM.redessiner();
   });
 } });
 })();

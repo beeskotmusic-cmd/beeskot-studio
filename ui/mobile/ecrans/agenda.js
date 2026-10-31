@@ -14,8 +14,8 @@ const jourDe = d => d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2,
 let mois = null;
 
 BKM.ecran('agenda', { nom: 'Calendrier', ordre: 20, async dessiner(z, plus, frais) {
-  const [evs, ms, ts, tours, google] = await Promise.all([BK.db.liste('evenements'), BK.db.liste('morceaux'), BK.db.liste('taches'), BK.db.liste('tournages'),
-    BK.partage.lire('agenda.google', []).catch(() => [])]);
+  const [evs, ms, ts, tours, cfg] = await Promise.all([BKM.liste('evenements'), BKM.liste('morceaux'), BKM.liste('taches'), BKM.liste('tournages'), BKM.liste('config')]);
+  const google = ((cfg.find(c => c.id === 'partage-agenda.google') || {}).v) || [];                // la copie de l'agenda Google déposée par les PC
   if (!frais()) return;
   const tous = [];
   for (const e of evs) if (e.date) tous.push({ d: e.date, h: e.heure || '', type: TYPES[e.type] ? e.type : 'autre', titre: e.titre || TYPES[e.type]?.[0] || 'Rendez-vous', sous: [e.morceau, e.lieu].filter(Boolean).join(' · '), fin: e.fin || '', tour: e.tournage || '' });
