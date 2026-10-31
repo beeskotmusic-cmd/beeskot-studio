@@ -3,6 +3,10 @@
 // Pour une nouvelle version : ajouter un bloc EN HAUT de la liste. Une ligne courte par point : « Onglet : ce qui change. »
 // =====================================================================
 BK.NOUVEAUTES = [
+  { v: '0.9.96', titre: '', l: [
+    ['🗺', 'Tournages, itinéraire : Google Maps reçoit maintenant les adresses exactes (plus de « 2173 » au lieu de « 2175 », plus de détour en Californie). Les adresses sont cherchées au Québec seulement ; celles qu\'on ne trouve pas sont mises de côté. Recalcule l\'itinéraire une fois.'],
+    ['🎬', 'Nouveau look : Tournages retrouve sa propre entrée dans le menu, juste sous Planning.'],
+  ] },
   { v: '0.9.95', titre: '', l: [
     ['🧰', 'Nouveau look : l\'adresse de l\'agenda Google (Calendrier) et les dossiers de ce PC à fouiller (Bibliothèque) sont rangés dans Réglages › Pages. Les pages sont plus légères, tout marche pareil.'],
   ] },

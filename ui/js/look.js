@@ -21,7 +21,7 @@ const PAS_PRETS = ['lumieres', 'repete', 'concert'];                  // cachés
 const GROUPES = {
   suivi:  { titre: 'Reels',    ids: ['suivi', 'reels', 'reelvis'],               noms: ['Suivi', 'Audio', 'Montage'] },
   ecoute: { titre: 'Retours',  ids: ['ecoute', 'notesvid'],                       noms: ['Mix', 'Vidéo'] },
-  agenda: { titre: 'Planning', ids: ['agenda', 'tournage', 'taches', 'budget'],   noms: ['Calendrier', 'Tournages', 'To-do', 'Budget'] },
+  agenda: { titre: 'Planning', ids: ['agenda', 'taches', 'budget'],               noms: ['Calendrier', 'To-do', 'Budget'] },
 };
 const chefDe = id => Object.keys(GROUPES).find(k => GROUPES[k].ids.includes(id)) || null;
 const MEMBRES = ['Yacine', 'Pierre', 'Baptiste'];
