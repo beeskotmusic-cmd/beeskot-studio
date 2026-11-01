@@ -4,6 +4,8 @@
 (() => {
 const { $, esc, msg, t2, L } = BKM;
 const MEMBRES = ['Yacine', 'Pierre', 'Baptiste'];
+let FAITS = {};                                                       // les plans cochés sur le tournage (collection « plansfaits » : une fiche par reel)
+const clePlan = (pl, i) => i + ':' + String(pl.cadrage || pl.action || '').slice(0, 24);
 let ouvert = '', reelOuvert = '', LISTE = [], MORCEAUX = [], dernier = '';
 const nomJ = t => t.journee || 'Tournage';
 const reelsDe = tr => LISTE.filter(x => x.niveau === 'reel' && x.parent === tr.id).sort((a, b) => (a.ordre || 0) - (b.ordre || 0));
@@ -15,7 +17,8 @@ BKM.ecran('tournage', { nom: 'Tournages', ordre: 50,
   retour() { if (reelOuvert) reelOuvert = ''; else if (ouvert) ouvert = ''; else return false; BKM.redessiner(); return true; },
   async dessiner(z, plus, frais) {
   if (plus.tour) { ouvert = plus.tour; reelOuvert = ''; }
-  [LISTE, MORCEAUX] = await Promise.all([BKM.liste('tournages'), BKM.liste('morceaux')]);
+  let pf; [LISTE, MORCEAUX, pf] = await Promise.all([BKM.liste('tournages'), BKM.liste('morceaux'), BKM.liste('plansfaits').catch(() => [])]);
+  FAITS = Object.fromEntries((pf || []).map(x => [x.id, new Set(x.faits || [])]));
   if (!frais()) return;
   const tours = LISTE.filter(x => x.niveau === 'tournage').sort((a, b) => String(b.date || '9999').localeCompare(String(a.date || '9999')));
   const seuls = LISTE.filter(x => x.niveau === 'reel' && !LISTE.some(t => t.id === x.parent));
@@ -37,6 +40,7 @@ BKM.ecran('tournage', { nom: 'Tournages', ordre: 50,
   z.querySelectorAll('[data-pas]').forEach(b => b.onclick = () => jouerPassage(LISTE.find(x => x.id === b.dataset.pas)));
   z.querySelectorAll('[data-pdf]').forEach(b => b.onclick = () => pdf(LISTE.find(x => x.id === b.dataset.pdf), b));
   z.querySelectorAll('[data-zoom]').forEach(b => b.onclick = () => zoom(b.dataset.zoom));
+  z.querySelectorAll('[data-pf]').forEach(b => b.onclick = () => cocherPlan(b));
   if (neufT) z.querySelectorAll('.mo-tour.ouvert > .mo-tour-c').forEach(e => e.classList.add('mo-entre'));
   if (neufR) z.querySelectorAll('.mo-reel.ouvert > .mo-reel-c').forEach(e => e.classList.add('mo-entre'));
   majPassages();
@@ -78,9 +82,10 @@ function reel(r, seul) {
       ${r.morceau ? `<button class="btn sm" data-pas="${esc(r.id)}">▶ Écouter</button>` : ''}</div>
     ${mood.length ? `<span class="mo-eng">Moodboard <em>${mood.length}</em></span><div class="mo-mood">${mood.map(u => `<button class="mo-img" data-zoom="${esc(u)}"${BK.img.bg(u)}></button>`).join('')}</div>` : ''}
     ${(r.references || []).length ? `<span class="mo-eng">Références</span><div class="mo-chips">${r.references.filter(x => /^https?:\/\//i.test(x.url || "")).map(x => `<a class="chip" href="${esc(x.url)}" target="_blank" rel="noopener">${esc(x.note || x.url.replace(/^https?:\/\/(www\.)?/, '').slice(0, 28))}</a>`).join('')}</div>` : ''}
-    ${(r.plans || []).length ? `<span class="mo-eng">Découpage <em>${r.plans.length} plan(s)</em></span>` + r.plans.map((pl, i) => `<div class="mo-plan">
-        <span class="mo-plan-n">${i + 1}</span><div><b>${esc(pl.cadrage || 'Plan')}</b>${pl.duree ? ` <em>${esc(pl.duree)}</em>` : ''}<p>${esc(pl.action || '')}</p>${pl.notes ? `<p class="mo-nt">${esc(pl.notes)}</p>` : ''}${pl.lieu ? `<p class="mo-lieu">${esc(pl.lieu)}</p>` : ''}
-        ${(pl.imgs || []).length ? `<div class="mo-mood petit">${pl.imgs.map(u => `<button class="mo-img" data-zoom="${esc(u)}"${BK.img.bg(u)}></button>`).join('')}</div>` : ''}</div></div>`).join('') : ''}
+    ${(r.plans || []).length ? `<span class="mo-eng">Découpage <em>${r.plans.filter((pl, i) => (FAITS[r.id] || new Set()).has(clePlan(pl, i))).length} / ${r.plans.length} fait(s) · touche le numéro quand le plan est dans la boîte</em></span>` + r.plans.map((pl, i) => { const f = (FAITS[r.id] || new Set()).has(clePlan(pl, i));
+      return `<div class="mo-plan${f ? ' fait' : ''}">
+        <button class="mo-plan-n" data-pf="${esc(r.id)}" data-pk="${esc(clePlan(pl, i))}" aria-pressed="${f}" aria-label="Plan ${i + 1} ${f ? 'fait' : 'à faire'}">${f ? '✓' : i + 1}</button><div><b>${esc(pl.cadrage || 'Plan')}</b>${pl.duree ? ` <em>${esc(pl.duree)}</em>` : ''}<p>${esc(pl.action || '')}</p>${pl.notes ? `<p class="mo-nt">${esc(pl.notes)}</p>` : ''}${pl.lieu ? `<p class="mo-lieu">${esc(pl.lieu)}</p>` : ''}
+        ${(pl.imgs || []).length ? `<div class="mo-mood petit">${pl.imgs.map(u => `<button class="mo-img" data-zoom="${esc(u)}"${BK.img.bg(u)}></button>`).join('')}</div>` : ''}</div></div>`; }).join('') : ''}
     ${tenues(r, 'Tenues · ce reel')}
     ${seul && r.materiel ? `<span class="mo-eng">Matériel</span><p class="mo-texte">${esc(r.materiel)}</p>` : ''}
     ${r.notes ? `<span class="mo-eng">Notes</span><p class="mo-texte">${esc(r.notes)}</p>` : ''}</div>`;
@@ -125,4 +130,16 @@ async function pdf(t, b) {
   } catch (e) { console.error(e); msg('PDF impossible : ' + (e.message || e)); }
   b.disabled = false; b.textContent = avant;
 }
+// cocher un plan « dans la boîte » : la fiche du reel est relue juste avant (deux téléphones peuvent cocher en même temps)
+async function cocherPlan(b) {
+  const id = b.dataset.pf, k = b.dataset.pk; b.disabled = true;
+  try {
+    const d = (await BK.drive.liste('plansfaits').catch(() => ({})))[id] || { id, faits: [...(FAITS[id] || [])] };
+    const l = new Set(d.faits || []); l.has(k) ? l.delete(k) : l.add(k);
+    await BK.db.ecrire('plansfaits', { ...d, id, faits: [...l], par: BKM.moi() }, { sansAnnuler: true });
+    FAITS[id] = l; BKM.msg(l.has(k) ? 'Plan dans la boîte' : 'Plan remis à faire');
+  } catch (e) { BKM.msg('Pas enregistré : ' + (e.message || e)); }
+  BKM.redessiner();
+}
+
 })();

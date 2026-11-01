@@ -3,6 +3,12 @@
 // Pour une nouvelle version : ajouter un bloc EN HAUT de la liste. Une ligne courte par point : « Onglet : ce qui change. »
 // =====================================================================
 BK.NOUVEAUTES = [
+  { v: '0.9.99', titre: 'BEESKOT Mobile grandit', l: [
+    ['📱', 'Sur le téléphone : un écran Reels pour cocher l\'étape de chaque reel (Idée → Publié), un écran Budget (qui doit à qui + noter une dépense tout de suite), et « + Ajouter un rendez-vous » dans le Calendrier.'],
+    ['🎬', 'Sur un tournage : touche le numéro d\'un plan quand il est dans la boîte, il se coche pour tous les téléphones.'],
+    ['📶', 'L\'appli du téléphone s\'ouvre même sans réseau, et ce que tu as noté hors connexion part tout seul quand le réseau revient.'],
+    ['↩', 'Le bouton Retour du téléphone ferme d\'abord le panneau ouvert, le scanner ou la fiche dépliée.'],
+  ] },
   { v: '0.9.98', titre: 'Grand contrôle technique', l: [
     ['🛡', 'Sécurité : un texte piégé (venu de Discord, du Drive ou de l\'IA) ne peut plus rien lancer dans le logiciel. Et le logiciel n\'ouvre jamais un programme (.exe, .bat…).'],
     ['⚡', 'Plus rapide : le Drive est lu moins souvent au démarrage, les fiches se téléchargent 6 à la fois, Prépa mix ne relit plus le Drive toutes les 2 s, et rien ne tourne quand la fenêtre est réduite.'],

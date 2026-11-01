@@ -1,6 +1,7 @@
 // CALENDRIER (mobile) — le mois en petit (des points de couleur), puis la liste des jours.
 // Sources : les rendez-vous du logiciel, l'agenda Google (la copie que les PC déposent dans le Drive),
-// les sorties des morceaux, les tâches avec une date, les journées de Tournages. Lecture seule.
+// les sorties des morceaux, les tâches avec une date, les journées de Tournages.
+// « + Rendez-vous » ajoute un rendez-vous du logiciel (comme sur le PC) ; le reste est en lecture seule.
 (() => {
 const { esc, auj } = BKM;
 const TYPES = {
@@ -38,6 +39,7 @@ BKM.ecran('agenda', { nom: 'Calendrier', ordre: 20, async dessiner(z, plus, frai
   const duMois = tous.filter(e => ceMois ? e.d >= a && e.d <= lim : e.d.startsWith(mois));
   const jours = [...new Set(duMois.map(e => e.d))];
   z.innerHTML = `
+    <button class="btn pri mo-ajout" id="moAjEv">+ Ajouter un rendez-vous</button>
     <div class="mo-cal-tete"><button class="btn sm" data-m="-1">‹</button><b>${esc(nomMois.charAt(0).toUpperCase() + nomMois.slice(1))}</b><button class="btn sm" data-m="1">›</button></div>
     <div class="mo-cal">${['L', 'M', 'M', 'J', 'V', 'S', 'D'].map(x => `<span class="mo-cal-n">${x}</span>`).join('')}${cases}</div>
     ${mois !== a.slice(0, 7) ? '<button class="chip" id="moAuj" style="margin:10px 0 0">Revenir à aujourd\'hui</button>' : ''}
@@ -51,5 +53,26 @@ BKM.ecran('agenda', { nom: 'Calendrier', ordre: 20, async dessiner(z, plus, frai
   const r = z.querySelector('#moAuj'); if (r) r.onclick = () => { mois = null; BKM.redessiner(); };
   z.querySelectorAll('[data-j]').forEach(b => b.onclick = () => { const el = document.getElementById('j-' + b.dataset.j); if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' }); });
   z.querySelectorAll('[data-tour]').forEach(b => b.onclick = () => BKM.ouvrir('tournage', { tour: b.dataset.tour }));
+  z.querySelector('#moAjEv').onclick = () => ajouter(ms.filter(m => m.statut !== 'sorti').map(m => m.nom).sort((x, y) => String(x).localeCompare(String(y))), choisi || a);
+  z.querySelectorAll('[data-j]').forEach(b => b.addEventListener('click', () => { choisi = b.dataset.j; }));
 } });
+
+// ---------- ajouter un rendez-vous (les mêmes champs que sur le PC) ----------
+let choisi = '';
+function ajouter(morceaux, date) {
+  const types = Object.entries(TYPES).filter(([k]) => k !== 'tache' && k !== 'sortie');
+  BKM.feuille({ titre: 'Nouveau rendez-vous', corps: `
+      <span class="mo-eng">Quoi</span><div class="mo-chips" data-un>${types.map(([k, [n, c]], i) => `<button type="button" class="chip${i ? '' : ' on'}" data-c="${k}" style="--pc:${c}">${esc(n)}</button>`).join('')}</div>
+      <input class="fld" id="evTitre" maxlength="80" placeholder="Titre (facultatif)">
+      <div class="mo-ft-2"><label><span class="mo-eng">Le</span><input class="fld" type="date" id="evDate" value="${esc(date)}" required></label>
+        <label><span class="mo-eng">À</span><input class="fld" type="time" id="evHeure"></label></div>
+      <input class="fld" id="evLieu" maxlength="120" placeholder="Lieu (facultatif)">
+      <label><span class="mo-eng">Morceau</span><select class="fld" id="evMorceau"><option value="">—</option>${morceaux.map(n => `<option>${esc(n)}</option>`).join('')}</select></label>`,
+    async ok(v) {
+      const q = s => v.querySelector(s), type = (q('[data-un] .on') || {}).dataset?.c || 'autre', date = q('#evDate').value;
+      if (!date) { BKM.msg('Choisis une date'); return false; }
+      await BK.db.ecrire('evenements', { type, titre: q('#evTitre').value.trim() || TYPES[type][0], morceau: q('#evMorceau').value, date, heure: q('#evHeure').value, lieu: q('#evLieu').value.trim(), creePar: BKM.moi() + ' (téléphone)' });
+      BKM.msg('Rendez-vous ajouté'); mois = date.slice(0, 7);
+    } });
+}
 })();

@@ -337,3 +337,19 @@ body.feuille-ouverte{overflow:hidden}
 /* le clavier : la feuille reste au-dessus (hauteur réelle de l'écran visible) */
 .mo-feuille{max-height:92dvh}
 .mo-feuille-voile{bottom:var(--clavier,0px)}
+
+/* ---------- Reels (étapes) et Budget ---------- */
+.mo-reel-c{margin:0 0 12px;padding:12px;border-radius:10px;background:rgba(0,0,0,.28);box-shadow:inset 0 0 0 1px rgba(201,154,46,.18)}
+.mo-reel-h{display:flex;flex-direction:column;gap:2px;margin-bottom:10px}.mo-reel-h em{font-style:normal;font-size:13px;opacity:.75}
+.mo-etapes{display:grid;grid-template-columns:repeat(5,1fr);gap:4px}
+.mo-etape{min-height:44px;padding:4px 2px;border:0;border-radius:6px;font:600 11.5px/1.15 "Barlow Condensed",sans-serif;letter-spacing:.04em;text-transform:uppercase;color:var(--creme);background:rgba(255,255,255,.06)}
+.mo-etape.fait{background:rgba(255,178,62,.22);color:#ffe0a8}
+.mo-etape.ici{background:var(--ambre);color:#2b1b11;box-shadow:0 2px 0 #8a5a14}
+.mo-etape:disabled{opacity:.6}
+.mo-bu-v{display:flex;flex-wrap:wrap;align-items:baseline;gap:6px;margin:0 0 8px;padding:10px 12px;border-radius:10px;background:rgba(0,0,0,.28);border-left:4px solid var(--pc)}
+.mo-bu-v span{opacity:.7}
+.mo-bu-d{display:flex;gap:12px;align-items:baseline;padding:10px 0;border-bottom:1px solid rgba(255,255,255,.06)}
+.mo-bu-m{flex:none;min-width:84px;font:400 15px "Share Tech Mono",monospace;color:var(--ambre)}
+.mo-bu-t{display:flex;flex-direction:column;min-width:0}.mo-bu-t em{font-style:normal;font-size:12.5px;opacity:.72}
+.mo-plan-n{width:44px!important;height:44px!important;border:0;font-size:15px!important;cursor:pointer}
+.mo-plan.fait{opacity:.62}.mo-plan.fait .mo-plan-n{background:#9be37a!important}

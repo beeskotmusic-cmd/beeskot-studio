@@ -18,8 +18,8 @@ window.BKM = (function () {
   BK.racineUi = window.BK_RACINE || '../';
   // PROTECTION : le téléphone n'écrit QUE les tâches et les notes de Notes et retours.
   // Tout le reste (réglages du groupe, dossiers, fiches…) est bloqué ici, même si un outil partagé avec le PC essaie.
-  const PERMIS = new Set(['taches', 'notesmix']);
-  Object.assign(BK.annuler.NOMS, { notesmix: 'la note', taches: 'la tâche' });
+  const PERMIS = new Set(['taches', 'notesmix', 'evenements', 'depenses', 'reels', 'plansfaits']);   // reels : seulement l'étape (relue juste avant, voir ecrans/reels.js)
+  Object.assign(BK.annuler.NOMS, { notesmix: 'la note', taches: 'la tâche', evenements: 'le rendez-vous', depenses: 'la dépense', reels: 'le reel' });
   const ecrire0 = BK.db.ecrire.bind(BK.db), suppr0 = BK.db.supprimer.bind(BK.db);
   const bloque = col => (console.info('mobile : écriture bloquée (' + col + ')'), Promise.reject(new Error('Lecture seule sur le téléphone')));
   BK.db.ecrire = (col, fiche, o) => PERMIS.has(col) ? ecrire0(col, fiche, o) : bloque(col);
@@ -317,6 +317,23 @@ window.BKM = (function () {
       if (actuel !== 'biblio' && BK.drive.relie()) return ouvrir('biblio');
       App.exitApp(); }); } catch (e) { console.warn(e); }
 
+  // ---------- un panneau qui monte du bas (ajouter un rendez-vous, une dépense…) : même style que celui des tâches ----------
+  // corps = le HTML des champs ; ok(v) enregistre (renvoie false pour garder le panneau ouvert)
+  function feuille({ titre, corps, bouton = 'Ajouter', ok }) {
+    const v = document.createElement('div'); v.className = 'mo-feuille-voile';
+    v.innerHTML = `<form class="mo-feuille" role="dialog" aria-label="${esc(titre)}"><span class="mo-poignee-f" aria-hidden="true"></span><span class="dymo">${esc(titre)}</span>${corps}
+      <div class="mo-chips mo-ft-btns"><button type="submit" class="btn pri" id="ftOk">${esc(bouton)}</button><button type="button" class="btn" id="ftNon">Annuler</button></div></form>`;
+    document.body.appendChild(v); document.body.classList.add('feuille-ouverte');
+    const fermer = () => { v.classList.add('sort'); document.body.classList.remove('feuille-ouverte'); setTimeout(() => v.remove(), 200); };
+    v.addEventListener('click', e => { if (e.target === v) fermer(); });
+    v.querySelector('#ftNon').onclick = fermer;
+    v.querySelectorAll('.mo-chips[data-un] [data-c], .mo-chips[data-plusieurs] [data-c]').forEach(b => b.onclick = () => { const g = b.parentElement;
+      if (g.hasAttribute('data-un')) g.querySelectorAll('[data-c]').forEach(x => x.classList.toggle('on', x === b)); else b.classList.toggle('on'); });
+    v.querySelector('form').onsubmit = async e => { e.preventDefault(); const b = v.querySelector('#ftOk'); b.disabled = true;
+      try { if (await ok(v) !== false) { fermer(); redessiner(); } } catch (er) { msg('Pas enregistré : ' + (er.message || er)); } b.disabled = false; };
+    return { v, fermer };
+  }
+
   // ---------- démarrage ----------
   window.addEventListener('bk:annule', () => redessiner());               // « ↶ Annuler » : on relit l'écran
   window.addEventListener('hashchange', () => { if (lireLien()) { msg('Téléphone relié'); demarrer(); } });
@@ -329,8 +346,10 @@ window.BKM = (function () {
     vv.addEventListener('resize', clav); vv.addEventListener('scroll', clav); }
   document.addEventListener('focusin', e => { if (e.target.matches && e.target.matches('input,textarea,select')) setTimeout(() => e.target.scrollIntoView({ block: 'center', behavior: 'smooth' }), 300); });
   window.addEventListener('online', viderAttente); setInterval(viderAttente, 60e3);
+  // l'appli s'ouvre aussi sans réseau (les fichiers de l'appli gardés sur le téléphone : voir sw.js)
+  if ('serviceWorker' in navigator && location.protocol === 'https:') navigator.serviceWorker.register('sw.js').catch(e => console.warn('hors réseau indisponible', e));
   function demarrer() { setTimeout(viderAttente, 3000); lireLien(); if (BK.drive.relie()) { etat('…'); ouvrir(ECRANS[actuel] ? actuel : 'biblio'); proposerAppli(); } else accueilSansCle(); }
 
-  return { $, esc, msg, moi, couleur, t2, auj, dateFr, ecran, ouvrir, redessiner, liste, enAppli, ouvrirDansAppli, scanner, versions, sonDe, telecharger, local, lire, aller, son, L, demarrer,
+  return { feuille, $, esc, msg, moi, couleur, t2, auj, dateFr, ecran, ouvrir, redessiner, liste, enAppli, ouvrirDansAppli, scanner, versions, sonDe, telecharger, local, lire, aller, son, L, demarrer,
     get actuel() { return actuel; } };
 })();
