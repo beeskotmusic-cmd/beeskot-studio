@@ -266,7 +266,7 @@ BK.module('biblio', function (page) {
     const als = fs.filter(x => x.type === 'als').sort((a, b) => (b.modif || '').localeCompare(a.modif || ''));
     const pc = Math.round(BK.pourcent(m));
     const t = (id, titre, resume, corps) => { const o = (B.tiroirs[m.id] || []).includes(id);
-      return `<div class="tiroir${o ? ' ouvert' : ''}" data-t="${id}"><button class="tiroir-tete"><span class="fleche">${o ? '▾' : '▸'}</span><span class="lb">${titre}</span><span class="nt tiroir-resume">${resume}</span></button>${o ? `<div class="tiroir-corps">${corps()}</div>` : ''}</div>`; };
+      return `<div class="tiroir${o ? ' ouvert' : ''}" data-t="${id}"><button class="tiroir-tete"><span class="fleche">${o ? '▾' : '▸'}</span><span class="lb">${titre}</span><span class="nt tiroir-resume">${esc(resume)}</span></button>${o ? `<div class="tiroir-corps">${corps()}</div>` : ''}</div>`; };
     const tAvance = () => `${t('avance', 'Avancement', `${BK.etapes[Math.min(m.fait || 0, 5)].nom} · ${pc} %`, () => `
           <div class="etapes-clic">${BK.etapes.map((e, i) => `<button class="etape-b ${i < (m.fait || 0) ? 'fait' : i === (m.fait || 0) ? 'encours' + ((m.enCours || 0) > 0 ? ' demi' : '') : ''}" style="--sc:${e.c}" data-etape="${i}" title="Clic : fait / pas fait · clic droit : en cours">${e.nom}${i === (m.fait || 0) && (m.enCours || 0) > 0 ? ' <small>en cours</small>' : ''}</button>`).join('')}</div>
           `)}`;

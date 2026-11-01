@@ -7,7 +7,7 @@ const $ = (s, r = document) => r.querySelector(s);
 const $$ = (s, r = document) => [...r.querySelectorAll(s)];
 
 const BK = {
-  version: '0.9.97 bêta',
+  version: '0.9.98 bêta',
   modules: {},
   onglets: [],
   cotes: [],
@@ -112,15 +112,17 @@ const BK = {
       document.addEventListener('keydown', k, true); document.body.appendChild(v); ch.focus(); ch.select && ch.select();
     });
   },
-  confirmer(texte, { oui = 'Oui', non = 'Non' } = {}) {
+  // « Es-tu sûr ? » — pour ce qui retire ou efface, le bouton choisi d'office est « Non » (Entrée ne supprime pas par erreur)
+  confirmer(texte, { oui = 'Oui', non = 'Non', danger = /supprim|retir|effac|vider|écras|perdr|jeter|corbeille/i.test(texte) } = {}) {
     return new Promise(ok => {
-      const v = document.createElement('div'); v.className = 'voile';
-      v.innerHTML = `<div class="stopbox bk-conf" role="dialog"><span class="nt bk-conf-t"></span><div class="bk-conf-b"><button class="btn sm" data-r="0"></button><button class="btn sm warm" data-r="1"></button></div></div>`;
+      const avant = document.activeElement, v = document.createElement('div'); v.className = 'voile';
+      v.innerHTML = `<div class="stopbox bk-conf${danger ? ' danger' : ''}" role="alertdialog" aria-modal="true" aria-labelledby="bkConfT"><span class="nt bk-conf-t" id="bkConfT"></span><div class="bk-conf-b"><button class="btn sm" data-r="0"></button><button class="btn sm warm" data-r="1"></button></div></div>`;
       v.querySelector('.bk-conf-t').textContent = texte; v.querySelector('[data-r="0"]').textContent = non; v.querySelector('[data-r="1"]').textContent = oui;
-      const fin = r => { document.removeEventListener('keydown', k, true); v.remove(); ok(r); };
-      const k = e => { if (e.key === 'Escape') { e.stopPropagation(); fin(false); } if (e.key === 'Enter') { e.stopPropagation(); fin(true); } };
+      const fin = r => { document.removeEventListener('keydown', k, true); v.remove(); try { avant && avant.focus && avant.focus(); } catch (e) {} ok(r); };
+      const k = e => { if (e.key === 'Escape') { e.stopPropagation(); fin(false); }
+        if (e.key === 'Enter') { e.stopPropagation(); e.preventDefault(); const f = document.activeElement; fin(f && f.dataset && f.dataset.r ? f.dataset.r === '1' : !danger); } };
       v.onclick = e => { if (e.target === v) fin(false); const b = e.target.closest('[data-r]'); if (b) fin(b.dataset.r === '1'); };
-      document.addEventListener('keydown', k, true); document.body.appendChild(v); v.querySelector('[data-r="1"]').focus();
+      document.addEventListener('keydown', k, true); document.body.appendChild(v); v.querySelector(danger ? '[data-r="0"]' : '[data-r="1"]').focus();
     });
   },
   majNomPc() { const n = BK.reglage('nomPc', ''), e = document.getElementById('syPc'), b = document.getElementById('syPcB'); if (!e) return;
@@ -136,7 +138,7 @@ const BK = {
     const o = BK.onglets.find(x => x.id === id), p = $('#p-' + id); if (!o || !p) return;
     const dessiner = BK.modules[o.id] || (o.pret ? null : BK.modules['_en-construction']);
     try { if (dessiner) dessiner(p, o); }
-    catch (e) { $('.grid', p).innerHTML = `<div class="pane vit"><span class="nt">Cet onglet a un souci : ${e.message}</span></div>`; console.error(e); }
+    catch (e) { $('.grid', p).innerHTML = `<div class="pane vit"><span class="nt">Cet onglet a un souci : ${String(e && e.message || e).replace(/[<>&]/g, c => ({ "<": "&lt;", ">": "&gt;", "&": "&amp;" }[c]))}</span></div>`; console.error(e); }
     $$('.knobify', p).forEach(BK.knobify);
     BK.boites && BK.boites.suivre(p, id);
     const v = $('.pane.abar > .vfd', p); if (v && BK._obsEtats) BK._obsEtats.observe(v, { childList: true, characterData: true, subtree: true });
@@ -168,6 +170,7 @@ const BK = {
   // l'afficheur « charge » : ce que le logiciel prend sur cet ordinateur
   async charge() {
     const c = document.getElementById('syCpu'), r = document.getElementById('syRam'); if (!c) return;
+    if (document.hidden) return;                                          // fenêtre réduite : on ne mesure rien (le PC respire)
     if (!BK.estExe) { c.textContent = 'APERÇU'; r.textContent = '·'; return; }
     try { const j = JSON.parse(await BK.T.core.invoke('ressources'));
       c.textContent = Math.round(j.cpu) + ' % CPU'; r.textContent = j.ramMo >= 1024 ? (j.ramMo / 1024).toFixed(1) + ' Go' : j.ramMo + ' Mo';

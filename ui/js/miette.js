@@ -314,8 +314,10 @@ BK.synchro = {
     if (!BK.drive || !BK.drive.relie() || document.hidden) return;
     try {
       const racine = await BK.drive.racine(), depuis = BK.synchro.dernier, maintenant = new Date().toISOString();
-      const r = await (await BK.drive.api('/files?' + new URLSearchParams({ q: `modifiedTime > '${depuis}' and mimeType='application/json' and trashed=false`, fields: 'files(id,name,parents,lastModifyingUser(me))', pageSize: '200' }))).json();
-      BK.synchro.dernier = maintenant;
+      const r = await (await BK.drive.api('/files?' + new URLSearchParams({ q: `modifiedTime > '${depuis}' and mimeType='application/json' and trashed=false`, fields: 'files(id,name,parents,modifiedTime,lastModifyingUser(me))', pageSize: '200' }))).json();
+      // l'heure du Drive, pas celle de ce PC (une horloge en avance faisait rater les changements des autres)
+      const plusRecent = (r.files || []).reduce((m, f) => f.modifiedTime > m ? f.modifiedTime : m, '');
+      if (plusRecent) BK.synchro.dernier = plusRecent;
       const parCol = {}; for (const [cle, id] of Object.entries(BK.drive.dossiers)) if (cle.startsWith(racine + '/')) parCol[id] = cle.slice(racine.length + 1);
       const recents = BK.drive.ecrits || {};                         // ce que CE PC vient d'écrire ne revient pas faire tout relire
       const utiles = (r.files || []).filter(f => !/^ici-/.test(f.name || '') && !(recents[f.name] && Date.now() - recents[f.name] < 120e3));
@@ -367,7 +369,13 @@ BK.synchro = {
       ameliorations:['veilleurMaj'],
     };
     window.addEventListener('bk:distant', e => {
-      const a = document.activeElement; if (a && (/^(INPUT|TEXTAREA)$/.test(a.tagName) || a.isContentEditable)) return;
+      const a = document.activeElement; if (a && (/^(INPUT|TEXTAREA)$/.test(a.tagName) || a.isContentEditable)) {
+        // on écrit : rien ne se redessine maintenant, mais ces changements arrivent dès qu'on quitte le champ
+        const att = BK.distantEnAttente = BK.distantEnAttente || new Set(); e.detail.cols.forEach(c => att.add(c));
+        if (!BK.distantEcoute) { BK.distantEcoute = true; a.addEventListener('blur', () => { BK.distantEcoute = false; const l = [...(BK.distantEnAttente || [])]; BK.distantEnAttente = null;
+          if (l.length) setTimeout(() => window.dispatchEvent(new CustomEvent('bk:distant', { detail: { cols: l } })), 50); }, { once: true }); }
+        return; }
+      if (BK.distantEnAttente) { BK.distantEnAttente.forEach(c => e.detail.cols.includes(c) || e.detail.cols.push(c)); BK.distantEnAttente = null; BK.distantEcoute = false; }
       if (e.detail.cols.includes('config') && BK.etiquettes && !BK.etiquettes._min) BK.etiquettes.doc = null;   // (pas pendant un envoi en cours)
       if (e.detail.cols.includes('config')) BK.partageCache = {};        // PLAN.xlsx, passages Discord… relus
       const f = new Set(e.detail.cols.flatMap(c => QUI[c] || []));

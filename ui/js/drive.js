@@ -88,8 +88,13 @@ BK.drive = {
   q: s => "'" + String(s).replace(/\\/g, '\\\\').replace(/'/g, "\\'") + "'",
 
   // ---------- dossiers : BEESKOT Studio/<collection> ----------
+  // (deux demandes en même temps pour un dossier pas encore créé : une seule création, pas deux dossiers jumeaux)
   async dossier(nom, parent) {
     const cle = (parent || 'root') + '/' + nom; if (BK.drive.dossiers[cle]) return BK.drive.dossiers[cle];
+    const enc = BK.drive.dossiersEnCours = BK.drive.dossiersEnCours || {};
+    return enc[cle] || (enc[cle] = BK.drive.dossier0(nom, parent, cle).finally(() => { delete enc[cle]; }));
+  },
+  async dossier0(nom, parent, cle) {
     const q = `name=${BK.drive.q(nom)} and mimeType='application/vnd.google-apps.folder' and trashed=false and ${BK.drive.q(parent || 'root')} in parents`;
     const l = await (await BK.drive.api('/files?' + new URLSearchParams({ q, fields: 'files(id)', pageSize: '5' }))).json();
     let id = l.files && l.files[0] && l.files[0].id;
@@ -117,7 +122,7 @@ BK.drive = {
   async liste(col) {
     const dos = await BK.drive.dossier(col, await BK.drive.racine());
     const memo = BK.drive.cacheDe(col), cache = memo.c, out = {}; BK.drive.ids[col] = {};
-    let page = '';
+    let page = ''; const aLire = [];
     do {
       const r = await (await BK.drive.api('/files?' + new URLSearchParams({ q: `${BK.drive.q(dos)} in parents and trashed=false`, fields: 'nextPageToken,files(id,name,modifiedTime)', pageSize: '1000', pageToken: page }))).json();
       for (const f of r.files || []) {
@@ -125,17 +130,23 @@ BK.drive = {
         BK.drive.ids[col][f.name] = f.id;
         const c = cache[f.id];
         if (c && c.t === f.modifiedTime) { out[c.fiche.id] = c.fiche; continue; }      // déjà à jour : on ne retélécharge pas
-        try { const fiche = await (await BK.drive.api(`/files/${f.id}?alt=media`)).json(); out[fiche.id] = fiche; cache[f.id] = { t: f.modifiedTime, fiche }; memo.sale = true; }
-        catch (e) { if (c) out[c.fiche.id] = c.fiche; else throw e; }   // une fiche illisible : jamais une liste « à trous » (on croirait qu'elle n'existe pas, et on l'écraserait)
+        aLire.push({ f, c });
       }
       page = r.nextPageToken || '';
     } while (page);
+    // les fiches nouvelles ou modifiées : 6 téléchargements à la fois (au lieu d'une par une)
+    let i = 0;
+    const ouvrier = async () => { while (i < aLire.length) { const { f, c } = aLire[i++];
+      try { const fiche = await (await BK.drive.api(`/files/${f.id}?alt=media`)).json(); out[fiche.id] = fiche; cache[f.id] = { t: f.modifiedTime, fiche }; memo.sale = true; }
+      catch (e) { if (c) out[c.fiche.id] = c.fiche; else throw e; } } };   // une fiche illisible : jamais une liste « à trous » (on croirait qu'elle n'existe pas, et on l'écraserait)
+    await Promise.all(Array.from({ length: Math.min(6, aLire.length) }, ouvrier));
     const vivants = new Set(Object.values(BK.drive.ids[col]));
     for (const k of Object.keys(cache)) if (!vivants.has(k)) { delete cache[k]; memo.sale = true; }
     BK.drive.garderCache(col);
     return out;
   },
   async ecrire(col, fiche) {
+    BK.db && BK.db.oublier && BK.db.oublier(col);
     const dos = await BK.drive.dossier(col, await BK.drive.racine()), nom = fiche.id + '.json', corps = JSON.stringify(fiche, null, 1);
     let id = (BK.drive.ids[col] || {})[nom];
     if (!id) { const l = await (await BK.drive.api('/files?' + new URLSearchParams({ q: `name=${BK.drive.q(nom)} and ${BK.drive.q(dos)} in parents and trashed=false`, fields: 'files(id)' }))).json(); id = l.files && l.files[0] && l.files[0].id; }
@@ -156,6 +167,7 @@ BK.drive = {
     return url;
   },
   async supprimer(col, idFiche) {              // jamais effacé : déplacé dans « corbeille »
+    BK.db && BK.db.oublier && BK.db.oublier(col);
     const nom = idFiche + '.json', id = (BK.drive.ids[col] || {})[nom]; if (!id) return;
     const dos = await BK.drive.dossier(col, await BK.drive.racine()), corb = await BK.drive.dossier('corbeille', await BK.drive.racine());
     await BK.drive.api(`/files/${id}?addParents=${corb}&removeParents=${dos}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: '{}' });

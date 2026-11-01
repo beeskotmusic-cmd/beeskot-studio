@@ -18,6 +18,9 @@ BK.typesRdv = TYPES;
 const A = { mois: new Date(), google: [], locaux: [], sorties: [], miette: [], promoSeule: false };
 const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 const jour = d => d.toISOString().slice(0, 10);
+// une heure écrite à la main ou par Miette (« 14h », « 14:00 ») → « 14:00 » ; sinon rien (une heure illisible ne casse plus tout le calendrier)
+const hh = h => { const m = String(h || '').match(/^\s*(\d{1,2})\s*[:hH]\s*(\d{2})?\s*$/); return m && +m[1] < 24 ? m[1].padStart(2, '0') + ':' + (m[2] || '00') : ''; };
+const valide = e => e.debut instanceof Date && !isNaN(e.debut);
 const deviner = t => { t = (t || '').toLowerCase();               // type d'un événement Google d'après son titre
   return /enregistr|record|voix|prise/.test(t) ? 'enreg' : /r[ée]p[ée]t/.test(t) ? 'repet' : /tourn|clip|reel/.test(t) ? 'tournage'
     : /shoot|photo/.test(t) ? 'shooting' : /mix|master/.test(t) ? 'mixage' : /sortie|release/.test(t) ? 'sortie' : /post|publi|promo/.test(t) ? 'promo' : 'autre'; };
@@ -98,19 +101,19 @@ BK.module('agenda', function (page) {
   window.addEventListener('bk:annule', () => charger());
   window.addEventListener('bk:ia', () => A.locaux && rendre());       // Miette allumée / coupée : ses dates apparaissent / disparaissent
   async function charger() {
-    A.locaux = (await BK.db.liste('evenements')).map(e => ({ ...e, debut: new Date(e.date + 'T' + (e.heure || '00:00')), local: true, journee: e.journee || !!e.fin }));
+    A.locaux = (await BK.db.liste('evenements')).map(e => ({ ...e, debut: new Date(e.date + 'T' + (hh(e.heure) || '00:00')), local: true, journee: e.journee || !!e.fin })).filter(valide);
     const cfg = (await BK.db.liste('config')).find(c => c.id === 'agenda');
     if (cfg && cfg.ics) { $('#agIcs').value = cfg.ics; await lireGoogle(cfg.ics, true); }
     const ms = await BK.db.liste('morceaux');
     // le pont avec la To-do list : une tâche avec une date apparaît aussi ici, avec le nom de qui s'en occupe
     A.taches = (await BK.db.liste('taches')).filter(t => t.date && !t.fait).map(t => ({ type: 'autre', tache: true, titre: '☐ ' + t.texte + (t.qui ? ' · ' + [t.qui, ...(t.aussi || [])].join(' + ') : ''), morceau: t.morceau, qui: t.qui, debut: new Date(t.date + 'T12:00'), journee: true }));
-    A.sorties = ms.filter(m => m.sortie).map(m => ({ type: 'sortie', titre: 'Sortie · ' + m.nom, morceau: m.nom, debut: new Date(m.sortie + 'T12:00'), journee: true, fiche: true }));
+    A.sorties = ms.filter(m => m.sortie).map(m => ({ type: 'sortie', titre: 'Sortie · ' + m.nom, morceau: m.nom, debut: new Date(m.sortie + 'T12:00'), journee: true, fiche: true })).filter(valide);
     const pl = (await BK.db.liste('veille')).find(d => d.id === 'planning'); A.planning = pl;
     A.dispos = await lireDispos();
     A.dispMiette = await BK.partage.lire('dispos.miette', {}).catch(() => ({}));   // les absences lues par Miette sur Discord (à valider)                                    // { 'AAAA-MM-JJ': { Yacine: 'oui', Pierre: 'non' } } — partagé avec tout le groupe
     const cfgM = (await BK.db.liste('config')).find(c => c.id === 'membres');
     A.membres = (cfgM && cfgM.liste && cfgM.liste.length ? cfgM.liste : ['Yacine', 'Pierre', 'Baptiste']).map(m => m === 'Dari' ? 'Yacine' : m).filter(m => m && m !== 'BEESKOT');
-    A.miette = (pl && pl.l || []).flatMap(e => (e.dates || []).map(d => ({ ...e, debut: new Date(d + 'T' + (e.heure || '12:00')), journee: !e.heure, miette: true, date: d })))
+    A.miette = (pl && pl.l || []).flatMap(e => (e.dates || []).map(d => ({ ...e, debut: new Date(d + 'T' + (hh(e.heure) || '12:00')), journee: !hh(e.heure), miette: true, date: d }))).filter(valide)
       .filter(e => !A.locaux.some(x => x.date === e.date && x.type === e.type) && !A.sorties.some(x => e.type === 'sortie' && jour(x.debut) === e.date));
     $('#agMorceau').innerHTML = '<option value="">—</option>' + ms.map(m => `<option>${esc(m.nom)}</option>`).join('');
     rendre();
@@ -234,7 +237,7 @@ BK.module('agenda', function (page) {
     const z = $('#agRepere'), l = (A.planning && A.planning.l || []).filter(e => (e.dates || []).some(d => A.miette.some(x => x.cle === e.cle && x.date === d)));
     z.innerHTML = l.length ? l.map(e => `<div class="ag-rep ${e.statut === 'valide' ? 'valide' : 'possible'}" style="--c:${(TYPES[e.type] || TYPES.autre).c}">
         <div class="ag-rep-c"><b>${e.statut === 'valide' ? '' : '? '}${esc(e.titre || TYPES[e.type]?.nom || '')}${e.morceau ? ' · ' + esc(e.morceau) : ''}</b>
-          <span class="nt">${e.dates.map(d => new Date(d + 'T12:00').toLocaleDateString('fr-CA', { weekday: 'short', day: 'numeric', month: 'short' })).join(' ou ')}${e.heure ? ' · ' + e.heure : ''} · ${e.statut === 'valide' ? 'décidé' : 'possible'}${e.pourquoi ? ' — « ' + esc(e.pourquoi) + ' »' : ''}</span></div>
+          <span class="nt">${e.dates.map(d => new Date(d + 'T12:00').toLocaleDateString('fr-CA', { weekday: 'short', day: 'numeric', month: 'short' })).join(' ou ')}${e.heure ? ' · ' + esc(e.heure) : ''} · ${e.statut === 'valide' ? 'décidé' : 'possible'}${e.pourquoi ? ' — « ' + esc(e.pourquoi) + ' »' : ''}</span></div>
         <button class="btn xs" data-rep="${esc(e.cle)}" title="Remplir le formulaire">✎</button><button class="btn xs" data-repx="${esc(e.cle)}" title="Ignorer">✕</button></div>`).join('')
       : `<span class="nt">${A.planning && A.planning.t ? 'Rien de prévu dans les messages récents.' : 'Miette lit Discord et place ici les dates dont vous parlez (décidées ou possibles).'}</span>`;
     const lu = A.planning && A.planning.lu;                       // ce que Miette a lu la dernière fois : pour comprendre ce qui manque

@@ -117,14 +117,14 @@ main>section{flex:1;min-height:0;display:flex;flex-direction:column;gap:16px;pad
 .abar{height:76px;flex:none;display:flex;align-items:center;gap:14px;padding:0 18px}
 .abar .right{margin-left:auto;display:flex;gap:12px;align-items:center}
 .abar .vfd{font-size:13px}
-.ptitle{display:block;font-weight:600;font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:rgba(239,230,210,.5);flex:none}
+.ptitle{display:block;font-weight:600;font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:rgba(239,230,210,.7);flex:none}
 .abar .ptitle{width:70px}
 .box{position:relative;border-radius:6px;padding:14px 16px;background:rgba(239,230,210,.04);box-shadow:inset 0 0 0 1px rgba(239,230,210,.14);flex:none}
 .box.grow{flex:1;min-height:0;display:flex;flex-direction:column}
 .box.pick{display:flex;align-items:center;gap:14px}
 .box.pick>div{flex:1;min-width:0}
 .lb{display:block;font-weight:600;font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:rgba(239,230,210,.85);margin:0}
-.nt{display:block;font-weight:500;font-size:12px;line-height:1.4;color:rgba(239,230,210,.55);margin:6px 0 0}
+.nt{display:block;font-weight:500;font-size:12px;line-height:1.4;color:rgba(239,230,210,.72);margin:6px 0 0}
 .nt.mono,.mono{font-family:'Share Tech Mono','DM Mono',monospace;letter-spacing:.03em;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .kb{display:flex;flex-direction:column;align-items:center;gap:0;min-width:0}
 .kb .lb{font-size:9px;letter-spacing:.1em;text-align:center;margin-top:2px;white-space:nowrap}
@@ -182,7 +182,7 @@ main>section{flex:1;min-height:0;display:flex;flex-direction:column;gap:16px;pad
 .fld{background:linear-gradient(180deg,#0a0604,#1b110a)!important;color:#ffb23e!important;border:0!important;box-shadow:inset 0 2px 6px rgba(0,0,0,.95),0 0 0 1px var(--laiton)!important;
   font-family:'Share Tech Mono','DM Mono',monospace!important;text-shadow:0 0 6px rgba(255,160,40,.5);border-radius:4px;min-height:36px}
 .fld:focus{box-shadow:inset 0 2px 6px rgba(0,0,0,.95),0 0 0 2px var(--mus)!important}
-.fld::placeholder{color:rgba(255,178,62,.4)}
+.fld::placeholder{color:rgba(255,178,62,.62)}
 select.fld option{background:#1b110a;color:#ffb23e}
 textarea.fld{min-height:84px;padding:10px 12px;resize:vertical;line-height:1.4}
 

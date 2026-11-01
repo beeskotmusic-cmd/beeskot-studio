@@ -38,15 +38,19 @@ BK.fichier = {
   async deplacer(a, b)      { return BK.T.fs.rename(a, b); },
   async choisirDossier(titre) { return BK.T.dialog.open({ directory: true, title: titre }); },
   async choisirFichier(titre, filtres) { return BK.T.dialog.open({ multiple: false, title: titre, filters: filtres }); },
-  async ouvrir(p)           { return BK.T.opener.openPath(p); },     // ex. ouvrir un projet Ableton
+  async ouvrir(p)           { if (/\.(exe|bat|cmd|com|lnk|ps1|vbs|js|jse|wsf|msi|scr|hta|pif|reg)$/i.test(String(p))) throw new Error('Type de fichier refusé'); return BK.T.opener.openPath(p); },     // ex. ouvrir un projet Ableton (jamais un programme)
 };
 
 // ---------- la petite base de données (collections de fiches JSON) ----------
 // Drive relié → les fiches vivent dans le Drive BEESKOT (copie gardée sur le PC pour marcher hors ligne).
 // Pas de Drive → les fiches restent sur ce PC, et partiront dans le Drive à la connexion.
+window.addEventListener('bk:distant', e => { const c = e.detail && e.detail.cols; BK.db && BK.db.oublier && (c && c.length ? c.forEach(x => BK.db.oublier(x)) : BK.db.oublier()); });
 BK.db = {
   cache: {},
   enCours: {},
+  frais: {},                                                            // les dernières listes lues (8 s) ; effacées à chaque écriture
+  gen: {}, genTout: 0,
+  oublier(col) { if (col) { delete BK.db.frais[col]; BK.db.gen[col] = (BK.db.gen[col] || 0) + 1; } else { BK.db.frais = {}; BK.db.genTout++; } },
   enLigne: true,
   nouvelId() { return Date.now().toString(36) + Math.random().toString(36).slice(2, 6); },
   drive() { return BK.drive && BK.drive.relie(); },
@@ -55,7 +59,11 @@ BK.db = {
     if (!BK.db.drive()) return Object.values(BK.db.memoire(col));
     try {
       // plusieurs onglets demandent la même liste en même temps (au démarrage surtout) : une seule lecture du Drive pour tous
-      const enCours = BK.db.enCours[col] || (BK.db.enCours[col] = BK.drive.liste(col).finally(() => { delete BK.db.enCours[col]; }));
+      // et une liste lue il y a moins de 8 s est réutilisée (au démarrage, une douzaine d'onglets veulent « config » d'un coup)
+      const fr = BK.db.frais[col];
+      const enCours = BK.db.enCours[col] || (fr && Date.now() - fr.t < 8e3 ? fr.p
+        : (BK.db.enCours[col] = (g => BK.drive.liste(col).then(r => { if (g === (BK.db.gen[col] || 0) + ':' + BK.db.genTout) BK.db.frais[col] = { t: Date.now(), p: Promise.resolve(r) }; return r; }))((BK.db.gen[col] || 0) + ':' + BK.db.genTout)
+            .finally(() => { delete BK.db.enCours[col]; })));   // (une écriture pendant la lecture : cette lecture n'est pas réutilisée)
       const out = { ...(await enCours) };
       for (const a of BK.reglage('db.attente', [])) if (a.col === col) { if (a.suppr) delete out[a.id]; else out[a.fiche.id] = a.fiche; }   // pas encore envoyés
       BK.db.cache[col] = out; BK.db.enLigne = true; BK.db.lu[col] = true;
@@ -94,7 +102,7 @@ BK.db = {
     (BK.db.cache[col] = BK.db.cache[col] || {})[fiche.id] = fiche;
     setTimeout(() => window.dispatchEvent(new CustomEvent('bk:change', { detail: { col, id: fiche.id } })), 0);   // les autres onglets se mettent à jour
     if (!BK.db.drive()) { BK.db.memoire(col, fiche); return fiche; }
-    try { await BK.drive.ecrire(col, fiche); BK.db.enLigne = true; }
+    try { await BK.drive.ecrire(col, fiche); BK.db.oublier(col); BK.db.enLigne = true; }
     catch (e) { BK.db.attendre({ col, fiche }); }                    // hors ligne : envoyé plus tard
     return fiche;
   },
@@ -110,15 +118,24 @@ BK.db = {
   // file d'attente hors ligne
   attendre(a) { const l = BK.reglage('db.attente', []); l.push(a); BK.regler('db.attente', l); BK.db.enLigne = false; BK.etatDrive && BK.etatDrive(); },
   async viderAttente() {
+    if (BK.db.videEnCours) return BK.db.videEnCours;                     // un seul envoi à la fois (le minuteur et un clic peuvent tomber ensemble)
     const l = BK.reglage('db.attente', []); if (!l.length || !BK.db.drive()) return;
-    const reste = [];
-    for (const a of l) { try {
-      if (a.suppr) { await BK.drive.supprimer(a.col, a.id); continue; }
-      // PROTECTION : si quelqu'un a modifié cette fiche dans le Drive APRÈS nous, on ne l'écrase pas
-      const dist = (await BK.drive.liste(a.col).catch(() => ({})))[a.fiche.id];
-      if (dist && (dist.maj || '') > (a.fiche.maj || '')) continue;
-      await BK.drive.ecrire(a.col, a.fiche); } catch (e) { reste.push(a); } }
-    BK.regler('db.attente', reste); BK.db.enLigne = !reste.length;
+    return BK.db.videEnCours = (async () => {
+      const faits = new Set(), dist = {};
+      for (const a of l) { try {
+        if (a.suppr) await BK.drive.supprimer(a.col, a.id);
+        else {
+          // PROTECTION : si quelqu'un a modifié cette fiche dans le Drive APRÈS nous, on ne l'écrase pas
+          if (!dist[a.col]) dist[a.col] = await BK.drive.liste(a.col).catch(() => ({}));
+          const d = dist[a.col][a.fiche.id];
+          if (!(d && (d.maj || '') > (a.fiche.maj || ''))) await BK.drive.ecrire(a.col, a.fiche);
+          else console.warn('file d\'attente : version plus récente sur le Drive, gardée', a.col, a.fiche.id);
+        }
+        faits.add(a); } catch (e) {} }
+      // ce qui a été ajouté PENDANT l'envoi reste dans la file (on ne retire que ce qui est parti)
+      const reste = BK.reglage('db.attente', []).filter(x => ![...faits].some(f => JSON.stringify(f) === JSON.stringify(x)));
+      BK.regler('db.attente', reste); BK.db.enLigne = !reste.length;
+    })().finally(() => { BK.db.videEnCours = null; });
   },
 
   // stockage sur ce PC (sans Drive)
@@ -140,7 +157,7 @@ BK.pousser = async function () {
   const rafr = { accueil: BK.surOuvrir && BK.surOuvrir.accueil, biblio: BK.biblioRecharger, taches: BK.tachesRecharger, agenda: BK.agendaRecharger };
   // jamais pendant qu'on écrit (paroles, une tâche…) : le redessin effacerait ce qui n'est pas encore enregistré
   const a = document.activeElement, tape = a && (/^(INPUT|TEXTAREA|SELECT)$/.test(a.tagName) || a.isContentEditable);
-  if (!tape) try { rafr[ouvert] && await rafr[ouvert](); } catch (e) {}
+  if (!tape && !document.hidden) try { rafr[ouvert] && await rafr[ouvert](); } catch (e) {}
   BK.etatDrive();
 };
 

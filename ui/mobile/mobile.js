@@ -143,7 +143,7 @@ window.BKM = (function () {
   // ↻ : relire le Drive maintenant (fiches ET fichiers), quel que soit l'âge de la copie
   $('#moRelire').onclick = async () => {
     const b = $('#moRelire'); if (b.classList.contains('tourne')) return;
-    b.classList.add('tourne'); forcer = true; BK.dossiers.oublier && BK.dossiers.oublier();
+    b.classList.add('tourne'); forcer = true; BK.dossiers.oublier && BK.dossiers.oublier(); BK.db.oublier && BK.db.oublier();
     try { await ouvrir(actuel); msg('Drive relu'); } finally { forcer = false; b.classList.remove('tourne'); }
   };
   function etat(t, ok) { const e = $('#moEtat'); e.textContent = t; e.classList.toggle('ok', !!ok); }

@@ -231,7 +231,7 @@ BK.module('reels', function (page) {
   }
   async function remplirPrevus() {
     const { m, l } = await passagesPrevus(), sel = $('#rePrevus'); R.prevus = l;
-    sel.innerHTML = `<option value="">${!m ? '📋 Choisis d\'abord un morceau' : l.length ? '📋 ' + l.length + ' passage(s) prévu(s) pour ' + m.nom + '…' : '📋 Aucun passage prévu pour ' + m.nom}</option>`
+    sel.innerHTML = `<option value="">${!m ? '📋 Choisis d\'abord un morceau' : l.length ? '📋 ' + l.length + ' passage(s) prévu(s) pour ' + esc(m.nom) + '…' : '📋 Aucun passage prévu pour ' + esc(m.nom)}</option>`
       + l.map((p, i) => `<option value="${i}"${/Discord/.test(p.nom) ? ' style="color:#9bd986"' : ''}>${BK.audio.temps(p.debut).replace(/\.\d$/, '')} → ${BK.audio.temps(p.fin).replace(/\.\d$/, '')} · ${p.nom.replace(/</g, '&lt;').slice(0, 70)}</option>`).join('');
   }
   $('#rePrevus').addEventListener('focus', remplirPrevus);

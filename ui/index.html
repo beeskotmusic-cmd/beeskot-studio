@@ -3,6 +3,8 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<!-- sécurité : seuls les scripts du logiciel lui-même peuvent tourner (un texte piégé venu du Drive ou de Discord ne peut rien lancer) -->
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; object-src 'none'; base-uri 'self'; style-src 'self' 'unsafe-inline'; font-src 'self' data:; img-src 'self' data: blob: https: asset: http://asset.localhost; media-src 'self' data: blob: https: asset: http://asset.localhost; connect-src 'self' ipc: http://ipc.localhost https: wss: data: blob:; worker-src 'self' blob:; frame-src 'self'">
 <title>BEESKOT Studio</title>
 <link rel="icon" href="look/beeskot.png">
 <!-- Le look : exactement la base de Dari Audio Live (base.css + dari-look.css), puis les ajouts BEESKOT -->
@@ -123,6 +125,6 @@
 <script src="modules/lighttoast.js"></script>
 <script src="modules/en-construction.js"></script>
 <script src="js/plein.js"></script>
-<script>BK.demarrer()</script>
+<script src="js/demarrer.js"></script>
 </body>
 </html>

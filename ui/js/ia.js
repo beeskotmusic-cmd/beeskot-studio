@@ -3,6 +3,8 @@
 // Sans clé : le logiciel prépare la demande, on la copie dans ChatGPT / Gemini.
 // La clé est rangée dans le Drive BEESKOT (config « ia »), jamais dans le code.
 // =====================================================================
+// la clé changée sur un autre PC : relue au prochain usage
+window.addEventListener('bk:distant', e => { const c = e.detail && e.detail.cols; if (!c || !c.length || c.includes('config')) BK.ia.conf = null; });
 BK.ia = {
   conf: null,
   async config() {

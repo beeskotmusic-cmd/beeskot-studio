@@ -106,6 +106,8 @@ BK.module('lumieres', function (page) {
   }
   // on prend toujours la dernière version du Drive, copiée sur ce PC, puis ouverte (navigateur ou TouchDesigner)
   async function ouvrirDuDrive(id, nom, dossierId) {
+    nom = String(nom || 'fichier').replace(/[\\/:*?"<>|]+/g, ' ').replace(/\.{2,}/g, '.').trim().slice(0, 120) || 'fichier';   // (sécurité) un nom venu du Drive ne sort jamais du dossier
+    if (/\.(exe|bat|cmd|com|lnk|ps1|vbs|js|msi|scr|hta)$/i.test(nom)) return msg('Type de fichier refusé : ' + nom);
     if (!BK.estExe) return BK.ouvrirLien('https://drive.google.com/file/d/' + id + '/view');
     try {
       let base = BK.reglage('dossierExports', '');

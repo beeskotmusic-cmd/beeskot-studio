@@ -63,6 +63,12 @@
     var bs = racine.matches && racine.matches('button[title]') ? [racine] : [];
     bs = bs.concat([].slice.call(racine.querySelectorAll ? racine.querySelectorAll('button[title]:not([aria-label])') : []));
     bs.forEach(function (b) { if (!b.hasAttribute('aria-label') && b.textContent.replace(/\s+/g, '').length <= 3) b.setAttribute('aria-label', b.title); });
+    // les champs sans étiquette liée : leur texte d'aide (placeholder / infobulle) leur sert de nom
+    var fs = racine.querySelectorAll ? [].slice.call(racine.querySelectorAll('input:not([type=hidden]):not([aria-label]):not([id]), input[id]:not([aria-label]), textarea:not([aria-label]), select:not([aria-label])')) : [];
+    fs.forEach(function (f) { if (f.closest('label') || (f.id && document.querySelector('label[for="' + f.id + '"]'))) return; var t = f.getAttribute('placeholder') || f.title; if (t) f.setAttribute('aria-label', t); });
+    // les messages de la barre du bas : annoncés aux lecteurs d'écran
+    var vs = racine.querySelectorAll ? racine.querySelectorAll('.abar .vfd:not([role])') : [];
+    for (var i = 0; i < vs.length; i++) { vs[i].setAttribute('role', 'status'); vs[i].setAttribute('aria-live', 'polite'); }
   }
 
   function demarrer() {

@@ -114,7 +114,11 @@ BK.discord = {
     if (!force && verrou.passage && Date.now() - verrou.passage < 25 * 60e3) return { recent: true };   // un autre PC vient de le faire
     BK.discord.enCours = true;
     try {
-      await BK.db.ecrire('config', { ...verrou, passage: Date.now(), par: BK.reglage('nomPc', '') || 'CE PC' });
+      const jeton = Date.now() + ':' + Math.random().toString(36).slice(2, 7);
+      await BK.db.ecrire('config', { ...verrou, passage: Date.now(), par: BK.reglage('nomPc', '') || 'CE PC', jeton });
+      // deux PC qui démarrent en même temps : on relit le verrou ; si un autre PC l'a pris juste après nous, on lui laisse la ronde
+      if (!force) { await new Promise(r => setTimeout(r, 2500)); BK.db.oublier('config');
+        const v2 = (await BK.db.liste('config')).find(x => x.id === 'veilleur'); if (v2 && v2.jeton && v2.jeton !== jeton) return { recent: true }; }
       const nouvelles = [], dernier = { ...(c.dernier || {}) };
       for (const s of c.salons) {
         progression('Lecture de #' + s.nom + '…');

@@ -3,6 +3,14 @@
 // Pour une nouvelle version : ajouter un bloc EN HAUT de la liste. Une ligne courte par point : « Onglet : ce qui change. »
 // =====================================================================
 BK.NOUVEAUTES = [
+  { v: '0.9.98', titre: 'Grand contrôle technique', l: [
+    ['🛡', 'Sécurité : un texte piégé (venu de Discord, du Drive ou de l\'IA) ne peut plus rien lancer dans le logiciel. Et le logiciel n\'ouvre jamais un programme (.exe, .bat…).'],
+    ['⚡', 'Plus rapide : le Drive est lu moins souvent au démarrage, les fiches se téléchargent 6 à la fois, Prépa mix ne relit plus le Drive toutes les 2 s, et rien ne tourne quand la fenêtre est réduite.'],
+    ['🔁', 'Fiable : ce qui attendait la connexion n\'est plus perdu, les changements des autres arrivent même si l\'horloge du PC est en avance, et ceux reçus pendant que tu écris s\'affichent dès que tu quittes le champ.'],
+    ['👁', 'Plus lisible : petits textes plus grands et plus contrastés, onglet choisi en encre foncée sur la couleur de la section, Réglages au même style que les autres pages.'],
+    ['🗑', 'Pour retirer ou effacer, « Non » est choisi d\'office : Entrée ne supprime plus rien par erreur.'],
+    ['📅', 'Calendrier : une heure mal écrite (ex. « 14h ») ne casse plus tout le mois, et les rendez-vous tiennent sur 2 lignes.'],
+  ] },
   { v: '0.9.97', titre: '', l: [
     ['🎧', 'Retours › A/B : le bouton A est bleu et le B rouge, comme leurs courbes.'],
     ['🎬', 'Tournages : un clic sur un tournage l\'ouvre tout de suite (avant, il attendait le Drive).'],
