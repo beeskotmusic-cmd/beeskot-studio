@@ -72,10 +72,29 @@ const F = BK.fil = {
     document.removeEventListener('keydown', F.echap, true); document.removeEventListener('pointerdown', F.dehors, true); },
   echap(e) { if (e.key === 'Escape' && !document.querySelector('.voile:not(.hidden)')) { e.stopPropagation(); F.fermer(); } },
   dehors(e) { if (!e.target.closest('#filTiroir, #btFil, .voile:not(.hidden)')) F.fermer(); },
+  // un reel dans un tournage : on déplie le tournage qui le contient (une seule fois), puis on ouvre le reel et on le met en surbrillance
+  allerReel(mot, i = 0, attente = 0, essai = 0) {
+    const page = document.getElementById('p-tournage'); if (!page) return;
+    const txt = el => (el.textContent || '').toLowerCase();
+    const reel = [...page.querySelectorAll('[data-rid]')].find(el => el.offsetParent && txt(el).includes(mot));
+    if (reel) {                                                    // le reel est là (son tournage est déplié) : on le déplie et on le surligne
+      const plir = reel.querySelector('[data-plir]'); if (plir && !reel.classList.contains('ouvert')) plir.click();
+      const id = reel.dataset.rid, quand = () => { const el = page.querySelector(`[data-rid="${CSS.escape(id)}"]`) || reel; el.scrollIntoView({ block: 'center', behavior: 'smooth' }); F.flash(el); };
+      setTimeout(quand, plir && !reel.classList.contains('ouvert') ? 450 : 60);     // le plier ré-affiche la page : on surligne l'élément neuf
+      return;
+    }
+    // sinon : on déplie le tournage suivant, un par un, jusqu'à trouver celui qui contient ce reel
+    const tournages = [...page.querySelectorAll('.to-item[data-tour]')];
+    if (!tournages.length && essai < 12) return setTimeout(() => F.allerReel(mot, 0, 0, essai + 1), 250);      // la liste des tournages n'est pas encore là
+    if (attente === 0 && i < tournages.length) { tournages[i].click(); return setTimeout(() => F.allerReel(mot, i + 1, 0, 0), 380); }
+    if (attente === 0) page.querySelector('.hdr') && F.flash(page.querySelector('.hdr'));   // introuvable : l'en-tête de la page
+  },
+  flash(el) { if (!el) return; el.classList.remove('fil-flash'); void el.offsetWidth; el.classList.add('fil-flash'); setTimeout(() => el.classList.remove('fil-flash'), 3200); },
   // ouvre l'onglet puis met en surbrillance ce qui a été ajouté : la fiche / le cadre qui parle du sujet (sinon l'en-tête de la page),
   // et l'entrée du menu clignote avec la couleur de la section
   aller(onglet, sujet) {
     BK.ouvrir(onglet);
+    if (onglet === 'tournage' && String(sujet || '').trim().length >= 3) return F.allerReel(String(sujet).trim().toLowerCase(), 0);
     const page = document.getElementById('p-' + (document.getElementById('p-' + onglet) ? onglet : 'accueil'));
     const chef = BK.look && BK.look.chef ? BK.look.chef(onglet) : onglet, tab = document.querySelector(`#nav .tab[data-p="${CSS.escape(chef)}"]`);
     const flash = el => { if (!el) return; el.classList.remove('fil-flash'); void el.offsetWidth; el.classList.add('fil-flash'); setTimeout(() => el.classList.remove('fil-flash'), 3200); };

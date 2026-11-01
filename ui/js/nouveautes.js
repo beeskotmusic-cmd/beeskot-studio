@@ -3,6 +3,9 @@
 // Pour une nouvelle version : ajouter un bloc EN HAUT de la liste. Une ligne courte par point : « Onglet : ce qui change. »
 // =====================================================================
 BK.NOUVEAUTES = [
+  { v: '0.9.106', titre: '', l: [
+    ['🔔', 'Cloche, tournages : un clic sur « a modifié un tournage » déplie le bon tournage, ouvre le reel et le met en surbrillance.'],
+  ] },
   { v: '0.9.105', titre: '', l: [
     ['🔔', 'Cloche : un clic sur une ligne du fil ouvre l\'endroit et met en surbrillance ce qui vient d\'être ajouté (le menu de la section clignote aussi).'],
     ['🟢', 'ONLINE : tout en haut, une petite languette discrète.'],
