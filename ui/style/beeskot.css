@@ -2235,3 +2235,4 @@ body .seg.ec-ab button:not(.on){opacity:.7}
 .btn.pri:focus-visible,.seg button.on:focus-visible,.chip.on:focus-visible{outline:2px solid #fff3df!important;outline-offset:2px;box-shadow:0 0 0 4px #1d120a!important}
 @media (max-width:1500px){.look-neuf .paniers{grid-template-columns:repeat(2,minmax(0,1fr))!important}}
 .bk-conf.danger [data-r="1"]{--c:#8d182f;background:linear-gradient(180deg,#a8323f,#6e1422)!important;color:#fff3e6!important}
+tr.pl-fait td{opacity:.6}tr.pl-fait td.mono{color:#9be37a;opacity:1}

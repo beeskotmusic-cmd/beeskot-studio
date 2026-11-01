@@ -61,6 +61,7 @@ BK.module('tournage', function (page) {
     if (await migrer().catch(e => (console.warn('migration tournages', e), false))) T.liste = await BK.db.liste('tournages');
     T.partageLu = false; prechargerPartage();
     T.reels = await BK.db.liste('reels').catch(() => []);
+    T.faits = Object.fromEntries((await BK.db.liste('plansfaits').catch(() => [])).map(x => [x.id, new Set(x.faits || [])]));   // les plans cochés sur le téléphone, pendant le tournage
     T.exports = await BK.exportsAudio.tous().catch(() => []);
     // les étiquettes et fichiers de Médias (pour proposer en vert) : relus au plus toutes les 2 minutes, sans bloquer l'affichage
     if (BK.drive.relie() && (!T.fichiersT || Date.now() - T.fichiersT > 120e3)) { T.fichiersT = Date.now();
@@ -175,7 +176,7 @@ BK.module('tournage', function (page) {
         <datalist id="toLieux">${[...new Set(T.liste.filter(x => x.id === t.id || (t.parent && x.parent === t.parent) || x.id === t.parent).flatMap(x => (x.plans || []).map(p => BK.itineraire.lieuDe(p))).filter(Boolean))].map(l => `<option value="${esc(l)}">`).join('')}</datalist>
         <table class="to-plans"><colgroup><col style="width:28px"><col style="width:${largeurCol('cadrage')}px"><col><col style="width:${largeurCol('duree')}px"><col style="width:${largeurCol('notes')}px"><col style="width:${largeurCol('imgs')}px"><col style="width:76px"></colgroup>
           <thead><tr><th>#</th><th>Cadrage<i class="to-rz" data-rz="cadrage" title="Tirer pour changer la largeur"></i></th><th>Ce qu'on voit / ce qui se passe</th><th>Durée<i class="to-rz" data-rz="duree" title="Tirer pour changer la largeur"></i></th><th>Notes<i class="to-rz" data-rz="notes" title="Tirer pour changer la largeur"></i></th><th>Images<i class="to-rz" data-rz="imgs" title="Tirer pour changer la largeur"></i></th><th></th></tr></thead>
-          <tbody>${t.plans.map((p, i) => `<tr data-i="${i}"><td class="mono">${i + 1}${pastille(p.par)}</td>
+          <tbody>${t.plans.map((p, i) => `<tr data-i="${i}"${(T.faits && T.faits[t.id] || new Set()).has(i + ':' + String(p.cadrage || p.action || '').slice(0, 24)) ? ' class="pl-fait" title="Coché sur un téléphone : dans la boîte"' : ''}><td class="mono">${i + 1}${(T.faits && T.faits[t.id] || new Set()).has(i + ':' + String(p.cadrage || p.action || '').slice(0, 24)) ? ' ✓' : ''}${pastille(p.par)}</td>
             <td><select class="fld" data-p="cadrage"><option value="">—</option>${CADRAGES.map(c => `<option${p.cadrage === c ? ' selected' : ''}>${c}</option>`).join('')}</select></td>
             <td>${p.reel ? `<div class="to-reel"><b>${esc(p.reel)}</b><span>${esc([p.audio, p.horaire, p.lieu, p.camera ? '🎥 cameraman' : ''].filter(Boolean).join(' · '))}</span><button class="btn xs" data-audio="${i}">→ Audio</button></div>` : ''}<textarea class="fld auto" rows="1" data-p="action">${esc(p.action)}</textarea></td>
             <td><input class="fld court" data-p="duree" value="${esc(p.duree)}" placeholder="5 s"></td>

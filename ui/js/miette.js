@@ -355,6 +355,7 @@ BK.synchro = {
       depenses:     ['budgetRecharger'],
       abonnements:  ['budgetRecharger'],
       tournages:    ['tournagesRecharger', 'suiviRecharger'],
+      plansfaits:   ['tournagesRecharger'],
       reels:        ['suiviRecharger'],
       exportsaudio: ['suiviRecharger'],
       inventaires:  ['biblioRecharger', 'suiviRecharger'],
