@@ -36,7 +36,7 @@ const F = BK.fil = {
   },
   // une ligne du journal → un bouton qui ouvre l'endroit
   ligne(x, neuf) {
-    return `<button class="fil-l${neuf ? ' neuf' : ''}" data-va="${esc(x.onglet || 'accueil')}"><span class="fil-h">${hm(new Date(x.t))}</span>
+    return `<button class="fil-l${neuf ? ' neuf' : ''}" data-va="${esc(x.onglet || 'accueil')}" data-sujet="${esc(x.sujet || '')}"><span class="fil-h">${hm(new Date(x.t))}</span>
       <span><b style="color:${COUL[x.qui] || '#d9b67a'}">${esc(x.qui)}</b> ${esc(x.quoi)}${x.sujet ? ' · <i>' + esc(x.sujet) + '</i>' : ''}</span></button>`;
   },
   liste(l, vu) { let jour = '';
@@ -48,7 +48,7 @@ const F = BK.fil = {
       <div class="fil-la" id="filLa"></div><div class="fil-corps" id="filCorps"><span class="nt"><span class="spin"></span>…</span></div>
       <span class="nt fil-pied">Clic sur une ligne : ça ouvre l'endroit. Les nouveautés depuis ta dernière visite ont un trait de couleur.</span>`;
     document.body.appendChild(t); $('#btFil') && $('#btFil').classList.add('on');
-    t.onclick = e => { const o = e.target.closest('[data-va]'); if (o) { F.fermer(); BK.ouvrir(o.dataset.va); } };
+    t.onclick = e => { const o = e.target.closest('[data-va]'); if (o) { F.fermer(); F.aller(o.dataset.va, o.dataset.sujet); } };
     $('#filX').onclick = F.fermer;
     $('#filActu').onclick = async () => { const b = $('#filActu'); b.disabled = true; b.innerHTML = '<span class="spin"></span>…';
       try { if (BK.db.viderAttente) await BK.db.viderAttente(); window.dispatchEvent(new CustomEvent('bk:distant', { detail: { cols: (BK.synchro && BK.synchro.COLS) || [] } }));
@@ -72,13 +72,38 @@ const F = BK.fil = {
     document.removeEventListener('keydown', F.echap, true); document.removeEventListener('pointerdown', F.dehors, true); },
   echap(e) { if (e.key === 'Escape' && !document.querySelector('.voile:not(.hidden)')) { e.stopPropagation(); F.fermer(); } },
   dehors(e) { if (!e.target.closest('#filTiroir, #btFil, .voile:not(.hidden)')) F.fermer(); },
+  // ouvre l'onglet puis met en surbrillance ce qui a été ajouté : la fiche / le cadre qui parle du sujet (sinon l'en-tête de la page),
+  // et l'entrée du menu clignote avec la couleur de la section
+  aller(onglet, sujet) {
+    BK.ouvrir(onglet);
+    const page = document.getElementById('p-' + (document.getElementById('p-' + onglet) ? onglet : 'accueil'));
+    const chef = BK.look && BK.look.chef ? BK.look.chef(onglet) : onglet, tab = document.querySelector(`#nav .tab[data-p="${CSS.escape(chef)}"]`);
+    const flash = el => { if (!el) return; el.classList.remove('fil-flash'); void el.offsetWidth; el.classList.add('fil-flash'); setTimeout(() => el.classList.remove('fil-flash'), 3200); };
+    flash(tab);
+    const cherche = (essais = 0) => {
+      if (!page) return;
+      let cible = null; const mot = String(sujet || '').trim().toLowerCase();
+      if (mot.length >= 3) {
+        const w = document.createTreeWalker(page, NodeFilter.SHOW_TEXT);
+        for (let n = w.nextNode(); n; n = w.nextNode()) {
+          if (!n.nodeValue.toLowerCase().includes(mot)) continue;
+          const el = n.parentElement; if (!el || !el.offsetParent || el.closest('.hidden, script, style')) continue;
+          cible = el.closest('.fiche, .cal-ev, tr, li, [data-id], [data-t], .box, .pane') || el; break;
+        }
+      }
+      if (!cible && essais < 4) return setTimeout(() => cherche(essais + 1), 250);          // la page se remplit (Drive) : on réessaie un peu
+      if (!cible) cible = page.querySelector('.hdr') || page;
+      cible.scrollIntoView({ block: 'center', behavior: 'smooth' }); flash(cible);
+    };
+    setTimeout(cherche, 200);
+  },
   // sur l'Accueil (nouveau look) : les 8 dernières lignes
   accueil() {
     const z = $('#acFil'); if (!z) return;
     const n = F.nouveaux();
     z.innerHTML = `<div class="ligne-titre"><span class="lb">Fil du groupe</span>${n ? `<span class="fil-n">${n} nouveau${n > 1 ? 'x' : ''}</span>` : ''}<button class="btn xs" id="acFilTout" style="margin-left:auto">Tout voir</button></div>
       <div class="fil-corps">${lignes.length ? F.liste(lignes.slice(0, 8), F.vu()) : '<span class="nt">Rien pour l\'instant : ce que chacun fait arrive ici.</span>'}</div>`;
-    z.onclick = e => { if (e.target.closest('#acFilTout')) return F.ouvrir(); const o = e.target.closest('[data-va]'); if (o) BK.ouvrir(o.dataset.va); };
+    z.onclick = e => { if (e.target.closest('#acFilTout')) return F.ouvrir(); const o = e.target.closest('[data-va]'); if (o) F.aller(o.dataset.va, o.dataset.sujet); };
   },
 };
 BK.filMaj = () => F.maj();                                              // appelé quand le journal change sur le Drive (js/miette.js)

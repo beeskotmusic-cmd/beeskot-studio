@@ -3,6 +3,10 @@
 // Pour une nouvelle version : ajouter un bloc EN HAUT de la liste. Une ligne courte par point : « Onglet : ce qui change. »
 // =====================================================================
 BK.NOUVEAUTES = [
+  { v: '0.9.105', titre: '', l: [
+    ['🔔', 'Cloche : un clic sur une ligne du fil ouvre l\'endroit et met en surbrillance ce qui vient d\'être ajouté (le menu de la section clignote aussi).'],
+    ['🟢', 'ONLINE : tout en haut, une petite languette discrète.'],
+  ] },
   { v: '0.9.104', titre: '', l: [
     ['🟢', 'L\'écran ONLINE est au milieu du haut, à la place des macarons.'],
     ['🪵', 'Le bois prend doucement la couleur de la section où tu es.'],

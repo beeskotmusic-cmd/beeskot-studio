@@ -173,3 +173,16 @@ body.look-neuf[data-section="general"] .h1{box-shadow:0 2px 4px rgba(0,0,0,.5)}
 /* ---------- le bois prend doucement la couleur de la section (fond + menu) ---------- */
 body.look-neuf{--bois-voile:color-mix(in srgb,var(--s2) 22%,transparent);background:linear-gradient(var(--bois-voile),var(--bois-voile)),url(../look/bois-fond.jpg) center/cover,#24140c;background-blend-mode:color,normal}
 .look-neuf #nav{background:linear-gradient(var(--bois-voile),var(--bois-voile)),url(../textures/bois-menu.jpg) 0 0/420px!important;background-blend-mode:color,normal!important}
+
+/* ---------- ONLINE : tout en haut, petit et discret (une fine languette au bord du haut) ---------- */
+.look-neuf .top>.sy-online{top:0;transform:translateX(-50%);width:auto;max-width:60vw;max-height:15px;padding:1px 12px 2px;border-radius:0 0 8px 8px;background:rgba(14,7,3,.55);box-shadow:none;flex-direction:row;align-items:center;gap:8px;font-size:9px;opacity:.7;transition:opacity .2s}
+.look-neuf .top>.sy-online:hover{opacity:1}
+.look-neuf .top>.sy-online b{display:none}
+.look-neuf .top>.sy-online .sy-online-l{flex-direction:row;flex-wrap:nowrap;gap:10px}
+.look-neuf .top>.sy-online .sy-p{font-size:9px;gap:4px}
+.look-neuf .top>.sy-online .sy-p small{font-size:8px}
+
+/* ---------- le fil : ce qui vient d'être ajouté est mis en surbrillance (le menu clignote aussi) ---------- */
+@keyframes fil-flash{0%,100%{box-shadow:0 0 0 0 transparent}25%,70%{box-shadow:0 0 0 3px var(--s1),0 0 22px 4px var(--s-lueur)}}
+.fil-flash{animation:fil-flash 3.2s ease-out 1;outline:0;position:relative}
+@media (prefers-reduced-motion:reduce){.fil-flash{animation:none;box-shadow:0 0 0 3px var(--s1)}}
