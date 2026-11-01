@@ -7,8 +7,8 @@
 html,body{height:100%}
 /* le téléphone ne doit pas « tirer pour rafraîchir » (Chrome Android ne l'écoute que sur html), ni flasher en gris au toucher */
 html{overscroll-behavior:none;-webkit-tap-highlight-color:transparent;-webkit-text-size-adjust:100%}
-body{margin:0;color:var(--creme);background:#2b1b11 url(../look/wood.jpg) center/cover fixed;font:400 15px/1.45 "Work Sans",system-ui,sans-serif;-webkit-tap-highlight-color:transparent;overscroll-behavior:none}
-body::before{content:"";position:fixed;inset:0;background:linear-gradient(180deg,rgba(20,10,4,.55),rgba(20,10,4,.75));pointer-events:none;z-index:-1}
+body{margin:0;color:var(--creme);background:#2b1b11;font:400 15px/1.45 "Work Sans",system-ui,sans-serif;-webkit-tap-highlight-color:transparent;overscroll-behavior:none}
+body::before{content:"";position:fixed;inset:0;background:linear-gradient(180deg,rgba(20,10,4,.55),rgba(20,10,4,.75)),url(../look/wood.jpg) center/cover;pointer-events:none;z-index:-1}
 
 /* ---------- le bandeau du haut ---------- */
 .mo-haut{position:sticky;top:0;z-index:20;display:flex;align-items:center;gap:10px;padding:calc(8px + env(safe-area-inset-top)) 12px 8px;
@@ -324,3 +324,16 @@ a.btn{display:inline-flex;align-items:center;text-decoration:none}
 .mo-ft-suppr{margin-left:auto;color:#ffb0a6}
 body.feuille-ouverte{overflow:hidden}
 @media (prefers-reduced-motion:reduce){.mo-feuille,.mo-feuille-voile{animation:none}.mo-tache{transition:none}}
+
+/* ---------- confort au doigt (Android : 48 dp conseillés, 44 px minimum) et lisibilité ---------- */
+.mo-page .btn.sm,.mo-page .chip,.mo-feuille .chip,.mo-feuille .btn{min-height:44px}
+.mo-case,.mo-pli{width:44px;height:44px}
+.mo-play,.mo-relire{min-width:44px;min-height:44px}
+.mo-plier{padding:14px 0}
+.mo-cal-tete .btn{min-width:44px}
+.mo-eng{font-size:12.5px}
+.mo-etat,.mo-cal-n,.mo-ltemps{font-size:12.5px}
+.mo-son em{font-size:12.5px;opacity:.8}
+/* le clavier : la feuille reste au-dessus (hauteur réelle de l'écran visible) */
+.mo-feuille{max-height:92dvh}
+.mo-feuille-voile{bottom:var(--clavier,0px)}

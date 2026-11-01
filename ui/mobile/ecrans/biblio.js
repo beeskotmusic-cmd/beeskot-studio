@@ -4,7 +4,8 @@ const { $, esc, msg, lire, versions, L } = BKM;
 let MORCEAUX = [], ouvert = '', dernierOuvert = '';
 const ETAPES = ['Maquette', 'Enreg.', 'Mixage', 'Mastering', 'Release', 'Promo'];   // comme sur le PC (Accueil)
 
-BKM.ecran('biblio', { nom: 'Bibliothèque', ordre: 10, async dessiner(z, plus, frais) {
+BKM.ecran('biblio', { nom: 'Bibliothèque', ordre: 10,
+  retour() { if (!ouvert) return false; ouvert = ''; BKM.redessiner(); return true; }, async dessiner(z, plus, frais) {
   MORCEAUX = (await BKM.liste('morceaux')).sort((a, b) => String(a.nom).localeCompare(String(b.nom)));
   if (!frais()) return;
   if (!MORCEAUX.length) { z.innerHTML = '<p class="mo-nt">Aucun morceau dans le Drive.</p>'; return; }
@@ -52,7 +53,7 @@ async function detail(m) {
     ${vs.length ? vs.map(v => `<div class="mo-vligne"><button class="mo-version" data-v="b:${esc(m.id)}:${esc(v.id)}" data-vid="${esc(v.id)}" data-vnom="${esc(v.nom)}">
         <span>${v.princ ? '★ ' : ''}${esc(v.nom)}</span><em>${v.t ? esc(BKM.dateFr(v.t.slice(0, 10), { day: 'numeric', month: 'short', year: 'numeric' })) : ''}</em></button>
         <button class="mo-dl" data-dl="${esc(v.id)}" data-dlnom="${esc(v.nom)}" data-dlt="${esc(v.t || '')}"></button></div>`).join('')
-      : '<p class="mo-nt">Aucune version sur le Drive.</p>'}
+      : vs.erreur ? '<p class="mo-nt">Drive injoignable pour l\'instant : réessaie avec ↻ quand le réseau revient.</p>' : '<p class="mo-nt">Aucune version sur le Drive.</p>'}
     ${vs.length && BKM.local.possible() ? '<p class="mo-nt">⬇ garde une version sur le téléphone : elle se lit tout de suite, même sans réseau. Réglages › Sons sur ce téléphone pour faire de la place.</p>' : ''}
     ${m.paroles ? `<span class="mo-eng">Paroles</span><pre class="mo-paroles">${esc(m.paroles)}</pre>` : ''}
     ${liens.length ? `<span class="mo-eng">Liens</span><div class="mo-chips">${liens.map(l => `<a class="chip" href="${esc(l.url)}" target="_blank" rel="noopener">${esc(l.titre || l.url.replace(/^https?:\/\/(www\.)?/, '').slice(0, 30))}</a>`).join('')}</div>` : ''}

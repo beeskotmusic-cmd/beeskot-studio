@@ -21,8 +21,11 @@ window.BKM = (function () {
   const PERMIS = new Set(['taches', 'notesmix']);
   Object.assign(BK.annuler.NOMS, { notesmix: 'la note', taches: 'la tâche' });
   const ecrire0 = BK.db.ecrire.bind(BK.db), suppr0 = BK.db.supprimer.bind(BK.db);
-  BK.db.ecrire = (col, fiche, o) => PERMIS.has(col) ? ecrire0(col, fiche, o) : (console.info('mobile : écriture bloquée (' + col + ')'), Promise.resolve(fiche));
-  BK.db.supprimer = (col, id, o) => PERMIS.has(col) ? suppr0(col, id, o) : Promise.resolve();                                       // les images et bibliothèques partagées avec le PC sont un dossier plus haut
+  const bloque = col => (console.info('mobile : écriture bloquée (' + col + ')'), Promise.reject(new Error('Lecture seule sur le téléphone')));
+  BK.db.ecrire = (col, fiche, o) => PERMIS.has(col) ? ecrire0(col, fiche, o) : bloque(col);
+  BK.db.supprimer = (col, id, o) => PERMIS.has(col) ? suppr0(col, id, o) : bloque(col);
+  // le même verrou un étage plus bas (le Drive lui-même), au cas où un outil partagé passerait à côté de BK.db
+  for (const k of ['ecrire', 'supprimer']) { const f = BK.drive[k].bind(BK.drive); BK.drive[k] = (col, ...r) => PERMIS.has(col) ? f(col, ...r) : bloque(col); }                                       // les images et bibliothèques partagées avec le PC sont un dossier plus haut
   let toastT = 0;
   const msg = t => { const e = $('#moToast'); e.textContent = t; e.classList.add('on'); clearTimeout(toastT); toastT = setTimeout(() => e.classList.remove('on'), 2600); };
   const moi = () => BK.reglage('nomPc', '') || 'Quelqu\'un';
@@ -200,14 +203,14 @@ window.BKM = (function () {
   // ---------- 3. les sons : seulement ceux du Drive (le téléphone ne voit pas les fichiers des PC) ----------
   // toutes les versions d'un morceau qu'on peut écouter ici : { v: 'drive:ID', id, nom, t, princ }
   async function versions(m, morceaux) {
-    const out = [], vus = new Set(), ajout = (id, nom, t, princ) => { if (!id || vus.has(id)) return; vus.add(id); out.push({ v: 'drive:' + id, id, nom, t: t || '', princ: !!princ }); };
-    try { BK.inv.exportsDe(m, await BK.inv.tous(), morceaux).filter(f => f.drive && f.driveId).forEach(f => ajout(f.driveId, f.nom, f.modif, f.chemin === m.exportPrincipal)); } catch (e) { console.warn(e); }
+    let rate = 0; const out = [], vus = new Set(), ajout = (id, nom, t, princ) => { if (!id || vus.has(id)) return; vus.add(id); out.push({ v: 'drive:' + id, id, nom, t: t || '', princ: !!princ }); };
+    try { BK.inv.exportsDe(m, await BK.inv.tous(), morceaux).filter(f => f.drive && f.driveId).forEach(f => ajout(f.driveId, f.nom, f.modif, f.chemin === m.exportPrincipal)); } catch (e) { rate++; console.warn(e); }
     try { await BK.dossiers.assurer();
       BK.trierStems(await BK.dossiers.duMorceau(m, morceaux)).filter(f => !f.groupe && /\.(wav|mp3|m4a|aiff?|flac)$/i.test(f.name) && !/tournage|reel/i.test(f.name))
-        .sort((a, b) => (b.modifiedTime || '').localeCompare(a.modifiedTime || '')).forEach(f => ajout(f.id, f.name, f.modifiedTime)); } catch (e) { console.warn(e); }
+        .sort((a, b) => (b.modifiedTime || '').localeCompare(a.modifiedTime || '')).forEach(f => ajout(f.id, f.name, f.modifiedTime)); } catch (e) { rate++; console.warn(e); }
     // sans réseau (ou rien trouvé) : les versions gardées sur le téléphone pour ce morceau
     for (const x of local.tous()) if (x.morceau === m.nom) ajout(x.id, x.nom, x.t);
-    return out.sort((a, b) => b.princ - a.princ);                  // la ★ en premier, puis dans l'ordre trouvé (fiche, puis Drive du plus récent au plus ancien)
+    out.sort((a, b) => b.princ - a.princ); out.erreur = rate > 0 && !out.length; return out;   // erreur : le Drive n'a pas répondu (≠ « aucune version »)                  // la ★ en premier, puis dans l'ordre trouvé (fiche, puis Drive du plus récent au plus ancien)
   }
   // la version à écouter par défaut : la ★, sinon la plus récente
   async function sonDe(m, morceaux) { const l = await versions(m, morceaux); return l[0] || null; }
@@ -307,14 +310,26 @@ window.BKM = (function () {
       App.addListener('appUrlOpen', r => { const k = cleDe(r && r.url); if (k && relierDepuis(k)) { msg('Téléphone relié'); demarrer(); } }); }
     if (App) App.addListener('backButton', () => {
       const z = document.querySelector('.mo-zoom'); if (z) return z.remove();
+      const f = document.querySelector('.mo-feuille-voile:not(.sort)'); if (f) { const n = f.querySelector('#ftNon'); return n ? n.click() : f.remove(); }
+      const sc = document.querySelector('#moScanX'); if (sc) return sc.click();
       if (document.body.classList.contains('menu-ouvert')) return volet(false);
+      const e = ECRANS[actuel]; if (e && e.retour && e.retour()) return;   // l'écran replie d'abord ce qui est ouvert (ex. un tournage)
       if (actuel !== 'biblio' && BK.drive.relie()) return ouvrir('biblio');
       App.exitApp(); }); } catch (e) { console.warn(e); }
 
   // ---------- démarrage ----------
   window.addEventListener('bk:annule', () => redessiner());               // « ↶ Annuler » : on relit l'écran
   window.addEventListener('hashchange', () => { if (lireLien()) { msg('Téléphone relié'); demarrer(); } });
-  function demarrer() { lireLien(); if (BK.drive.relie()) { etat('…'); ouvrir(ECRANS[actuel] ? actuel : 'biblio'); proposerAppli(); } else accueilSansCle(); }
+  // les modifications faites hors connexion (tâches, notes) : envoyées dès que le réseau revient, puis toutes les minutes
+  let videEnCours = false;
+  const viderAttente = async () => { if (videEnCours || !BK.drive.relie() || !navigator.onLine || !BK.reglage('db.attente', []).length) return; videEnCours = true;
+    try { await BK.db.viderAttente(); if (!BK.reglage('db.attente', []).length) etat('RELIÉ', true); } catch (e) {} finally { videEnCours = false; } };
+  // le clavier du téléphone : la feuille du bas remonte au-dessus de lui
+  if (window.visualViewport) { const vv = window.visualViewport, clav = () => document.documentElement.style.setProperty('--clavier', Math.max(0, innerHeight - vv.height - vv.offsetTop) + 'px');
+    vv.addEventListener('resize', clav); vv.addEventListener('scroll', clav); }
+  document.addEventListener('focusin', e => { if (e.target.matches && e.target.matches('input,textarea,select')) setTimeout(() => e.target.scrollIntoView({ block: 'center', behavior: 'smooth' }), 300); });
+  window.addEventListener('online', viderAttente); setInterval(viderAttente, 60e3);
+  function demarrer() { setTimeout(viderAttente, 3000); lireLien(); if (BK.drive.relie()) { etat('…'); ouvrir(ECRANS[actuel] ? actuel : 'biblio'); proposerAppli(); } else accueilSansCle(); }
 
   return { $, esc, msg, moi, couleur, t2, auj, dateFr, ecran, ouvrir, redessiner, liste, enAppli, ouvrirDansAppli, scanner, versions, sonDe, telecharger, local, lire, aller, son, L, demarrer,
     get actuel() { return actuel; } };

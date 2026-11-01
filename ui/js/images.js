@@ -9,6 +9,9 @@
 // Dans le HTML : BK.img.bg(v) pour un fond, BK.img.src(v) pour une <img>.
 // Les images pas encore chargées se remplissent toutes seules.
 // =====================================================================
+// (sécurité) une adresse d'image vient du Drive : on l'échappe avant de la mettre dans le HTML
+const imgEsc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const imgUrl = s => imgEsc(String(s ?? '').replace(/[()'"\\\s]/g, c => '%' + c.charCodeAt(0).toString(16).padStart(2, '0')));
 BK.img = {
   estDrive: v => typeof v === 'string' && v.startsWith('drive:'),
   id: v => v.slice(6),
@@ -43,13 +46,13 @@ BK.img = {
   // dans le HTML : un fond d'image, ou une image
   bg(v) {
     if (!v) return '';
-    const u = BK.img.vite(v), r = BK.img.estDrive(v) ? ` data-ref="${v}"` : '';
-    return (u ? ` style="background-image:url('${u}')"` : ` data-img="${v}"`) + r;
+    const u = BK.img.vite(v), r = BK.img.estDrive(v) ? ` data-ref="${imgEsc(v)}"` : '';
+    return (u ? ` style="background-image:url('${imgUrl(u)}')"` : ` data-img="${imgEsc(v)}"`) + r;
   },
   src(v) {
     const u = BK.img.vite(v);
-    const r = BK.img.estDrive(v) ? ` data-ref="${v}"` : '';
-    return (u ? ` src="${u}"` : ` data-img="${v || ''}" src="data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw=="`) + r;
+    const r = BK.img.estDrive(v) ? ` data-ref="${imgEsc(v)}"` : '';
+    return (u ? ` src="${imgEsc(u)}"` : ` data-img="${imgEsc(v || '')}" src="data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw=="`) + r;
   },
   // remplit les images qui attendaient (appelé tout seul quand l'écran change)
   remplir(racine = document) {
@@ -60,7 +63,7 @@ BK.img = {
       BK.img.url(v).then(u => {
         el.classList.remove('img-charge');
         if (!u) { el.classList.add('img-absente'); return; }
-        if (el.tagName === 'IMG') el.src = u; else el.style.backgroundImage = `url('${u}')`;
+        if (el.tagName === 'IMG') el.src = u; else el.style.backgroundImage = `url('${String(u).replace(/[()'"\\\s]/g, c => '%' + c.charCodeAt(0).toString(16).padStart(2, '0'))}')`;
       });
     }
   },

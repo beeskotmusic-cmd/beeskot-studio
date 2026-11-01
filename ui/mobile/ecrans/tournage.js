@@ -11,7 +11,9 @@ const passageTxt = txt => { const t = String(txt || '').replace(/\s*:\s*/g, ':')
 const pasDe = r => r.passage && r.passage.fin > r.passage.debut ? r.passage : passageTxt(((r.plans || [])[0] || {}).audio);
 const img = (u, cls) => u ? `<span class="${cls || 'mo-img'}"${BK.img.bg(u)}></span>` : '';
 
-BKM.ecran('tournage', { nom: 'Tournages', ordre: 50, async dessiner(z, plus, frais) {
+BKM.ecran('tournage', { nom: 'Tournages', ordre: 50,
+  retour() { if (reelOuvert) reelOuvert = ''; else if (ouvert) ouvert = ''; else return false; BKM.redessiner(); return true; },
+  async dessiner(z, plus, frais) {
   if (plus.tour) { ouvert = plus.tour; reelOuvert = ''; }
   [LISTE, MORCEAUX] = await Promise.all([BKM.liste('tournages'), BKM.liste('morceaux')]);
   if (!frais()) return;
@@ -75,7 +77,7 @@ function reel(r, seul) {
       ${p ? `<b>${t2(p.debut)} → ${t2(p.fin)} · ${Math.round(p.fin - p.debut)} s</b>` : '<b class="vide">À choisir (sur le PC)</b>'}
       ${r.morceau ? `<button class="btn sm" data-pas="${esc(r.id)}">▶ Écouter</button>` : ''}</div>
     ${mood.length ? `<span class="mo-eng">Moodboard <em>${mood.length}</em></span><div class="mo-mood">${mood.map(u => `<button class="mo-img" data-zoom="${esc(u)}"${BK.img.bg(u)}></button>`).join('')}</div>` : ''}
-    ${(r.references || []).length ? `<span class="mo-eng">Références</span><div class="mo-chips">${r.references.map(x => `<a class="chip" href="${esc(x.url)}" target="_blank" rel="noopener">${esc(x.note || x.url.replace(/^https?:\/\/(www\.)?/, '').slice(0, 28))}</a>`).join('')}</div>` : ''}
+    ${(r.references || []).length ? `<span class="mo-eng">Références</span><div class="mo-chips">${r.references.filter(x => /^https?:\/\//i.test(x.url || "")).map(x => `<a class="chip" href="${esc(x.url)}" target="_blank" rel="noopener">${esc(x.note || x.url.replace(/^https?:\/\/(www\.)?/, '').slice(0, 28))}</a>`).join('')}</div>` : ''}
     ${(r.plans || []).length ? `<span class="mo-eng">Découpage <em>${r.plans.length} plan(s)</em></span>` + r.plans.map((pl, i) => `<div class="mo-plan">
         <span class="mo-plan-n">${i + 1}</span><div><b>${esc(pl.cadrage || 'Plan')}</b>${pl.duree ? ` <em>${esc(pl.duree)}</em>` : ''}<p>${esc(pl.action || '')}</p>${pl.notes ? `<p class="mo-nt">${esc(pl.notes)}</p>` : ''}${pl.lieu ? `<p class="mo-lieu">${esc(pl.lieu)}</p>` : ''}
         ${(pl.imgs || []).length ? `<div class="mo-mood petit">${pl.imgs.map(u => `<button class="mo-img" data-zoom="${esc(u)}"${BK.img.bg(u)}></button>`).join('')}</div>` : ''}</div></div>`).join('') : ''}

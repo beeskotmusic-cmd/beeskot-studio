@@ -27,7 +27,7 @@ BKM.ecran('ecoute', { nom: 'Notes et retours', ordre: 40, async dessiner(z, plus
 function suite(m) {
   const z = $('#ecSuite'); if (!z) return;
   const brouillon = ($('#ecTexte') || {}).value || '';                 // ne jamais perdre ce qu'on est en train d'écrire
-  if (!N.vs.length) { z.innerHTML = '<p class="mo-nt">Aucune version de ce morceau sur le Drive (seulement sur un PC).</p>' + listeAutres(); brancherListe(z, m); return; }
+  if (!N.vs.length) { z.innerHTML = (N.vs.erreur ? '<p class="mo-nt">Drive injoignable pour l\'instant : réessaie avec ↻ quand le réseau revient.</p>' : '<p class="mo-nt">Aucune version de ce morceau sur le Drive (seulement sur un PC).</p>') + listeAutres(); brancherListe(z, m); return; }
   const v = N.vs.find(x => x.v === N.v), cle = 'n:' + N.v;
   const ici = N.notes.filter(n => (n.version || '') === N.v).sort((a, b) => (a.tout ? -1 : a.t) - (b.tout ? -1 : b.t));
   const D = L.cle === cle && BKM.son.duration ? BKM.son.duration : 0;
@@ -35,7 +35,7 @@ function suite(m) {
     <label class="mo-champ"><span class="mo-eng">Version</span><select class="mo-fld" id="ecV">${N.vs.map(x => `<option value="${esc(x.v)}"${x.v === N.v ? ' selected' : ''}>${x.princ ? '★ ' : ''}${esc(x.nom)}${(() => { const k = N.notes.filter(n => n.version === x.v && !n.regle).length; return k ? ` (${k} note${k > 1 ? 's' : ''})` : ''; })()}</option>`).join('')}</select></label>
     <div class="mo-carte mo-ec-lect">
       <button class="mo-play grand" id="ecPlay">${L.cle === cle && !BKM.son.paused ? '❚❚' : '▶'}</button>
-      <div class="mo-ec-piste" id="ecPiste">${D ? ici.filter(n => !n.tout).map(n => `<i class="${n.fin ? 'pas' : ''}${n.regle ? ' regle' : ''}" style="left:${Math.min(100, n.t / D * 100)}%;${n.fin ? `width:${Math.max(1, (n.fin - n.t) / D * 100)}%;` : ''}--pc:${couleur(auteur(n))}" data-aller="${n.id}"></i>`).join('') : ''}<b id="ecCurseur"></b></div>
+      <div class="mo-ec-piste" id="ecPiste">${D ? ici.filter(n => !n.tout).map(n => `<i class="${n.fin ? 'pas' : ''}${n.regle ? ' regle' : ''}" style="left:${Math.min(100, n.t / D * 100)}%;${n.fin ? `width:${Math.max(1, (n.fin - n.t) / D * 100)}%;` : ''}--pc:${couleur(auteur(n))}" data-aller="${esc(n.id)}"></i>`).join('') : ''}<b id="ecCurseur"></b></div>
       <span class="mo-ec-temps" id="ecTemps">${L.cle === cle ? t2(BKM.son.currentTime) + ' / ' + t2(BKM.son.duration) : 'appuie sur ▶'}</span></div>
     <div class="mo-carte mo-ec-ajout">
       <textarea class="mo-fld" id="ecTexte" rows="2" placeholder="Ta note…"></textarea>

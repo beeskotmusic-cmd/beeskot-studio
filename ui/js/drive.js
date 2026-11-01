@@ -64,8 +64,14 @@ BK.drive = {
   deconnecter() { BK.regler('drive.conf', null); BK.drive.jeton = null; BK.drive.dossiers = {}; },
 
   // ---------- jeton (renouvelé tout seul) ----------
+  // un seul renouvellement à la fois ; sans réseau, on ne réessaie pas avant 15 s (pas de rafale de demandes à Google)
   async token() {
     if (BK.drive.jeton && Date.now() < BK.drive.expire) return BK.drive.jeton;
+    if (Date.now() < (BK.drive.panneJusqua || 0)) throw new Error('Drive injoignable (pas de réseau)');
+    return BK.drive.tokenEnCours || (BK.drive.tokenEnCours = BK.drive.token0().catch(e => { if (e instanceof TypeError) BK.drive.panneJusqua = Date.now() + 15e3; throw e; })
+      .finally(() => { BK.drive.tokenEnCours = null; }));
+  },
+  async token0() {
     const c = BK.drive.conf();
     const r = await BK.drive.fetch('https://oauth2.googleapis.com/token', { method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
       body: new URLSearchParams({ client_id: c.client_id, client_secret: c.client_secret, refresh_token: c.refresh_token, grant_type: 'refresh_token' }).toString() });
