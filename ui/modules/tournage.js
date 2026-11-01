@@ -55,7 +55,7 @@ BK.module('tournage', function (page) {
   $$('#toVues button').forEach(b => b.onclick = () => vueTo(b.dataset.v));
   setTimeout(() => vueTo(BK.reglage('tournage.vue', 'tournages')), 0);
 
-  window.addEventListener('bk:annule', () => charger());   // après « ↶ Annuler » : on relit
+  BK.surAnnule(page, () => charger());   // après « ↶ Annuler » : on relit
   async function charger() {
     T.liste = (await BK.db.liste('tournages')).sort((a, b) => (b.date || '').localeCompare(a.date || ''));
     if (await migrer().catch(e => (console.warn('migration tournages', e), false))) T.liste = await BK.db.liste('tournages');

@@ -100,7 +100,7 @@ window.BKM = (function () {
 
   // ---------- 2. les écrans (chaque fichier de mobile/ecrans/ s'inscrit ici) ----------
   const ECRANS = {};
-  let actuel = BK.reglage('mobile.ecran', 'biblio'), tourEcran = 0;
+  let actuel = BK.reglage('mobile.ecran', 'accueil'), tourEcran = 0;
   const ecran = (id, e) => { ECRANS[id] = { ordre: 50, ...e }; };
   const ecransTries = () => Object.entries(ECRANS).sort((a, b) => a[1].ordre - b[1].ordre);
 
@@ -348,7 +348,7 @@ window.BKM = (function () {
   window.addEventListener('online', viderAttente); setInterval(viderAttente, 60e3);
   // l'appli s'ouvre aussi sans réseau (les fichiers de l'appli gardés sur le téléphone : voir sw.js)
   if ('serviceWorker' in navigator && location.protocol === 'https:') navigator.serviceWorker.register('sw.js').catch(e => console.warn('hors réseau indisponible', e));
-  function demarrer() { setTimeout(viderAttente, 3000); lireLien(); if (BK.drive.relie()) { etat('…'); ouvrir(ECRANS[actuel] ? actuel : 'biblio'); proposerAppli(); } else accueilSansCle(); }
+  function demarrer() { setTimeout(viderAttente, 3000); lireLien(); if (BK.drive.relie()) { etat('…'); ouvrir(ECRANS[actuel] ? actuel : 'accueil'); proposerAppli(); } else accueilSansCle(); }
 
   return { feuille, $, esc, msg, moi, couleur, t2, auj, dateFr, ecran, ouvrir, redessiner, liste, enAppli, ouvrirDansAppli, scanner, versions, sonDe, telecharger, local, lire, aller, son, L, demarrer,
     get actuel() { return actuel; } };

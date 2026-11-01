@@ -8,8 +8,26 @@
 BK.discord = {
   API: 'https://discord.com/api/v10',
   fetch(url, o) { return (BK.T && BK.T.http ? BK.T.http.fetch : window.fetch)(url, o); },
-  async config() { return (await BK.db.liste('config')).find(x => x.id === 'discord') || { id: 'discord', jeton: '', salons: [], dernier: {} }; },
-  async enregistrer(champs) { const c = { ...(await BK.discord.config()), ...champs }; await BK.db.ecrire('config', c); return c; },
+  // le code du bot est gardé SUR CE PC (BK.reglage 'cle.discord'), comme la clé Gemini (voir js/ia.js)
+  async config() {
+    const c = { id: 'discord', jeton: '', salons: [], dernier: {}, ...((await BK.db.liste('config')).find(x => x.id === 'discord') || {}) };
+    const ici = BK.reglage('cle.discord', '');
+    if (!ici && c.jeton) BK.regler('cle.discord', c.jeton);
+    return { ...c, jeton: ici || c.jeton || '' };
+  },
+  async enregistrer(champs) {
+    if ('jeton' in champs) BK.regler('cle.discord', champs.jeton || '');
+    const c = { ...(await BK.discord.config()), ...champs };
+    const brut = (await BK.db.liste('config')).find(x => x.id === 'discord') || {}, versDrive = { ...c };
+    if (!brut.jeton) delete versDrive.jeton;
+    await BK.db.ecrire('config', versDrive); return c;
+  },
+  // efface les clés du Drive partagé (chaque PC garde la sienne). À faire quand les 3 PC ont été ouverts une fois avec cette version.
+  async retirerClesDuDrive() {
+    const l = await BK.db.liste('config');
+    for (const [id, k] of [['ia', 'gemini'], ['discord', 'jeton']]) { const d = l.find(x => x.id === id); if (d && d[k]) { const n = { ...d }; delete n[k]; await BK.db.ecrire('config', n, { sansAnnuler: true }); } }
+    BK.ia.conf = null;
+  },
 
   async api(chemin, jeton) {
     for (let essai = 0; essai < 4; essai++) {

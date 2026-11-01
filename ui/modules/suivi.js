@@ -46,7 +46,7 @@ BK.module('suivi', function (page) {
     <div class="pane abar"><span class="vfd" id="suMsg">PRÊT</span></div>`;
   const msg = t => $('#suMsg').textContent = String(t).toUpperCase().slice(0, 90);
 
-  window.addEventListener('bk:annule', () => charger());
+  BK.surAnnule(page, () => charger());
   // (changements des autres PC : js/miette.js appelle BK.suiviRecharger)
   async function charger() {
     [R.l, R.morceaux, R.tournages] = await Promise.all([BK.db.liste('reels'), BK.db.liste('morceaux'), BK.db.liste('tournages')]);

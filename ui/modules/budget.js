@@ -70,7 +70,7 @@ BK.module('budget', function (page) {
     B.props = (await BK.db.liste('propositions')).filter(p => p.type === 'depense' && p.statut === 'attente');
     rendre();
   }
-  window.addEventListener('bk:annule', () => charger());
+  BK.surAnnule(page, () => charger());
   BK.budgetRecharger = charger;
 
   // chaque mois, les dépenses « récurrentes » s'ajoutent toutes seules (une seule fois par mois)

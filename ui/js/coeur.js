@@ -7,7 +7,7 @@ const $ = (s, r = document) => r.querySelector(s);
 const $$ = (s, r = document) => [...r.querySelectorAll(s)];
 
 const BK = {
-  version: '0.9.101 bêta',
+  version: '0.9.102 bêta',
   modules: {},
   onglets: [],
   cotes: [],
@@ -29,6 +29,11 @@ const BK = {
 
   // ---------- inscription d'un onglet ----------
   module(id, dessiner) { BK.modules[id] = dessiner; },
+  // après « ↶ Annuler » : l'onglet affiché se relit tout de suite, les autres seulement quand on les rouvre
+  surAnnule(page, recharger) {
+    page._recharger = recharger;
+    window.addEventListener('bk:annule', () => { if (page.classList.contains('hidden')) page.dataset.perime = '1'; else recharger(); });
+  },
 
   // ---------- fabrique une page avec l'en-tête console (vis + étiquette Dymo + afficheurs) ----------
   page(o, droite = '') {
@@ -163,6 +168,7 @@ const BK = {
     });
     BK.regler('dernierOnglet', id);
     if (BK.look) { BK.look.section(id); BK.look.pins(BK.presence && BK.presence.derniers); }   // nouveau look : tapis + couleur de la section
+    const pg = $('#p-' + id); if (pg && pg.dataset.perime) { delete pg.dataset.perime; if (pg._recharger) pg._recharger(); }
     if (BK.surOuvrir && BK.surOuvrir[id]) BK.surOuvrir[id]();      // un onglet peut se rafraîchir quand on l'ouvre
   },
 

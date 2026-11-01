@@ -56,6 +56,8 @@ BK.module('renforts', function (page) {
         <div class="box"><span class="lb">Bot Discord (lecture seule)</span>
           <input class="fld" id="raJeton" type="password" placeholder="colle le code du bot ici" autocomplete="off" style="margin-top:8px">
           <div class="chips" style="margin-top:8px"><button class="chip" id="raSalonsB">Enregistrer et chercher les salons</button></div>
+          <p class="nt" style="margin-top:10px">Les clés sont gardées sur ce PC. Quand les 3 PC ont ouvert cette version une fois, tu peux les effacer du Drive partagé :</p>
+          <div class="chips"><button class="chip" id="raRetirerCles">🔒 Retirer les clés du Drive</button></div>
           <div class="ra-salons" id="raSalons"></div></div>
         <div class="box"><span class="lb">Miette sur Discord</span>
           <span class="nt">Réaction 🍞 (tape <code>bread</code> dans la recherche des réactions) ou 🥖 (<code>baguette</code>) sous un message, ou « Miette, … » : Miette range l'info dans le logiciel (✅). « Miette ? … » : elle répond à la question, sous le message.</span>
@@ -376,6 +378,10 @@ BK.module('renforts', function (page) {
   BK.boutonSauve($('#raCleOk'), $$('#raCleOk').map(b => b.closest('.box')).flatMap(x => x ? [...x.querySelectorAll('input,select,textarea')] : []));
 
   $$('#raNiveau .chip').forEach(b => b.onclick = async () => { await BK.ia.enregistrer({ niveau: b.dataset.niv }); msg('Modèle : ' + BK.ia.NIVEAUX[b.dataset.niv]); await BK.ia.modele(b.dataset.niv).catch(() => {}); majEtat(); });
+  $('#raRetirerCles').onclick = async () => {
+    if (!await BK.confirmer('Retirer la clé Gemini et le code du bot du Drive partagé ? Ce PC garde les siens. Un PC qui n\'a jamais ouvert cette version devra les recoller.')) return;
+    try { await BK.discord.retirerClesDuDrive(); msg('Clés retirées du Drive ✓ (ce PC garde les siennes)'); } catch (e) { msg('Pas réussi : ' + (e.message || e)); }
+    majEtat(); };
   $('#raSalonsB').onclick = async () => {
     const j = $('#raJeton').value.trim(), d = await BK.discord.config(), jeton = j || d.jeton;
     if (!jeton) return msg('Colle d\'abord le code du bot');

@@ -353,3 +353,4 @@ body.feuille-ouverte{overflow:hidden}
 .mo-bu-t{display:flex;flex-direction:column;min-width:0}.mo-bu-t em{font-style:normal;font-size:12.5px;opacity:.72}
 .mo-plan-n{width:44px!important;height:44px!important;border:0;font-size:15px!important;cursor:pointer}
 .mo-plan.fait{opacity:.62}.mo-plan.fait .mo-plan-n{background:#9be37a!important}
+.mo-acc{display:block;width:100%;text-align:left;font:inherit;color:inherit;border:0;cursor:pointer;min-height:44px}.mo-acc .mo-reel-h em{font-size:18px;font-style:normal}.mo-acc .mo-nt{margin:6px 0 0}

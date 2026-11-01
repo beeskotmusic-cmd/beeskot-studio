@@ -273,7 +273,7 @@ BK.module('medias', function (page) {
     ouvrir();
   }
 
-  window.addEventListener('bk:annule', () => charger());   // après « ↶ Annuler » : on relit
+  BK.surAnnule(page, () => charger());   // après « ↶ Annuler » : on relit
   async function charger() {
     BK.etiquettes.chargerPerso().then(() => { if ($('#mdPaniers')) paniers(); }).catch(() => {});   // les étiquettes créées dans Réglages
     if (M.racine === 'discord') return chargerDiscord();

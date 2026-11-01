@@ -7,12 +7,22 @@
 window.addEventListener('bk:distant', e => { const c = e.detail && e.detail.cols; if (!c || !c.length || c.includes('config')) BK.ia.conf = null; });
 BK.ia = {
   conf: null,
+  // La clé Gemini est gardée SUR CE PC (BK.reglage 'cle.gemini'). L'ancienne copie du Drive sert seulement
+  // à la recopier ici la 1re fois ; « Retirer les clés du Drive » (Réglages › Miette) l'efface ensuite du Drive.
   async config() {
     if (BK.ia.conf) return BK.ia.conf;
-    const c = (await BK.db.liste('config')).find(x => x.id === 'ia');
-    return BK.ia.conf = c || { id: 'ia', gemini: '', modele: '' };
+    const c = { id: 'ia', gemini: '', modele: '', ...((await BK.db.liste('config')).find(x => x.id === 'ia') || {}) };
+    const ici = BK.reglage('cle.gemini', '');
+    if (!ici && c.gemini) BK.regler('cle.gemini', c.gemini);          // recopie une fois sur ce PC
+    return BK.ia.conf = { ...c, gemini: ici || c.gemini || '' };
   },
-  async enregistrer(champs) { const c = { ...(await BK.ia.config()), ...champs }; BK.ia.conf = c; BK.ia.couleur(c.niveau); await BK.db.ecrire('config', c); return c; },
+  async enregistrer(champs) {
+    if ('gemini' in champs) BK.regler('cle.gemini', champs.gemini || '');
+    const c = { ...(await BK.ia.config()), ...champs }; BK.ia.conf = c; BK.ia.couleur(c.niveau);
+    const brut = (await BK.db.liste('config')).find(x => x.id === 'ia') || {}, versDrive = { ...c };
+    if (!brut.gemini) delete versDrive.gemini;                         // clés retirées du Drive : on ne les y remet pas
+    await BK.db.ecrire('config', versDrive); return c;
+  },
   // la couleur de Miette dit à quel point elle réfléchit : rapide = vert, normal = turquoise, intelligent = rouge
   couleur(niveau) { document.body.dataset.miette = niveau || 'normal'; },
   active: () => BK.reglage('ia.active', true),              // l'interrupteur « AI » en bas du menu

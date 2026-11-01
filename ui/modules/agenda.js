@@ -98,7 +98,7 @@ BK.module('agenda', function (page) {
   const msg = t => $('#agMsg').textContent = String(t).toUpperCase();
   $('#agDate').value = BK.auj();
 
-  window.addEventListener('bk:annule', () => charger());
+  BK.surAnnule(page, () => charger());
   window.addEventListener('bk:ia', () => A.locaux && rendre());       // Miette allumée / coupée : ses dates apparaissent / disparaissent
   async function charger() {
     A.locaux = (await BK.db.liste('evenements')).map(e => ({ ...e, debut: new Date(e.date + 'T' + (hh(e.heure) || '00:00')), local: true, journee: e.journee || !!e.fin })).filter(valide);

@@ -73,7 +73,7 @@ BK.module('biblio', function (page) {
   };
 
   // ---------- chargement ----------
-  window.addEventListener('bk:annule', () => charger());
+  BK.surAnnule(page, () => charger());
   // (un autre PC a changé une fiche : c'est js/miette.js qui appelle BK.biblioRecharger, une seule fois et jamais pendant qu'on écrit)
   async function charger() {
     B.morceaux = await BK.db.liste('morceaux');

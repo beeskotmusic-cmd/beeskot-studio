@@ -3,6 +3,11 @@
 // Pour une nouvelle version : ajouter un bloc EN HAUT de la liste. Une ligne courte par point : « Onglet : ce qui change. »
 // =====================================================================
 BK.NOUVEAUTES = [
+  { v: '0.9.102', titre: '', l: [
+    ['🔒', 'Miette : la clé Gemini et le code du bot Discord sont maintenant gardés sur chaque PC. Quand les 3 PC ont ouvert cette version, Réglages › Miette › « Retirer les clés du Drive ».'],
+    ['📱', 'Sur le téléphone : un écran « Aujourd\'hui » à l\'ouverture (prochains rendez-vous, mes tâches, prochaine sortie, retours à régler).'],
+    ['⚡', '« ↶ Annuler » ne relit plus que l\'onglet affiché ; les autres se relisent quand on les ouvre.'],
+  ] },
   { v: '0.9.101', titre: '', l: [
     ['📱', 'Sur le téléphone : un écran « Notes vidéos » pour lire les retours laissés sur les vidéos (à régler / toutes).'],
     ['💬', 'Discord : si Gemini a un souci pendant une lecture, Miette relit ces messages à la prochaine ronde au lieu de les sauter.'],

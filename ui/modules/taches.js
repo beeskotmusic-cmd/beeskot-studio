@@ -48,7 +48,7 @@ BK.module('taches', function (page) {
       <span class="nt" style="margin:0 12px">Double-clic sur une tâche pour la modifier · ✕ pour la retirer</span></div>`;
   const msg = t => $('#taMsg').textContent = String(t).toUpperCase();
 
-  window.addEventListener('bk:annule', () => charger());   // après « ↶ Annuler » : on relit
+  BK.surAnnule(page, () => charger());   // après « ↶ Annuler » : on relit
   async function charger() {
     T.taches = await BK.db.liste('taches');
     const cfg = (await BK.db.liste('config')).find(c => c.id === 'membres');

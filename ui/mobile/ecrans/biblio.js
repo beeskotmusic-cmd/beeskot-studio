@@ -9,7 +9,7 @@ BKM.ecran('biblio', { nom: 'Bibliothèque', ordre: 10,
   MORCEAUX = (await BKM.liste('morceaux')).sort((a, b) => String(a.nom).localeCompare(String(b.nom)));
   if (!frais()) return;
   if (!MORCEAUX.length) { z.innerHTML = '<p class="mo-nt">Aucun morceau dans le Drive.</p>'; return; }
-  const etape = m => m.statut === 'sorti' ? 'Sorti' : m.statut === 'prochaine' ? 'Next' : ETAPES[Math.min(m.fait || 0, 5)];
+  const etape = m => m.statut === 'sorti' ? 'Sorti' : m.statut === 'prochaine' ? 'À sortir' : ETAPES[Math.min(m.fait || 0, 5)];
   const carte = m => `
     <div class="mo-morceau-b${ouvert === m.id ? ' ouvert' : ''}" data-mb="${esc(m.id)}">
       <div class="mo-morceau${L.cle === 'b:' + m.id ? ' joue' : ''}">
