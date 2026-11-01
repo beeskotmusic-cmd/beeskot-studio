@@ -61,6 +61,7 @@ const L = BK.look = {
     const top = $('header.top'); if (top && !$('#syPins')) {
       const p = document.createElement('div'); p.className = 'pins'; p.id = 'syPins'; p.setAttribute('aria-label', 'Qui est là');
       top.insertBefore(p, top.querySelector('.sys')); L.pins([]);
+      const q = $('#syQui'); if (q) p.after(q);                      // l'écran ONLINE au milieu, à la place des pins (cachés)
     }
   },
   // l'onglet ouvert → sa section : le tapis (en fondu), la couleur, le titre du groupe allumé

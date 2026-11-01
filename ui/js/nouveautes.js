@@ -3,6 +3,10 @@
 // Pour une nouvelle version : ajouter un bloc EN HAUT de la liste. Une ligne courte par point : « Onglet : ce qui change. »
 // =====================================================================
 BK.NOUVEAUTES = [
+  { v: '0.9.104', titre: '', l: [
+    ['🟢', 'L\'écran ONLINE est au milieu du haut, à la place des macarons.'],
+    ['🪵', 'Le bois prend doucement la couleur de la section où tu es.'],
+  ] },
   { v: '0.9.103', titre: '', l: [
     ['🌈', 'Accueil et Miette AI : la bande arc-en-ciel de l\'ancien look revient (bordeaux, rouille, orange, moutarde, bleu canard), pour ne plus ressembler à Bibliothèque.'],
     ['🎨', 'Contenus : le tapis passe au bleu, avec l\'ambiance bleutée.'],
