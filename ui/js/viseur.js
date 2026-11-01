@@ -19,8 +19,11 @@ const V = BK.viseur = {
     if (!BK.look || !BK.look.neuf()) return;
     const bm = $('#btMiette'); if (!bm || $('#btMietteMenu')) return;
     bm.title = 'Miette : clique ici, puis sur ce qu\'elle doit remplir';
-    const f = document.createElement('button'); f.className = 'mi-fleche'; f.id = 'btMietteMenu'; f.type = 'button'; f.title = 'Le menu Miette : tout relire, actualiser, qui est là…'; f.textContent = '▾';
-    bm.after(f); f.onclick = e => { e.stopPropagation(); V.sortir(); BK.menuMiette && BK.menuMiette(bm); };
+    // le menu Miette : un vrai bouton (même taille que la cloche), placé à gauche de la cloche (ordre fixé en CSS)
+    const f = document.createElement('button'); f.className = 'fil-cloche mi-menu-b'; f.id = 'btMietteMenu'; f.type = 'button'; f.title = 'Le menu Miette : tout relire, actualiser, qui est là…';
+    f.setAttribute('aria-label', 'Le menu Miette');
+    f.innerHTML = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M8 6h12M8 12h12M8 18h12"/><circle cx="4" cy="6" r="1.2" fill="currentColor"/><circle cx="4" cy="12" r="1.2" fill="currentColor"/><circle cx="4" cy="18" r="1.2" fill="currentColor"/></svg>';
+    bm.after(f); f.onclick = e => { e.stopPropagation(); V.sortir(); BK.menuMiette && BK.menuMiette(f); };
   },
   basculer() { actif ? V.sortir() : V.entrer(); },
   // les boutons Miette de ce qu'on voit : la page ouverte, et une fenêtre ouverte par-dessus (ex. Veo)

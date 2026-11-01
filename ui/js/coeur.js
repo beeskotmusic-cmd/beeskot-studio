@@ -7,7 +7,7 @@ const $ = (s, r = document) => r.querySelector(s);
 const $$ = (s, r = document) => [...r.querySelectorAll(s)];
 
 const BK = {
-  version: '0.9.107 bêta',
+  version: '0.9.108 bêta',
   modules: {},
   onglets: [],
   cotes: [],
@@ -406,6 +406,8 @@ const BK = {
       <button class="mm-l" data-mm="journal"><b>📜 Voir les updates des membres</b><span id="mmDernier">Tout ce que chacun a fait, heure par heure</span></button>
       <div class="mm-qui"><span class="eng">Qui est là</span><div id="mmQui"><span class="nt"><span class="spin"></span>…</span></div></div>`;
     document.body.appendChild(z);
+    // le menu reste dans l'écran : près du bord droit, on le cale à droite (il dépassait et était coupé)
+    const zw = z.offsetWidth; if (r.left + r.width / 2 - zw / 2 + zw > window.innerWidth - 8 || parseFloat(z.style.left) + zw > window.innerWidth - 8) z.style.left = Math.max(8, window.innerWidth - zw - 8) + 'px';
     const fermer = e => { if (!z.contains(e.target) && e.target !== bm && !bm.contains(e.target)) { z.remove(); document.removeEventListener('pointerdown', fermer, true); } };
     setTimeout(() => document.addEventListener('pointerdown', fermer, true), 0);
     z.querySelector('[data-mm="lire"]').onclick = () => { z.remove(); BK.miette.toutLire(); };

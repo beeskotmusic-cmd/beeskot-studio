@@ -186,3 +186,8 @@ body.look-neuf{--bois-voile:color-mix(in srgb,var(--s2) 22%,transparent);backgro
 @keyframes fil-flash{0%,100%{box-shadow:0 0 0 0 transparent}25%,70%{box-shadow:0 0 0 3px var(--s1),0 0 22px 4px var(--s-lueur)}}
 .fil-flash{animation:fil-flash 3.2s ease-out 1;outline:0;position:relative}
 @media (prefers-reduced-motion:reduce){.fil-flash{animation:none;box-shadow:0 0 0 3px var(--s1)}}
+
+/* ---------- le menu Miette : un vrai bouton à gauche de la cloche (au lieu de la petite flèche ▾) ---------- */
+.look-neuf .sys{display:flex;align-items:center}
+.look-neuf #btMietteMenu{order:-2}
+.look-neuf #btFil{order:-1}

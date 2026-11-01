@@ -3,6 +3,10 @@
 // Pour une nouvelle version : ajouter un bloc EN HAUT de la liste. Une ligne courte par point : « Onglet : ce qui change. »
 // =====================================================================
 BK.NOUVEAUTES = [
+  { v: '0.9.108', titre: '', l: [
+    ['☰', 'Le menu Miette (tout relire, actualiser, qui est là) a son propre bouton, bien visible, à gauche de la cloche, à la place de la petite flèche.'],
+    ['🔧', 'Corrigé : ce menu dépassait à droite de l\'écran et était coupé.'],
+  ] },
   { v: '0.9.107', titre: '', l: [
     ['🔔', 'Cloche : chaque changement retient exactement ce qui a été modifié, donc un clic va droit au bon reel ou tournage, sans chercher.'],
     ['🔧', 'Corrigé : après un clic sur la cloche, la fenêtre glissait vers le haut et coupait le tapis. Elle reste maintenant en place.'],
