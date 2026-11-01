@@ -3,6 +3,12 @@
 // Pour une nouvelle version : ajouter un bloc EN HAUT de la liste. Une ligne courte par point : « Onglet : ce qui change. »
 // =====================================================================
 BK.NOUVEAUTES = [
+  { v: '0.9.103', titre: '', l: [
+    ['🌈', 'Accueil et Miette AI : la bande arc-en-ciel de l\'ancien look revient (bordeaux, rouille, orange, moutarde, bleu canard), pour ne plus ressembler à Bibliothèque.'],
+    ['🎨', 'Contenus : le tapis passe au bleu, avec l\'ambiance bleutée.'],
+    ['🏠', 'Accueil et Miette AI réunis : une seule entrée « Accueil » dans le menu, avec deux sous-onglets.'],
+    ['🟢', 'En haut : le petit écran ONLINE revient (qui est sur le logiciel et où), à la place des macarons.'],
+  ] },
   { v: '0.9.102', titre: '', l: [
     ['🔒', 'Miette : la clé Gemini et le code du bot Discord sont maintenant gardés sur chaque PC. Quand les 3 PC ont ouvert cette version, Réglages › Miette › « Retirer les clés du Drive ».'],
     ['📱', 'Sur le téléphone : un écran « Aujourd\'hui » à l\'ouverture (prochains rendez-vous, mes tâches, prochaine sortie, retours à régler).'],

@@ -19,6 +19,7 @@ const SECTIONS = {
 const PAS_PRETS = ['lumieres', 'repete', 'concert'];                  // cachés dans le nouveau look tant qu'ils ne sont pas prêts
 // les onglets réunis : une seule entrée dans le menu, des sous-onglets en haut de la page (chaque module reste à part)
 const GROUPES = {
+  accueil: { titre: 'Accueil', ids: ['accueil', 'renforts'],                    noms: ['Accueil', 'Miette AI'] },
   suivi:  { titre: 'Reels',    ids: ['suivi', 'reels', 'reelvis'],               noms: ['Suivi', 'Audio', 'Montage'] },
   ecoute: { titre: 'Retours',  ids: ['ecoute', 'notesvid'],                       noms: ['Mix', 'Vidéo'] },
   agenda: { titre: 'Planning', ids: ['agenda', 'taches', 'budget'],               noms: ['Calendrier', 'To-do', 'Budget'] },

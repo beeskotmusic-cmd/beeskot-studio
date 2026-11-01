@@ -158,3 +158,16 @@ body.miette-vise #pages > section:not(.hidden) .box:not(.mi-cible),body.miette-v
 .look-neuf .rg-tabs button.on{background:linear-gradient(180deg,var(--s1),var(--s2))!important;color:var(--s-ink)!important;transform:none}
 .look-neuf .eng{letter-spacing:.12em}
 .look-neuf .lb{letter-spacing:.12em}
+
+/* ---------- Accueil et Miette AI : l'entrée du logiciel, la bande arc-en-ciel de l'ancien look (bordeaux, rouille, orange, moutarde, bleu canard) ---------- */
+body.look-neuf[data-section="general"]{--s-ink:#241709;--s1:#efe4cc;--s2:#a8874e;--s-clair:#fff6e6;--s-lueur:rgba(239,228,204,.22);--s-halo:rgba(239,228,204,.1)}
+body.look-neuf[data-section="general"] .stripe,body.look-neuf[data-section="general"] .hdr::after{background:linear-gradient(90deg,#7a2430 0 20%,#a8432a 20% 40%,#d2722e 40% 60%,#d9a93c 60% 80%,#2f7377 80% 100%)}
+body.look-neuf[data-section="general"] .h1{box-shadow:0 2px 4px rgba(0,0,0,.5)}
+
+/* ---------- en haut : le petit écran ONLINE de l'ancien look, à la place des pins ---------- */
+.look-neuf .pins{display:none!important}
+.look-neuf .sys{margin-left:auto}
+.look-neuf .sysgrid{display:grid;grid-template-columns:auto;gap:0}
+.look-neuf .sysgrid>.vfd:not(.sy-online){display:none}
+.look-neuf .sy-online{grid-column:1;grid-row:1;width:330px;max-height:46px;overflow:hidden;justify-content:center;align-items:flex-start}
+.look-neuf .sy-online-l{flex-direction:row;flex-wrap:wrap;gap:1px 12px}
