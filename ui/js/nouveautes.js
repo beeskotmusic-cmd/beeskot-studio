@@ -3,6 +3,11 @@
 // Pour une nouvelle version : ajouter un bloc EN HAUT de la liste. Une ligne courte par point : « Onglet : ce qui change. »
 // =====================================================================
 BK.NOUVEAUTES = [
+  { v: '0.9.109', titre: '', l: [
+    ['🎛️', 'Contenus : nouveau décor. Cuir d\'ampli sur la barre BEESKOT du haut, tissu d\'ampli en transparence sur le bois, modules transparents avec leurs petites vis.'],
+    ['🔴', 'Contenus : le rouge BEESKOT devient la couleur d\'accent (lignes, afficheurs, champs, boutons principaux) à la place du jaune.'],
+    ['🎚️', 'Reels : les boutons de durée et de vitesse sont de vrais potards d\'ampli.'],
+  ] },
   { v: '0.9.108', titre: '', l: [
     ['☰', 'Le menu Miette (tout relire, actualiser, qui est là) a son propre bouton, bien visible, à gauche de la cloche, à la place de la petite flèche.'],
     ['🔧', 'Corrigé : ce menu dépassait à droite de l\'écran et était coupé.'],

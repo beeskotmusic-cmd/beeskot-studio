@@ -191,3 +191,40 @@ body.look-neuf{--bois-voile:color-mix(in srgb,var(--s2) 22%,transparent);backgro
 .look-neuf .sys{display:flex;align-items:center}
 .look-neuf #btMietteMenu{order:-2}
 .look-neuf #btFil{order:-1}
+
+
+/* =====================================================================================================
+   CONTENUS (0.9.109) : cuir d'ampli en haut, tissu d'ampli transparent en fond, accents rouge BEESKOT,
+   potard d'ampli, même bois et même sélection du menu que l'Accueil. Rien ne sort de data-section="contenus".
+   ===================================================================================================== */
+body.look-neuf[data-section="contenus"]{--s1:#b8293a;--s2:#7c1a26;--s-clair:#f0b8be;--s-lueur:rgba(184,41,58,.28);--s-halo:rgba(184,41,58,.06);--s-ink:#fff5ef;--bois-voile:rgba(168,135,78,.22)}
+body.look-neuf[data-section="contenus"] #nav{--s1:#ffb23e;--s2:#d2722e;--s-clair:#ffd48e;--s-lueur:rgba(255,170,60,.28)}
+/* la barre BEESKOT du haut : cuir */
+body.look-neuf[data-section="contenus"] .top{background:linear-gradient(rgba(0,0,0,.3),rgba(0,0,0,.3)),url(../look/cuir-contenus.jpg) 0 0/300px!important}
+body.look-neuf[data-section="contenus"] .tapis-avant{display:none!important}
+/* les lignes : rouge BEESKOT plein */
+body.look-neuf[data-section="contenus"] .stripe{background:#b8293a!important;height:4px!important}
+body.look-neuf[data-section="contenus"] .hdr::after{background:#b8293a!important;height:2px!important;opacity:1}
+body.look-neuf[data-section="contenus"] #pages .box>.lb::after{content:"";display:block;margin-top:5px;border-top:1px solid #b8293a;opacity:.85}
+/* la plaque du titre : transparente comme les modules, vis argent */
+body.look-neuf[data-section="contenus"] .hdr{background:radial-gradient(circle at 10px 10px,#f2f2f2 0 1.2px,#a9a9a9 2px,#555 3.3px,#0d0d0d 4.3px,transparent 4.9px),radial-gradient(circle at calc(100% - 10px) 10px,#f2f2f2 0 1.2px,#a9a9a9 2px,#555 3.3px,#0d0d0d 4.3px,transparent 4.9px),radial-gradient(circle at 10px calc(100% - 10px),#f2f2f2 0 1.2px,#a9a9a9 2px,#555 3.3px,#0d0d0d 4.3px,transparent 4.9px),radial-gradient(circle at calc(100% - 10px) calc(100% - 10px),#f2f2f2 0 1.2px,#a9a9a9 2px,#555 3.3px,#0d0d0d 4.3px,transparent 4.9px),linear-gradient(rgba(0,0,0,.28),rgba(0,0,0,.28))!important;border-radius:8px!important;box-shadow:inset 0 0 0 1px rgba(255,255,255,.1),0 0 0 1px #000!important}
+/* le fond : tissu d'ampli en transparence au-dessus du bois */
+body.look-neuf[data-section="contenus"] .mainc{background:rgba(20,10,6,.25)!important;isolation:isolate;position:relative}
+body.look-neuf[data-section="contenus"] .mainc::before{content:'';position:absolute;inset:0;z-index:-1;background:url(../look/tissu-contenus.jpg) 0 0/150px;opacity:.6;pointer-events:none}
+/* les modules : transparents, vis argent, filet clair */
+body.look-neuf[data-section="contenus"] #pages .box{background:radial-gradient(circle at 10px 10px,#f2f2f2 0 1.2px,#a9a9a9 2px,#555 3.3px,#0d0d0d 4.3px,transparent 4.9px),radial-gradient(circle at calc(100% - 10px) 10px,#f2f2f2 0 1.2px,#a9a9a9 2px,#555 3.3px,#0d0d0d 4.3px,transparent 4.9px),radial-gradient(circle at 10px calc(100% - 10px),#f2f2f2 0 1.2px,#a9a9a9 2px,#555 3.3px,#0d0d0d 4.3px,transparent 4.9px),radial-gradient(circle at calc(100% - 10px) calc(100% - 10px),#f2f2f2 0 1.2px,#a9a9a9 2px,#555 3.3px,#0d0d0d 4.3px,transparent 4.9px),linear-gradient(rgba(0,0,0,.14),rgba(0,0,0,.14))!important;border-radius:12px!important;box-shadow:inset 0 0 0 1px rgba(255,255,255,.09),0 0 0 1px #000,0 6px 14px rgba(0,0,0,.6)!important}
+body.look-neuf[data-section="contenus"] #pages .box .box{background:rgba(0,0,0,.2)!important;backdrop-filter:none;border-radius:14px!important;box-shadow:inset 0 0 0 1.5px rgba(235,235,235,.55)!important}
+body.look-neuf[data-section="contenus"] #pages .box .lb,body.look-neuf[data-section="contenus"] #pages .box>.lb{color:#f4f1ea!important}
+body.look-neuf[data-section="contenus"] .seg button.on,body.look-neuf[data-section="contenus"] .chip.on{background:radial-gradient(120% 140% at 50% 0%,#fffaf0,#e8e1d4 55%,#bdb5a6)!important;color:#b8293a!important;font-weight:700!important;text-shadow:none!important;box-shadow:0 2px 3px rgba(0,0,0,.6),inset 0 -2px 0 rgba(0,0,0,.12)!important}
+/* accents rouges : afficheurs, boutons principaux, champs (plus de liseré jaune) */
+body.look-neuf[data-section="contenus"] #pages{--amber:#ff4a5c;--orange:#ff5465;--mustard:#d23a4c}
+body.look-neuf[data-section="contenus"] #pages .amber,body.look-neuf[data-section="contenus"] #pages .kval{color:#ff4a5c!important;text-shadow:0 0 7px rgba(255,50,70,.7)!important}
+body.look-neuf[data-section="contenus"] #pages .btn.pri{background:linear-gradient(#d83a4d,#8e1d2c)!important;color:#fff4f0!important;border-color:#3a0a10!important;text-shadow:0 1px 0 rgba(0,0,0,.4)}
+body.look-neuf[data-section="contenus"] #pages .nt b,body.look-neuf[data-section="contenus"] #pages p b{color:#ff6b78!important}
+body.look-neuf[data-section="contenus"] #pages input:not([type=range]):not([type=checkbox]):not([type=radio]),body.look-neuf[data-section="contenus"] #pages select,body.look-neuf[data-section="contenus"] #pages textarea,body.look-neuf[data-section="contenus"] #pages .fld{border-color:rgba(176,38,54,.7)!important;box-shadow:inset 0 0 0 1px rgba(110,18,30,.55),inset 0 2px 5px rgba(0,0,0,.5)!important;color:#ff6b78!important;caret-color:#ff4a5c}
+body.look-neuf[data-section="contenus"] #pages ::placeholder{color:#a8404c!important;opacity:1}
+body.look-neuf[data-section="contenus"] #pages .kval,body.look-neuf[data-section="contenus"] #pages .glass{border-color:rgba(176,38,54,.7)!important;box-shadow:inset 0 0 0 1px rgba(110,18,30,.55),inset 0 2px 5px rgba(0,0,0,.5)!important}
+/* le potard : un vrai bouton d'ampli (le trait blanc part de midi) */
+body.look-neuf[data-section="contenus"] #pages .knob img{content:url(../textures/knob-ampli.png);filter:drop-shadow(0 4px 5px rgba(0,0,0,.6))!important}
+body.look-neuf[data-section="contenus"] #pages .knob .tk{color:#bdb4a2!important}
+body.look-neuf[data-section="contenus"] #pages .knob .tk.on{color:#ff4a5c!important}
