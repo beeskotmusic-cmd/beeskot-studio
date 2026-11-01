@@ -145,7 +145,8 @@ BK.drive = {
     BK.drive.garderCache(col);
     return out;
   },
-  async ecrire(col, fiche) {
+  async ecrire(col, fiche) { try { return await BK.drive.ecrire0(col, fiche); } finally { BK.db && BK.db.oublier && BK.db.oublier(col); } },   // la liste en mémoire est oubliée après l'envoi
+  async ecrire0(col, fiche) {
     BK.db && BK.db.oublier && BK.db.oublier(col);
     const dos = await BK.drive.dossier(col, await BK.drive.racine()), nom = fiche.id + '.json', corps = JSON.stringify(fiche, null, 1);
     let id = (BK.drive.ids[col] || {})[nom];
@@ -166,7 +167,8 @@ BK.drive = {
     if (cles.length > 300) for (const k of cles.slice(0, cles.length - 300)) { try { URL.revokeObjectURL(v[k]); } catch (e) {} delete v[k]; }
     return url;
   },
-  async supprimer(col, idFiche) {              // jamais effacé : déplacé dans « corbeille »
+  async supprimer(col, idFiche) { try { return await BK.drive.supprimer0(col, idFiche); } finally { BK.db && BK.db.oublier && BK.db.oublier(col); } },
+  async supprimer0(col, idFiche) {              // jamais effacé : déplacé dans « corbeille »
     BK.db && BK.db.oublier && BK.db.oublier(col);
     const nom = idFiche + '.json', id = (BK.drive.ids[col] || {})[nom]; if (!id) return;
     const dos = await BK.drive.dossier(col, await BK.drive.racine()), corb = await BK.drive.dossier('corbeille', await BK.drive.racine());

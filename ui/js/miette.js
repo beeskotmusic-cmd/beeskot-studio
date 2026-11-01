@@ -314,7 +314,7 @@ BK.synchro = {
     if (!BK.drive || !BK.drive.relie() || document.hidden) return;
     try {
       const racine = await BK.drive.racine(), depuis = BK.synchro.dernier, maintenant = new Date().toISOString();
-      const r = await (await BK.drive.api('/files?' + new URLSearchParams({ q: `modifiedTime > '${depuis}' and mimeType='application/json' and trashed=false`, fields: 'files(id,name,parents,modifiedTime,lastModifyingUser(me))', pageSize: '200' }))).json();
+      const r = await (await BK.drive.api('/files?' + new URLSearchParams({ q: `modifiedTime > '${depuis}' and mimeType='application/json' and trashed=false`, fields: 'files(id,name,parents,modifiedTime,lastModifyingUser(me))', orderBy: 'modifiedTime', pageSize: '200' }))).json();
       // l'heure du Drive, pas celle de ce PC (une horloge en avance faisait rater les changements des autres)
       const plusRecent = (r.files || []).reduce((m, f) => f.modifiedTime > m ? f.modifiedTime : m, '');
       if (plusRecent) BK.synchro.dernier = plusRecent;

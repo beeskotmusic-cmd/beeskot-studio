@@ -82,9 +82,9 @@ BK.module('mixprep', function (page) {
     const r = await BK.ableton.req({ cmd: 'pistes' });
     const avant = M.choix, tempoAvant = M.tempoVu; M.pistes = r.pistes; M.tempo = r.tempo; M.choix = {};
     // le tempo lu dans Ableton va dans la fiche du morceau (sauf si vous l'avez écrit vous-même) — seulement quand il change (pas de lecture du Drive toutes les 2 s)
-    const cleTempo = M.morceau + '|' + r.tempo; M.tempoVu = cleTempo;
+    const cleTempo = M.morceau + '|' + r.tempo;
     if (r.tempo && M.morceau && cleTempo !== tempoAvant) { try { const ms = await BK.db.liste('morceaux'), m = BK.inv.trouverMorceau(M.morceau, ms);
-      if (m && m.bpmSource !== 'nous' && m.bpmSource !== 'discord') { const t = String(Math.round(r.tempo * 100) / 100); if (m.bpm !== t || m.bpmSource !== 'ableton') { m.bpm = t; m.bpmSource = 'ableton'; await BK.db.ecrire('morceaux', m, { sansAnnuler: true }); } } } catch (e) {} }
+      if (m && m.bpmSource !== 'nous' && m.bpmSource !== 'discord') { const t = String(Math.round(r.tempo * 100) / 100); if (m.bpm !== t || m.bpmSource !== 'ableton') { m.bpm = t; m.bpmSource = 'ableton'; await BK.db.ecrire('morceaux', m, { sansAnnuler: true }); } } M.tempoVu = cleTempo; } catch (e) {} }
     for (const p of M.pistes) M.choix[p.i] = avant[p.i] !== undefined && M.pistes.length === Object.keys(avant).length ? avant[p.i] : deviner(p);
     $('#mpTempoH').textContent = bpm(); discret || msg(`${r.pistes.length} pistes lues`);
   }

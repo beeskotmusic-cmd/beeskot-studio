@@ -3,6 +3,11 @@
 // Pour une nouvelle version : ajouter un bloc EN HAUT de la liste. Une ligne courte par point : « Onglet : ce qui change. »
 // =====================================================================
 BK.NOUVEAUTES = [
+  { v: '0.9.100', titre: '', l: [
+    ['🎬', 'Tournages : les plans cochés sur un téléphone pendant le tournage ont un ✓ dans le découpage du PC.'],
+    ['▶', 'Storyline : les vidéos YouTube, Vimeo, Instagram et TikTok se lisent à nouveau dans la page.'],
+    ['🔧', 'Petites finitions de fiabilité (Discord, Prépa mix, synchro entre PC).'],
+  ] },
   { v: '0.9.99', titre: 'BEESKOT Mobile grandit', l: [
     ['📱', 'Sur le téléphone : un écran Reels pour cocher l\'étape de chaque reel (Idée → Publié), un écran Budget (qui doit à qui + noter une dépense tout de suite), et « + Ajouter un rendez-vous » dans le Calendrier.'],
     ['🎬', 'Sur un tournage : touche le numéro d\'un plan quand il est dans la boîte, il se coche pour tous les téléphones.'],
