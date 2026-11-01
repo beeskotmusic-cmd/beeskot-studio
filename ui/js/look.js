@@ -113,3 +113,7 @@ const L = BK.look = {
   choisir(v) { const avant = L.neuf(); BK.regler('look', v); if ((v === 'neuf') !== avant) location.reload(); },
 };
 })();
+
+// garde-fou : la fenêtre du logiciel ne défile jamais (tout défile DANS les cadres). Un « amener à l'écran » (scrollIntoView)
+// pouvait la faire glisser de quelques pixels et couper le haut (tapis, logo) : on la remet aussitôt en place.
+window.addEventListener('scroll', () => { if (window.scrollY || window.scrollX) window.scrollTo(0, 0); }, { passive: true });

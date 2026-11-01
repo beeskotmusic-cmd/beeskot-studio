@@ -403,11 +403,11 @@ BK.synchro = {
     depenses:   (f, n) => [n ? 'a ajouté une dépense dans le Budget' : 'a modifié une dépense dans le Budget', f.quoi || f.titre || f.texte],
   };
   const norme = x => String(x || '').toLowerCase().normalize('NFD').replace(/[^a-z0-9]+/g, '').slice(0, 40);
-  BK.journal = async (quoi, onglet, sujet) => {
+  BK.journal = async (quoi, onglet, sujet, cible) => {
     const qui = BK.reglage('nomPc', ''); if (!qui) return;
     const h = new Date(), heure = h.toISOString().slice(0, 13);
     const id = 'j-' + norme(qui) + '-' + norme(quoi) + '-' + norme(sujet) + '-' + heure.replace(/\D/g, '');
-    try { await BK.db.ecrire('activite', { id, qui, quoi, onglet: onglet || '', sujet: String(sujet || '').slice(0, 80), t: Date.now() }, { sansAnnuler: true }); } catch (e) {}
+    try { await BK.db.ecrire('activite', { id, qui, quoi, onglet: onglet || '', sujet: String(sujet || '').slice(0, 80), ...(cible && cible.id ? { cible: cible.id, ...(cible.parent ? { parent: cible.parent } : {}) } : {}), t: Date.now() }, { sansAnnuler: true }); } catch (e) {}
     BK.accueilDerniere && BK.accueilDerniere();
   };
   // appelé par BK.db.ecrire : seulement ce qu'un membre fait lui-même (pas Miette, pas le logiciel tout seul)
@@ -415,7 +415,7 @@ BK.synchro = {
     const p = PHRASES[col]; if (!p || (opts && (opts.sansAnnuler || opts.graine)) || f.miette || f.graine) return;
     const [quoi, sujet] = p(f, neuf); const ong = { notesvid: 'notesvid', taches: 'taches', evenements: 'agenda', notesmix: 'ecoute', morceaux: 'biblio', reels: 'suivi', tournages: 'tournage', depenses: 'budget' }[col];
     clearTimeout(BK._jt); const k = col + quoi + sujet; if (BK._jk === k && Date.now() - (BK._jkt || 0) < 60e3) return;
-    BK._jk = k; BK._jkt = Date.now(); BK.journal(quoi, ong, sujet);
+    BK._jk = k; BK._jkt = Date.now(); BK.journal(quoi, ong, sujet, { id: f.id, parent: f.parent });     // l'identifiant exact : la cloche ira droit dessus
   };
   // les dernières lignes (les plus récentes d'abord) ; les vieilles (plus de 30 jours) partent toutes seules
   BK.journalLire = async () => {

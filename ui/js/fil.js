@@ -36,7 +36,7 @@ const F = BK.fil = {
   },
   // une ligne du journal → un bouton qui ouvre l'endroit
   ligne(x, neuf) {
-    return `<button class="fil-l${neuf ? ' neuf' : ''}" data-va="${esc(x.onglet || 'accueil')}" data-sujet="${esc(x.sujet || '')}"><span class="fil-h">${hm(new Date(x.t))}</span>
+    return `<button class="fil-l${neuf ? ' neuf' : ''}" data-va="${esc(x.onglet || 'accueil')}" data-sujet="${esc(x.sujet || '')}" data-cible="${esc(x.cible || '')}" data-parent="${esc(x.parent || '')}"><span class="fil-h">${hm(new Date(x.t))}</span>
       <span><b style="color:${COUL[x.qui] || '#d9b67a'}">${esc(x.qui)}</b> ${esc(x.quoi)}${x.sujet ? ' · <i>' + esc(x.sujet) + '</i>' : ''}</span></button>`;
   },
   liste(l, vu) { let jour = '';
@@ -48,7 +48,7 @@ const F = BK.fil = {
       <div class="fil-la" id="filLa"></div><div class="fil-corps" id="filCorps"><span class="nt"><span class="spin"></span>…</span></div>
       <span class="nt fil-pied">Clic sur une ligne : ça ouvre l'endroit. Les nouveautés depuis ta dernière visite ont un trait de couleur.</span>`;
     document.body.appendChild(t); $('#btFil') && $('#btFil').classList.add('on');
-    t.onclick = e => { const o = e.target.closest('[data-va]'); if (o) { F.fermer(); F.aller(o.dataset.va, o.dataset.sujet); } };
+    t.onclick = e => { const o = e.target.closest('[data-va]'); if (o) { F.fermer(); F.aller(o.dataset.va, o.dataset.sujet, o.dataset.cible, o.dataset.parent); } };
     $('#filX').onclick = F.fermer;
     $('#filActu').onclick = async () => { const b = $('#filActu'); b.disabled = true; b.innerHTML = '<span class="spin"></span>…';
       try { if (BK.db.viderAttente) await BK.db.viderAttente(); window.dispatchEvent(new CustomEvent('bk:distant', { detail: { cols: (BK.synchro && BK.synchro.COLS) || [] } }));
@@ -73,13 +73,28 @@ const F = BK.fil = {
   echap(e) { if (e.key === 'Escape' && !document.querySelector('.voile:not(.hidden)')) { e.stopPropagation(); F.fermer(); } },
   dehors(e) { if (!e.target.closest('#filTiroir, #btFil, .voile:not(.hidden)')) F.fermer(); },
   // un reel dans un tournage : on déplie le tournage qui le contient (une seule fois), puis on ouvre le reel et on le met en surbrillance
+  // l'identifiant est connu : le tournage (parent) se déplie, puis le reel (cible) s'ouvre et s'allume — sans rien chercher
+  allerId(cible, parent, essai, clique) {
+    const page = document.getElementById('p-tournage'); if (!page) return;
+    const q = (a, v) => page.querySelector(`[${a}="${CSS.escape(v)}"]`);
+    const reel = q('data-rid', cible);
+    if (reel && reel.offsetParent) {
+      const plir = reel.querySelector('[data-plir]'), deplier = plir && !reel.classList.contains('ouvert');
+      if (deplier) plir.click();
+      return setTimeout(() => { const el = q('data-rid', cible) || reel; F.voir(el); F.flash(el); }, deplier ? 450 : 60);
+    }
+    const tour = page.querySelector(`.to-item[data-tour="${CSS.escape(parent || cible)}"]`);       // la ligne du tournage : on le déplie (sauf s'il l'est déjà)
+    if (tour && !clique && !tour.classList.contains('on')) { tour.click(); clique = true; }
+    if (essai < 12) return setTimeout(() => F.allerId(cible, parent, essai + 1, clique || !!tour), 250);
+    if (tour) F.flash(tour); else page.querySelector('.hdr') && F.flash(page.querySelector('.hdr'));
+  },
   allerReel(mot, i = 0, attente = 0, essai = 0) {
     const page = document.getElementById('p-tournage'); if (!page) return;
     const txt = el => (el.textContent || '').toLowerCase();
     const reel = [...page.querySelectorAll('[data-rid]')].find(el => el.offsetParent && txt(el).includes(mot));
     if (reel) {                                                    // le reel est là (son tournage est déplié) : on le déplie et on le surligne
       const plir = reel.querySelector('[data-plir]'); if (plir && !reel.classList.contains('ouvert')) plir.click();
-      const id = reel.dataset.rid, quand = () => { const el = page.querySelector(`[data-rid="${CSS.escape(id)}"]`) || reel; el.scrollIntoView({ block: 'center', behavior: 'smooth' }); F.flash(el); };
+      const id = reel.dataset.rid, quand = () => { const el = page.querySelector(`[data-rid="${CSS.escape(id)}"]`) || reel; F.voir(el); F.flash(el); };
       setTimeout(quand, plir && !reel.classList.contains('ouvert') ? 450 : 60);     // le plier ré-affiche la page : on surligne l'élément neuf
       return;
     }
@@ -89,11 +104,20 @@ const F = BK.fil = {
     if (attente === 0 && i < tournages.length) { tournages[i].click(); return setTimeout(() => F.allerReel(mot, i + 1, 0, 0), 380); }
     if (attente === 0) page.querySelector('.hdr') && F.flash(page.querySelector('.hdr'));   // introuvable : l'en-tête de la page
   },
+  // amène un élément au centre de SON cadre qui défile (jamais la fenêtre entière : elle glissait et coupait le haut)
+  voir(el) {
+    if (!el) return; let c = el.parentElement;
+    while (c && c !== document.body) { const o = getComputedStyle(c).overflowY; if ((o === 'auto' || o === 'scroll') && c.scrollHeight > c.clientHeight) break; c = c.parentElement; }
+    if (!c || c === document.body) return;
+    const r = el.getBoundingClientRect(), rc = c.getBoundingClientRect();
+    c.scrollTo({ top: c.scrollTop + (r.top - rc.top) - (c.clientHeight - r.height) / 2, behavior: 'smooth' });
+  },
   flash(el) { if (!el) return; el.classList.remove('fil-flash'); void el.offsetWidth; el.classList.add('fil-flash'); setTimeout(() => el.classList.remove('fil-flash'), 3200); },
   // ouvre l'onglet puis met en surbrillance ce qui a été ajouté : la fiche / le cadre qui parle du sujet (sinon l'en-tête de la page),
   // et l'entrée du menu clignote avec la couleur de la section
-  aller(onglet, sujet) {
+  aller(onglet, sujet, cible, parent) {
     BK.ouvrir(onglet);
+    if (onglet === 'tournage' && cible) return F.allerId(cible, parent, 0, false);          // on sait exactement quoi : droit dessus
     if (onglet === 'tournage' && String(sujet || '').trim().length >= 3) return F.allerReel(String(sujet).trim().toLowerCase(), 0);
     const page = document.getElementById('p-' + (document.getElementById('p-' + onglet) ? onglet : 'accueil'));
     const chef = BK.look && BK.look.chef ? BK.look.chef(onglet) : onglet, tab = document.querySelector(`#nav .tab[data-p="${CSS.escape(chef)}"]`);
@@ -112,7 +136,7 @@ const F = BK.fil = {
       }
       if (!cible && essais < 4) return setTimeout(() => cherche(essais + 1), 250);          // la page se remplit (Drive) : on réessaie un peu
       if (!cible) cible = page.querySelector('.hdr') || page;
-      cible.scrollIntoView({ block: 'center', behavior: 'smooth' }); flash(cible);
+      F.voir(cible); flash(cible);
     };
     setTimeout(cherche, 200);
   },
@@ -122,7 +146,7 @@ const F = BK.fil = {
     const n = F.nouveaux();
     z.innerHTML = `<div class="ligne-titre"><span class="lb">Fil du groupe</span>${n ? `<span class="fil-n">${n} nouveau${n > 1 ? 'x' : ''}</span>` : ''}<button class="btn xs" id="acFilTout" style="margin-left:auto">Tout voir</button></div>
       <div class="fil-corps">${lignes.length ? F.liste(lignes.slice(0, 8), F.vu()) : '<span class="nt">Rien pour l\'instant : ce que chacun fait arrive ici.</span>'}</div>`;
-    z.onclick = e => { if (e.target.closest('#acFilTout')) return F.ouvrir(); const o = e.target.closest('[data-va]'); if (o) F.aller(o.dataset.va, o.dataset.sujet); };
+    z.onclick = e => { if (e.target.closest('#acFilTout')) return F.ouvrir(); const o = e.target.closest('[data-va]'); if (o) F.aller(o.dataset.va, o.dataset.sujet, o.dataset.cible, o.dataset.parent); };
   },
 };
 BK.filMaj = () => F.maj();                                              // appelé quand le journal change sur le Drive (js/miette.js)
