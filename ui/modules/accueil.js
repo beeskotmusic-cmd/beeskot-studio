@@ -88,7 +88,7 @@ BK.module('accueil', function (page) {
           <div class="ac-haut">
             <div class="ac-col">
               <button class="ac-dernier hidden" id="acDernier" title="Voir toutes les updates des membres"></button>
-              <div class="box next"><span class="lb">Next</span>
+              <div class="box next"><span class="lb">À suivre</span>
                 ${n ? `<div class="next-l"><span class="nchip" style="--c:${t.c}"></span><span class="vfd next-q">${quand}</span>
                   <div><span class="evt-type">${esc(t.nom)}</span><span class="nt" style="margin:2px 0 0;font-size:14px;color:var(--ink)">${esc(n.titre || '')}${n.morceau ? ' · ' + esc(n.morceau) : ''}</span></div></div>`
                   : `<span class="nt">Aucun rendez-vous prévu. <a href="#" data-va="agenda">Ajouter dans le Calendrier</a></span>`}</div>

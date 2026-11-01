@@ -3,6 +3,11 @@
 // Pour une nouvelle version : ajouter un bloc EN HAUT de la liste. Une ligne courte par point : « Onglet : ce qui change. »
 // =====================================================================
 BK.NOUVEAUTES = [
+  { v: '0.9.101', titre: '', l: [
+    ['📱', 'Sur le téléphone : un écran « Notes vidéos » pour lire les retours laissés sur les vidéos (à régler / toutes).'],
+    ['💬', 'Discord : si Gemini a un souci pendant une lecture, Miette relit ces messages à la prochaine ronde au lieu de les sauter.'],
+    ['🇫🇷', 'Bibliothèque : « Next release » et « Work in progress » deviennent « Prochaine sortie » et « En chantier ».'],
+  ] },
   { v: '0.9.100', titre: '', l: [
     ['🎬', 'Tournages : les plans cochés sur un téléphone pendant le tournage ont un ✓ dans le découpage du PC.'],
     ['▶', 'Storyline : les vidéos YouTube, Vimeo, Instagram et TikTok se lisent à nouveau dans la page.'],

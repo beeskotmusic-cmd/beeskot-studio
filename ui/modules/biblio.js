@@ -16,7 +16,7 @@ BK.module('biblio', function (page) {
     <div class="cols">
       <section class="pane vit" aria-label="Vitrine">
         <div class="ligne-titre">
-          <div class="chips" id="biVues"><button class="chip on" data-v="prochaine">Next release</button><button class="chip" data-v="chantier">Work in progress</button><button class="chip" data-v="sorti">Sortis</button><button class="chip" data-v="ranger">À ranger <span id="biNbR"></span></button></div>
+          <div class="chips" id="biVues"><button class="chip on" data-v="prochaine">Prochaine sortie</button><button class="chip" data-v="chantier">En chantier</button><button class="chip" data-v="sorti">Sortis</button><button class="chip" data-v="ranger">À ranger <span id="biNbR"></span></button></div>
           <input class="fld" id="biCherche" placeholder="chercher un morceau…" style="max-width:240px;margin-left:auto">
         </div>
         <div id="biListe" class="bi-liste"></div>
@@ -107,7 +107,7 @@ BK.module('biblio', function (page) {
         || (Math.min(b.fait || 0, 5) - Math.min(a.fait || 0, 5))   // …sinon le morceau le plus avancé en haut
         || (b.maj || '').localeCompare(a.maj || ''));
     B.affiches = l;
-    liste.innerHTML = l.length ? l.map(fiche).join('') : `<span class="nt" style="padding:20px">${B.vue === 'sorti' ? 'Aucun morceau sorti pour l\'instant.' : B.vue === 'prochaine' ? 'Aucun morceau prévu pour la prochaine sortie. Ouvre une fiche et clique « ⭐ Next release ».' : 'Aucun morceau en chantier. Crée une fiche à droite (les fichiers du Drive se relient tout seuls).'}</span>`;
+    liste.innerHTML = l.length ? l.map(fiche).join('') : `<span class="nt" style="padding:20px">${B.vue === 'sorti' ? 'Aucun morceau sorti pour l\'instant.' : B.vue === 'prochaine' ? 'Aucun morceau prévu pour la prochaine sortie. Ouvre une fiche et clique « ⭐ Prochaine sortie ».' : 'Aucun morceau en chantier. Crée une fiche à droite (les fichiers du Drive se relient tout seuls).'}</span>`;
     brancherFiches(); lecteur.maj();
     remplirDrive();
   }
@@ -335,7 +335,7 @@ BK.module('biblio', function (page) {
         <span class="eng fiche-grp">Retours</span>
         ${tRetours()}
         <div class="fiche-actions">
-          ${[['prochaine', '⭐ Next release'], ['chantier', '🔧 Work in progress'], ['sorti', '✓ Sorti']].map(([k, t]) => `<button class="btn sm${(m.statut || 'chantier') === k ? ' pri' : ''}" data-act="st-${k}">${t}</button>`).join('')}
+          ${[['prochaine', '⭐ Prochaine sortie'], ['chantier', '🔧 En chantier'], ['sorti', '✓ Sorti']].map(([k, t]) => `<button class="btn sm${(m.statut || 'chantier') === k ? ' pri' : ''}" data-act="st-${k}">${t}</button>`).join('')}
           <button class="btn sm" data-act="renommer">Renommer</button>
           <button class="btn sm" data-act="suppr">Retirer</button></div>
       </div>` : ''}

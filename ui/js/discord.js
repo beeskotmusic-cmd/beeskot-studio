@@ -127,18 +127,20 @@ BK.discord = {
           if (ms.length) { dernier[s.id] = ms[ms.length - 1].id; nouvelles.push(...ms.filter(m => BK.discord.texteDe(m) || (m.attachments || []).length).map(m => BK.discord.ligne(m, s, c.membres))); }
         } catch (e) { progression('#' + s.nom + ' : ' + e.message); }
       }
-      if (nouvelles.length) await BK.discord.ajouterAuJournal(nouvelles);
-      await BK.discord.enregistrer({ dernier });
+      if (nouvelles.length) await BK.discord.ajouterAuJournal(nouvelles);       // sans doublon : relire les mêmes messages est sans danger
       const morceaux = await BK.db.liste('morceaux');
       let props = BK.discord.depuisBot(nouvelles, morceaux);
       const mois = new Date(Date.now() - 30 * 864e5).toISOString();
       const humains = nouvelles.filter(l => !BK.discord.RE_BOT.test(l.txt) && l.t >= mois);       // Gemini lit seulement le dernier mois (le journal garde tout)
+      let analyseOk = true;       // « dernier » n'avance que si Gemini a bien tout lu : sinon la prochaine ronde relit ces messages
       if (humains.length && await BK.ia.pret()) {
         progression(`Gemini lit ${humains.length} message(s)…`);
-        for (let i = 0; i < humains.length; i += 400) props.push(...await BK.discord.analyser(humains.slice(i, i + 400)));
+        try { for (let i = 0; i < humains.length; i += 400) props.push(...await BK.discord.analyser(humains.slice(i, i + 400))); }
+        catch (e) { analyseOk = false; progression('Gemini : ' + (e.message || e) + ' (on réessaiera à la prochaine ronde)'); }
       }
       for (const p of props) { const l = nouvelles.find(x => x.id === String(p.source || '').replace(/\D/g, '')); if (l) { p.lien = p.lien || l.lien; p.date = p.date || l.t.slice(0, 10); } }
       if (props.length) await BK.discord.rangerPropositions(props);
+      await BK.discord.enregistrer(analyseOk ? { dernier } : {});
       let pont = {}; try { pont = await BK.discord.pont(c, progression); } catch (e) { console.warn('pont', e); }   // les messages pointés à Miette (🍞 ou « Miette, … »)
       BK.discord.photoBot(c).catch(() => {});                       // la photo du bot = le patch de Miette (une seule fois pour tout le groupe)
       return { messages: nouvelles.length, propositions: props.length, pointes: pont.n || 0, ranges: pont.ranges || 0 };
