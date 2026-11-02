@@ -250,3 +250,9 @@ body.look-neuf[data-section="musique"] .seg button.on,body.look-neuf[data-sectio
 /* Musique : toile brune assombrie, en transparence derrière les modules (une seule image, donc sans jointure) */
 body.look-neuf[data-section="musique"] .mainc{isolation:isolate;position:relative}
 body.look-neuf[data-section="musique"] .mainc::before{content:'';position:absolute;inset:0;z-index:-1;background:url(../look/toile-musique.jpg) center/cover no-repeat;filter:brightness(.45) saturate(.9);opacity:.2;pointer-events:none}
+
+/* Show : barre BEESKOT = longues vagues bleu canard / violet + tissu tissé ; bois naturel comme Accueil (la page Light Toast reçoit son métal violet dans modules/lighttoast.js) */
+body.look-neuf[data-section="show"]{--bois-voile:rgba(168,135,78,.22)}
+body.look-neuf[data-section="show"] #nav{--s1:#ffb23e;--s2:#d2722e;--s-clair:#ffd48e;--s-lueur:rgba(255,170,60,.28)}
+body.look-neuf[data-section="show"] .top{background:url(../look/toile-barre-show.png) 0 0/128px 128px repeat,linear-gradient(rgba(20,8,2,.22),rgba(20,8,2,.22)),url(../look/vagues-show.svg) 0 0/2600px 90px repeat!important}
+body.look-neuf[data-section="show"] .tapis-avant{display:none}

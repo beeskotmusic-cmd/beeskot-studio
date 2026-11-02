@@ -1,6 +1,6 @@
 [package]
 name = "beeskot-studio"
-version = "0.9.110"
+version = "0.9.111"
 description = "BEESKOT Studio - suite DARI"
 edition = "2021"
 
