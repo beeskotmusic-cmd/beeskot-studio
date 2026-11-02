@@ -3,6 +3,9 @@
 // Pour une nouvelle version : ajouter un bloc EN HAUT de la liste. Une ligne courte par point : « Onglet : ce qui change. »
 // =====================================================================
 BK.NOUVEAUTES = [
+  { v: '0.9.115', titre: '', l: [
+    ['📄', 'Tournages : le PDF d\'un tournage met dans le Moodboard exactement les photos du dossier Moodboard de ses Assets (ce qu\'on voit à l\'écran). Un bouton « + Ajouter le moodboard de « morceau » » dans la fenêtre du PDF ajoute aussi les images rangées par Miette depuis le dossier Moodboards du Drive.'],
+  ] },
   { v: '0.9.114', titre: '', l: [
     ['🧵', 'Musique et Organisation : le velours et le tweed du fond se répètent sans jointure visible.'],
     ['⚪', 'Barre du haut : les 5 patchs (☰, cloche, ⤢, Miette, STOP) sont alignés sur la même ligne.'],
