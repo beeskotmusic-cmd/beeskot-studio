@@ -3,6 +3,10 @@
 // Pour une nouvelle version : ajouter un bloc EN HAUT de la liste. Une ligne courte par point : « Onglet : ce qui change. »
 // =====================================================================
 BK.NOUVEAUTES = [
+  { v: '0.9.112', titre: '', l: [
+    ['🎭', 'Organisation : velours côtelé bordeaux sur la barre BEESKOT du haut.'],
+    ['↕️', 'Quand on change de section, la barre du haut glisse vers le haut ou vers le bas (selon le sens dans le menu) avec un léger flou de mouvement, et la ligne dessous change de couleur en douceur. La ligne a maintenant la même épaisseur partout.'],
+  ] },
   { v: '0.9.111', titre: '', l: [
     ['🎬', 'Show : nouveau décor. Longues vagues bleu canard et violet sur la barre BEESKOT du haut, avec une texture de tissu ; fond en métal brossé ; modules en violet foncé métal ; accents bleu canard dans Light Toast.'],
   ] },

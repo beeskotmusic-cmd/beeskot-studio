@@ -71,12 +71,25 @@ const L = BK.look = {
     const k = L.sectionDe(id), b = document.body;
     document.querySelectorAll('#nav .cote').forEach(c => c.classList.toggle('on', c.dataset.cote === k));
     if (b.dataset.section === k) return;
-    const top = $('header.top'), avant = b.dataset.section && top ? getComputedStyle(top).backgroundImage : '';
+    // la barre du haut glisse : vers le haut si on descend dans le menu, vers le bas si on remonte ; la ligne change juste de couleur en fondu
+    const top = $('header.top'), ligne = $('.stripe'), ancienne = b.dataset.section;
+    const fond = e => { const c = getComputedStyle(e); return { backgroundImage: c.backgroundImage, backgroundSize: c.backgroundSize, backgroundPosition: c.backgroundPosition, backgroundRepeat: c.backgroundRepeat, backgroundColor: c.backgroundColor }; };
+    const avant = ancienne && top ? fond(top) : null, ligneAvant = ancienne && ligne ? fond(ligne) : null;
     b.dataset.section = k;
     if (!avant || window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
-    const o = document.createElement('div'); o.className = 'tapis-avant'; o.style.backgroundImage = avant; top.prepend(o);
-    requestAnimationFrame(() => requestAnimationFrame(() => { o.style.opacity = '0'; }));
-    setTimeout(() => o.remove(), 450);
+    const ordre = Object.keys(SECTIONS), sens = ordre.indexOf(k) > ordre.indexOf(ancienne) ? -1 : 1;   // -1 : l'ancienne part vers le haut
+    top.querySelectorAll('.tapis-cadre').forEach(x => x.remove());
+    const cadre = document.createElement('div'); cadre.className = 'tapis-cadre';
+    const vieux = document.createElement('div'), neuf = document.createElement('div');
+    vieux.className = neuf.className = 'tapis-glisse';
+    Object.assign(vieux.style, avant); Object.assign(neuf.style, fond(top));
+    neuf.style.transform = `translateY(${-sens * 100}%)`;
+    cadre.append(vieux, neuf); top.prepend(cadre);
+    if (ligneAvant) { ligne.querySelectorAll('.ligne-avant').forEach(x => x.remove());
+      const l = document.createElement('div'); l.className = 'ligne-avant'; Object.assign(l.style, ligneAvant); ligne.append(l);
+      requestAnimationFrame(() => requestAnimationFrame(() => { l.style.opacity = '0'; })); setTimeout(() => l.remove(), 500); }
+    requestAnimationFrame(() => requestAnimationFrame(() => { vieux.style.transform = `translateY(${sens * 100}%)`; neuf.style.transform = 'translateY(0)'; }));
+    setTimeout(() => cadre.remove(), 520);
   },
   // les pins brodés : allumés = sur BEESKOT Studio en ce moment (survol : où) ; le sien se clique (Réglages › Ce PC)
   pins(autres) {

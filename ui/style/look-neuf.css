@@ -256,3 +256,16 @@ body.look-neuf[data-section="show"]{--bois-voile:rgba(168,135,78,.22)}
 body.look-neuf[data-section="show"] #nav{--s1:#ffb23e;--s2:#d2722e;--s-clair:#ffd48e;--s-lueur:rgba(255,170,60,.28)}
 body.look-neuf[data-section="show"] .top{background:url(../look/toile-barre-show.png) 0 0/128px 128px repeat,linear-gradient(rgba(20,8,2,.22),rgba(20,8,2,.22)),url(../look/vagues-show.svg) 0 0/2600px 90px repeat!important}
 body.look-neuf[data-section="show"] .tapis-avant{display:none}
+
+/* Changement de section : la barre du haut glisse (haut/bas selon le sens dans le menu), la ligne dessous change de couleur en fondu, même épaisseur partout */
+.look-neuf .top>.tapis-cadre{position:absolute;inset:0;z-index:0;overflow:hidden;pointer-events:none}
+.look-neuf .tapis-glisse{position:absolute;inset:0;transition:transform .45s cubic-bezier(.23,1,.32,1);will-change:transform;animation:bk-flou .45s ease-out}
+@keyframes bk-flou{0%{filter:blur(0)}25%{filter:blur(2.5px)}100%{filter:blur(0)}}
+body.look-neuf .stripe,body.look-neuf[data-section] .stripe{height:4px!important;position:relative}
+.look-neuf .stripe>.ligne-avant{position:absolute;inset:0;transition:opacity .45s ease;pointer-events:none}
+@media (prefers-reduced-motion:reduce){.look-neuf .tapis-glisse,.look-neuf .stripe>.ligne-avant{transition:none;animation:none}}
+
+/* Organisation : velours côtelé bordeaux à côtes fines sur la barre du haut ; le fond reste comme avant */
+body.look-neuf[data-section="orga"] #nav{--s1:#ffb23e;--s2:#d2722e;--s-clair:#ffd48e;--s-lueur:rgba(255,170,60,.28)}
+body.look-neuf[data-section="orga"] .top{background:linear-gradient(rgba(20,4,6,.12),rgba(20,4,6,.12)),url(../look/velours-orga.jpg) center/520px auto repeat-x!important}
+body.look-neuf[data-section="orga"] .tapis-avant{display:none}
