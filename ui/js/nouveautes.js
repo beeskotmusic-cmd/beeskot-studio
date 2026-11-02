@@ -3,6 +3,16 @@
 // Pour une nouvelle version : ajouter un bloc EN HAUT de la liste. Une ligne courte par point : « Onglet : ce qui change. »
 // =====================================================================
 BK.NOUVEAUTES = [
+  { v: '0.9.113', titre: '', l: [
+    ['🔴', 'Contenus : plus de jaune dans Reels Audio. L\'onde, le bloc du passage, la règle du temps, le bouton Écouter, les volumes et le petit lecteur du bas passent au rouge.'],
+    ['🎛️', 'Contenus : tout le fond de la page (menu compris) passe en cuir d\'ampli noir, comme la barre du haut.'],
+    ['🎭', 'Musique : tout le fond de la page passe en velours bordeaux sombre.'],
+    ['🧶', 'Organisation : tout le fond de la page passe en petit tweed sombre.'],
+    ['⤢', 'Un seul bouton ⤢ dans la barre du haut replie tout d\'un coup (menu, colonne de droite, barre du bas) ; il devient doré quand tout est replié, un autre clic déplie tout. Les petites languettes sur les bords disparaissent. Ctrl + Maj + F marche toujours.'],
+    ['🪡', 'Barre du haut : le menu ☰, la cloche et le bouton ⤢ deviennent des patchs brodés ronds, comme Miette et STOP.'],
+    ['🔁', 'Musique et Organisation échangent leur décor : Musique prend le velours bordeaux, Organisation prend le tweed d\'ampli, le bois et la ligne or.'],
+    ['⬛', 'Show : les modules de Light Toast et la plaque du titre passent au métal brossé noir ; les lignes sous la barre et sous le titre prennent les couleurs des vagues ; tout le fond de la page passe en métal brossé (le bois reste dans les autres sections).'],
+  ] },
   { v: '0.9.112', titre: '', l: [
     ['🎭', 'Organisation : velours côtelé bordeaux sur la barre BEESKOT du haut.'],
     ['↕️', 'Quand on change de section, la barre du haut glisse vers le haut ou vers le bas (selon le sens dans le menu) avec un léger flou de mouvement, et la ligne dessous change de couleur en douceur. La ligne a maintenant la même épaisseur partout.'],

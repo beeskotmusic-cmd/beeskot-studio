@@ -57,17 +57,17 @@ BK.module('lighttoast', function (page) {
   const f = $('.lt-frame', page); let obs = null;
   const compteurs = () => { try { const d = f.contentDocument; $$('[data-lt]', page).forEach(e => { const s = d.getElementById(e.dataset.lt); if (s) e.textContent = s.textContent.trim() || '—'; }); } catch (e) {} };
 
-  // look « neuf » : métal brossé en fond, modules en violet métal, accents bleu canard (injecté dans la page Light Toast)
+  // look « neuf » : métal brossé en fond, modules en métal noir, accents bleu canard (injecté dans la page Light Toast)
   const STYLE_NEUF = `html.bk-neuf,html.bk-neuf body{background:url(../look/metal-show.jpg) center/cover fixed no-repeat,#2a2a2e!important}
 html.bk-neuf{--ac:#3fb0a6!important}
-html.bk-neuf body section:nth-of-type(n){background-color:#241f52!important;background-image:url(../look/metal-violet-show.jpg)!important;background-size:cover!important;box-shadow:inset 0 0 0 1px #8a7fd0aa,inset 0 1px 0 #ffffff40,inset 0 0 26px #0008,0 4px 10px #0009!important}
-html.bk-neuf body h2{color:#ece8ff!important}
+html.bk-neuf body section:nth-of-type(n){background-color:#1c1c1e!important;background-image:url(../look/metal-noir-show.jpg)!important;background-size:cover!important;box-shadow:inset 0 0 0 1px #ffffff1f,inset 0 1px 0 #ffffff33,inset 0 0 26px #0009,0 4px 10px #000a!important}
+html.bk-neuf body h2{color:#ece9e2!important}
 html.bk-neuf .gh{color:#5fe0d2!important}
 html.bk-neuf #play,html.bk-neuf #rec,html.bk-neuf #sgo,html.bk-neuf .lt-pri{background:linear-gradient(#3fb0a6,#1d5f66)!important;color:#eafffb!important}
 html.bk-neuf #play:hover,html.bk-neuf #rec:hover,html.bk-neuf #sgo:hover,html.bk-neuf .lt-pri:hover{background:linear-gradient(#52c4ba,#257079)!important}
-html.bk-neuf .db.on,html.bk-neuf .cc.on,html.bk-neuf #fsbar .chip.on,html.bk-neuf button[aria-pressed=true],html.bk-neuf .lt-seg button.on,html.bk-neuf #ltMembBt.on,html.bk-neuf #ltEdBt.on,html.bk-neuf button.on{background:linear-gradient(#3fb0a6,#1d5f66)!important;color:#eafffb!important;box-shadow:0 0 0 2px #8a7fd0,inset 0 2px 5px rgba(0,0,0,.4)!important}
+html.bk-neuf .db.on,html.bk-neuf .cc.on,html.bk-neuf #fsbar .chip.on,html.bk-neuf button[aria-pressed=true],html.bk-neuf .lt-seg button.on,html.bk-neuf #ltMembBt.on,html.bk-neuf #ltEdBt.on,html.bk-neuf button.on{background:linear-gradient(#3fb0a6,#1d5f66)!important;color:#eafffb!important;box-shadow:0 0 0 2px #2f9a94,inset 0 2px 5px rgba(0,0,0,.4)!important}
 html.bk-neuf .sw.on{box-shadow:0 0 0 2px #3fb0a6,0 0 8px #3fb0a6aa!important}
-html.bk-neuf select,html.bk-neuf input[type=number],html.bk-neuf input[type=text]{border-color:#6e56aa!important;color:#7fe6da!important}`;
+html.bk-neuf select,html.bk-neuf input[type=number],html.bk-neuf input[type=text]{border-color:#3a3a3e!important;color:#7fe6da!important}`;
   const habiller = () => { try { const d = f.contentDocument; if (!d || !d.documentElement) return;
     if (!d.getElementById('bk-neuf')) { const st = d.createElement('style'); st.id = 'bk-neuf'; st.textContent = STYLE_NEUF; d.head.appendChild(st); }
     d.documentElement.classList.toggle('bk-neuf', document.body.classList.contains('look-neuf')); } catch (e) {} };

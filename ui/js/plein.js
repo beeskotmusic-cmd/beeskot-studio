@@ -25,13 +25,33 @@
   BK.bord = function (b, cache) {
     var d = BORDS[b]; if (!d) return;
     if (cache === undefined) cache = !body.classList.contains(d.cls);
-    body.classList.toggle(d.cls, !!cache); BK.regler(d.cle, !!cache); majTexte(b); resize();
+    body.classList.toggle(d.cls, !!cache); BK.regler(d.cle, !!cache); majTexte(b); resize(); majPlier();
   };
   // tout replier (s'il reste quelque chose d'ouvert) ou tout déplier
+  //   nouveau look : le bandeau du haut ne se replie jamais (il porte le bouton ⤢), seuls menu, droite et bas se replient
+  var neuf = function () { return !!(BK.look && BK.look.neuf && BK.look.neuf()); };
+  var bordsActifs = function () { return Object.keys(BORDS).filter(function (b) { return !(neuf() && b === 'haut'); }); };
   BK.toutReplier = function () {
-    var ouvert = !body.classList.contains('menu-etroit') || Object.keys(BORDS).some(function (b) { return !body.classList.contains(BORDS[b].cls); });
-    Object.keys(BORDS).forEach(function (b) { BK.bord(b, ouvert); });
-    BK.regler('menu.etroit', ouvert); BK.volet(ouvert);
+    var ouvert = !body.classList.contains('menu-etroit') || bordsActifs().some(function (b) { return !body.classList.contains(BORDS[b].cls); });
+    bordsActifs().forEach(function (b) { BK.bord(b, ouvert); });
+    if (neuf()) BK.bord('haut', false);
+    BK.regler('menu.etroit', ouvert); BK.volet(ouvert); majPlier();
+  };
+  // le bouton ⤢ dans la barre du haut (nouveau look) : un clic replie tout, un autre déplie tout ; doré quand tout est replié
+  function majPlier() {
+    var b = document.getElementById('btPlier'); if (!b) return;
+    var tout = body.classList.contains('menu-etroit') && bordsActifs().every(function (x) { return body.classList.contains(BORDS[x].cls); });
+    b.classList.toggle('on', tout); b.title = (tout ? 'Tout déplier' : 'Tout replier : menu, colonne de droite, barre du bas') + ' (Ctrl + Maj + F)';
+    b.setAttribute('aria-pressed', tout);
+  }
+  BK.plierInstaller = function () {
+    if (!neuf() || document.getElementById('btPlier')) return;
+    var sys = document.querySelector('header.top .sys'); if (!sys) return;
+    var b = document.createElement('button'); b.id = 'btPlier'; b.type = 'button'; b.className = 'fil-cloche plier-tout';
+    b.innerHTML = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7"/></svg>';
+    b.onclick = BK.toutReplier; sys.prepend(b);
+    if (body.classList.contains('haut-cache')) BK.bord('haut', false);      // un bandeau caché d'avant revient : le bouton doit rester visible
+    majPlier();
   };
 
   // les languettes : haut et bas dans une petite « rainure » de hauteur 0 (ne prend pas de place), droite au bord de la rangée
@@ -49,6 +69,7 @@
 
   // au démarrage : comme la dernière fois
   Object.keys(BORDS).forEach(function (b) { body.classList.toggle(BORDS[b].cls, !!BK.reglage(BORDS[b].cle, false)); majTexte(b); });
+  BK.plierInstaller();
 
   document.addEventListener('keydown', function (e) {
     if (e.ctrlKey && e.shiftKey && (e.key === 'F' || e.key === 'f')) { e.preventDefault(); BK.toutReplier(); }

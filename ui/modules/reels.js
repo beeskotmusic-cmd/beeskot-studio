@@ -284,8 +284,9 @@ BK.module('reels', function (page) {
     const cleV = vue().a.toFixed(3) + '|' + vue().b.toFixed(3) + '|' + w;
     if (!R.pics || R.picsCle !== cleV) { R.pics = picsVue(w); R.picsCle = cleV; }
     const g = cv.getContext('2d'); g.setTransform(dpr, 0, 0, dpr, 0, 0); g.clearRect(0, 0, w, h);
-    const grad = g.createLinearGradient(0, 0, 0, h); grad.addColorStop(0, '#ffcf7a'); grad.addColorStop(.5, '#ffb23e'); grad.addColorStop(1, '#c97a12');
-    g.fillStyle = grad; g.shadowColor = 'rgba(255,160,40,.5)'; g.shadowBlur = 4;
+    const cs = getComputedStyle(onde), coul = (n, d) => cs.getPropertyValue(n).trim() || d;   // couleurs de l'onde réglables en CSS (--onde-1/2/3/lueur)
+    const grad = g.createLinearGradient(0, 0, 0, h); grad.addColorStop(0, coul('--onde-1', '#ffcf7a')); grad.addColorStop(.5, coul('--onde-2', '#ffb23e')); grad.addColorStop(1, coul('--onde-3', '#c97a12'));
+    g.fillStyle = grad; g.shadowColor = coul('--onde-lueur', 'rgba(255,160,40,.5)'); g.shadowBlur = 4;
     for (let x = 0; x < w; x++) { const mn = R.pics[x * 2], mx = R.pics[x * 2 + 1]; g.fillRect(x, h / 2 - mx * h * .46, 1, Math.max(1, (mx - mn) * h * .46)); }
     const v = vue(), L = v.b - v.a, pas = [0.5, 1, 2, 5, 10, 15, 30, 60].find(p => L / p <= 12) || 60, t0 = Math.ceil(v.a / pas) * pas, ticks = [];
     for (let t = t0; t <= v.b + 1e-6; t += pas) ticks.push(t);
