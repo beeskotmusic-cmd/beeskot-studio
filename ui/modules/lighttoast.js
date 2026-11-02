@@ -57,10 +57,11 @@ BK.module('lighttoast', function (page) {
   const f = $('.lt-frame', page); let obs = null;
   const compteurs = () => { try { const d = f.contentDocument; $$('[data-lt]', page).forEach(e => { const s = d.getElementById(e.dataset.lt); if (s) e.textContent = s.textContent.trim() || '—'; }); } catch (e) {} };
 
-  // look « neuf » : métal brossé en fond, modules en métal noir, accents bleu canard (injecté dans la page Light Toast)
-  const STYLE_NEUF = `html.bk-neuf,html.bk-neuf body{background:url(../look/metal-show.jpg) center/cover fixed no-repeat,#2a2a2e!important}
+  // look « neuf » : métal brossé en fond, modules en tissu violet foncé, accents bleu canard (injecté dans la page Light Toast)
+  const STYLE_NEUF = `html.bk-neuf,html.bk-neuf body{background:transparent!important}
 html.bk-neuf{--ac:#3fb0a6!important}
-html.bk-neuf body section:nth-of-type(n){background-color:#1c1c1e!important;background-image:url(../look/metal-noir-show.jpg)!important;background-size:cover!important;box-shadow:inset 0 0 0 1px #ffffff1f,inset 0 1px 0 #ffffff33,inset 0 0 26px #0009,0 4px 10px #000a!important}
+html.bk-neuf #colA,html.bk-neuf #colB,html.bk-neuf #colC{background:transparent!important;box-shadow:none!important}
+html.bk-neuf body section:nth-of-type(n){background-color:#1c1640!important;background-image:url(../look/toile-douce-show.png)!important;background-size:128px 128px!important;background-repeat:repeat!important;box-shadow:inset 0 0 0 1px #8a7fd055,inset 0 1px 0 #ffffff22,inset 0 0 26px #0009,0 4px 10px #000a!important}
 html.bk-neuf body h2{color:#ece9e2!important}
 html.bk-neuf .gh{color:#5fe0d2!important}
 html.bk-neuf #play,html.bk-neuf #rec,html.bk-neuf #sgo,html.bk-neuf .lt-pri{background:linear-gradient(#3fb0a6,#1d5f66)!important;color:#eafffb!important}

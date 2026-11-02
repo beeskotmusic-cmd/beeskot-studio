@@ -3,6 +3,15 @@
 // Pour une nouvelle version : ajouter un bloc EN HAUT de la liste. Une ligne courte par point : « Onglet : ce qui change. »
 // =====================================================================
 BK.NOUVEAUTES = [
+  { v: '0.9.114', titre: '', l: [
+    ['🧵', 'Musique et Organisation : le velours et le tweed du fond se répètent sans jointure visible.'],
+    ['⚪', 'Barre du haut : les 5 patchs (☰, cloche, ⤢, Miette, STOP) sont alignés sur la même ligne.'],
+    ['🎛️', 'Contenus : la barre BEESKOT du haut est plus foncée que le fond, pour bien la détacher.'],
+    ['🅰️', 'Retours : A et B deviennent de vraies touches comme sur le mobile. A reste bleu, B reste rouge ; celle qui joue est enfoncée, l\'autre relevée et plus pâle.'],
+    ['🧶', 'Musique : le fond passe en petit tweed rouge bordeaux (le même tissu qu\'Organisation).'],
+    ['⬜', 'Menu de gauche : les boutons sont gris neutres dans toutes les sections.'],
+    ['🎬', 'Show : fond en tissu tissé bleu canard, modules et titre en tissu violet foncé (plus de métal, plus de zones noires).'],
+  ] },
   { v: '0.9.113', titre: '', l: [
     ['🔴', 'Contenus : plus de jaune dans Reels Audio. L\'onde, le bloc du passage, la règle du temps, le bouton Écouter, les volumes et le petit lecteur du bas passent au rouge.'],
     ['🎛️', 'Contenus : tout le fond de la page (menu compris) passe en cuir d\'ampli noir, comme la barre du haut.'],
@@ -11,7 +20,7 @@ BK.NOUVEAUTES = [
     ['⤢', 'Un seul bouton ⤢ dans la barre du haut replie tout d\'un coup (menu, colonne de droite, barre du bas) ; il devient doré quand tout est replié, un autre clic déplie tout. Les petites languettes sur les bords disparaissent. Ctrl + Maj + F marche toujours.'],
     ['🪡', 'Barre du haut : le menu ☰, la cloche et le bouton ⤢ deviennent des patchs brodés ronds, comme Miette et STOP.'],
     ['🔁', 'Musique et Organisation échangent leur décor : Musique prend le velours bordeaux, Organisation prend le tweed d\'ampli, le bois et la ligne or.'],
-    ['⬛', 'Show : les modules de Light Toast et la plaque du titre passent au métal brossé noir ; les lignes sous la barre et sous le titre prennent les couleurs des vagues ; tout le fond de la page passe en métal brossé (le bois reste dans les autres sections).'],
+    ['⬛', 'Show : les modules de Light Toast et la plaque du titre passent au tissu tissé violet foncé ; les lignes sous la barre et sous le titre prennent les couleurs des vagues ; tout le fond de la page passe au tissu tissé de la barre, sur un bleu canard très foncé.'],
   ] },
   { v: '0.9.112', titre: '', l: [
     ['🎭', 'Organisation : velours côtelé bordeaux sur la barre BEESKOT du haut.'],

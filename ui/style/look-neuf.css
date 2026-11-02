@@ -200,7 +200,7 @@ body.look-neuf{--bois-voile:color-mix(in srgb,var(--s2) 22%,transparent);backgro
 body.look-neuf[data-section="contenus"]{--s1:#b8293a;--s2:#7c1a26;--s-clair:#f0b8be;--s-lueur:rgba(184,41,58,.28);--s-halo:rgba(184,41,58,.06);--s-ink:#fff5ef;--bois-voile:rgba(168,135,78,.22)}
 body.look-neuf[data-section="contenus"] #nav{--s1:#ffb23e;--s2:#d2722e;--s-clair:#ffd48e;--s-lueur:rgba(255,170,60,.28)}
 /* la barre BEESKOT du haut : cuir */
-body.look-neuf[data-section="contenus"] .top{background:linear-gradient(rgba(0,0,0,.3),rgba(0,0,0,.3)),url(../look/cuir-contenus.jpg) 0 0/300px!important}
+body.look-neuf[data-section="contenus"] .top{background:linear-gradient(rgba(0,0,0,.62),rgba(0,0,0,.62)),url(../look/cuir-contenus.jpg) 0 0/300px!important}
 body.look-neuf[data-section="contenus"] .tapis-avant{display:none!important}
 /* les lignes : rouge BEESKOT plein */
 body.look-neuf[data-section="contenus"] .stripe{background:#b8293a!important;height:4px!important}
@@ -282,12 +282,9 @@ body.look-neuf[data-section="contenus"] .mini-t{color:#ff6a78}
 body.look-neuf[data-section="contenus"] .mini-jouer{background:linear-gradient(#d83a4d,#8e1d2c)!important;color:#fff4f0!important;border-color:#3a0a10!important}
 
 /* Show : la plaque du titre (Light Toast) en métal brossé noir, comme les modules */
-body.look-neuf[data-section="show"] .hdr{background:url(../look/metal-noir-show.jpg) center/cover,#1c1c1e!important;box-shadow:inset 0 0 0 1px rgba(255,255,255,.12),inset 0 1px 0 rgba(255,255,255,.2),inset 0 0 22px rgba(0,0,0,.6),0 4px 10px rgba(0,0,0,.5)!important}
+body.look-neuf[data-section="show"] .hdr{background:url(../look/toile-douce-show.png) 0 0/128px 128px repeat,#1c1640!important;box-shadow:inset 0 0 0 1px rgba(255,255,255,.12),inset 0 1px 0 rgba(255,255,255,.2),inset 0 0 22px rgba(0,0,0,.6),0 4px 10px rgba(0,0,0,.5)!important}
 /* Show : la ligne sous la barre et sous le titre en bandes de couleur (comme Accueil), avec les couleurs des vagues */
 body.look-neuf[data-section="show"] .stripe,body.look-neuf[data-section="show"] .hdr::after{background:linear-gradient(90deg,#bfe6e0 0 20%,#7fd3c8 20% 40%,#3fb0a6 40% 60%,#1d6a6c 60% 80%,#5a468a 80% 100%)!important}
-/* Show : tout le fond de la page (menu de gauche compris) en métal brossé ; les autres sections gardent le bois */
-body.look-neuf[data-section="show"]{background:url(../look/metal-show.jpg) center/cover fixed,#26262a!important;background-blend-mode:normal!important}
-body.look-neuf[data-section="show"] #nav{background:url(../look/metal-show.jpg) center/cover fixed!important;background-blend-mode:normal!important}
 /* Contenus : tout le fond de la page (menu de gauche compris) en cuir d'ampli noir, comme la barre du haut */
 body.look-neuf[data-section="contenus"]{background:linear-gradient(rgba(0,0,0,.35),rgba(0,0,0,.35)),url(../look/cuir-contenus.jpg) 0 0/300px fixed,#141010!important;background-blend-mode:normal!important}
 body.look-neuf[data-section="contenus"] #nav{background:linear-gradient(rgba(0,0,0,.35),rgba(0,0,0,.35)),url(../look/cuir-contenus.jpg) 0 0/300px fixed!important;background-blend-mode:normal!important}
@@ -298,11 +295,11 @@ body.look-neuf[data-section="contenus"] .mainc::before{display:none}
 .look-neuf .plier-tout.on{color:#2a1a0c;background:linear-gradient(180deg,#f0c050,#c48f22);box-shadow:0 0 0 1px #7a5a1a}
 
 /* Musique : tout le fond de la page (menu compris) en velours bordeaux sombre, comme la barre du haut */
-body.look-neuf[data-section="musique"]{background:linear-gradient(rgba(10,0,2,.7),rgba(10,0,2,.7)),url(../look/velours-orga.jpg) center/520px auto fixed,#1a0608!important;background-blend-mode:normal!important}
-body.look-neuf[data-section="musique"] #nav{background:linear-gradient(rgba(10,0,2,.7),rgba(10,0,2,.7)),url(../look/velours-orga.jpg) center/520px auto fixed!important;background-blend-mode:normal!important}
+body.look-neuf[data-section="musique"]{background:linear-gradient(rgba(15,4,6,.6),rgba(15,4,6,.6)),url(../look/tweed-rouge-fond.jpg) 0 0/254px auto repeat fixed,#1a0608!important;background-blend-mode:normal!important}
+body.look-neuf[data-section="musique"] #nav{background:linear-gradient(rgba(15,4,6,.6),rgba(15,4,6,.6)),url(../look/tweed-rouge-fond.jpg) 0 0/254px auto repeat fixed!important;background-blend-mode:normal!important}
 /* Organisation : tout le fond de la page (menu compris) en petit tweed sombre, comme la barre du haut */
-body.look-neuf[data-section="orga"]{background:linear-gradient(rgba(15,8,2,.6),rgba(15,8,2,.6)),url(../look/tweed-musique.jpg) 0 0/420px auto repeat fixed,#1a1208!important;background-blend-mode:normal!important}
-body.look-neuf[data-section="orga"] #nav{background:linear-gradient(rgba(15,8,2,.6),rgba(15,8,2,.6)),url(../look/tweed-musique.jpg) 0 0/420px auto repeat fixed!important;background-blend-mode:normal!important}
+body.look-neuf[data-section="orga"]{background:linear-gradient(rgba(15,8,2,.6),rgba(15,8,2,.6)),url(../look/tweed-fond.jpg) 0 0/254px auto repeat fixed,#1a1208!important;background-blend-mode:normal!important}
+body.look-neuf[data-section="orga"] #nav{background:linear-gradient(rgba(15,8,2,.6),rgba(15,8,2,.6)),url(../look/tweed-fond.jpg) 0 0/254px auto repeat fixed!important;background-blend-mode:normal!important}
 body.look-neuf[data-section="orga"] .mainc::before{display:none}
 
 /* Barre du haut : ☰, cloche et ⤢ deviennent des patchs brodés ronds, comme Miette et STOP */
@@ -314,3 +311,29 @@ body.look-neuf[data-section="orga"] .mainc::before{display:none}
 .look-neuf .top .fil-cloche:hover{filter:brightness(1.12)}
 .look-neuf .top .fil-cloche.on{filter:drop-shadow(0 0 7px rgba(255,190,80,.95))}
 .look-neuf .top .fil-cloche:focus-visible{outline:2px solid #ffd48e;outline-offset:1px}
+
+/* Barre du haut : Miette et STOP centrés comme les autres patchs (tous sur la même ligne) */
+.look-neuf .top .estop{align-items:center;justify-content:center}
+
+/* Retours : A / B en touches comme sur le mobile (capuchon texturé) — toujours bleu / rouge ; celle qui joue est enfoncée */
+body.look-neuf .seg.ec-ab{background:none!important;box-shadow:none!important;padding:0 0 5px!important;gap:8px!important;align-items:flex-start}
+body.look-neuf .seg.ec-ab button{--c:#fbf1da;min-width:64px;min-height:40px!important;height:40px;padding:0 18px!important;justify-content:center;border-radius:9px!important;opacity:1!important;filter:none!important;
+ font:700 15px/1 "Work Sans",sans-serif!important;letter-spacing:.04em!important;color:#3a2a18!important;text-shadow:none!important;
+ background:url(../textures/cap_256.jpg) center/170%,var(--c)!important;background-blend-mode:multiply!important;
+ box-shadow:inset 0 2px 1px rgba(255,255,255,.55),inset 0 -3px 5px rgba(0,0,0,.16),0 3px 0 color-mix(in srgb,var(--c) 45%,#2a1a0e),0 5px 9px rgba(0,0,0,.38)!important;transform:none;transition:transform .06s,box-shadow .06s}
+body.look-neuf .seg.ec-ab button[data-c="A"]{--c:#3d82c4;color:#fff6ea!important}
+body.look-neuf .seg.ec-ab button[data-c="B"]{--c:#c8423a;color:#fff6ea!important}
+body.look-neuf .seg.ec-ab button.on{color:#fff6ea!important;transform:translateY(2px);box-shadow:inset 0 2px 5px rgba(0,0,0,.32),0 1px 0 color-mix(in srgb,var(--c) 45%,#2a1a0e),0 2px 4px rgba(0,0,0,.35)!important}
+body.look-neuf .seg.ec-ab button[data-c="A"]:not(.on){--c:#a9cbe8;color:#1d4466!important}
+body.look-neuf .seg.ec-ab button[data-c="B"]:not(.on){--c:#eab0aa;color:#6a1d17!important}
+/* Show : le fond passe au tissu tissé de la barre, sur un bleu canard très foncé */
+body.look-neuf[data-section="show"]{background:url(../look/toile-barre-show.png) 0 0/128px 128px repeat fixed,#0d2a30!important;background-blend-mode:normal!important}
+body.look-neuf[data-section="show"] #nav{background:url(../look/toile-barre-show.png) 0 0/128px 128px repeat fixed,#0d2a30!important;background-blend-mode:normal!important}
+body.look-neuf[data-section="show"] .mainc,body.look-neuf[data-section="show"] #pages .box,body.look-neuf[data-section="show"] .lt-grid{background:transparent!important;box-shadow:none!important}
+body.look-neuf .lt-frame{color-scheme:dark}
+
+/* Menu de gauche : boutons gris neutres dans toutes les sections */
+body.look-neuf #nav .tab:not(.on){background:radial-gradient(80% 60% at 35% 20%,rgba(255,255,255,.08),transparent 60%),linear-gradient(#2c2c2e,#121214)!important;
+ box-shadow:0 0 0 1px rgba(200,200,205,.28),0 5px 0 3px #0e0e10,0 8px 8px 3px rgba(0,0,0,.45),inset 0 1px 0 rgba(255,255,255,.1)!important}
+body.look-neuf #nav .tab.on{background:radial-gradient(ellipse at 50% 50%,rgba(255,255,255,.06),transparent 75%),linear-gradient(180deg,#333336,#18181a)!important;box-shadow:0 0 0 1px rgba(230,230,235,.7),inset 0 2px 5px rgba(0,0,0,.35)!important}
+body.look-neuf #nav .tab .lab{color:#e8e8ea}
