@@ -3,6 +3,9 @@
 // Pour une nouvelle version : ajouter un bloc EN HAUT de la liste. Une ligne courte par point : « Onglet : ce qui change. »
 // =====================================================================
 BK.NOUVEAUTES = [
+  { v: '0.9.110', titre: '', l: [
+    ['🎸', 'Musique : nouveau décor. Tweed d\'ampli sur la barre BEESKOT du haut, bois en fond, modules transparents avec leurs petites vis et une ligne or.'],
+  ] },
   { v: '0.9.109', titre: '', l: [
     ['🎛️', 'Contenus : nouveau décor. Cuir d\'ampli sur la barre BEESKOT du haut, tissu d\'ampli en transparence sur le bois, modules transparents avec leurs petites vis.'],
     ['🔴', 'Contenus : le rouge BEESKOT devient la couleur d\'accent (lignes, afficheurs, champs, boutons principaux) à la place du jaune.'],

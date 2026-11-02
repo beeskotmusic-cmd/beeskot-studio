@@ -228,3 +228,25 @@ body.look-neuf[data-section="contenus"] #pages .kval,body.look-neuf[data-section
 body.look-neuf[data-section="contenus"] #pages .knob img{content:url(../textures/knob-ampli.png);filter:drop-shadow(0 4px 5px rgba(0,0,0,.6))!important}
 body.look-neuf[data-section="contenus"] #pages .knob .tk{color:#bdb4a2!important}
 body.look-neuf[data-section="contenus"] #pages .knob .tk.on{color:#ff4a5c!important}
+
+
+/* =====================================================================================================
+   MUSIQUE (0.9.110) : tweed d'ampli sur la barre BEESKOT (une seule image, donc aucune jointure), bois seul en fond,
+   modules transparents avec vis argent, ligne or. Tout reste dans data-section="musique".
+   ===================================================================================================== */
+body.look-neuf[data-section="musique"]{--bois-voile:rgba(168,135,78,.22)}
+body.look-neuf[data-section="musique"] #nav{--s1:#ffb23e;--s2:#d2722e;--s-clair:#ffd48e;--s-lueur:rgba(255,170,60,.28)}
+body.look-neuf[data-section="musique"] .top{background:linear-gradient(rgba(25,14,4,.28),rgba(25,14,4,.28)),url(../look/tweed-musique.jpg) center/cover no-repeat!important}
+body.look-neuf[data-section="musique"] .tapis-avant{display:none!important}
+body.look-neuf[data-section="musique"] .stripe{background:#d9a93c!important;height:4px!important}
+body.look-neuf[data-section="musique"] .hdr::after{background:#d9a93c!important;height:2px!important;opacity:1}
+body.look-neuf[data-section="musique"] #pages .box>.lb::after{content:"";display:block;margin-top:5px;border-top:1px solid #d9a93c;opacity:.8}
+body.look-neuf[data-section="musique"] .hdr{background:radial-gradient(circle at 10px 10px,#f2f2f2 0 1.2px,#a9a9a9 2px,#555 3.3px,#0d0d0d 4.3px,transparent 4.9px),radial-gradient(circle at calc(100% - 10px) 10px,#f2f2f2 0 1.2px,#a9a9a9 2px,#555 3.3px,#0d0d0d 4.3px,transparent 4.9px),radial-gradient(circle at 10px calc(100% - 10px),#f2f2f2 0 1.2px,#a9a9a9 2px,#555 3.3px,#0d0d0d 4.3px,transparent 4.9px),radial-gradient(circle at calc(100% - 10px) calc(100% - 10px),#f2f2f2 0 1.2px,#a9a9a9 2px,#555 3.3px,#0d0d0d 4.3px,transparent 4.9px),linear-gradient(rgba(0,0,0,.28),rgba(0,0,0,.28))!important;border-radius:8px!important;box-shadow:inset 0 0 0 1px rgba(255,255,255,.1),0 0 0 1px #000!important}
+body.look-neuf[data-section="musique"] .mainc{background:rgba(20,10,6,.18)!important}
+body.look-neuf[data-section="musique"] #pages .box{background:radial-gradient(circle at 10px 10px,#f2f2f2 0 1.2px,#a9a9a9 2px,#555 3.3px,#0d0d0d 4.3px,transparent 4.9px),radial-gradient(circle at calc(100% - 10px) 10px,#f2f2f2 0 1.2px,#a9a9a9 2px,#555 3.3px,#0d0d0d 4.3px,transparent 4.9px),radial-gradient(circle at 10px calc(100% - 10px),#f2f2f2 0 1.2px,#a9a9a9 2px,#555 3.3px,#0d0d0d 4.3px,transparent 4.9px),radial-gradient(circle at calc(100% - 10px) calc(100% - 10px),#f2f2f2 0 1.2px,#a9a9a9 2px,#555 3.3px,#0d0d0d 4.3px,transparent 4.9px),linear-gradient(rgba(0,0,0,.18),rgba(0,0,0,.18))!important;border-radius:12px!important;box-shadow:inset 0 0 0 1px rgba(255,255,255,.09),0 0 0 1px #000,0 6px 14px rgba(0,0,0,.6)!important}
+body.look-neuf[data-section="musique"] #pages .box .box{background:rgba(0,0,0,.22)!important;border-radius:14px!important;box-shadow:inset 0 0 0 1.5px rgba(235,225,200,.5)!important}
+body.look-neuf[data-section="musique"] .seg button.on,body.look-neuf[data-section="musique"] .chip.on{background:radial-gradient(120% 140% at 50% 0%,#fffaf0,#e8e1d4 55%,#bdb5a6)!important;color:#7a5410!important;font-weight:700!important;text-shadow:none!important}
+
+/* Musique : toile brune assombrie, en transparence derrière les modules (une seule image, donc sans jointure) */
+body.look-neuf[data-section="musique"] .mainc{isolation:isolate;position:relative}
+body.look-neuf[data-section="musique"] .mainc::before{content:'';position:absolute;inset:0;z-index:-1;background:url(../look/toile-musique.jpg) center/cover no-repeat;filter:brightness(.45) saturate(.9);opacity:.2;pointer-events:none}
