@@ -5,7 +5,7 @@
 // Tout est dessiné à la main : les pages se coupent au bon endroit, rien n'est coupé en plein milieu d'une image.
 // =====================================================================
 (() => {
-const L = 210, H = 297, M = 14, LARG = L - 2 * M, BAS = H - 16;
+let L = 210, H = 297, LARG, BAS; const M = 14;
 const COUL = { ROUGE: [122, 36, 48], GRIS: [95, 95, 95], NOIR: [20, 20, 20], TRAIT: [205, 200, 192], FOND: [241, 235, 224] },
   NB = { ROUGE: [25, 25, 25], GRIS: [90, 90, 90], NOIR: [15, 15, 15], TRAIT: [190, 190, 190], FOND: [232, 232, 232] };
 let ROUGE, GRIS, NOIR, TRAIT, FOND;
@@ -50,20 +50,22 @@ BK.pdfApercu = async (bytes, zone, largeur) => {
     zone.appendChild(c); await pg.render({ canvasContext: c.getContext('2d'), viewport: v }).promise; }
   return doc.numPages; };
 // imprimer : les pages en images A4, sans marge, puis la boîte d'impression (rien ne bouge : c'est exactement le PDF)
-BK.pdfImprimer = async bytes => {
+BK.pdfImprimer = async (bytes, orient) => {
   const lib = await pdfjs(), doc = await lib.getDocument({ data: bytes.slice() }).promise, d = document.createElement('div'); d.id = 'impressionPdf';
   for (let i = 1; i <= doc.numPages; i++) { const pg = await doc.getPage(i), v = pg.getViewport({ scale: 2.2 }), c = document.createElement('canvas'); c.width = v.width; c.height = v.height;
     await pg.render({ canvasContext: c.getContext('2d'), viewport: v }).promise; const im = new Image(); im.src = c.toDataURL('image/jpeg', .92); d.appendChild(im); }
+  const pay = orient === 'h', st = document.createElement('style'); st.textContent = '@page{size:A4 ' + (pay ? 'landscape' : 'portrait') + ';margin:0}'; document.head.appendChild(st); document.body.classList.toggle('imprime-paysage', pay);
   document.body.appendChild(d); document.body.classList.add('imprime-pdf');
   await Promise.all([...d.querySelectorAll('img')].map(i => i.decode().catch(() => {})));
-  const fin = () => { document.body.classList.remove('imprime-pdf'); d.remove(); window.removeEventListener('afterprint', fin); };
+  const fin = () => { document.body.classList.remove('imprime-pdf', 'imprime-paysage'); st.remove(); d.remove(); window.removeEventListener('afterprint', fin); };
   window.addEventListener('afterprint', fin); setTimeout(() => window.print(), 100); };
 
 const reelsRefs = x => [...(x.moodboard || []), ...Object.values(x.tenuesPhotos || {}).flat(), ...(x.plans || []).flatMap(p => p.imgs || [])];
 
-BK.pdfTournage = async function ({ t, reels, membres, dateFr, mode }) {
+BK.pdfTournage = async function ({ t, reels, membres, dateFr, mode, orient }) {
+  const paysage = orient === 'h'; L = paysage ? 297 : 210; H = paysage ? 210 : 297; LARG = L - 2 * M; BAS = H - 16;
   const nb = mode === 'nb'; ({ ROUGE, GRIS, NOIR, TRAIT, FOND } = nb ? NB : COUL);
-  const jsPDF = await chargerLib(), doc = new jsPDF({ unit: 'mm', format: 'a4', compress: true }), lg = await logo(nb);
+  const jsPDF = await chargerLib(), doc = new jsPDF({ unit: 'mm', format: 'a4', orientation: paysage ? 'landscape' : 'portrait', compress: true }), lg = await logo(nb);
   const tous = [t, ...(reels || [])];
   const refs = [...new Set(tous.flatMap(reelsRefs))]; const imgs = {};
   await Promise.all(refs.map(async r => { imgs[r] = await image(r, 900, nb); }));
@@ -91,7 +93,7 @@ BK.pdfTournage = async function ({ t, reels, membres, dateFr, mode }) {
   // ----- le contenu d'un tournage ou d'un reel -----
   const corps = (x, sous) => {
     const mood = (x.moodboard || []);
-    if (mood.length) { titre('Moodboard', sous, 70); const n = 4, g = 4, cw = (LARG - g * (n - 1)) / n, ch = 54;
+    if (mood.length) { titre('Moodboard', sous, 70); const n = paysage ? 6 : 4, g = 4, cw = (LARG - g * (n - 1)) / n, ch = paysage ? 46 : 54;
       for (let i = 0; i < mood.length; i += n) { besoin(ch + 7);
         mood.slice(i, i + n).forEach((u, k) => { const im = imgs[u], cx = M + k * (cw + g);
           if (im) { const w = im.r >= cw / ch ? cw : ch * im.r, h = im.r >= cw / ch ? cw / im.r : ch; doc.addImage(im.d, 'JPEG', cx, y, w, h); }
@@ -99,7 +101,7 @@ BK.pdfTournage = async function ({ t, reels, membres, dateFr, mode }) {
           police(7.5, false, GRIS); doc.text('Image ' + (i + k + 1), cx, y + ch + 3.6); });
         y += ch + 7; } }
     if ((x.plans || []).length) { titre('Découpage', sous, 40);
-      const cols = [['#', 8], ['Cadrage', 26], ["Ce qu'on voit", 60], ['Durée', 14], ['Notes', 42], ['Images', 32]], pad = 1.8, pt = 9;
+      const cols = [['#', 8], ['Cadrage', 26], ["Ce qu'on voit", 60], ['Durée', 14], ['Notes', 42], ['Images', 32]].map(([n0, w0]) => [n0, w0 * LARG / 182]), pad = 1.8, pt = 9;
       const entetes = () => { besoin(8); let cx = M; doc.setFillColor(...FOND); doc.rect(M, y, LARG, 6.4, 'F'); police(7.5, true);
         cols.forEach(([n, w]) => { doc.text(n.toUpperCase(), cx + pad, y + 4.4, { charSpace: 0.25 }); cx += w; }); doc.setDrawColor(...TRAIT); doc.setLineWidth(0.2); doc.rect(M, y, LARG, 6.4); y += 6.4; };
       entetes();

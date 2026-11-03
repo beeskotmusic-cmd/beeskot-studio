@@ -2147,6 +2147,7 @@ body.bas-cache .rainure-bas .languette{width:auto;padding:0 12px}
   body.imprime-pdf{background:#fff!important;zoom:1!important;margin:0!important}
   body.imprime-pdf #impressionPdf{display:block}
   body.imprime-pdf #impressionPdf img{display:block;width:210mm;height:296.6mm;page-break-after:always;break-after:page}
+  body.imprime-paysage #impressionPdf img{width:297mm;height:209.6mm}
   body.imprime-pdf #impressionPdf img:last-child{page-break-after:auto;break-after:auto}
 }
 
@@ -2244,3 +2245,11 @@ tr.pl-fait td{opacity:.6}tr.pl-fait td.mono{color:#9be37a;opacity:1}
 .voir-x:hover,.voir-p:hover,.voir-s:hover{background:rgba(255,255,255,.2)}
 .voir-n{position:absolute;bottom:16px;left:50%;transform:translateX(-50%);color:#f3ece0;font-size:12px;background:rgba(0,0,0,.55);padding:3px 10px;border-radius:10px}
 .pdf-etq{display:flex;flex-wrap:wrap;gap:6px 14px;font-size:12px}.pdf-etq[hidden]{display:none}
+.pdf-lab-z{position:relative}.pdf-lab-z em,#pdfMed em{font-style:normal;opacity:.8}
+.pdf-lab{position:absolute;z-index:20;top:100%;left:0;margin-top:4px;display:flex;min-width:420px;border-radius:10px;background:#1c140d;box-shadow:0 0 0 1px rgba(255,255,255,.18),0 10px 24px rgba(0,0,0,.6);overflow:hidden}.pdf-lab[hidden]{display:none}
+.pdf-lab-r{display:flex;flex-direction:column;padding:6px;gap:2px;border-right:1px solid rgba(255,255,255,.12);min-width:160px}
+.pdf-lab-r button{border:0;background:none;color:#f1e9dc;text-align:left;padding:7px 10px;border-radius:6px;cursor:pointer;font:600 12px Jost,sans-serif}.pdf-lab-r button:hover,.pdf-lab-r button.on{background:rgba(255,255,255,.12)}
+.pdf-lab-r b{float:right;background:#c8423a;color:#fff;border-radius:9px;padding:0 6px;font-size:10px}
+.pdf-lab-s{display:flex;flex-direction:column;gap:2px;padding:6px 10px;max-height:260px;overflow:auto;flex:1}
+.pdf-lab-s .pdf-cas{padding:4px 2px;white-space:nowrap}.pdf-lab-s .pdf-cas i{width:9px;height:9px;border-radius:2px;flex:none}.pdf-lab-s .pdf-cas em{margin-left:auto;font-style:normal;opacity:.6;padding-left:12px}
+.pdf-box .pdf-barre{flex-wrap:wrap}#pdfMode,#pdfOr{flex-direction:row!important;flex-wrap:nowrap}#pdfMode button,#pdfOr button{white-space:nowrap}

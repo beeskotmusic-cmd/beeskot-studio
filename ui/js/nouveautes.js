@@ -3,6 +3,11 @@
 // Pour une nouvelle version : ajouter un bloc EN HAUT de la liste. Une ligne courte par point : « Onglet : ce qui change. »
 // =====================================================================
 BK.NOUVEAUTES = [
+  { v: '0.9.118', titre: '', l: [
+    ['📄', 'PDF de tournage : le bouton « 🏷 Labels » ouvre un menu déroulant comme dans Médias (Morceaux, Tournage, Lumière, Réseaux, Membres) ; tu y coches les étiquettes dont les images vont dans le moodboard.'],
+    ['📄', 'PDF de tournage : « ＋ Ajouter des médias » ouvre la fenêtre Médias pour choisir toi-même une ou plusieurs images à insérer.'],
+    ['📄', 'PDF de tournage : choix « Vertical / Horizontal » pour les pages (aperçu, enregistrement et impression).'],
+  ] },
   { v: '0.9.117', titre: '', l: [
     ['📄', 'Tournages : dans la fenêtre du PDF, un bouton « ＋ Ajouter des médias » liste toutes les étiquettes de Médias (le tournage, les morceaux, Tenues, Moodboard…) avec le nombre d\'images ; coche-en une (ex. « Photoshoot ») et toutes ses images vont dans le moodboard du PDF.'],
     ['🔍', 'La petite loupe qui apparaissait sur les images (Médias, affiches) est retirée.'],
