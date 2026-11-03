@@ -3,6 +3,9 @@
 // Pour une nouvelle version : ajouter un bloc EN HAUT de la liste. Une ligne courte par point : « Onglet : ce qui change. »
 // =====================================================================
 BK.NOUVEAUTES = [
+  { v: '0.9.121', titre: '', l: [
+    ['🎬', 'Tournage › Assets : un bouton « ＋ Ajouter » (toujours visible, même panneau vide) pour choisir des médias dans Médias et les mettre dans les Assets du tournage. Les ✕ sont maintenant toujours visibles pour retirer un média (il reste dans Médias et le Drive).'],
+  ] },
   { v: '0.9.120', titre: '', l: [
     ['🔗', 'Notes et retours / Notes vidéos › Externe : la page des invités ne passe plus par Google (fini « Impossible d\'ouvrir le fichier » avec plusieurs comptes Google) et prend le style de l\'appli. Fais un nouveau lien : les anciens gardent l\'ancienne page.'],
     ['↗', 'Partager l\'écoute : les pochettes s\'affichent aussi pour les morceaux dont la photo était une ancienne image collée dans la fiche (elle est rangée une fois dans le Drive).'],

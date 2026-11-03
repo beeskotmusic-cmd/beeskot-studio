@@ -604,11 +604,13 @@ BK.module('tournage', function (page) {
             ${pr.map(f => `<div class="to-tph mi-prop"${BK.img.bg(BK.img.ref(f.id))} title="Étiqueté tenue de ${esc(m)} dans Médias : ✓ pour valider"><button class="mi-val" data-tpv="${d.id}|${esc(m)}|${f.id}">✓</button></div>`).join('')}
             <button class="to-tph to-tph-plus" data-tph2="${d.id}|${esc(m)}" title="Choisir dans Médias">＋<small>Photo</small></button></div>
           <input class="fld to-tenue-txt" data-tt="${d.id}|${esc(m)}" value="${esc((d.tenues || {})[m] || '')}" placeholder="en quelques mots (facultatif)"></div>`; }).join('')}</div>`;
-  const zoneAssets = d => { const val = d.assets || [], pr = propAssets(d); if (!val.length && !pr.length) return '';
+  const zoneAssets = d => { const val = d.assets || [], pr = propAssets(d);
+    const plus = `<button class="btn xs to-as-plus" data-asadd="${d.id}" title="Choisis des médias dans Médias : ils arrivent dans les Assets de ce tournage">＋ Ajouter</button>`;
+    if (!val.length && !pr.length) return `<div class="to-assets"><div class="to-as-tete"><span class="eng">Assets</span><span class="nt">Aucun média pour l'instant</span>${plus}</div></div>`;
     const g = DOS.map(n => ({ n, v: val.filter(x => dossierDe(x) === n), p: pr.filter(x => dossierDe(x) === n) })).filter(x => x.v.length || x.p.length);
     const ouvert = BK.reglage('tournage.assetsOuverts', {})[d.id];
-    if (!ouvert) return `<button class="to-assets ferme" data-asouv="${d.id}"><span class="eng">▸ Assets</span><b>${val.length + pr.length}</b><span class="nt">${g.map(x => esc(x.n) + ' ' + (x.v.length + x.p.length)).join(' · ')}</span>${pr.length ? `<span class="to-as-nb mi-txt">${pr.length} à valider</span>` : ''}</button>`;
-    return `<div class="to-assets"><button class="to-as-tete" data-asouv="${d.id}"><span class="eng">▾ Assets</span><span class="nt">${val.length + pr.length} média(s) · glisse-les sur une tenue ou un moodboard</span></button><div class="to-as-rang">${g.map(x => `<div class="to-as-dos"><span class="to-as-t">${esc(x.n)} <small>${x.v.length + x.p.length}</small></span>
+    if (!ouvert) return `<div class="to-assets ferme" data-asouv="${d.id}" role="button" tabindex="0"><span class="eng">▸ Assets</span><b>${val.length + pr.length}</b><span class="nt">${g.map(x => esc(x.n) + ' ' + (x.v.length + x.p.length)).join(' · ')}</span>${pr.length ? `<span class="to-as-nb mi-txt">${pr.length} à valider</span>` : ''}${plus}</div>`;
+    return `<div class="to-assets"><div class="to-as-tete"><button class="to-as-tete" data-asouv="${d.id}"><span class="eng">▾ Assets</span><span class="nt">${val.length + pr.length} média(s) · glisse-les sur une tenue ou un moodboard</span></button>${plus}</div><div class="to-as-rang">${g.map(x => `<div class="to-as-dos"><span class="to-as-t">${esc(x.n)} <small>${x.v.length + x.p.length}</small></span>
       <div class="to-meds">${x.v.map(y => vign(y, 'as:' + d.id)).join('')}${x.p.map(y => vign(y, 'prop:' + d.id, true)).join('')}</div></div>`).join('')}</div></div>`; };
 
   // ---------- la liste des tournages (les affiches) + les reels qui n'ont pas encore de tournage ----------
@@ -751,7 +753,7 @@ BK.module('tournage', function (page) {
   }
   // les boutons des zones médias (tenues, assets, propositions vertes)
   function brancherMedias(z) {
-    $$('[data-asouv]', z).forEach(b => b.onclick = () => { const o = BK.reglage('tournage.assetsOuverts', {}); o[b.dataset.asouv] = !o[b.dataset.asouv]; BK.regler('tournage.assetsOuverts', o); rendreFiche(); });
+    $$('[data-asouv]', z).forEach(b => b.onclick = e => { if (e.target.closest('[data-asadd]')) return; const o = BK.reglage('tournage.assetsOuverts', {}); o[b.dataset.asouv] = !o[b.dataset.asouv]; BK.regler('tournage.assetsOuverts', o); rendreFiche(); });
     $$('[data-tt]', z).forEach(c => c.oninput = () => { const [id, m] = c.dataset.tt.split('|'), d = T.liste.find(x => x.id === id); (d.tenues = d.tenues || {})[m] = c.value; sauver(d); });
     $$('[data-ttx]', z).forEach(b => b.onclick = async e => { e.stopPropagation(); if (!await BK.confirmer('Retirer cette photo de la tenue ? (elle reste dans le Drive)')) return; const [id, m, i] = b.dataset.ttx.split('|'), d = T.liste.find(x => x.id === id); d.tenuesPhotos[m].splice(+i, 1); await BK.db.ecrire('tournages', d); rendreFiche(); });
     $$('[data-tpv]', z).forEach(b => b.onclick = async e => { e.stopPropagation(); const [id, m, f] = b.dataset.tpv.split('|'); await poser({ x: { id: f }, src: 'prop' }, { doc: id, qui: m }); });
@@ -760,6 +762,14 @@ BK.module('tournage', function (page) {
       for (const x of l) { try { const d = await BK.img.depuisChoix(x, 'outfits'); await poser({ x: { u: d.ref, id: d.id || '' }, src: 'choix' }, { doc: id, qui: m }); } catch (er) { console.warn(er); } } });
     $$('[data-medx]', z).forEach(b => b.onclick = async e => { e.stopPropagation(); const x = JSON.parse(b.closest('[data-med]').dataset.med), src = b.dataset.medx;
       if (src.startsWith('prop:')) { T.non.add(src.slice(5) + '|' + x.id); await BK.partage.ecrire('tournage.assetsNon', [...T.non]); } else await retirerDe(src, x); rendreFiche(); });
+    $$('[data-asadd]', z).forEach(b => b.onclick = async e => { e.stopPropagation(); const d = T.liste.find(y => y.id === b.dataset.asadd); if (!d) return;
+      if (!BK.drive.relie()) return msg('Relie d\'abord le Drive');
+      const l = await BK.choisirDansMedias({ titre: 'Assets de « ' + (d.titre || 'Tournage') + ' »', bouton: 'Ajouter aux Assets' }); if (!l || !l.length) return;
+      msg('Ajout aux Assets…'); d.assets = d.assets || []; let n = 0;
+      for (const x of l) { try { const r = await BK.img.depuisChoix(x, 'moodboard'), it = { u: r.ref, id: r.id || '', mime: x.mime || '', nom: x.nom || '' };
+          if (it.u && !d.assets.some(y => meme(y, it))) { d.assets.push(it); n++; await etiqueter(it, tagsDoc(d)); } } catch (er) { console.warn(er); } await BK.audio.pause(); }
+      const o = BK.reglage('tournage.assetsOuverts', {}); o[d.id] = true; BK.regler('tournage.assetsOuverts', o);
+      await BK.db.ecrire('tournages', d); msg(n + ' média(s) ajouté(s) aux Assets'); rendreFiche(); });
     $$('[data-pval]', z).forEach(b => b.onclick = async e => { e.stopPropagation(); const x = JSON.parse(b.closest('[data-med]').dataset.med), d = T.liste.find(y => y.id === b.dataset.pval.slice(5));
       d.assets = d.assets || []; d.assets.push(x); await BK.db.ecrire('tournages', d); msg('Asset validé'); rendreFiche(); });
   }
