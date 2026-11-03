@@ -941,13 +941,16 @@ BK.module('tournage', function (page) {
     const libM = nomsM.length ? 'Moodboard de « ' + nomsM.join(' », « ') + ' » (Drive)' : 'Moodboard du Drive';
     const optsPdf = []; if (tour) { cles.forEach(d => { const n = dosImgs(d).length; if (n) optsPdf.push({ k: d, lib: d, n }); }); if ((t0.moodboard || []).length) optsPdf.push({ k: '@drive', lib: libM, n: t0.moodboard.length }); }
     const cleSel = 'tournage.pdfImgs.' + t0.id; let choix = BK.reglage(cleSel, null); if (!Array.isArray(choix)) choix = ['Moodboard'];
-    const moodDe = () => [...new Set(choix.flatMap(k => k === '@drive' ? t0.moodboard || [] : dosImgs(k)).filter(Boolean))];
+    // « Ajouter des médias » : tous les médias (images) du Drive qui portent une étiquette choisie (ex. « Photoshoot »)
+    const etqImgs = k => (T.fichiers || []).filter(f => /^image\//.test(f.mimeType || '') && BK.etiquettes.liste(T.tags || {}, f.id).includes(k)).map(f => BK.img.ref(f.id));
+    const moodDe = () => [...new Set(choix.flatMap(k => k === '@drive' ? t0.moodboard || [] : k.startsWith('e:') ? etqImgs(k.slice(2)) : dosImgs(k)).filter(Boolean))];
     const leT = () => tour ? { ...t0, type: nomJ(t0), moodboard: moodDe() } : t0, faits = {}; let mode = BK.reglage('tournage.pdfMode', 'couleur');
     const v = document.createElement('div'); v.className = 'voile';
     v.innerHTML = `<div class="stopbox pdf-box"><span class="screw tl"></span><span class="screw tr"></span><span class="screw bl"></span><span class="screw br"></span>
       <span class="dymo" style="align-self:center">📄 PDF · ${esc(t0.titre || 'Tournage')}</span>
       <div class="pdf-barre"><div class="seg" id="pdfMode"><button data-m="couleur">🎨 Couleur</button><button data-m="nb">⚫ Noir et blanc</button></div>
         <span class="vfd" id="pdfEtat">…</span></div>
+      ${tour ? `<div class="pdf-barre pdf-imgs"><button class="btn xs" id="pdfPlus" title="Ajoute au moodboard du PDF tous les médias du Drive qui ont une étiquette (ex. Photoshoot)">＋ Ajouter des médias</button><span class="pdf-etq" id="pdfEtq" hidden></span></div>` : ''}
       ${optsPdf.length ? `<div class="pdf-barre pdf-imgs"><b>Images du moodboard :</b>${optsPdf.map(o => `<label class="pdf-cas"><input type="checkbox" data-k="${esc(o.k)}"${choix.includes(o.k) ? ' checked' : ''}> ${esc(o.lib)} (${o.n})</label>`).join('')}</div>` : ''}
       <div class="pdf-zone"><div class="pdf-pages" id="pdfVue"></div><div class="pdf-attente" id="pdfAttente"><span class="spin"></span> Fabrication du PDF…</div></div>
       <div class="stopbox-btns pdf-btns"><button class="btn pri" id="pdfSave" title="Dans Documents › BEESKOT Studio › Tournages PDF et dans le Drive (dossier « Tournages PDF »)">💾 Enregistrer</button>
@@ -966,7 +969,21 @@ BK.module('tournage', function (page) {
       else { const a = document.createElement('a'); a.href = r.url; a.download = r.nom; document.body.appendChild(a); a.click(); a.remove(); ou.push('téléchargé'); }
       if (BK.drive.relie() && !r.envoye) { try { const dos = await BK.drive.dossier('Tournages PDF', await BK.drive.racine()); await BK.drive.envoyerBlob(new File([blob], r.nom, { type: 'application/pdf' }), r.nom, dos); r.envoye = true; ou.push('Drive › Tournages PDF'); } catch (e) { console.warn(e); } }
       return { ch, ou }; };
-    v.querySelectorAll('.pdf-cas input').forEach(c => c.onchange = () => { choix = [...v.querySelectorAll('.pdf-cas input:checked')].map(x => x.dataset.k); BK.regler(cleSel, choix); montrer(); });
+    const lierCases = () => v.querySelectorAll('.pdf-cas input').forEach(c => c.onchange = () => { choix = [...choix.filter(k => ![...v.querySelectorAll('.pdf-cas input')].some(x => x.dataset.k === k)), ...[...v.querySelectorAll('.pdf-cas input:checked')].map(x => x.dataset.k)]; BK.regler(cleSel, choix); montrer(); });
+    lierCases();
+    const NOMS_C = { tournage: 'Tournage (général)', outfits: 'Tenues', moodboard: 'Moodboard', lumiere: 'Light show', scenographie: 'Scénographie', live: 'Live / concert', cover: 'Covers', insta: 'Posts Instagram', story: 'Stories', reel: 'Reels / TikTok', affiche: 'Affiches / flyers', presse: 'Presse / EPK', ref: 'Références / inspiration' };
+    const dessinerEtq = async () => { const zone = q('#pdfEtq'); if (!zone) return;
+      if (!T.fichiers || !T.tags) { zone.hidden = false; zone.textContent = 'Chargement des médias…'; try { T.tags = await BK.etiquettes.tous(); T.fichiers = await BK.dossiers.tousFichiers(); } catch (e) { zone.textContent = 'Médias injoignables (Drive relié ?)'; return; } }
+      const morceaux = await BK.db.liste('morceaux').catch(() => []), compte = {};
+      for (const f of T.fichiers) if (/^image\//.test(f.mimeType || '')) for (const k of BK.etiquettes.liste(T.tags, f.id)) if (k && k !== '-') compte[k] = (compte[k] || 0) + 1;
+      const nom = k => { if (/^t:/.test(k)) { const x = T.liste.find(y => 't:' + y.id === k); return x ? '🎬 ' + (x.titre || 'Tournage') : null; }
+        if (/^c:m-/.test(k)) return '◉ ' + k.slice(4).replace(/^./, c => c.toUpperCase()); if (/^c:/.test(k)) { const n = NOMS_C[k.slice(2)] || ((BK.etiquettes.PERSO || []).find(x => x.k === k) || {}).nom; return n || null; }
+        const m = morceaux.find(y => y.id === k); return m ? '♪ ' + m.nom : ((BK.etiquettes.PERSO || []).find(x => x.k === k) || {}).nom || null; };
+      const ordre = k => /^t:/.test(k) ? 0 : /^c:/.test(k) ? 2 : 1, l = Object.keys(compte).map(k => ({ k, n: nom(k), c: compte[k] })).filter(x => x.n).sort((a, b) => ordre(a.k) - ordre(b.k) || a.n.localeCompare(b.n));
+      zone.hidden = false; zone.innerHTML = l.length ? l.map(x => `<label class="pdf-cas"><input type="checkbox" data-k="e:${esc(x.k)}"${choix.includes('e:' + x.k) ? ' checked' : ''}> ${esc(x.n)} (${x.c})</label>`).join('') : '<span class="nt">Aucun média étiqueté pour l\'instant.</span>';
+      lierCases(); };
+    if (q('#pdfPlus')) { q('#pdfPlus').onclick = () => { const z = q('#pdfEtq'); if (z.hidden) dessinerEtq(); else z.hidden = true; };
+      if (choix.some(k => k.startsWith('e:'))) dessinerEtq().then(montrer); }
     q('#pdfMode').onclick = e => { const b = e.target.closest('[data-m]'); if (!b || b.dataset.m === mode) return; mode = b.dataset.m; BK.regler('tournage.pdfMode', mode); montrer(); };
     q('#pdfSave').onclick = async () => { const b = q('#pdfSave'); b.disabled = true; etat('Enregistrement…'); const { ou } = await enregistrer(); etat(ou.length ? 'Enregistré ✓' : 'Pas enregistré'); msg(ou.length ? 'PDF : ' + ou.join(' + ') : 'PDF pas enregistré (Drive ou dossier injoignable)'); b.disabled = false; };
     q('#pdfOuvrir').onclick = async () => { etat('Ouverture…'); const { ch } = await enregistrer(); if (ch) { try { await BK.T.opener.openPath(ch); etat('Ouvert ✓'); } catch (e) { etat('Ouverture impossible'); } } else { const r = await fabriquer(mode); window.open(r.url, '_blank'); } };

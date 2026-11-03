@@ -2243,5 +2243,4 @@ tr.pl-fait td{opacity:.6}tr.pl-fait td.mono{color:#9be37a;opacity:1}
 .voir-x{top:16px;right:16px}.voir-p{left:16px;top:50%}.voir-s{right:16px;top:50%}
 .voir-x:hover,.voir-p:hover,.voir-s:hover{background:rgba(255,255,255,.2)}
 .voir-n{position:absolute;bottom:16px;left:50%;transform:translateX(-50%);color:#f3ece0;font-size:12px;background:rgba(0,0,0,.55);padding:3px 10px;border-radius:10px}
-.voir-loupe{position:fixed;z-index:250;width:26px;height:26px;display:grid;place-items:center;border-radius:50%;cursor:zoom-in;font-size:13px;background:rgba(0,0,0,.65);box-shadow:0 0 0 1px rgba(255,255,255,.35);backdrop-filter:blur(2px)}
-.voir-loupe:hover{background:rgba(255,255,255,.28)}
+.pdf-etq{display:flex;flex-wrap:wrap;gap:6px 14px;font-size:12px}.pdf-etq[hidden]{display:none}

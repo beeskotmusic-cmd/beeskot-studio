@@ -41,25 +41,3 @@ document.addEventListener('click', e => {
   BK.voir(liste.length ? liste : u, idx);
 }, true);
 
-// la petite loupe 🔍 : elle apparaît au survol d'une image qu'on ne peut pas ouvrir d'un simple clic (Médias, affiches des reels, affiche d'un tournage…)
-(() => {
-  const CIBLES = '.md-tuile .md-img:not(.video):not(.son),.su-aff:not(.su-aff-vide),.to-affiche:not(.sans),.tt-aff:not(.sans)';
-  let b = null, cible = null;
-  const loupe = () => b || (b = Object.assign(document.createElement('span'), { className: 'voir-loupe', textContent: '🔍', title: 'Voir en grand' }), b.hidden = true, document.body.appendChild(b), b);
-  const urlDe = async el => {
-    const t = el.closest('.md-tuile'), ref = t ? BK.img.ref(t.dataset.id) : el.dataset.ref;
-    if (ref) { try { const u = await Promise.race([BK.img.url(ref), new Promise(r => setTimeout(r, 4000))]); if (u) return u; } catch (e) {} }
-    return BK.voirUrlDe(el);
-  };
-  document.addEventListener('mouseover', e => {
-    const el = e.target.closest && e.target.closest(CIBLES);
-    if (el === cible || (b && e.target.closest('.voir-loupe'))) return;
-    cible = el; const l = loupe(); if (!el || !BK.voirUrlDe(el) && !el.dataset.ref && !el.closest('.md-tuile')) { l.hidden = true; return; }
-    const r = el.getBoundingClientRect(); l.style.left = (r.left + 6) + 'px'; l.style.top = (r.top + 6) + 'px'; l.hidden = false;
-  }, true);
-  document.addEventListener('click', async e => {
-    if (!b || !e.target.closest('.voir-loupe') || !cible) return; e.preventDefault(); e.stopPropagation();
-    const u = await urlDe(cible); if (u) BK.voir(u); else if (window.msg) msg('Image pas encore chargée');
-  }, true);
-  document.addEventListener('scroll', () => { if (b) b.hidden = true; cible = null; }, true);
-})();
