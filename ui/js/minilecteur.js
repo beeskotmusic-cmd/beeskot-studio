@@ -82,3 +82,14 @@ BK.mini = {
     z.querySelector('[data-mi="page"]').textContent = '↗ ' + nomPage;
   },
 };
+
+// Espace = lecture / pause du son en cours, partout (sauf en train d'écrire, ou si la page gère déjà Espace : Notes vidéos, Reels Vidéo…)
+window.addEventListener('load', () => document.addEventListener('keydown', e => {
+  if (e.code !== 'Space' || e.defaultPrevented || e.ctrlKey || e.metaKey || e.altKey || e.repeat) return;
+  const ae = e.target && e.target.nodeType === 1 ? e.target : document.activeElement || {}, t = ae.tagName || '';
+  if (/TEXTAREA|SELECT|BUTTON|A$/.test(t) || (t === 'INPUT' && ae.type !== 'range') || ae.isContentEditable || document.querySelector('.voile:not(.hidden)')) return;
+  const s = BK.mini.actuel, z = document.getElementById('bkMini'); if (!s || BK.mini.cache || (z && z.classList.contains('hidden'))) return;
+  e.preventDefault(); if (t === 'INPUT') ae.blur();
+  if (s.ext) { s.joue() ? s.pause() : s.jouer(); } else { s.el.paused ? s.el.play().catch(() => {}) : s.el.pause(); }
+  setTimeout(() => BK.mini.maj(), 60);
+}));

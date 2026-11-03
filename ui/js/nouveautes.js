@@ -3,6 +3,16 @@
 // Pour une nouvelle version : ajouter un bloc EN HAUT de la liste. Une ligne courte par point : « Onglet : ce qui change. »
 // =====================================================================
 BK.NOUVEAUTES = [
+  { v: '0.9.116', titre: '', l: [
+    ['📄', 'Tournages : dans la fenêtre du PDF, tu coches les dossiers dont les images vont dans le moodboard (Moodboard, Tenues, Lumière / déco, Divers, ou le moodboard du Drive). Le choix est retenu pour chaque tournage.'],
+    ['🎚️', 'Lecteur du bas : il prend la matière et les couleurs de chaque section (velours blanc en Musique, cuir rouge en Contenus, tweed doré en Organisation, tissu violet et turquoise en Show, bois à l\'Accueil).'],
+    ['🎨', 'Musique, Contenus et Show : les petits restes de jaune (textes, bordures, lueurs, boutons, afficheurs) prennent la couleur de leur section — crème en Musique, rouge en Contenus, turquoise en Show. Organisation et Accueil gardent leur or.'],
+    ['🏠', 'Accueil : le cadre « Pour démarrer » est retiré de « En bref ».'],
+    ['🔍', 'Médias, affiches des reels (Suivi) et affiches de tournage : une petite loupe apparaît au survol de l\'image ; un clic dessus l\'ouvre en grand (même zoom à la molette).'],
+    ['🔍', 'Tournages : un clic sur une tenue, une image du moodboard, un asset ou une image de plan l\'ouvre en grand. Molette = zoom (vers la souris), glisser = déplacer, double-clic = taille normale, ← → = image d\'à côté, Échap = fermer.'],
+    ['⏯️', 'Partout : la barre Espace met le son en pause et le relance (sauf quand tu écris dans un champ, ou dans Notes vidéos et Reels Vidéo qui l\'utilisent déjà).'],
+    ['⚪', 'Bibliothèque : les boutons ▶ sont blancs et le lecteur a une nouvelle plaque de velours, avec une barre blanche, pour mieux aller avec le rouge.'],
+  ] },
   { v: '0.9.115', titre: '', l: [
     ['📄', 'Tournages : le PDF d\'un tournage met dans le Moodboard exactement les photos du dossier Moodboard de ses Assets (ce qu\'on voit à l\'écran). Un bouton « + Ajouter le moodboard de « morceau » » dans la fenêtre du PDF ajoute aussi les images rangées par Miette depuis le dossier Moodboards du Drive.'],
   ] },

@@ -487,7 +487,7 @@ BK.module('medias', function (page) {
     let ouverte = null;
     const GROUPES = [['morceaux', '♪ Morceaux'], ['tournage', '🎬 Tournage'], ['lumiere', '💡 Lumière / scène'], ['reseaux', '📣 Réseaux'], ['membres', '◉ Membres']];
     const dessiner = () => { const l = lireTags(id);
-      menu.innerHTML = (tous.length > 1 ? `<span class="md-menu-t" style="color:#ffb23e">${tous.length} fichiers choisis</span>` : '')
+      menu.innerHTML = (tous.length > 1 ? `<span class="md-menu-t" style="color:var(--s-clair,#ffb23e)">${tous.length} fichiers choisis</span>` : '')
         + GROUPES.map(([r, t]) => { const n = rubs[r].filter(c => l.includes(c.k)).length;
           return `<div class="md-grp${ouverte === r ? ' ouvert' : ''}" data-grp="${r}"><button class="md-grp-b">${t}${n ? ` <em>${n}</em>` : ''}<span class="md-fl">▸</span></button>
             <div class="md-sub">${rubs[r].length ? rubs[r].map(c => `<button data-m="${esc(c.k)}"${l.includes(c.k) ? ' class="on"' : ''}><i style="background:${BK.couleurTag(c.k)}"></i>${l.includes(c.k) ? '☑' : '☐'} ${esc(c.nom)}</button>`).join('') : '<span class="nt" style="padding:6px 10px">Rien ici</span>'}</div></div>`; }).join('')

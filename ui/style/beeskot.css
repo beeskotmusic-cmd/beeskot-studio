@@ -2236,3 +2236,12 @@ body .seg.ec-ab button:not(.on){opacity:.7}
 @media (max-width:1500px){.look-neuf .paniers{grid-template-columns:repeat(2,minmax(0,1fr))!important}}
 .bk-conf.danger [data-r="1"]{--c:#8d182f;background:linear-gradient(180deg,#a8323f,#6e1422)!important;color:#fff3e6!important}
 tr.pl-fait td{opacity:.6}tr.pl-fait td.mono{color:#9be37a;opacity:1}
+.pdf-imgs{flex-wrap:wrap;font-size:12px;gap:8px 14px}.pdf-cas{display:inline-flex;align-items:center;gap:5px;cursor:pointer}
+.voir-voile{z-index:300;background:rgba(6,3,1,.88);overflow:hidden}
+.voir-img{max-width:92vw;max-height:90vh;border-radius:4px;box-shadow:0 8px 30px #000;user-select:none;touch-action:none;transform-origin:center}
+.voir-x,.voir-p,.voir-s{position:absolute;border:0;border-radius:50%;width:40px;height:40px;font-size:22px;line-height:1;cursor:pointer;color:#f3ece0;background:rgba(0,0,0,.55);box-shadow:0 0 0 1px rgba(255,255,255,.25)}
+.voir-x{top:16px;right:16px}.voir-p{left:16px;top:50%}.voir-s{right:16px;top:50%}
+.voir-x:hover,.voir-p:hover,.voir-s:hover{background:rgba(255,255,255,.2)}
+.voir-n{position:absolute;bottom:16px;left:50%;transform:translateX(-50%);color:#f3ece0;font-size:12px;background:rgba(0,0,0,.55);padding:3px 10px;border-radius:10px}
+.voir-loupe{position:fixed;z-index:250;width:26px;height:26px;display:grid;place-items:center;border-radius:50%;cursor:zoom-in;font-size:13px;background:rgba(0,0,0,.65);box-shadow:0 0 0 1px rgba(255,255,255,.35);backdrop-filter:blur(2px)}
+.voir-loupe:hover{background:rgba(255,255,255,.28)}

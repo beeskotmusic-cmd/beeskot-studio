@@ -299,8 +299,6 @@ BK.module('tournage', function (page) {
       tr.addEventListener('drop', e => { const m = e.dataTransfer.getData('text/bk-moodimg'); if (m === '') return; e.preventDefault(); e.stopPropagation(); tr.classList.remove('survol');
         ajouterAuPlan(+tr.dataset.i, t.moodboard[+m]); sauver(t); rendreFiche(); }, true); });
     $$('[data-vx]', z).forEach(b => b.onclick = e => { e.stopPropagation(); const [i, k] = b.dataset.vx.split('|'); t.plans[+i].imgs.splice(+k, 1); sauver(t); rendreFiche(); });
-    $$('[data-vu]', z).forEach(b => b.onclick = () => { const [i, k] = b.dataset.vu.split('|'), u = t.plans[+i].imgs[+k];       // agrandir
-      const v = document.createElement('div'); v.className = 'voile'; v.innerHTML = `<img${BK.img.src(u)} style="max-width:92vw;max-height:92vh;border-radius:4px;box-shadow:0 8px 30px #000">`; v.onclick = () => v.remove(); document.body.appendChild(v); });
     $$('[data-ia]', z).forEach(b => b.onclick = e => {                                                     // le petit « + » : le moodboard, ou Médias
       e.stopPropagation(); $$('.to-pop').forEach(x => x.remove()); const i = +b.dataset.ia, r = b.getBoundingClientRect();
       const pop = document.createElement('div'); pop.className = 'to-pop';
@@ -936,24 +934,28 @@ BK.module('tournage', function (page) {
     // le moodboard du PDF d'un tournage = ce qu'on voit à l'écran (Assets › Moodboard)
     const refDe = x => x.u || (x.id ? BK.img.ref(x.id) : ''), estImage = x => !/^(audio|video)\//.test(x.mime || '') && !x.audio && !/pdf$/i.test(x.mime || '') && !/\.pdf$/i.test(x.nom || '');
     // le bouton ajoute le moodboard du morceau, rangé par Miette depuis le dossier Moodboards du Drive (la liste qui ne s'affiche pas à l'écran)
-    const moodDe = plus => [...new Set([...(t0.assets || []).filter(estImage).filter(x => dossierDe(x) === 'Moodboard').map(refDe), ...(plus ? t0.moodboard || [] : [])].filter(Boolean))];
+    // cases à cocher : un dossier d'Assets (validés, à l'écran) = ses images ; « Drive » = le moodboard rangé par Miette
+    const imgsAssets = (t0.assets || []).filter(estImage), cles = ['Moodboard', 'Tenues', 'Lumière / déco', 'Divers'];
+    const dosImgs = d => imgsAssets.filter(x => dossierDe(x) === d).map(refDe).filter(Boolean);
     const nomsM = [...new Set([t0.morceau, ...(tour ? reelsDe(tour) : []).map(r => r.morceau)].filter(Boolean))];
-    const libM = nomsM.length ? 'le moodboard de « ' + nomsM.join(' », « ') + ' »' : 'le moodboard du Drive';
-    let avecAssets = false;
-    const leT = () => tour ? { ...t0, type: nomJ(t0), moodboard: moodDe(avecAssets) } : t0, faits = {}; let mode = BK.reglage('tournage.pdfMode', 'couleur');
+    const libM = nomsM.length ? 'Moodboard de « ' + nomsM.join(' », « ') + ' » (Drive)' : 'Moodboard du Drive';
+    const optsPdf = []; if (tour) { cles.forEach(d => { const n = dosImgs(d).length; if (n) optsPdf.push({ k: d, lib: d, n }); }); if ((t0.moodboard || []).length) optsPdf.push({ k: '@drive', lib: libM, n: t0.moodboard.length }); }
+    const cleSel = 'tournage.pdfImgs.' + t0.id; let choix = BK.reglage(cleSel, null); if (!Array.isArray(choix)) choix = ['Moodboard'];
+    const moodDe = () => [...new Set(choix.flatMap(k => k === '@drive' ? t0.moodboard || [] : dosImgs(k)).filter(Boolean))];
+    const leT = () => tour ? { ...t0, type: nomJ(t0), moodboard: moodDe() } : t0, faits = {}; let mode = BK.reglage('tournage.pdfMode', 'couleur');
     const v = document.createElement('div'); v.className = 'voile';
     v.innerHTML = `<div class="stopbox pdf-box"><span class="screw tl"></span><span class="screw tr"></span><span class="screw bl"></span><span class="screw br"></span>
       <span class="dymo" style="align-self:center">📄 PDF · ${esc(t0.titre || 'Tournage')}</span>
       <div class="pdf-barre"><div class="seg" id="pdfMode"><button data-m="couleur">🎨 Couleur</button><button data-m="nb">⚫ Noir et blanc</button></div>
-        ${tour && (t0.moodboard || []).length ? `<button class="btn sm" id="pdfAssets" title="Ajoute au PDF les images du dossier Moodboards du Drive pour ce morceau (${(t0.moodboard || []).length})">＋ Ajouter ${esc(libM)}</button>` : ''}
         <span class="vfd" id="pdfEtat">…</span></div>
+      ${optsPdf.length ? `<div class="pdf-barre pdf-imgs"><b>Images du moodboard :</b>${optsPdf.map(o => `<label class="pdf-cas"><input type="checkbox" data-k="${esc(o.k)}"${choix.includes(o.k) ? ' checked' : ''}> ${esc(o.lib)} (${o.n})</label>`).join('')}</div>` : ''}
       <div class="pdf-zone"><div class="pdf-pages" id="pdfVue"></div><div class="pdf-attente" id="pdfAttente"><span class="spin"></span> Fabrication du PDF…</div></div>
       <div class="stopbox-btns pdf-btns"><button class="btn pri" id="pdfSave" title="Dans Documents › BEESKOT Studio › Tournages PDF et dans le Drive (dossier « Tournages PDF »)">💾 Enregistrer</button>
         <button class="btn" id="pdfOuvrir" title="Ouvre le PDF dans ton lecteur PDF (Acrobat, Edge…)">📂 Ouvrir dans le lecteur PDF</button>
         <button class="btn" id="pdfImp">🖨 Imprimer</button><button class="btn" id="pdfFermer">Fermer</button></div></div>`;
     document.body.appendChild(v);
     const q = s2 => v.querySelector(s2), etat = x => { q('#pdfEtat').textContent = String(x).toUpperCase(); };
-    const fabriquer = async m0 => { const m = m0 + (avecAssets ? '+a' : ''), t = leT(); if (!faits[m]) faits[m] = BK.pdfTournage({ t, reels: tour ? reelsDe(tour) : [], membres: T.membres, dateFr, mode: m0 }).then(r => ({ ...r, url: URL.createObjectURL(new Blob([r.bytes], { type: 'application/pdf' })) })); return faits[m]; };
+    const fabriquer = async m0 => { const t = leT(), m = m0 + '|' + (tour ? t.moodboard.join(',') : ''); if (!faits[m]) faits[m] = BK.pdfTournage({ t, reels: tour ? reelsDe(tour) : [], membres: T.membres, dateFr, mode: m0 }).then(r => ({ ...r, url: URL.createObjectURL(new Blob([r.bytes], { type: 'application/pdf' })) })); return faits[m]; };
     const montrer = async () => { $$('#pdfMode button', v).forEach(b => b.classList.toggle('on', b.dataset.m === mode)); q('#pdfAttente').hidden = false; etat('Fabrication…');
       try { const r = await fabriquer(mode); await BK.pdfApercu(r.bytes, q('#pdfVue'), Math.min(820, q('#pdfVue').clientWidth - 40)); etat(`${r.pages} page(s) · ${mode === 'nb' ? 'noir et blanc' : 'couleur'}`); }
       catch (e) { console.error(e); etat('PDF impossible : ' + (e.message || e)); }
@@ -964,8 +966,7 @@ BK.module('tournage', function (page) {
       else { const a = document.createElement('a'); a.href = r.url; a.download = r.nom; document.body.appendChild(a); a.click(); a.remove(); ou.push('téléchargé'); }
       if (BK.drive.relie() && !r.envoye) { try { const dos = await BK.drive.dossier('Tournages PDF', await BK.drive.racine()); await BK.drive.envoyerBlob(new File([blob], r.nom, { type: 'application/pdf' }), r.nom, dos); r.envoye = true; ou.push('Drive › Tournages PDF'); } catch (e) { console.warn(e); } }
       return { ch, ou }; };
-    if (q('#pdfAssets')) q('#pdfAssets').onclick = () => { avecAssets = !avecAssets; const b = q('#pdfAssets'); b.classList.toggle('on', avecAssets);
-      b.textContent = (avecAssets ? '✓ Ajouté : ' : '＋ Ajouter ') + libM; montrer(); };
+    v.querySelectorAll('.pdf-cas input').forEach(c => c.onchange = () => { choix = [...v.querySelectorAll('.pdf-cas input:checked')].map(x => x.dataset.k); BK.regler(cleSel, choix); montrer(); });
     q('#pdfMode').onclick = e => { const b = e.target.closest('[data-m]'); if (!b || b.dataset.m === mode) return; mode = b.dataset.m; BK.regler('tournage.pdfMode', mode); montrer(); };
     q('#pdfSave').onclick = async () => { const b = q('#pdfSave'); b.disabled = true; etat('Enregistrement…'); const { ou } = await enregistrer(); etat(ou.length ? 'Enregistré ✓' : 'Pas enregistré'); msg(ou.length ? 'PDF : ' + ou.join(' + ') : 'PDF pas enregistré (Drive ou dossier injoignable)'); b.disabled = false; };
     q('#pdfOuvrir').onclick = async () => { etat('Ouverture…'); const { ch } = await enregistrer(); if (ch) { try { await BK.T.opener.openPath(ch); etat('Ouvert ✓'); } catch (e) { etat('Ouverture impossible'); } } else { const r = await fabriquer(mode); window.open(r.url, '_blank'); } };

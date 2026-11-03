@@ -337,3 +337,34 @@ body.look-neuf #nav .tab:not(.on){background:radial-gradient(80% 60% at 35% 20%,
  box-shadow:0 0 0 1px rgba(200,200,205,.28),0 5px 0 3px #0e0e10,0 8px 8px 3px rgba(0,0,0,.45),inset 0 1px 0 rgba(255,255,255,.1)!important}
 body.look-neuf #nav .tab.on{background:radial-gradient(ellipse at 50% 50%,rgba(255,255,255,.06),transparent 75%),linear-gradient(180deg,#333336,#18181a)!important;box-shadow:0 0 0 1px rgba(230,230,235,.7),inset 0 2px 5px rgba(0,0,0,.35)!important}
 body.look-neuf #nav .tab .lab{color:#e8e8ea}
+
+/* Bibliothèque : boutons ▶ blancs (accordés au velours rouge) */
+body.look-neuf[data-section="musique"] .lect-play,
+body.look-neuf[data-section="musique"] .btn.xs[data-ecoute]{background:linear-gradient(180deg,#ffffff,#d9d4cc)!important;color:#3a0d12!important;border:0!important;box-shadow:0 2px 5px rgba(0,0,0,.5),inset 0 1px 0 rgba(255,255,255,.9)!important}
+body.look-neuf[data-section="musique"] .lect-play:hover,
+body.look-neuf[data-section="musique"] .btn.xs[data-ecoute]:hover{background:linear-gradient(180deg,#fff,#eee9e0)!important}
+body.look-neuf[data-section="musique"] .lect-pas{color:#f1ece4;border-color:rgba(255,255,255,.35)}
+body.look-neuf[data-section="musique"] .lect-pas:hover{color:#fff;border-color:#fff}
+
+/* Bibliothèque : le lecteur en plaque de magnétophone (velours, crème, blanc) */
+body.look-neuf[data-section="musique"] .lecteur{margin:2px 12px 12px;padding:8px 14px;border-radius:12px;background:linear-gradient(180deg,rgba(30,6,10,.82),rgba(14,3,5,.9));box-shadow:inset 0 1px 0 rgba(255,255,255,.12),inset 0 -2px 6px rgba(0,0,0,.55),0 0 0 1px rgba(255,255,255,.14),0 3px 8px rgba(0,0,0,.45)}
+body.look-neuf[data-section="musique"] .lect-barre{height:8px;border-radius:4px;background:#12060a;box-shadow:inset 0 1px 3px #000,0 0 0 1px rgba(255,255,255,.12)}
+body.look-neuf[data-section="musique"] .lect-barre i{background:linear-gradient(90deg,#e9e2d6,#fff);box-shadow:0 0 8px rgba(255,255,255,.55)}
+body.look-neuf[data-section="musique"] .lect-t{color:#f3ece0;font-size:12px;letter-spacing:.04em}
+body.look-neuf[data-section="musique"] .lect-src{color:#cdbfae}
+body.look-neuf[data-section="musique"] .lect-pas{background:linear-gradient(180deg,#3a1218,#1c0508);box-shadow:inset 0 1px 0 rgba(255,255,255,.15),0 1px 3px rgba(0,0,0,.5)}
+
+/* Lecteur du bas : il prend la matière et la couleur de chaque section */
+body.look-neuf .mini-lect{--m-a:#ffcf7a;--m-b:#d48a1c;--m-t:#ffb23e;--m-btn:#2a1c10;border-top:2px solid var(--m-b);box-shadow:0 -4px 10px rgba(0,0,0,.4)}
+body.look-neuf .mini-lect .mini-plein,body.look-neuf .mini-lect .mini-niveau{background:linear-gradient(90deg,var(--m-b),var(--m-a))!important}
+body.look-neuf .mini-lect .mini-t{color:var(--m-t)!important}
+body.look-neuf .mini-lect .mini-barre,body.look-neuf .mini-lect .mini-equerre{background:rgba(0,0,0,.45);box-shadow:inset 0 1px 2px #000}
+body.look-neuf .mini-lect .btn{background:linear-gradient(180deg,rgba(255,255,255,.10),rgba(0,0,0,.35)),var(--m-btn);color:#f3ece0;border-color:rgba(255,255,255,.22)}
+body.look-neuf .mini-lect .mini-jouer{background:linear-gradient(180deg,var(--m-a),var(--m-b))!important;color:#1d0f06!important;border-color:rgba(0,0,0,.5)!important}
+body[data-section="musique"].look-neuf .mini-lect{--m-a:#ffffff;--m-b:#cfc7ba;--m-t:#f3ece0;--m-btn:#3a1218;background:linear-gradient(rgba(20,4,7,.72),rgba(12,2,4,.82)),url(../look/velours-fond.jpg) 0 0/254px auto}
+body[data-section="musique"].look-neuf .mini-lect .mini-jouer{color:#3a0d12!important}
+body[data-section="contenus"].look-neuf .mini-lect{--m-a:#ff6a78;--m-b:#9e2131;--m-t:#ff6a78;--m-btn:#2a1012;background:linear-gradient(rgba(14,8,8,.62),rgba(8,4,4,.7)),url(../look/cuir-contenus.jpg) 0 0/300px auto}
+body[data-section="contenus"].look-neuf .mini-lect .mini-jouer{color:#fff4f0!important}
+body[data-section="orga"].look-neuf .mini-lect,body[data-section="organisation"].look-neuf .mini-lect{background:linear-gradient(rgba(15,8,2,.62),rgba(10,5,1,.72)),url(../look/tweed-fond.jpg) 0 0/254px auto,#1a1208}
+body[data-section="show"].look-neuf .mini-lect{--m-a:#7fe0d4;--m-b:#2f9a90;--m-t:#8fe3d9;--m-btn:#241c52;background:url(../look/toile-douce-show.png) 0 0/128px 128px,#1c1640}
+body[data-section="general"].look-neuf .mini-lect{background:linear-gradient(rgba(18,10,4,.6),rgba(10,5,2,.7)),url(../look/bois-fond.jpg) 0 0/360px auto,#1a1008}
