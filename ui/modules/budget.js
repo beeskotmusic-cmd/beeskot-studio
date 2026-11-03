@@ -104,6 +104,9 @@ BK.module('budget', function (page) {
     return { part, payes, doivent: pour.filter(m => m !== d.payePar && !payes.includes(m)) };
   }
 
+  // une dépense est « à moi » si je l'ai créée (ou, pour les anciennes, si c'est moi qui ai payé) — « par » = le dernier qui l'a modifiée : pas fiable
+  const moiNom = () => B.membres.find(m => m.toLowerCase() === String(BK.reglage('nomPc', '')).trim().toLowerCase()) || '';
+  const aMoi = d => { const c = String(d.creePar || d.payePar || '').trim().toLowerCase(); return !!c && (c === String(BK.reglage('nomPc', '')).trim().toLowerCase() || c === moiNom().toLowerCase()); };
   function rendre() {
     chips();
     // 🍞 les paiements dont on a parlé sur Discord (le bouton jaune)
@@ -121,10 +124,10 @@ BK.module('budget', function (page) {
     // les mois
     const mois = [...new Set(B.dep.map(d => (d.date || '').slice(0, 7)).filter(Boolean))].sort().reverse(), ce = auj().slice(0, 7);
     if (!mois.includes(ce)) mois.unshift(ce);
-    B.mois = B.mois || ce;
+    B.mois = B.mois || 'tout';                                         // par défaut : toutes les dépenses
     $('#buMois').innerHTML = '<option value="tout">Tout</option>' + mois.map(m => `<option value="${m}"${m === B.mois ? ' selected' : ''}>${new Date(m + '-15').toLocaleDateString('fr-CA', { month: 'long', year: 'numeric' })}</option>`).join('');
     if (B.mois === 'tout') $('#buMois').value = 'tout';
-    const l = B.dep.filter(d => B.mois === 'tout' || (d.date || '').startsWith(B.mois)).sort((a, b) => (b.date || '').localeCompare(a.date || ''));
+    const l = B.dep.filter(d => d.type !== 'remboursement' && (B.mois === 'tout' || (d.date || '').startsWith(B.mois))).sort((a, b) => (b.date || '').localeCompare(a.date || ''));
     $('#buMoisH').textContent = argent(B.dep.filter(d => d.type !== 'remboursement' && (d.date || '').startsWith(ce)).reduce((a, d) => a + d.montant, 0));
     const moi = B.membres.find(m => m.toLowerCase() === String(BK.reglage('nomPc', '')).trim().toLowerCase()) || '';
     B.rOuvert = B.rOuvert || new Set();
@@ -133,7 +136,7 @@ BK.module('budget', function (page) {
       : (() => {
         const pr = partsRestantes(d), part = pr.part, ouvert = B.rOuvert.has(d.id);
         const aPayer = moi && pr.doivent.includes(moi);
-        return `<div class="bu-d${d.miette ? ' mi-prop' : ''}"${d.miette ? ' title="Ajoutée par Miette (lue sur Discord) : vérifie, puis ✓"' : ''}><span class="bu-d-c"><b>${esc(d.titre)}</b><span class="nt">${esc(d.date || '')} · payé par ${esc(d.payePar)} · pour ${esc((d.pour && d.pour.length && d.pour.length < B.membres.length ? d.pour : ['tout le monde']).join(', '))} · ${esc(d.cat || '')}${d.abo ? ' · ↻ revient tout seul' : ''}${pr.payes.length ? ' · part payée par ' + esc(pr.payes.join(', ')) : ''}</span></span>
+        return `<div class="bu-d${d.miette ? ' mi-prop' : ''}"${d.miette ? ' title="Ajoutée par Miette (lue sur Discord) : vérifie, puis ✓"' : ''}><span class="bu-d-c"><b${aMoi(d) ? ` class="bu-titre" data-renom="${d.id}" title="Clic pour changer l'intitulé"` : ''}>${esc(d.titre)}</b><span class="nt">${esc(d.date || '')} · payé par ${esc(d.payePar)} · pour ${esc((d.pour && d.pour.length && d.pour.length < B.membres.length ? d.pour : ['tout le monde']).join(', '))} · ${esc(d.cat || '')}${d.abo ? ' · ↻ revient tout seul' : ''}${pr.payes.length ? ' · part payée par ' + esc(pr.payes.join(', ')) : ''}</span></span>
           <span class="vfd">${argent(d.montant)}</span>
           ${aPayer ? `<button class="btn xs pri" data-part="${d.id}|${esc(moi)}" title="Tu fais le virement à ${esc(d.payePar)}">↩ Ma part · ${argent(part)}</button>` : ''}
           ${pr.doivent.filter(m => m !== moi).length ? `<button class="btn xs" data-rp="${d.id}" title="Noter la part de quelqu'un d'autre">${ouvert ? '▾' : '↩'}</button>` : ''}
@@ -156,9 +159,9 @@ BK.module('budget', function (page) {
     const titre = $('#buTitre').value.trim(), montant = parseFloat($('#buMontant').value.replace(/\s/g, '').replace(',', '.'));
     if (!titre) { $('#buTitre').focus(); msg('Écris ce que c\'est'); return null; }
     if (!(montant > 0)) { $('#buMontant').focus(); msg('Indique le montant'); return null; }
-    return { titre, montant: Math.round(montant * 100) / 100, payePar: paye, pour: [...pour], date: $('#buDate').value || auj(), cat: $('#buCat').value };
+    return { titre, montant: Math.round(montant * 100) / 100, creePar: BK.reglage('nomPc', '') || '', payePar: paye, pour: [...pour], date: $('#buDate').value || auj(), cat: $('#buCat').value };
   }
-  $('#buAjout').onclick = async () => { const d = lire(); if (!d) return; B.dep.push(await BK.db.ecrire('depenses', d)); $('#buTitre').value = ''; $('#buMontant').value = ''; B.mois = d.date.slice(0, 7); msg('Dépense ajoutée'); rendre(); };
+  $('#buAjout').onclick = async () => { const d = lire(); if (!d) return; B.dep.push(await BK.db.ecrire('depenses', d)); $('#buTitre').value = ''; $('#buMontant').value = ''; msg('Dépense ajoutée'); rendre(); };
   const poserAbo = async cadence => { const d = lire(); if (!d) return;
     const a = await BK.db.ecrire('abonnements', { titre: d.titre, montant: d.montant, payePar: d.payePar, pour: d.pour, cat: d.cat === 'Autre' ? 'Abonnement' : d.cat, jour: +d.date.slice(8, 10) || 1, depuis: d.date.slice(0, 7), cadence, actif: true });
     B.abos.push(a); await reporterAbos(); $('#buTitre').value = ''; $('#buMontant').value = ''; msg(cadence === 'an' ? 'Ajouté chaque année' : 'Ajouté chaque mois'); rendre(); };
@@ -173,6 +176,12 @@ BK.module('budget', function (page) {
     catch (e) { msg(e.message || 'Miette n\'a pas pu chercher'); }
     finally { b.disabled = false; b.innerHTML = avant; } };
   page.addEventListener('click', async e => {
+    const rn = e.target.closest('[data-renom]');
+    if (rn && !rn.querySelector('input')) { const d = B.dep.find(y => y.id === rn.dataset.renom); if (!d) return;
+      const i = document.createElement('input'); i.className = 'fld bu-renom'; i.value = d.titre; i.maxLength = 80; rn.textContent = ''; rn.appendChild(i); i.focus(); i.select();
+      let fait = false; const fin = async garder => { if (fait) return; fait = true; const v = i.value.trim();
+        if (garder && v && v !== d.titre) { d.titre = v; await BK.db.ecrire('depenses', d); msg('Intitulé changé'); } rendre(); };
+      i.onkeydown = ev => { ev.stopPropagation(); if (ev.key === 'Enter') fin(true); if (ev.key === 'Escape') fin(false); }; i.onblur = () => fin(true); i.onclick = ev => ev.stopPropagation(); return; }
     const x = e.target.closest('[data-x]'), r = e.target.closest('[data-remb]'), ab = e.target.closest('[data-ab]'), ok = e.target.closest('[data-pok]'), non = e.target.closest('[data-pnon]');
     const mv = e.target.closest('[data-mival]');
     if (mv) { const d = B.dep.find(y => y.id === mv.dataset.mival); if (d) { delete d.miette; await BK.db.ecrire('depenses', d); msg('Validée'); rendre(); } return; }

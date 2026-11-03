@@ -33,6 +33,21 @@ function doGet(e) {
     .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
 }
 
+// ---------- la porte de service : la page de l'invité est fabriquée chez Cloudflare (dossier partage-externe/,
+// fichier worker.js), qui parle à ce guichet ICI, de serveur à serveur. L'invité n'ouvre plus jamais une page
+// Google : fini le bug « Impossible d'ouvrir le fichier » quand on a plusieurs comptes Google.
+// On reçoit { fn, args } et on renvoie { ok, r } ou { ok: false, err }. Seules les fonctions de la liste répondent.
+var PUBLIQUES = { ouvrir: ouvrir, notes: notes, ecrireNote: ecrireNote, reagir: reagir, marquer: marquer };
+function doPost(e) {
+  var out;
+  try {
+    var q = JSON.parse((e && e.postData && e.postData.contents) || '{}'), f = PUBLIQUES[q.fn];
+    if (!f) throw new Error('Demande inconnue.');
+    out = { ok: true, r: f.apply(null, Array.isArray(q.args) ? q.args.slice(0, 6) : []) };
+  } catch (err) { out = { ok: false, err: String((err && err.message) || err) }; }
+  return ContentService.createTextOutput(JSON.stringify(out)).setMimeType(ContentService.MimeType.JSON);
+}
+
 // ---------- les dossiers du Drive ----------
 function dossier(nom, parent, creer) {
   var it = (parent || DriveApp.getRootFolder()).getFoldersByName(nom);

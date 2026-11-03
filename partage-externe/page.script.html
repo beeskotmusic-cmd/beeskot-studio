@@ -1,7 +1,7 @@
 <script>
 // ===== l'espace de partage : tout ce qui suit tourne dans le navigateur de l'invité =====
 // Le son et la vidéo sont lus DIRECTEMENT depuis le fichier du Drive (rien n'est recopié).
-var CLE = <?!= JSON.stringify(cle) ?>;
+var CLE = (new URLSearchParams(location.search).get('k') || '').replace(/[^a-zA-Z0-9_-]/g, '');   // la page vient de Cloudflare (worker.js)
 var S = { lien: null, el: null, notes: [], prenom: '', buf: null, sel: null, tout: false, pos: 0, droit: 'lire', traits: [], crayon: false, montre: null, coul: '#ffcf3a' };
 var $ = function (s) { return document.querySelector(s); };
 var $$ = function (s) { return [].slice.call(document.querySelectorAll(s)); };
@@ -10,7 +10,10 @@ var tps = function (s) { s = Math.max(0, s || 0); return Math.floor(s / 60) + ':
 var msg = function (t) { $('#msg').textContent = String(t).toUpperCase().slice(0, 90); };
 var COULEURS = ['#f1c453', '#7ee08a', '#c58af0', '#e08a5a', '#6fc3c7', '#e0719a'];
 var couleur = function (nom) { nom = String(nom || ''); var h = 0; for (var i = 0; i < nom.length; i++) h = (h * 31 + nom.charCodeAt(i)) & 0xffff; return COULEURS[h % COULEURS.length]; };
-var appel = function (fn) { var args = [].slice.call(arguments, 1); return new Promise(function (ok, ko) { var r = google.script.run.withSuccessHandler(ok).withFailureHandler(function (e) { ko(e); }); r[fn].apply(r, args); }); };
+// on parle au guichet Google À TRAVERS Cloudflare (/api) : jamais directement à Google depuis le navigateur
+var appel = function (fn) { var args = [].slice.call(arguments, 1);
+  return fetch('/api', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ fn: fn, args: args }) })
+    .then(function (r) { return r.json(); }).then(function (j) { if (!j || !j.ok) throw new Error((j && j.err) || 'Le serveur ne répond pas. Réessaie dans un instant.'); return j.r; }); };
 var media = $('#media'), video = function () { return !!(S.el && S.el.type === 'video'); };
 var source = function (el) { return 'https://www.googleapis.com/drive/v3/files/' + encodeURIComponent(el.fichier) + '?alt=media&key=' + encodeURIComponent(S.lien.cleApi || ''); };
 

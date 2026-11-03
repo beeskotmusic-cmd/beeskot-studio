@@ -1,6 +1,16 @@
 ESPACE DE PARTAGE — la page web des invités (ingé son, caméraman…)
 ====================================================================
 
+!! DEPUIS LA 0.9.120 !!
+  La page de l'invité est fabriquée chez Cloudflare (Worker « partage », code = worker.js de ce dossier) :
+     https://partage.beeskot-music.workers.dev/?k=<code>
+  Cloudflare lit la page dans le dépôt (page-cf.html) et parle au guichet Google (Code.gs, fonction doPost)
+  de serveur à serveur : l'invité n'ouvre plus jamais une page Google (fini le bug « plusieurs comptes Google »).
+  Changer la page : modifier page.source.html / page.script.html / guest.css, lancer « python3 fabriquer.py <commit poussé> »,
+  pousser. Rien à refaire chez Cloudflare. Changer Code.gs : le recoller chez Google puis Déployer › Gérer les
+  déploiements › crayon › Nouvelle version (la même adresse reste).
+  Ce qui suit (installation chez Google) reste valable pour le guichet.
+
 C'est quoi ?
   Une petite page web, gratuite, qui tourne chez Google avec le Gmail BEESKOT.
   Tu lui envoies un lien secret (fait dans BEESKOT Studio › Notes et retours › Externe,

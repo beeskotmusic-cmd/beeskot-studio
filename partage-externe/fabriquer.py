@@ -9,9 +9,11 @@ ICI = os.path.dirname(os.path.abspath(__file__))
 def lire(p): return open(os.path.join(ICI, p), encoding='utf8').read()
 commit = sys.argv[1] if len(sys.argv) > 1 else subprocess.check_output(['git', '-C', ICI, 'rev-parse', 'HEAD']).decode().strip()
 BASE = 'https://cdn.jsdelivr.net/gh/beeskotmusic-cmd/beeskot-studio@%s/ui/' % commit
-liens = ''.join('<link rel="stylesheet" href="%sstyle/%s.css">\n' % (BASE, f) for f in ('base', 'dari-look', 'beeskot', 'externe'))
+liens = ''.join('<link rel="stylesheet" href="%sstyle/%s.css">\n' % (BASE, f) for f in ('fonts', 'base', 'dari-look', 'beeskot', 'externe', 'teintes-sections', 'look-neuf'))
 css = lire('guest.css').replace('{{POUCE}}', BASE + 'pictos/A_pouce.png')
 out = lire('page.source.html').replace('{{CSS}}', css).replace('{{LINKS}}', liens).replace('{{SCRIPT}}', lire('page.script.html')).replace('{{LOGO}}', BASE + 'look/logo-beeskot-studio.png')
 assert '{{' not in out
 open(os.path.join(ICI, 'page.html'), 'w', encoding='utf8').write(out)
-print('page.html :', round(len(out) / 1024), 'Ko, look =', commit[:7])
+# la même page, servie par Cloudflare (worker.js la lit dans le dépôt GitHub) : c'est elle que voient les invités maintenant
+open(os.path.join(ICI, 'page-cf.html'), 'w', encoding='utf8').write(out)
+print('page.html + page-cf.html :', round(len(out) / 1024), 'Ko, look =', commit[:7])

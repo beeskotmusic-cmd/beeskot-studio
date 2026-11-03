@@ -3,6 +3,13 @@
 // Pour une nouvelle version : ajouter un bloc EN HAUT de la liste. Une ligne courte par point : « Onglet : ce qui change. »
 // =====================================================================
 BK.NOUVEAUTES = [
+  { v: '0.9.120', titre: '', l: [
+    ['🔗', 'Notes et retours / Notes vidéos › Externe : la page des invités ne passe plus par Google (fini « Impossible d\'ouvrir le fichier » avec plusieurs comptes Google) et prend le style de l\'appli. Fais un nouveau lien : les anciens gardent l\'ancienne page.'],
+    ['↗', 'Partager l\'écoute : les pochettes s\'affichent aussi pour les morceaux dont la photo était une ancienne image collée dans la fiche (elle est rangée une fois dans le Drive).'],
+    ['💰', 'Budget : la liste des dépenses montre tout par défaut (plus seulement le mois en cours).'],
+    ['💰', 'Budget : clic sur l\'intitulé d\'une dépense que tu as créée pour le changer (Entrée pour garder, Échap pour annuler).'],
+    ['💰', 'Budget : les remboursements ne s\'affichent plus dans la liste des dépenses (ils comptent toujours dans le calcul).'],
+  ] },
   { v: '0.9.119', titre: '', l: [
     ['↗', 'Bibliothèque : « Partager l\'écoute » fabrique un lien pour faire écouter des morceaux à l\'extérieur (pochette, titre, version ★ ; pas de téléchargement). Le lien suit toujours la ★ ; on peut le copier, le modifier, le révoquer ou le supprimer.'],
     ['⏳', 'Partager l\'écoute : on peut choisir une date d\'expiration (7 jours, 30 jours ou une date) ; le lien s\'éteint tout seul, même si aucun PC n\'est allumé.'],

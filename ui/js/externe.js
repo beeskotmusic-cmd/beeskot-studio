@@ -32,8 +32,9 @@ BK.externe = {
   couleurDe: q => COULEURS[q] || (/^Externe · /.test(q || '') ? BK.externe.COULEUR : '#d9b67a'),
   async url() { return String(await BK.partage.lire('externe.url', '') || '').trim(); },
   async cleApi() { return String(await BK.partage.lire('externe.cleApi', '') || '').trim(); },
-  // le lien court : une « porte d'entrée » (dossier porte/) qui renvoie vers la vraie page Google. Si elle change de nom : cette ligne seulement.
-  PORTE: 'https://beeskot.beeskot-music.workers.dev/',
+  // le lien : la page de l'invité est fabriquée chez Cloudflare (partage-externe/worker.js), qui parle au guichet Google
+  // de serveur à serveur (plus de bug « plusieurs comptes Google »). Si l'adresse change : cette ligne seulement.
+  PORTE: 'https://partage.beeskot-music.workers.dev/',
   lien: (l, url) => url ? BK.externe.PORTE + '?k=' + encodeURIComponent(l.cle) : '',
   zones: [],
 

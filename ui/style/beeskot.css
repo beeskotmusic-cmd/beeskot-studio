@@ -2271,3 +2271,4 @@ tr.pl-fait td{opacity:.6}tr.pl-fait td.mono{color:#9be37a;opacity:1}
 .ecp-box .vfd{align-self:flex-start}
 @media (max-width:760px){.ecp-cols{grid-template-columns:1fr}}
 .ecp-cree{flex-wrap:wrap}.ecp-exp{flex:none!important;width:auto}#ecpDate{flex:none;width:150px}
+.bu-titre{cursor:text;border-bottom:1px dashed rgba(255,255,255,.25)}.bu-titre:hover{border-bottom-color:rgba(255,255,255,.7)}.bu-renom{width:min(420px,100%);padding:3px 8px;font:inherit}

@@ -4,11 +4,14 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>BEESKOT · Espace de partage</title>
-<link href="https://fonts.googleapis.com/css2?family=Jost:wght@400;500;600;700&family=Share+Tech+Mono&family=Barlow+Condensed:wght@600;700&family=Work+Sans:wght@400;500;600&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/beeskotmusic-cmd/beeskot-studio@caea79f3eff55ad859e6546b1707ac0c23a9b1c9/ui/style/base.css">
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/beeskotmusic-cmd/beeskot-studio@caea79f3eff55ad859e6546b1707ac0c23a9b1c9/ui/style/dari-look.css">
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/beeskotmusic-cmd/beeskot-studio@caea79f3eff55ad859e6546b1707ac0c23a9b1c9/ui/style/beeskot.css">
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/beeskotmusic-cmd/beeskot-studio@caea79f3eff55ad859e6546b1707ac0c23a9b1c9/ui/style/externe.css">
+<meta name="robots" content="noindex,nofollow">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/beeskotmusic-cmd/beeskot-studio@d943c3e/ui/style/fonts.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/beeskotmusic-cmd/beeskot-studio@d943c3e/ui/style/base.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/beeskotmusic-cmd/beeskot-studio@d943c3e/ui/style/dari-look.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/beeskotmusic-cmd/beeskot-studio@d943c3e/ui/style/beeskot.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/beeskotmusic-cmd/beeskot-studio@d943c3e/ui/style/externe.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/beeskotmusic-cmd/beeskot-studio@d943c3e/ui/style/teintes-sections.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/beeskotmusic-cmd/beeskot-studio@d943c3e/ui/style/look-neuf.css">
 <style>
 /* ===== Espace de partage : seulement ce qui est propre à la page de l'invité (le reste vient du logiciel) ===== */
 html,body{height:auto;min-height:100%}
@@ -28,7 +31,7 @@ body{overflow:auto}
 .ec-vide{color:rgba(255,178,62,.6)}
 .ec-n-o{display:flex;gap:4px;flex-wrap:wrap;justify-content:flex-end}
 .ec-n-t.tout{color:#cbbfa8;letter-spacing:.08em}
-.pic.pouce{-webkit-mask-image:url(https://cdn.jsdelivr.net/gh/beeskotmusic-cmd/beeskot-studio@caea79f3eff55ad859e6546b1707ac0c23a9b1c9/ui/pictos/A_pouce.png);mask-image:url(https://cdn.jsdelivr.net/gh/beeskotmusic-cmd/beeskot-studio@caea79f3eff55ad859e6546b1707ac0c23a9b1c9/ui/pictos/A_pouce.png)}
+.pic.pouce{-webkit-mask-image:url(https://cdn.jsdelivr.net/gh/beeskotmusic-cmd/beeskot-studio@d943c3e/ui/pictos/A_pouce.png);mask-image:url(https://cdn.jsdelivr.net/gh/beeskotmusic-cmd/beeskot-studio@d943c3e/ui/pictos/A_pouce.png)}
 .rond{width:13px;height:13px;border-radius:50%;background:conic-gradient(#d9a93c,#c65d2a,#7a2430,#3f6b3a,#2f7377,#2a3f6a,#d9a93c);display:inline-block}
 .sign{margin:6px 0 10px;text-align:center;font-size:11px;letter-spacing:.2em;text-transform:uppercase;color:rgba(239,230,210,.5)}
 .sign b{color:var(--mus);font-weight:600}
@@ -50,13 +53,17 @@ body{overflow:auto}
 @media (max-width:700px){.ec-n{grid-template-columns:auto 1fr}.ec-n-o{grid-column:1 / -1;justify-content:flex-start}.hdr .sub{display:none}.top .patch{height:60px}.sysgrid{display:none}}
 
 .chip.abtn{min-width:96px;font-weight:700}.chip.abtn .badge{font-size:1.1em}
+/* nouveau look (section Musique) : rien ne dépasse, signature crème */
+html,body{overflow-x:hidden}
+.ec-onde-box,.ec-marques{overflow:hidden}
+body.look-neuf .sign b{color:#f3ece0}
 
 </style>
 </head>
-<body>
+<body class="look-neuf" data-section="musique">
 <div class="app">
   <header class="top">
-    <img class="patch" src="https://cdn.jsdelivr.net/gh/beeskotmusic-cmd/beeskot-studio@caea79f3eff55ad859e6546b1707ac0c23a9b1c9/ui/look/logo-beeskot-studio.png" alt="DARI · BEESKOT Studio">
+    <img class="patch" src="https://cdn.jsdelivr.net/gh/beeskotmusic-cmd/beeskot-studio@d943c3e/ui/look/logo-beeskot-studio.png" alt="DARI · BEESKOT Studio">
     <div class="sys"><div class="sysgrid">
       <span class="vfd"><b>POUR :</b> <span id="pour">—</span></span>
       <span class="vfd"><b>TOI :</b> <span id="toi">—</span></span>
@@ -103,7 +110,7 @@ body{overflow:auto}
 
 <div class="voile hidden" id="voile"><div class="stopbox" role="dialog">
   <span class="screw tl" style="--r:60deg"></span><span class="screw tr" style="--r:5deg"></span><span class="screw bl" style="--r:-30deg"></span><span class="screw br" style="--r:85deg"></span>
-  <img class="stopbox-patch" src="https://cdn.jsdelivr.net/gh/beeskotmusic-cmd/beeskot-studio@caea79f3eff55ad859e6546b1707ac0c23a9b1c9/ui/look/logo-beeskot-studio.png" alt="">
+  <img class="stopbox-patch" src="https://cdn.jsdelivr.net/gh/beeskotmusic-cmd/beeskot-studio@d943c3e/ui/look/logo-beeskot-studio.png" alt="">
   <span class="dymo" style="align-self:center">Bienvenue</span>
   <p class="nt" style="margin:0;text-align:center" id="voileTxt">Écris ton prénom : il apparaîtra à côté de tes notes.</p>
   <input class="fld" id="prenom" placeholder="Ton prénom" maxlength="30">
@@ -113,7 +120,7 @@ body{overflow:auto}
 <script>
 // ===== l'espace de partage : tout ce qui suit tourne dans le navigateur de l'invité =====
 // Le son et la vidéo sont lus DIRECTEMENT depuis le fichier du Drive (rien n'est recopié).
-var CLE = <?!= JSON.stringify(cle) ?>;
+var CLE = (new URLSearchParams(location.search).get('k') || '').replace(/[^a-zA-Z0-9_-]/g, '');   // la page vient de Cloudflare (worker.js)
 var S = { lien: null, el: null, notes: [], prenom: '', buf: null, sel: null, tout: false, pos: 0, droit: 'lire', traits: [], crayon: false, montre: null, coul: '#ffcf3a' };
 var $ = function (s) { return document.querySelector(s); };
 var $$ = function (s) { return [].slice.call(document.querySelectorAll(s)); };
@@ -122,7 +129,10 @@ var tps = function (s) { s = Math.max(0, s || 0); return Math.floor(s / 60) + ':
 var msg = function (t) { $('#msg').textContent = String(t).toUpperCase().slice(0, 90); };
 var COULEURS = ['#f1c453', '#7ee08a', '#c58af0', '#e08a5a', '#6fc3c7', '#e0719a'];
 var couleur = function (nom) { nom = String(nom || ''); var h = 0; for (var i = 0; i < nom.length; i++) h = (h * 31 + nom.charCodeAt(i)) & 0xffff; return COULEURS[h % COULEURS.length]; };
-var appel = function (fn) { var args = [].slice.call(arguments, 1); return new Promise(function (ok, ko) { var r = google.script.run.withSuccessHandler(ok).withFailureHandler(function (e) { ko(e); }); r[fn].apply(r, args); }); };
+// on parle au guichet Google À TRAVERS Cloudflare (/api) : jamais directement à Google depuis le navigateur
+var appel = function (fn) { var args = [].slice.call(arguments, 1);
+  return fetch('/api', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ fn: fn, args: args }) })
+    .then(function (r) { return r.json(); }).then(function (j) { if (!j || !j.ok) throw new Error((j && j.err) || 'Le serveur ne répond pas. Réessaie dans un instant.'); return j.r; }); };
 var media = $('#media'), video = function () { return !!(S.el && S.el.type === 'video'); };
 var source = function (el) { return 'https://www.googleapis.com/drive/v3/files/' + encodeURIComponent(el.fichier) + '?alt=media&key=' + encodeURIComponent(S.lien.cleApi || ''); };
 

@@ -39,8 +39,18 @@ BK.ecouteExt = {
     ms = ms || await BK.db.liste('morceaux'); const out = [];
     for (const id of ids || []) { const m = ms.find(x => x.id === id); if (!m) continue;
       const s = await BK.ecouteExt.sonDrive(m, ms); if (!s) continue;
-      out.push({ id: m.id, nom: m.nom || 'Morceau', fichier: s.id, image: idDrive(m.photo) }); }
+      out.push({ id: m.id, nom: m.nom || 'Morceau', fichier: s.id, image: idDrive(await BK.ecouteExt.photoDrive(m)) }); }
     return out;
+  },
+  // la photo du morceau doit être un fichier du Drive (Cloudflare ne lit que ça). Une ancienne photo collée dans la fiche
+  // est rangée une fois dans « Images des fiches » (comme Réglages › alléger) : même image, la fiche pointe vers le fichier.
+  async photoDrive(m) {
+    if (!m.photo || BK.img.estDrive(m.photo) || !BK.img.estCopie(m.photo)) return m.photo || '';
+    try { const blob = await (await fetch(m.photo)).blob(), nom = String(m.nom || 'morceau').replace(/[\\/:*?"<>|]+/g, ' ').trim().slice(0, 40) + ' - photo.jpg';
+      const f = await BK.drive.envoyerBlob(new File([blob], nom, { type: blob.type || 'image/jpeg' }), nom, await BK.drive.dossier('Images des fiches', await BK.drive.racine()), () => {});
+      if (!f || !f.id) return '';
+      BK.drive.vignetteGarder(f.id, URL.createObjectURL(blob)); m.photo = BK.img.ref(f.id); await BK.db.ecrire('morceaux', m, { sansAnnuler: true });
+      return m.photo; } catch (e) { console.warn('écoute : photo', e); return ''; }
   },
   liens: async () => (await BK.db.liste('partages')).filter(l => l.type === 'ecoute'),
   // enregistre le lien dans le Drive, puis ouvre / ferme les accès (le lien, ses sons, ses pochettes)
