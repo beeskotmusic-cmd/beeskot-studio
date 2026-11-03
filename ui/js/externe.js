@@ -55,7 +55,10 @@ BK.externe = {
   // remet les accès exactement comme il faut : ouverts pour les fichiers des liens actifs, fermés pour les autres.
   // Renvoie la liste des problèmes (vide = tout est bon).
   async synchroAcces(liens) {
-    const besoin = new Set(); for (const l of liens) if (l.actif !== false) for (const e of l.elements || []) if (e.fichier) besoin.add(e.fichier);
+    // les liens d'écoute (js/ecoute.js) sont dans la même collection : on les compte toujours, même si l'appelant ne les a pas passés
+    if (!liens.some(l => l.type === 'ecoute')) liens = [...liens, ...(await BK.db.liste('partages')).filter(l => l.type === 'ecoute')];
+    const besoin = new Set(); for (const l of liens) if (l.actif !== false && !(l.expire && Date.now() > Date.parse(l.expire))) { if (l.type === 'ecoute' && l.doc) besoin.add(l.doc);
+      for (const e of l.elements || []) { if (e.fichier) besoin.add(e.fichier); if (e.image) besoin.add(e.image); } }
     const perms = { ...(await BK.partage.lire('externe.perms', {})) }, pb = []; let change = false;
     for (const f of besoin) if (!perms[f]) { try { perms[f] = await BK.externe.ouvrirAcces(f); change = true; } catch (e) { pb.push('Impossible de partager un fichier (' + (e.message || e) + ')'); } }
     for (const f of Object.keys(perms)) if (!besoin.has(f)) { try { await BK.externe.fermerAcces(f, perms[f]); delete perms[f]; change = true; } catch (e) { pb.push('Accès non retiré (' + (e.message || e) + ')'); } }
@@ -149,7 +152,7 @@ BK.externe = {
 
     // ---- la liste des liens ----
     async function charger() {
-      const [liens, a, v] = await Promise.all([BK.db.liste('partages').catch(() => []), BK.db.liste('notesmix').catch(() => []), BK.db.liste('notesvid').catch(() => [])]);
+      const [liens, a, v] = await Promise.all([BK.db.liste('partages').then(l => l.filter(x => x.type !== 'ecoute')).catch(() => []), BK.db.liste('notesmix').catch(() => []), BK.db.liste('notesvid').catch(() => [])]);
       X.liens = liens; X.notes = [...a, ...v].filter(n => n.partage);
       [X.url, X.cle] = await Promise.all([BK.externe.url(), BK.externe.cleApi()]);
       $('#exUrl').value = X.url; $('#exUrlBox').classList.toggle('vide', !X.url); $('#exCle').value = X.cle; $('#exCleBox').classList.toggle('vide', !X.cle);

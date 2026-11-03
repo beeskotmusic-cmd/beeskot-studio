@@ -164,7 +164,7 @@ BK.module('ecoute', function (page) {
     const m = E.m;
     if (o.v.startsWith('drive:')) { const id = o.v.slice(6), x = { chemin: o.v, driveId: id, drive: true, nom: o.nom, pc: 'Drive', modif: o.t || new Date().toISOString() };
       m.exportsManuels = (m.exportsManuels || []).filter(y => y.chemin !== x.chemin); m.exportsManuels.push(x); }
-    m.exportPrincipal = o.v; await BK.db.ecrire('morceaux', m);
+    m.exportPrincipal = o.v; await BK.db.ecrire('morceaux', m); BK.ecouteExt && BK.ecouteExt.plusTard();
     [...$('#ecA').options, ...$('#ecB').options].forEach(op => op.textContent = (op.value === m.exportPrincipal ? '★ ' : '') + op.textContent.replace(/^★ /, ''));
     msg('★ « ' + o.nom + ' » est maintenant l\'export principal de ' + m.nom);
   };

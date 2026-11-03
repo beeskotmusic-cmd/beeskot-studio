@@ -17,7 +17,8 @@ BK.module('biblio', function (page) {
       <section class="pane vit" aria-label="Vitrine">
         <div class="ligne-titre">
           <div class="chips" id="biVues"><button class="chip on" data-v="prochaine">Prochaine sortie</button><button class="chip" data-v="chantier">En chantier</button><button class="chip" data-v="sorti">Sortis</button><button class="chip" data-v="ranger">À ranger <span id="biNbR"></span></button></div>
-          <input class="fld" id="biCherche" placeholder="chercher un morceau…" style="max-width:240px;margin-left:auto">
+          <button class="btn sm" id="biPartager" title="Faire écouter des morceaux à quelqu'un de l'extérieur (pochette, titre, version ★ ; pas de téléchargement)" style="margin-left:auto">↗ Partager l'écoute</button>
+          <input class="fld" id="biCherche" placeholder="chercher un morceau…" style="max-width:240px">
         </div>
         <div id="biListe" class="bi-liste"></div>
       </section>
@@ -409,7 +410,7 @@ BK.module('biblio', function (page) {
   }
 
   // ---------- actions ----------
-  async function sauver(m) { await BK.db.ecrire('morceaux', m); }
+  async function sauver(m) { await BK.db.ecrire('morceaux', m); BK.ecouteExt && BK.ecouteExt.plusTard(); }   // un lien d'écoute suit la ★ / la photo
   // glissé depuis Médias sur une fiche : une image devient sa photo, un son devient un de ses exports
   page.addEventListener('dragover', e => { if (BK.glisse.actif() && e.target.closest('.fiche[data-id]')) { e.preventDefault(); e.target.closest('.fiche').classList.add('survol-media'); } });
   page.addEventListener('dragleave', e => { const f = e.target.closest && e.target.closest('.fiche'); if (f && !f.contains(e.relatedTarget)) f.classList.remove('survol-media'); });
@@ -613,6 +614,8 @@ BK.module('biblio', function (page) {
     await charger(); msg(m.nom + ' déplacé');
   });
   $('#biCherche').oninput = e => { B.filtre = e.target.value; rendre(); };
+  if (BK.ecouteExt) $('#biPartager').onclick = () => BK.ecouteExt.fenetre(); else $('#biPartager').remove();   // (pas sur le téléphone)
+  BK.ecouteExt && BK.ecouteExt.plusTard();                                              // les liens d'écoute suivent la ★ du moment
   $('#biAjout').onclick = async () => { const n = $('#biNom').value.trim(); if (!n) return;
     B.morceaux.push(await BK.db.ecrire('morceaux', { nom: n, statut: 'chantier', fait: 0 })); $('#biNom').value = ''; B.vue = 'chantier'; msg('Fiche créée'); rendre(); };
   $('#biNom').onkeydown = e => e.key === 'Enter' && $('#biAjout').click();

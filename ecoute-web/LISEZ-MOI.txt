@@ -1,0 +1,26 @@
+BEESKOT · ÉCOUTE — la page pour faire écouter nos morceaux à l'extérieur
+=========================================================================
+
+C'est quoi ?
+  Dans BEESKOT Studio › Bibliothèque › « Partager l'écoute », on coche des morceaux et on obtient un lien :
+     https://ecoute.beeskot-music.workers.dev/<code>
+  La personne voit le logo, la pochette, le titre et un lecteur. Seulement la version ★, rien d'autre.
+  Pas de bouton de téléchargement. Le lien suit toujours la ★ du moment.
+  « Révoquer » dans le logiciel = la page répond « Ce lien n'est plus actif » (en moins d'une minute).
+  Date d'expiration choisie à la création : passée = « Ce lien a expiré » (vérifié par Cloudflare,
+  même si aucun PC du groupe n'est allumé).
+
+Pourquoi c'est solide
+  La page est fabriquée chez Cloudflare (gratuit), pas chez Google : une personne connectée à
+  plusieurs comptes Google n'a aucun problème. Le son et les pochettes passent par Cloudflare :
+  l'adresse des fichiers du Drive n'est jamais montrée.
+
+Ce qu'il y a chez Cloudflare (compte Beeskot.music@gmail.com, connexion avec GitHub)
+  Un Worker nommé « ecoute » : son code = worker.js de ce dossier.
+  Une variable secrète CLE_API = la clé gratuite Google (la même que dans
+  BEESKOT Studio › Notes et retours › Externe › « La clé gratuite Google »).
+
+Modifier la page plus tard
+  1. Changer worker.js ici.
+  2. dash.cloudflare.com › Workers & Pages › ecoute › « Edit code » : tout remplacer par le nouveau worker.js › Deploy.
+  Les images et polices viennent du dépôt GitHub (jsDelivr), figées sur un commit : ligne ASSETS en haut de worker.js.

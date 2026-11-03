@@ -3,6 +3,10 @@
 // Pour une nouvelle version : ajouter un bloc EN HAUT de la liste. Une ligne courte par point : « Onglet : ce qui change. »
 // =====================================================================
 BK.NOUVEAUTES = [
+  { v: '0.9.119', titre: '', l: [
+    ['↗', 'Bibliothèque : « Partager l\'écoute » fabrique un lien pour faire écouter des morceaux à l\'extérieur (pochette, titre, version ★ ; pas de téléchargement). Le lien suit toujours la ★ ; on peut le copier, le modifier, le révoquer ou le supprimer.'],
+    ['⏳', 'Partager l\'écoute : on peut choisir une date d\'expiration (7 jours, 30 jours ou une date) ; le lien s\'éteint tout seul, même si aucun PC n\'est allumé.'],
+  ] },
   { v: '0.9.118', titre: '', l: [
     ['📄', 'PDF de tournage : le bouton « 🏷 Labels » ouvre un menu déroulant comme dans Médias (Morceaux, Tournage, Lumière, Réseaux, Membres) ; tu y coches les étiquettes dont les images vont dans le moodboard.'],
     ['📄', 'PDF de tournage : « ＋ Ajouter des médias » ouvre la fenêtre Médias pour choisir toi-même une ou plusieurs images à insérer.'],
