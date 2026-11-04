@@ -3,6 +3,10 @@
 // Pour une nouvelle version : ajouter un bloc EN HAUT de la liste. Une ligne courte par point : « Onglet : ce qui change. »
 // =====================================================================
 BK.NOUVEAUTES = [
+  { v: '0.9.123', titre: '', l: [
+    ['🎧', 'Bibliothèque › Partager l\'écoute : chaque lien montre combien de fois chaque morceau a été écouté (une écoute = 10 s jouées), et la date de la dernière écoute.'],
+    ['✂', 'Partager l\'écoute : un lien peut ne faire écouter qu\'un extrait (le début du morceau) : 30, 42, 60 s ou la durée de ton choix. Impossible d\'écouter plus loin, même en bidouillant. Modifier un lien pour changer la durée.'],
+  ] },
   { v: '0.9.122', titre: '', l: [
     ['📋', 'Notes et retours (audio et vidéo) › Copier : le texte copié ne contient plus aucun nom. Il commence par « Retours pour … le (date) », puis le nom du fichier, puis une ligne par retour : le timecode et le retour, dans l\'ordre du temps. L\'écran ne change pas.'],
   ] },

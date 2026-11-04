@@ -86,12 +86,23 @@ BK.ecouteExt = {
       <div class="ecp-cols">
         <div class="ecp-col"><span class="lb">Morceaux</span><div class="ecp-m" id="ecpM"><span class="nt">Chargement…</span></div>
           <div class="ecp-cree"><input class="fld" id="ecpNom" maxlength="40" placeholder="Pour qui ? (ex. Label X)">
-            <select class="fld ecp-exp" id="ecpExp" title="Le lien s'éteint tout seul à cette date"><option value="jamais">N'expire jamais</option><option value="7">Expire dans 7 jours</option><option value="30">Expire dans 30 jours</option><option value="date">Expire le…</option></select><input class="fld hidden" type="date" id="ecpDate"><button class="btn pri" id="ecpOk" disabled>Créer le lien</button><button class="btn hidden" id="ecpAnnul">Annuler</button></div></div>
+            <select class="fld ecp-exp" id="ecpExp" title="Le lien s'éteint tout seul à cette date"><option value="jamais">N'expire jamais</option><option value="7">Expire dans 7 jours</option><option value="30">Expire dans 30 jours</option><option value="date">Expire le…</option></select><input class="fld hidden" type="date" id="ecpDate">
+            <select class="fld ecp-exp" id="ecpExt" title="Écoute du morceau entier, ou seulement de son début (Cloudflare n'envoie que ce début : impossible d'écouter plus loin)"><option value="0">Morceau entier</option><option value="30">Extrait de 30 s</option><option value="42">Extrait de 42 s</option><option value="60">Extrait de 60 s</option><option value="autre">Extrait de… (secondes)</option></select><input class="fld hidden ecp-sec" type="number" id="ecpExtN" min="5" max="600" step="1" placeholder="s"><button class="btn pri" id="ecpOk" disabled>Créer le lien</button><button class="btn hidden" id="ecpAnnul">Annuler</button></div></div>
         <div class="ecp-col"><span class="lb">Les liens</span><div class="ecp-l" id="ecpL"><span class="nt">Chargement…</span></div></div>
       </div><span class="vfd" id="ecpEtat">PRÊT</span></div>`;
     document.body.appendChild(v);
     const q = s => v.querySelector(s), etat = t => { q('#ecpEtat').textContent = String(t).toUpperCase(); };
-    let ms = [], dispo = {}, liens = [], edite = null, choix = new Set();
+    let ms = [], dispo = {}, liens = [], edite = null, choix = new Set(), stats = {};
+    // la durée de l'extrait (0 = morceau entier)
+    const extraitChoisi = () => { const v = q('#ecpExt').value; const n = v === 'autre' ? Math.round(+q('#ecpExtN').value || 0) : +v; return n > 0 ? Math.min(600, Math.max(5, n)) : 0; };
+    const montrerExtrait = n => { const std = ['0', '30', '42', '60'].includes(String(n || 0)); q('#ecpExt').value = std ? String(n || 0) : 'autre'; q('#ecpExtN').value = std ? '' : n; q('#ecpExtN').classList.toggle('hidden', std); };
+    // les écoutes de chaque lien (comptées chez Cloudflare) : « Mother 3 · Moon Blue 1 »
+    const ecoutes = l => { const s = stats[l.id]; if (s === undefined) return '<span class="ecp-ec">Écoutes : …</span>'; if (!s || !s.ok) return '';
+      const noms = Object.fromEntries((l.elements || []).map(e => [e.id, e.nom])), l2 = Object.entries(s.m || {}).sort((a, b) => b[1].n - a[1].n);
+      if (!l2.length) return '<span class="ecp-ec">Pas encore écouté</span>';
+      return `<span class="ecp-ec">🎧 ${l2.map(([k, x]) => `${esc(noms[k] || x.nom || 'Morceau')} <b>${x.n}</b>`).join(' · ')}${s.dernier ? ` · dernière écoute le ${jourFr(s.dernier)}` : ''}</span>`; };
+    const lireStats = () => Promise.all(liens.filter(l => l.doc).map(async l => {
+      try { const r = await fetch(BK.ecouteExt.PORTE + l.doc + '/stats', { cache: 'no-store' }); stats[l.id] = r.ok ? await r.json() : null; } catch (e) { stats[l.id] = null; } })).then(() => v.isConnected && dessinerL());
     const fermer = () => { document.removeEventListener('keydown', touche, true); v.remove(); };
     const touche = e => { if (e.key === 'Escape') { e.stopPropagation(); fermer(); } };
     document.addEventListener('keydown', touche, true);
@@ -107,13 +118,14 @@ BK.ecouteExt = {
       majOk(); };
     const dessinerL = () => {
       q('#ecpL').innerHTML = liens.length ? liens.slice().sort((a, b) => (b.cree || '').localeCompare(a.cree || '')).map(l => { const coupe = l.actif === false, fini = expire(l), n = (l.elements || []).length;
-        return `<div class="ecp-lien${coupe || fini ? ' coupe' : ''}${edite === l ? ' edite' : ''}"><div class="ecp-lt"><b>${esc(l.nom || 'Sans nom')}</b><em>${n} morceau${n > 1 ? 'x' : ''}${coupe ? ' · révoqué' : fini ? ' · expiré le ' + jourFr(l.expire) : l.expire ? ' · expire le ' + jourFr(l.expire) : ''}</em></div>
+        return `<div class="ecp-lien${coupe || fini ? ' coupe' : ''}${edite === l ? ' edite' : ''}"><div class="ecp-lt"><b>${esc(l.nom || 'Sans nom')}</b><em>${n} morceau${n > 1 ? 'x' : ''}${l.extrait ? ' · extrait de ' + l.extrait + ' s' : ''}${coupe ? ' · révoqué' : fini ? ' · expiré le ' + jourFr(l.expire) : l.expire ? ' · expire le ' + jourFr(l.expire) : ''}</em></div>
+          ${ecoutes(l)}
           <div class="ecp-lb">${coupe || fini ? '' : `<button class="btn xs pri" data-copier="${l.id}">Copier le lien</button>`}<button class="btn xs" data-modif="${l.id}">Modifier</button>
           <button class="btn xs" data-couper="${l.id}">${coupe ? 'Réactiver' : 'Révoquer'}</button><button class="btn xs" data-suppr="${l.id}" title="Supprimer ce lien pour toujours">✕</button></div></div>`; }).join('')
         : '<span class="nt">Aucun lien pour l\'instant.</span>';
       const trouve = id => liens.find(x => x.id === id);
       v.querySelectorAll('[data-copier]').forEach(b => b.onclick = async () => { const u = BK.ecouteExt.lien(trouve(b.dataset.copier)); try { await navigator.clipboard.writeText(u); etat('Lien copié'); } catch (e) { prompt('Copie ce lien :', u); } });
-      v.querySelectorAll('[data-modif]').forEach(b => b.onclick = () => { edite = trouve(b.dataset.modif); choix = new Set(edite.morceaux || []); q('#ecpNom').value = edite.nom || ''; q('#ecpExp').value = edite.expire ? 'date' : 'jamais'; q('#ecpDate').value = edite.expire ? new Date(edite.expire).toLocaleDateString('en-CA') : ''; q('#ecpDate').classList.toggle('hidden', !edite.expire); dessinerM(); dessinerL(); etat('Modification de « ' + (edite.nom || '') + ' »'); });
+      v.querySelectorAll('[data-modif]').forEach(b => b.onclick = () => { edite = trouve(b.dataset.modif); choix = new Set(edite.morceaux || []); q('#ecpNom').value = edite.nom || ''; q('#ecpExp').value = edite.expire ? 'date' : 'jamais'; q('#ecpDate').value = edite.expire ? new Date(edite.expire).toLocaleDateString('en-CA') : ''; q('#ecpDate').classList.toggle('hidden', !edite.expire); montrerExtrait(edite.extrait); dessinerM(); dessinerL(); etat('Modification de « ' + (edite.nom || '') + ' »'); });
       v.querySelectorAll('[data-couper]').forEach(b => b.onclick = async () => { const l = trouve(b.dataset.couper); if (!l) return; b.disabled = true; etat('Un instant…');
         l.actif = l.actif === false; try { await BK.ecouteExt.garder(l); etat(l.actif ? 'Lien réactivé' + (expire(l) ? ' (mais il a expiré : Modifier pour changer la date)' : '') : 'Lien révoqué : il ne marche plus'); } catch (e) { etat('Problème : ' + (e.message || e)); } dessinerL(); });
       v.querySelectorAll('[data-suppr]').forEach(b => b.onclick = async () => { const l = trouve(b.dataset.suppr); if (!l) return;
@@ -125,20 +137,22 @@ BK.ecouteExt = {
     };
     q('#ecpNom').oninput = majOk;
     q('#ecpExp').onchange = () => { const d = q('#ecpExp').value === 'date'; q('#ecpDate').classList.toggle('hidden', !d); if (d && !q('#ecpDate').value) q('#ecpDate').value = new Date(Date.now() + 14 * 864e5).toLocaleDateString('en-CA'); };
-    q('#ecpAnnul').onclick = () => { edite = null; choix = new Set(); q('#ecpNom').value = ''; q('#ecpExp').value = 'jamais'; q('#ecpDate').classList.add('hidden'); dessinerM(); dessinerL(); etat('Prêt'); };
+    q('#ecpExt').onchange = () => { const a = q('#ecpExt').value === 'autre'; q('#ecpExtN').classList.toggle('hidden', !a); if (a) { if (!q('#ecpExtN').value) q('#ecpExtN').value = 45; q('#ecpExtN').focus(); } };
+    q('#ecpAnnul').onclick = () => { edite = null; choix = new Set(); q('#ecpNom').value = ''; q('#ecpExp').value = 'jamais'; q('#ecpDate').classList.add('hidden'); montrerExtrait(0); dessinerM(); dessinerL(); etat('Prêt'); };
     q('#ecpOk').onclick = async () => { const b = q('#ecpOk'); b.disabled = true; etat(edite ? 'Mise à jour…' : 'Création du lien…');
       try { const l = edite || { id: 'ec-' + BK.db.nouvelId(), cree: new Date().toISOString(), actif: true };
-        l.nom = q('#ecpNom').value.trim().slice(0, 40); l.expire = finDe(q('#ecpExp').value, q('#ecpDate').value); if (l.expire && Date.parse(l.expire) < Date.now()) throw new Error('Cette date est déjà passée'); l.morceaux = ms.filter(m => choix.has(m.id)).map(m => m.id); l.elements = await BK.ecouteExt.elements(l.morceaux, ms);
+        l.nom = q('#ecpNom').value.trim().slice(0, 40); l.expire = finDe(q('#ecpExp').value, q('#ecpDate').value); if (l.expire && Date.parse(l.expire) < Date.now()) throw new Error('Cette date est déjà passée');
+        const ex = extraitChoisi(); if (q('#ecpExt').value === 'autre' && !ex) throw new Error('Écris la durée de l\'extrait en secondes'); if (ex) l.extrait = ex; else delete l.extrait; l.morceaux = ms.filter(m => choix.has(m.id)).map(m => m.id); l.elements = await BK.ecouteExt.elements(l.morceaux, ms);
         if (!l.elements.length) throw new Error('Aucun de ces morceaux n\'a de version ★ dans le Drive');
         await BK.ecouteExt.garder(l); if (!liens.includes(l)) liens.push(l);
         const u = BK.ecouteExt.lien(l); try { await navigator.clipboard.writeText(u); } catch (e) {}
-        etat(edite ? 'Lien mis à jour' : 'Lien créé et copié'); edite = null; choix = new Set(); q('#ecpNom').value = ''; q('#ecpExp').value = 'jamais'; q('#ecpDate').classList.add('hidden');
+        etat(edite ? 'Lien mis à jour' : 'Lien créé et copié'); edite = null; choix = new Set(); q('#ecpNom').value = ''; q('#ecpExp').value = 'jamais'; q('#ecpDate').classList.add('hidden'); montrerExtrait(0);
       } catch (e) { console.error(e); etat('Problème : ' + (e.message || e)); }
       dessinerM(); dessinerL(); };
     // chargement : les morceaux, puis leur ★ dans le Drive (un par un, sans bloquer)
     try { ms = (await BK.db.liste('morceaux')).filter(m => m.statut !== 'archive').sort((a, b) => (a.nom || '').localeCompare(b.nom || ''));
       liens = await BK.ecouteExt.liens(); } catch (e) { q('#ecpM').innerHTML = '<span class="nt">Drive injoignable.</span>'; return; }
-    ms.forEach(m => { dispo[m.id] = '…'; }); dessinerM(); dessinerL();
+    ms.forEach(m => { dispo[m.id] = '…'; }); dessinerM(); dessinerL(); lireStats();
     for (const m of ms) { if (!v.isConnected) return; dispo[m.id] = await BK.ecouteExt.sonDrive(m, ms); dessinerM(); }
   },
 };

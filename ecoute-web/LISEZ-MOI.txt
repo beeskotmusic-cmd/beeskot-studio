@@ -20,6 +20,15 @@ Ce qu'il y a chez Cloudflare (compte Beeskot.music@gmail.com, connexion avec Git
   Une variable secrète CLE_API = la clé gratuite Google (la même que dans
   BEESKOT Studio › Notes et retours › Externe › « La clé gratuite Google »).
 
+Les écoutes et les extraits (depuis la 0.9.123)
+  Extrait : dans « Partager l'écoute », menu « Morceau entier / Extrait de 30, 42, 60 s / autre ». Cloudflare n'envoie
+  que le début du fichier (WAV et MP3 : coupé côté serveur, impossible d'écouter plus loin). Autres formats (m4a…) :
+  la page s'arrête à la durée, mais le fichier n'est pas coupé.
+  Écoutes : la page prévient Cloudflare quand un morceau a vraiment joué 10 s ; on compte par lien et par morceau.
+  Rangé dans un « KV » gratuit de Cloudflare : Storage & Databases › KV › namespace « beeskot-ecoutes »,
+  relié au Worker « ecoute » sous le nom ECOUTES (Worker › Settings › Bindings › KV namespace).
+  Sans ce KV, la page marche mais ne compte rien. BEESKOT Studio lit les chiffres à …/<code>/stats.
+
 Modifier la page plus tard
   1. Changer worker.js ici.
   2. dash.cloudflare.com › Workers & Pages › ecoute › « Edit code » : tout remplacer par le nouveau worker.js › Deploy.

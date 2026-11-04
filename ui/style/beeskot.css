@@ -2277,3 +2277,7 @@ div.to-as-tete{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
 .to-as-tete .to-as-plus,.to-assets.ferme .to-as-plus{margin-left:auto}
 .to-assets.ferme{flex-direction:row;flex-wrap:wrap;align-items:center;gap:8px;cursor:pointer}
 .to-as-dos .to-med .md-x{display:grid;place-items:center;opacity:.9}
+/* Partager l'écoute : durée de l'extrait, écoutes par morceau */
+.ecp-sec{flex:none!important;width:72px}
+.ecp-ec{font-size:11px;opacity:.85;line-height:1.5}.ecp-ec b{font-weight:700;color:#fff}
+#ecpNom{flex:1 1 100%!important}
