@@ -251,8 +251,10 @@ BK.module('notesvid', function (page) {
   $('#nvAjout').onclick = ajouterNote;
   $('#nvTexte').addEventListener('keydown', e => { e.stopPropagation(); if (e.key === 'Enter') ajouterNote(); });
   $('#nvCopier').onclick = async () => { const l = visibles(); if (!N.src || !l.length) return msg('Aucune note à copier');
-    const T = tri(), lg = n => `${n.regle ? '✓ ' : ''}${n.tout ? 'Toute la vidéo' : tps(n.t) + (n.fin ? '–' + tps(n.fin) : '')}${T === 'membre' ? '' : ' · ' + qui(n)} : ${n.texte}` + (n.reponses || []).map(r => `\n    ↳ ${r.par} : ${r.texte}`).join('');
-    const txt = N.src.nom + (N.src.lien ? ' · ' + nomLien(N.src.lien) : '') + '\n' + groupes(l).map(g => (g.cle ? `\n— ${g.titre} —\n` : '\n') + g.l.map(lg).join('\n')).join('\n');
+    // texte copié : sans aucun nom (seulement le timecode et le retour), dans l'ordre du temps — l'affichage de l'appli ne change pas
+    const lg = n => `${n.regle ? '✓ ' : ''}${n.tout ? 'Toute la vidéo' : tps(n.t) + (n.fin ? '–' + tps(n.fin) : '')} : ${n.texte}` + (n.reponses || []).map(r => `\n    ↳ ${r.texte}`).join('');
+    const ordre = [...l].sort((a, b) => (b.tout ? 1 : 0) - (a.tout ? 1 : 0) || (a.t || 0) - (b.t || 0));
+    const txt = `Retours pour ${N.src.lien ? nomLien(N.src.lien).replace(/^[♪🎥] /, '') : N.src.nom} le ${BK.auj()}\n${N.src.nom}\n\n` + ordre.map(lg).join('\n');
     try { await navigator.clipboard.writeText(txt); msg(l.length + ' note(s) copiée(s)'); } catch (e) { msg('Copie impossible'); } };
 
   // ---------- Historique de notes : par morceau / tournage › fichier vidéo ----------
@@ -287,8 +289,8 @@ BK.module('notesvid', function (page) {
     const l = N.toutes.filter(n => (n.lien || '') === b.dataset.hopen).sort((a, c) => (c.quand || '').localeCompare(a.quand || ''));
     const n = (b.dataset.hopen === N.hk && N.hf && l.find(x => x.video === N.hf)) || l[0]; if (n) { vue('notes'); rouvrir(n); } }, true);
   $('#nvHCopier').onclick = async () => { const l = listeHisto(); if (!l.length) return msg('Aucune note');
-    const txt = nomLien(N.hk) + '\n' + Object.entries(l.reduce((a, n) => ((a[n.videoNom || 'vidéo'] = a[n.videoNom || 'vidéo'] || []).push(n), a), {}))
-      .map(([f, ns]) => `\n${f}\n` + ns.sort((a, b) => a.t - b.t).map(n => `${n.regle ? '✓ ' : ''}${n.tout ? 'Toute la vidéo' : tps(n.t)} · ${qui(n)} : ${n.texte}`).join('\n')).join('\n');
+    const txt = `Retours pour ${nomLien(N.hk).replace(/^[♪🎥] /, '')} le ${BK.auj()}\n` + Object.entries(l.reduce((a, n) => ((a[n.videoNom || 'vidéo'] = a[n.videoNom || 'vidéo'] || []).push(n), a), {}))
+      .map(([f, ns]) => `\n${f}\n` + ns.sort((a, b) => (b.tout ? 1 : 0) - (a.tout ? 1 : 0) || a.t - b.t).map(n => `${n.regle ? '✓ ' : ''}${n.tout ? 'Toute la vidéo' : tps(n.t)} : ${n.texte}` + (n.reponses || []).map(r => `\n    ↳ ${r.texte}`).join('')).join('\n')).join('\n');
     try { await navigator.clipboard.writeText(txt); msg(l.length + ' note(s) copiée(s)'); } catch (e) { msg('Copie impossible'); } };
 
   // ---------- les deux sous-onglets, la poignée ----------

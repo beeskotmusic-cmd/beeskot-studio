@@ -3,6 +3,9 @@
 // Pour une nouvelle version : ajouter un bloc EN HAUT de la liste. Une ligne courte par point : « Onglet : ce qui change. »
 // =====================================================================
 BK.NOUVEAUTES = [
+  { v: '0.9.122', titre: '', l: [
+    ['📋', 'Notes et retours (audio et vidéo) › Copier : le texte copié ne contient plus aucun nom. Il commence par « Retours pour … le (date) », puis le nom du fichier, puis une ligne par retour : le timecode et le retour, dans l\'ordre du temps. L\'écran ne change pas.'],
+  ] },
   { v: '0.9.121', titre: '', l: [
     ['🎬', 'Tournage › Assets : un bouton « ＋ Ajouter » (toujours visible, même panneau vide) pour choisir des médias dans Médias et les mettre dans les Assets du tournage. Les ✕ sont maintenant toujours visibles pour retirer un média (il reste dans Médias et le Drive).'],
   ] },

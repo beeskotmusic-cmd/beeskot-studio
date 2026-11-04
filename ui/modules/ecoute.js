@@ -382,12 +382,14 @@ BK.module('ecoute', function (page) {
   // 📋 Copier : toutes les notes affichées, avec leurs timecodes, dans l'ordre choisi (en anglais si tout est traduit)
   $('#ecCopier').onclick = async () => {
     const l = visibles(); if (!E.m || !l.length) return msg('Aucune note à copier');
-    const en = l.every(n => n.texteEn), T = tri();
-    const ligne = n => `${n.regle ? '✓ ' : ''}${n.tout ? 'Tout le morceau' : tps(n.t) + (n.fin ? '–' + tps(n.fin) : '')}${T === 'membre' ? '' : ' · ' + qui(n)} : ${en ? n.texteEn : n.texte}`
+    // texte copié : sans aucun nom (seulement le timecode et le retour), dans l'ordre du temps — l'affichage de l'appli ne change pas
+    const en = l.every(n => n.texteEn);
+    const ordreCopie = l => [...l].sort((a, b) => (b.tout ? 1 : 0) - (a.tout ? 1 : 0) || (a.t || 0) - (b.t || 0));
+    const ligne = n => `${n.regle ? '✓ ' : ''}${n.tout ? 'Tout le morceau' : tps(n.t) + (n.fin ? '–' + tps(n.fin) : '')} : ${en ? n.texteEn : n.texte}`
       + (E.A && n.version !== E.A ? ` [${versionDe(n)}]` : '')
-      + (n.reponses || []).map(r => `\n    ↳ ${r.par} : ${en && r.texteEn ? r.texteEn : r.texte}`).join('');
-    const tete = `${E.m.nom}\nA : ${nomVersion(E.A)}${E.B ? '\nB : ' + nomVersion(E.B) : ''}\n`;
-    const txt = tete + groupes(l).map(g => (g.cle ? `\n— ${g.titre} —\n` : '\n') + g.l.map(ligne).join('\n')).join('\n');
+      + (n.reponses || []).map(r => `\n    ↳ ${en && r.texteEn ? r.texteEn : r.texte}`).join('');
+    const tete = `Retours pour ${E.m.nom} le ${BK.auj()}\n${nomVersion(E.A)}\n`;
+    const txt = tete + '\n' + ordreCopie(l).map(ligne).join('\n');
     try { await navigator.clipboard.writeText(txt); msg(l.length + ' note(s) copiée(s)' + (en ? ' en anglais' : '') + ' : colle-les où tu veux'); } catch (e) { msg('Copie impossible'); }
   };
   // ---------- la place : la poignée entre le lecteur (à gauche) et les notes (à droite), gardée sur ce PC ----------
@@ -442,8 +444,9 @@ BK.module('ecoute', function (page) {
   $('#ecHV').onchange = e => { E.hv = e.target.value; e.target.blur(); dessinerHisto(); };
   $$('#ecHTri button').forEach(b => b.onclick = () => { BK.regler('ecoute.tri2', b.dataset.t); dessinerHisto(); dessinerNotes(); });
   $('#ecHCopier').onclick = async () => { const l = (E.toutes || []).filter(n => n.morceau === E.hm && (!E.hv || n.version === E.hv)); if (!l.length) return msg('Aucune note à copier');
-    const T = tri(), ligne = n => `${n.regle ? '✓ ' : ''}${n.tout ? 'Tout le morceau' : tps(n.t) + (n.fin ? '–' + tps(n.fin) : '')}${T === 'membre' ? '' : ' · ' + qui(n)} : ${n.texte}${E.hv ? '' : ' [' + (n.versionNom || '') + ']'}` + (n.reponses || []).map(r => `\n    ↳ ${r.par} : ${r.texte}`).join('');
-    const txt = $('#ecHTitre').textContent + (E.hv ? '\n' + $('#ecHV').selectedOptions[0].textContent : '') + '\n' + groupes(l).map(g => (g.cle ? `\n— ${g.titre} —\n` : '\n') + g.l.map(ligne).join('\n')).join('\n');
+    const ordreCopie = l => [...l].sort((a, b) => (b.tout ? 1 : 0) - (a.tout ? 1 : 0) || (a.t || 0) - (b.t || 0));
+    const ligne = n => `${n.regle ? '✓ ' : ''}${n.tout ? 'Tout le morceau' : tps(n.t) + (n.fin ? '–' + tps(n.fin) : '')} : ${n.texte}${E.hv ? '' : ' [' + (n.versionNom || '') + ']'}` + (n.reponses || []).map(r => `\n    ↳ ${r.texte}`).join('');
+    const txt = `Retours pour ${$('#ecHTitre').textContent} le ${BK.auj()}` + (E.hv ? '\n' + $('#ecHV').selectedOptions[0].textContent : '') + '\n\n' + ordreCopie(l).map(ligne).join('\n');
     try { await navigator.clipboard.writeText(txt); msg(l.length + ' note(s) copiée(s)'); } catch (e) { msg('Copie impossible'); } };
   setTimeout(() => vue(BK.reglage('ecoute.vue', 'ab')), 0);
 
