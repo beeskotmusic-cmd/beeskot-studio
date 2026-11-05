@@ -98,9 +98,14 @@ BK.ecouteExt = {
     const montrerExtrait = n => { const std = ['0', '30', '42', '60'].includes(String(n || 0)); q('#ecpExt').value = std ? String(n || 0) : 'autre'; q('#ecpExtN').value = std ? '' : n; q('#ecpExtN').classList.toggle('hidden', std); };
     // les écoutes de chaque lien (comptées chez Cloudflare) : « Mother 3 · Moon Blue 1 »
     const ecoutes = l => { const s = stats[l.id]; if (s === undefined) return '<span class="ecp-ec">Écoutes : …</span>'; if (!s || !s.ok) return '';
-      const noms = Object.fromEntries((l.elements || []).map(e => [e.id, e.nom])), l2 = Object.entries(s.m || {}).sort((a, b) => b[1].n - a[1].n);
-      if (!l2.length) return '<span class="ecp-ec">Pas encore écouté</span>';
-      return `<span class="ecp-ec">🎧 ${l2.map(([k, x]) => `${esc(noms[k] || x.nom || 'Morceau')} <b>${x.n}</b>`).join(' · ')}${s.dernier ? ` · dernière écoute le ${jourFr(s.dernier)}` : ''}</span>`; };
+      // TOUS les morceaux du lien, même à 0 écoute : les plus écoutés d'abord, puis par ordre alphabétique
+      const noms = Object.fromEntries([...(l.elements || []).map(e => [e.id, e.nom]), ...ms.map(m => [m.id, m.nom])]);
+      const lg = (l.morceaux || []).map(id => ({ nom: noms[id] || (s.m && s.m[id] && s.m[id].nom) || 'Morceau', n: (s.m && s.m[id] && s.m[id].n) || 0 }));
+      for (const [k, x] of Object.entries(s.m || {})) if (!(l.morceaux || []).includes(k)) lg.push({ nom: x.nom || noms[k] || 'Morceau', n: x.n || 0 });   // un morceau retiré du lien mais déjà écouté
+      lg.sort((a, b) => b.n - a.n || a.nom.localeCompare(b.nom, 'fr'));
+      const tot = lg.reduce((t, x) => t + x.n, 0);
+      return `<details class="ecp-ec ecp-det"><summary>🎧 ${tot ? tot + ' écoute' + (tot > 1 ? 's' : '') : 'Pas encore écouté'}${s.dernier ? ` · dernière écoute le ${jourFr(s.dernier)}` : ''}</summary>`
+        + lg.map(x => `<div class="ecp-li"><span>${esc(x.nom)}</span><b>${x.n}</b></div>`).join('') + '</details>'; };
     const lireStats = () => Promise.all(liens.filter(l => l.doc).map(async l => {
       try { const r = await fetch(BK.ecouteExt.PORTE + l.doc + '/stats', { cache: 'no-store' }); stats[l.id] = r.ok ? await r.json() : null; } catch (e) { stats[l.id] = null; } })).then(() => v.isConnected && dessinerL());
     const fermer = () => { document.removeEventListener('keydown', touche, true); v.remove(); };
