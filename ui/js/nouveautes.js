@@ -3,6 +3,10 @@
 // Pour une nouvelle version : ajouter un bloc EN HAUT de la liste. Une ligne courte par point : « Onglet : ce qui change. »
 // =====================================================================
 BK.NOUVEAUTES = [
+  { v: '0.9.124', titre: '', l: [
+    ['☁', 'Clic droit sur un dossier ou un fichier dans les fenêtres « Choisir dans le Drive » (export d\'un morceau, choisir un son, une vidéo, une image…) : « Ouvrir sur le Drive ». Aussi sur le fil du haut et dans le vide de la liste (ouvre le dossier où tu es), et sur les dossiers de Médias.'],
+    ['🎵', 'Médias : dans les fenêtres « Choisir dans Médias » (photo de morceau, etc.), tu peux enfin glisser un fichier de ton PC dessus. Les boutons Vidéos / Musiques qui n\'ont pas de sens (on cherche une photo) sont cachés, au lieu de montrer une page vide.'],
+  ] },
   { v: '0.9.123', titre: '', l: [
     ['🎧', 'Bibliothèque › Partager l\'écoute : chaque lien montre combien de fois chaque morceau a été écouté (une écoute = 10 s jouées), et la date de la dernière écoute.'],
     ['✂', 'Partager l\'écoute : un lien peut ne faire écouter qu\'un extrait (le début du morceau) : 30, 42, 60 s ou la durée de ton choix. Impossible d\'écouter plus loin, même en bidouillant. Modifier un lien pour changer la durée.'],

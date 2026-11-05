@@ -303,6 +303,10 @@ BK.module('medias', function (page) {
     const ffAvant = { ...M.ff }; M.ff = { rub: '', k: '' };
 
     M.sel.clear(); M.choisi = null;
+    // seulement les boutons Tout / Images / Vidéos / Musiques qui ont un sens ici (une fenêtre « photo » ne montre pas les sons)
+    const typeAvant = M.type, permis = type === 'imagepdf' ? ['tout', 'image'] : ['image', 'video', 'audio'].includes(type) ? ['tout', type] : null;
+    const boutonsType = $$('#mdTypes button', page), majBoutonsType = () => boutonsType.forEach(x => x.classList.toggle('on', x.dataset.ty === M.type));
+    if (permis) { boutonsType.forEach(x => x.classList.toggle('hidden', !permis.includes(x.dataset.ty))); if (!permis.includes(M.type)) M.type = 'tout'; majBoutonsType(); }
     const v = document.createElement('div'); v.className = 'voile md-choix-voile';
     v.innerHTML = `<div class="stopbox md-choix"><button class="btn xs rt-x" data-c="x" title="Fermer">✕</button>
       <span class="dymo md-choix-titre" title="${esc(titre)}">🖼 ${esc(titre)}</span><div class="md-choix-c"></div>
@@ -313,7 +317,7 @@ BK.module('medias', function (page) {
     document.body.appendChild(v); v.querySelector('.md-choix').classList.add('md-choix');
     const choisis = () => [...M.sel].map(id => M.vus && M.vus[id]).filter(Boolean)
       .map(f => ({ id: f.id, nom: f.name, mime: f.mimeType, apercu: M.vign[f.id] || '', ...(f.dc ? { dc: f.dc } : { f }) }));
-    const fin = l => { if (!M.choix) return; vit.removeEventListener('dblclick', dbl, true); document.removeEventListener('keydown', k, true); M.choix = null; M.ff = ffAvant; p1.replaceWith(vit); p2.replaceWith(aj); aj.classList.toggle('plie', pliee); v.remove();
+    const fin = l => { if (!M.choix) return; vit.removeEventListener('dblclick', dbl, true); document.removeEventListener('keydown', k, true); M.choix = null; M.ff = ffAvant; boutonsType.forEach(x => x.classList.remove('hidden')); M.type = typeAvant; majBoutonsType(); p1.replaceWith(vit); p2.replaceWith(aj); aj.classList.toggle('plie', pliee); v.remove();
       M.sel.clear(); M.choisi = null; M.filtre = avant.filtre; M.pile = avant.pile; M.racine = avant.racine;
       const sel = $('#mdFiltre'); if (sel) sel.value = M.filtre || ''; paniers(); charger(); ok(l); };
     M.choix = { type, maj: () => { const n = choisis().length, b = v.querySelector('[data-c="ok"]'); b.disabled = !n; b.textContent = n ? `${bouton} (${n}) ▶` : bouton;
@@ -323,7 +327,15 @@ BK.module('medias', function (page) {
       if (b.dataset.c === 'ok') return fin(choisis());
       if (b.dataset.c === 'retirer') return fin([{ retirer: true }]);
       if (b.dataset.c === 'pc') v.querySelector('input[type=file]').click(); });
-    v.querySelector('input[type=file]').onchange = e => { const l = [...e.target.files].map(f => ({ id: 'pc:' + f.name, nom: f.name, mime: f.type, apercu: '', fichier: f })); if (l.length) fin(l); };
+    const accepte = f => { const son = /^audio\//.test(f.type) || /\.(wav|mp3|aiff?|flac|m4a|ogg)$/i.test(f.name), img = /^image\//.test(f.type), vid = /^video\//.test(f.type), pdf = f.type === 'application/pdf' || /\.pdf$/i.test(f.name);
+      return type === 'image' ? img : type === 'video' ? vid : type === 'audio' ? son : type === 'imagepdf' ? img || pdf : img || vid || pdf || son; };
+    const depuisPc = fs => { const l = [...fs].filter(accepte).map(f => ({ id: 'pc:' + f.name, nom: f.name, mime: f.type, apercu: '', fichier: f }));
+      if (l.length) fin(l); else if (fs.length) msg({ image: 'Il faut une image ici', video: 'Il faut une vidéo ici', audio: 'Il faut un son ici', imagepdf: 'Il faut une image ou un PDF ici' }[type] || 'Ce type de fichier ne va pas ici'); };
+    v.querySelector('input[type=file]').onchange = e => depuisPc(e.target.files);
+    // glisser des fichiers du PC sur la fenêtre (avant, seul l'onglet Médias écoutait : dans cette fenêtre, rien ne se passait)
+    if (pc) { v.addEventListener('dragover', e => { if (!e.dataTransfer.types.includes('Files') || e.dataTransfer.types.includes('text/bk-media')) return; e.preventDefault(); v.querySelector('.md-choix').classList.add('survol'); });
+      v.addEventListener('dragleave', e => { if (!v.contains(e.relatedTarget)) v.querySelector('.md-choix').classList.remove('survol'); });
+      v.addEventListener('drop', e => { if (e.dataTransfer.types.includes('text/bk-media')) return; e.preventDefault(); e.stopPropagation(); v.querySelector('.md-choix').classList.remove('survol'); if (e.dataTransfer.files.length) depuisPc(e.dataTransfer.files); }); }
     const dbl = e => { const t = e.target.closest('.md-tuile[data-id]'); if (!t) return; e.stopPropagation(); e.preventDefault(); M.sel.add(t.dataset.id); fin(choisis()); };
     const k = e => { if (e.key === 'Escape') fin([]); };
     vit.addEventListener('dblclick', dbl, true); document.addEventListener('keydown', k, true);
@@ -393,7 +405,7 @@ BK.module('medias', function (page) {
       return `<button class="md-tag${l.length ? ' main' : noms.length ? '' : ' vide'}" data-tag="${f.id}" title="${main || l.length ? 'Étiquettes choisies à la main' : noms.length ? 'Devinée par le nom' : 'Étiqueter'}">🏷 ${esc(noms.length ? noms.join(' · ') : 'Étiqueter')}</button>`; };
     $('#mdNb').textContent = String(fs.length).padStart(2, '0');
     $('#mdGrille').innerHTML = ds.map(d => d.lier ? `<button class="md-tuile md-dos md-lier" id="mdLier" title="Montrer ici un dossier qui existe déjà sur le Drive (rien n'est copié)"><span class="md-dos-ic">＋</span><span class="md-nom">Ajouter un dossier du Drive</span></button>`
-        : `<button class="md-tuile md-dos${d.badge ? ' md-dos-dc' : ''}${d.lie ? ' md-dos-lie' : ''}" data-dos="${d.id}" data-nom="${esc(d.name)}"><span class="md-dos-ic">${d.badge ? '💬' : '📁'}</span><span class="md-nom">${esc(d.name)}</span>${d.badge ? `<span class="md-dos-badge">${esc(d.badge)}</span>` : ''}${d.lie ? `<span class="md-dos-badge">du Drive</span><span class="md-x" data-delie="${d.id}" title="Ne plus montrer ce dossier ici (rien n'est supprimé du Drive)">✕</span>` : ''}</button>`).join('')
+        : `<button class="md-tuile md-dos${d.badge ? ' md-dos-dc' : ''}${d.lie ? ' md-dos-lie' : ''}" data-dos="${d.id}"${d.id === 'discord' ? '' : ` data-drive-dossier="${d.id}"`} data-nom="${esc(d.name)}"><span class="md-dos-ic">${d.badge ? '💬' : '📁'}</span><span class="md-nom">${esc(d.name)}</span>${d.badge ? `<span class="md-dos-badge">${esc(d.badge)}</span>` : ''}${d.lie ? `<span class="md-dos-badge">du Drive</span><span class="md-x" data-delie="${d.id}" title="Ne plus montrer ce dossier ici (rien n'est supprimé du Drive)">✕</span>` : ''}</button>`).join('')
       + (filtre || M.racine === 'discord' || !M.pile.length ? '' : `<button class="md-tuile md-plus" id="mdPlus"><span>+</span><span class="nt">Ajouter ici</span></button>`)
       + fs.map(f => {
         const video = /^video\//.test(f.mimeType), son = /^audio\//.test(f.mimeType || '') || /\.(wav|mp3|aiff?|flac|m4a|ogg)$/i.test(f.name || ''), d = f.videoMediaMetadata && f.videoMediaMetadata.durationMillis;

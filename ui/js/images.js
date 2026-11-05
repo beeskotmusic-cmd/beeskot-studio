@@ -183,18 +183,19 @@ new MutationObserver(ms => {
 }).observe(document.documentElement, { childList: true, subtree: true });
 
 // ---------- clic droit « ☁ Ouvrir sur le Drive » : sur toute image venue du Drive (data-ref="drive:ID") ou tout élément data-drive="ID" ----------
-BK.driveUrl = id => 'https://drive.google.com/file/d/' + id + '/view';
-BK.menuDrive = (e, id, plus) => {
+//   un dossier : data-drive-dossier="ID" (ou "root" = Mon Drive) → il s'ouvre en tant que dossier
+BK.driveUrl = (id, dossier) => dossier ? (id === 'root' ? 'https://drive.google.com/drive/my-drive' : 'https://drive.google.com/drive/folders/' + id) : 'https://drive.google.com/file/d/' + id + '/view';
+BK.menuDrive = (e, id, plus, dossier) => {
   document.querySelectorAll('.cd-menu').forEach(x => x.remove());
   const m = document.createElement('div'); m.className = 'md-menu cd-menu';
   m.innerHTML = (plus || []).map((p, i) => `<button data-p="${i}">${p.nom}</button>`).join('') + '<button data-d="1">☁ Ouvrir sur le Drive</button>';
   m.style.left = Math.min(e.clientX, innerWidth - 230) + 'px'; m.style.top = Math.min(e.clientY, innerHeight - 90) + 'px'; document.body.appendChild(m);
-  m.onclick = ev => { const b = ev.target.closest('button'); if (!b) return; m.remove(); if (b.dataset.d) BK.ouvrirLien(BK.driveUrl(id)); else (plus[+b.dataset.p] || {}).f && plus[+b.dataset.p].f(); };
+  m.onclick = ev => { const b = ev.target.closest('button'); if (!b) return; m.remove(); if (b.dataset.d) BK.ouvrirLien(BK.driveUrl(id, dossier)); else (plus[+b.dataset.p] || {}).f && plus[+b.dataset.p].f(); };
   setTimeout(() => document.addEventListener('pointerdown', ev => { if (!m.contains(ev.target)) m.remove(); }, { once: true, capture: true }), 0);
 };
 document.addEventListener('contextmenu', e => {
   if (e.defaultPrevented) return;
-  const el = e.target.closest && e.target.closest('[data-drive],[data-ref^="drive:"]'); if (!el) return;
-  const id = el.dataset.drive || String(el.dataset.ref).slice(6); if (!id) return;
-  e.preventDefault(); BK.menuDrive(e, id);
+  const el = e.target.closest && e.target.closest('[data-drive],[data-drive-dossier],[data-ref^="drive:"]'); if (!el) return;
+  const dos = el.dataset.driveDossier, id = dos || el.dataset.drive || String(el.dataset.ref).slice(6); if (!id) return;
+  e.preventDefault(); BK.menuDrive(e, id, null, !!dos);
 });
