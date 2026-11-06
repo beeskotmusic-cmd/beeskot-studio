@@ -30,7 +30,8 @@ const PIN = n => 'look/pins/' + n.toLowerCase().normalize('NFD').replace(/[^a-z]
 
 const L = BK.look = {
   // 'neuf' = nouveau look avec les boutons écusson (0.9.128) ; 'neuf1' = le nouveau look d'avant (0.9.126), proposé comme « Ancien look »
-  neuf: () => ['neuf', 'neuf1'].includes(BK.reglage('look', null)),
+  // le très vieux look (« ancien », avant le nouveau look) n'existe plus : tout le monde est au moins en 'neuf1'
+  neuf: () => true,
   ecusson: () => BK.reglage('look', null) === 'neuf',
   choisi: () => BK.reglage('look', null) !== null,
   pasPret: id => L.neuf() && PAS_PRETS.includes(id),
@@ -117,7 +118,7 @@ const L = BK.look = {
         <span class="nt" style="text-align:center">Moins de boutons, un menu plus court, un tapis et une couleur pour chaque section, les pins du groupe en haut. Toutes les fonctions sont toujours là.</span>
         <div class="look-cartes">
           <button class="look-carte on" data-l="neuf" aria-pressed="true"><b>Essayer le nouveau look</b><span class="nt">Menu rangé : Musique, Contenus, Organisation, Show. Conseillé.</span></button>
-          <button class="look-carte" data-l="ancien" aria-pressed="false"><b>Garder l'ancien pour l'instant</b><span class="nt">Tout reste comme avant. Tu pourras passer au nouveau quand tu veux.</span></button>
+          <button class="look-carte" data-l="neuf1" aria-pressed="false"><b>Garder l'ancien pour l'instant</b><span class="nt">Les boutons d'avant (avec relief). Tu pourras passer au nouveau quand tu veux.</span></button>
         </div>
         <span class="nt">Changer plus tard : Réglages › Ce PC › Apparence. Chacun choisit sur son PC.</span>
         <div class="stopbox-btns"><button class="btn pri" id="lookOk">C'est parti</button></div></div>`;
