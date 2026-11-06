@@ -60,7 +60,7 @@ BK.module('reglages', function (page) {
           <div class="chips" style="margin-top:8px" id="rgNoms">${['Yacine', 'Pierre', 'Baptiste', 'Studio'].map(n => `<button class="chip${BK.reglage('nomPc', '') === n ? ' on' : ''}" data-nom="${n}">${n}</button>`).join('')}</div></div>
         <div data-rgo="pc" class="box"><span class="lb">Apparence</span>
           <span class="nt">Le nouveau look : menu rangé (Musique, Contenus, Organisation, Show), un tapis et une couleur par section, les pins du groupe en haut, tout plus compact. Seulement sur ce PC.</span>
-          <div class="chips" style="margin-top:10px"><button class="chip${BK.look && BK.look.neuf() ? ' on' : ''}" data-look="neuf">Nouveau look</button><button class="chip${BK.look && !BK.look.neuf() ? ' on' : ''}" data-look="ancien">Ancien look</button></div></div>
+          <div class="chips" style="margin-top:10px"><button class="chip${BK.look && BK.look.ecusson() ? ' on' : ''}" data-look="neuf">Nouveau look</button><button class="chip${BK.look && !BK.look.ecusson() ? ' on' : ''}" data-look="neuf1">Ancien look</button></div></div>
         <div data-rgo="pc" class="box"><span class="lb">Taille de l'interface</span>
           <div class="knobs" style="justify-content:center"><div class="kb">
             <input id="rgZoom" type="range" min="80" max="130" step="5" value="${BK.reglage('zoom', 100)}" class="knobify" data-ticks="80,,,,,130" data-fmt="{} %"><span class="lb">Zoom</span></div></div></div>

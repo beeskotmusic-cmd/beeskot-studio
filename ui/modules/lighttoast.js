@@ -68,10 +68,14 @@ html.bk-neuf #play,html.bk-neuf #rec,html.bk-neuf #sgo,html.bk-neuf .lt-pri{back
 html.bk-neuf #play:hover,html.bk-neuf #rec:hover,html.bk-neuf #sgo:hover,html.bk-neuf .lt-pri:hover{background:linear-gradient(#52c4ba,#257079)!important}
 html.bk-neuf .db.on,html.bk-neuf .cc.on,html.bk-neuf #fsbar .chip.on,html.bk-neuf button[aria-pressed=true],html.bk-neuf .lt-seg button.on,html.bk-neuf #ltMembBt.on,html.bk-neuf #ltEdBt.on,html.bk-neuf button.on{background:linear-gradient(#3fb0a6,#1d5f66)!important;color:#eafffb!important;box-shadow:0 0 0 2px #2f9a94,inset 0 2px 5px rgba(0,0,0,.4)!important}
 html.bk-neuf .sw.on{box-shadow:0 0 0 2px #3fb0a6,0 0 8px #3fb0a6aa!important}
-html.bk-neuf select,html.bk-neuf input[type=number],html.bk-neuf input[type=text]{border-color:#3a3a3e!important;color:#7fe6da!important}`;
+html.bk-neuf select,html.bk-neuf input[type=number],html.bk-neuf input[type=text]{border-color:#3a3a3e!important;color:#7fe6da!important}
+html.bk-neuf.bk-ecusson body button:not(.sw){background:none!important;background-color:#232325!important;color:#e6e6e6!important;border:0!important;border-radius:6px!important;text-shadow:none!important;box-shadow:0 2px 4px rgba(0,0,0,.45)!important}
+html.bk-neuf.bk-ecusson body button:not(.sw):hover{filter:brightness(1.15)}
+html.bk-neuf.bk-ecusson body #play,html.bk-neuf.bk-ecusson body #rec,html.bk-neuf.bk-ecusson body #sgo,html.bk-neuf.bk-ecusson body .lt-pri{background:none!important;background-color:#1f7f7a!important;color:#e8fffb!important}
+html.bk-neuf.bk-ecusson body .db.on,html.bk-neuf.bk-ecusson body .cc.on,html.bk-neuf.bk-ecusson body #fsbar .chip.on,html.bk-neuf.bk-ecusson body button[aria-pressed=true],html.bk-neuf.bk-ecusson body .lt-seg button.on,html.bk-neuf.bk-ecusson body #ltMembBt.on,html.bk-neuf.bk-ecusson body #ltEdBt.on,html.bk-neuf.bk-ecusson body button.on{background:none!important;background-color:#a6f0e6!important;color:#0e2e2c!important;box-shadow:0 2px 4px rgba(0,0,0,.45)!important}`;
   const habiller = () => { try { const d = f.contentDocument; if (!d || !d.documentElement) return;
     if (!d.getElementById('bk-neuf')) { const st = d.createElement('style'); st.id = 'bk-neuf'; st.textContent = STYLE_NEUF; d.head.appendChild(st); }
-    d.documentElement.classList.toggle('bk-neuf', document.body.classList.contains('look-neuf')); } catch (e) {} };
+    d.documentElement.classList.toggle('bk-neuf', document.body.classList.contains('look-neuf')); d.documentElement.classList.toggle('bk-ecusson', document.body.classList.contains('look-ecusson')); } catch (e) {} };
   f.addEventListener('load', () => { habiller(); compteurs(); clearInterval(obs); obs = setInterval(() => { if (!page.classList.contains('hidden')) { habiller(); compteurs(); } }, 1500); });
   BK.surOuvrir = BK.surOuvrir || {};
   BK.surOuvrir.lighttoast = () => { if (!f.getAttribute('src')) f.src = 'lighttoast/toast.html'; };   // chargé à la première ouverture seulement : rien ne pèse au démarrage

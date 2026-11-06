@@ -29,7 +29,9 @@ const MEMBRES = ['Yacine', 'Pierre', 'Baptiste', 'Studio'];
 const PIN = n => 'look/pins/' + n.toLowerCase().normalize('NFD').replace(/[^a-z]/g, '') + '.png';
 
 const L = BK.look = {
-  neuf: () => BK.reglage('look', null) === 'neuf',
+  // 'neuf' = nouveau look avec les boutons écusson (0.9.128) ; 'neuf1' = le nouveau look d'avant (0.9.126), proposé comme « Ancien look »
+  neuf: () => ['neuf', 'neuf1'].includes(BK.reglage('look', null)),
+  ecusson: () => BK.reglage('look', null) === 'neuf',
   choisi: () => BK.reglage('look', null) !== null,
   pasPret: id => L.neuf() && PAS_PRETS.includes(id),
   // les sous-onglets (nouveau look) : l'entrée du menu (« chef »), son nom, et l'onglet à rouvrir (le dernier utilisé)
@@ -57,6 +59,7 @@ const L = BK.look = {
   },
   appliquer() {
     document.body.classList.toggle('look-neuf', L.neuf());
+    document.body.classList.toggle('look-ecusson', L.ecusson());
     if (!L.neuf()) return;
     const top = $('header.top'); if (top && !$('#syPins')) {
       const p = document.createElement('div'); p.className = 'pins'; p.id = 'syPins'; p.setAttribute('aria-label', 'Qui est là');
@@ -123,7 +126,7 @@ const L = BK.look = {
       v.querySelectorAll('[data-l]').forEach(x => { x.classList.toggle('on', x === b); x.setAttribute('aria-pressed', x === b); }); });
     v.querySelector('#lookOk').onclick = () => { v.remove(); L.choisir(choix); };
   },
-  choisir(v) { const avant = L.neuf(); BK.regler('look', v); if ((v === 'neuf') !== avant) location.reload(); },
+  choisir(v) { const avant = BK.reglage('look', null); BK.regler('look', v); if (v !== avant) location.reload(); },
 };
 })();
 

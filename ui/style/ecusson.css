@@ -1,0 +1,59 @@
+/* =====================================================================
+   ÉCUSSON (0.9.128) — onglets et boutons en rectangle brodé comme le logo BEESKOT.
+   Nouveau look seulement. Mêmes couleurs que le logo dans toutes les sections.
+   ===================================================================== */
+/* couleurs par section — rouge du logo (Musique, Contenus), or du tweed (Orga), vert olive du tapis (Accueil, Réglages), turquoise (Show) */
+body.look-neuf.look-ecusson{--ecu-fond:#5f6538;--ecu-texte:#f0e8cc;--ecu-actif:#efe4cc;--ecu-actif-texte:#2a2a12}
+body.look-neuf.look-ecusson[data-section="musique"],body.look-neuf.look-ecusson[data-section="contenus"]{--ecu-fond:#6d1a24;--ecu-texte:#e7c796;--ecu-actif:#e7c796;--ecu-actif-texte:#4a0f19}
+body.look-neuf.look-ecusson[data-section="orga"]{--ecu-fond:#8a6e3e;--ecu-texte:#fbf1da;--ecu-actif:#f0dca4;--ecu-actif-texte:#3a2a10}
+body.look-neuf.look-ecusson[data-section="show"]{--ecu-fond:#1f7f7a;--ecu-texte:#e8fffb;--ecu-actif:#a6f0e6;--ecu-actif-texte:#0e2e2c}
+
+/* pastilles (Prochaine sortie / En chantier…), interrupteurs, menu de gauche */
+body.look-neuf.look-ecusson .seg button,body.look-neuf.look-ecusson .chip,body.look-neuf.look-ecusson #nav .tab:not(.on),body.look-neuf.look-ecusson #nav .tab.on{
+  background:none!important;background-color:var(--ecu-fond)!important;color:var(--ecu-texte)!important;
+  border:0!important;border-radius:6px!important;text-shadow:none!important;filter:none!important;
+  box-shadow:0 2px 4px rgba(0,0,0,.45)!important}
+body.look-neuf.look-ecusson .seg button.on,body.look-neuf.look-ecusson .chip.on,body.look-neuf.look-ecusson #nav .tab.on{
+  background:none!important;background-color:var(--ecu-actif)!important;color:var(--ecu-actif-texte)!important}
+body.look-neuf.look-ecusson #nav .tab.on .lab{color:var(--ecu-actif-texte);text-shadow:none}
+body.look-neuf.look-ecusson #nav .tab:hover:not(.on){filter:brightness(1.12)!important}
+
+/* menu de gauche : même rectangle, mais fond gris-brun des boutons ronds du haut (#302828, crème #e0d0b8) (le rouge est réservé aux pastilles) */
+body.look-neuf.look-ecusson #nav .tab:not(.on){background-color:#232325!important;color:#e6e6e6!important}
+
+/* =====================================================================
+   TOUS LES BOUTONS : plus aucun dégradé, même rectangle que le logo.
+   [data-section] est là pour passer devant les réglages propres à chaque section.
+   - bouton normal  : gris foncé neutre (comme le menu)
+   - bouton principal (.pri / .warm) : couleur de la section
+   - onglets (.seg / .chip / Réglages) : couleur de la section, actif en clair
+   ===================================================================== */
+body.look-neuf.look-ecusson[data-section] .btn,body.look-neuf.look-ecusson[data-section] .dec,body.look-neuf.look-ecusson[data-section] .rg-tabs button{
+  background:none!important;background-color:#232325!important;color:#e6e6e6!important;
+  border:0!important;border-radius:6px!important;text-shadow:none!important;filter:none!important;
+  box-shadow:0 2px 4px rgba(0,0,0,.45)!important}
+body.look-neuf.look-ecusson[data-section] .btn.pri,body.look-neuf.look-ecusson[data-section] .btn.warm,body.look-neuf.look-ecusson[data-section] .dec.m,
+body.look-neuf.look-ecusson[data-section] #pages .btn.pri,body.look-neuf.look-ecusson[data-section] #pages .btn.warm{
+  background:none!important;box-shadow:0 2px 4px rgba(0,0,0,.45)!important;border:0!important;background-color:var(--ecu-fond)!important;color:var(--ecu-texte)!important}
+body.look-neuf.look-ecusson[data-section] .seg button,body.look-neuf.look-ecusson[data-section] .chip,body.look-neuf.look-ecusson[data-section] .rg-tabs button{
+  background:none!important;background-color:var(--ecu-fond)!important;color:var(--ecu-texte)!important;
+  border:0!important;border-radius:6px!important;text-shadow:none!important;box-shadow:0 2px 4px rgba(0,0,0,.45)!important}
+body.look-neuf.look-ecusson[data-section] .seg button.on,body.look-neuf.look-ecusson[data-section] .chip.on,body.look-neuf.look-ecusson[data-section] .rg-tabs button.on,
+body.look-neuf.look-ecusson[data-section] .btn.on{
+  background:none!important;background-color:var(--ecu-actif)!important;color:var(--ecu-actif-texte)!important}
+body.look-neuf.look-ecusson[data-section] .btn:hover,body.look-neuf.look-ecusson[data-section] .seg button:hover:not(.on),body.look-neuf.look-ecusson[data-section] .chip:hover:not(.on){filter:brightness(1.15)!important}
+/* l'enfoncement reste (le bouton descend de 1 px quand on clique) */
+body.look-neuf.look-ecusson[data-section] .btn:active,body.look-neuf.look-ecusson[data-section] .seg button:active,body.look-neuf.look-ecusson[data-section] .chip:active{transform:translateY(1px)!important;box-shadow:0 1px 2px rgba(0,0,0,.45)!important}
+/* A / B de Retours : on garde leurs couleurs (bleu / rose), elles ont un sens — juste à plat */
+body.look-neuf.look-ecusson[data-section] .seg.ec-ab button{background-color:var(--c)!important;color:#fff6ea!important}
+body.look-neuf.look-ecusson[data-section] .seg.ec-ab button:not(.on){opacity:.55}
+/* Médias : ⌂ et « Retour » (avant rose) → gris comme les boutons normaux */
+body.look-neuf.look-ecusson[data-section] .md-haut{background:#232325!important;color:#e6e6e6!important;border-radius:6px!important;box-shadow:0 2px 4px rgba(0,0,0,.45)!important}
+
+/* LECTEUR de la Bibliothèque : mêmes boutons que partout (rectangle du logo, à plat).
+   ▶ = couleur de la section ; ⏮ ⏹ ⏭ = gris foncé */
+body.look-neuf.look-ecusson[data-section] .lect-pas,body.look-neuf.look-ecusson[data-section] .lect-play{
+  width:30px!important;height:28px!important;border-radius:6px!important;border:0!important;background:none!important;
+  background-color:#232325!important;color:#e6e6e6!important;text-shadow:none!important;box-shadow:0 2px 4px rgba(0,0,0,.45)!important}
+body.look-neuf.look-ecusson[data-section] .lect-play{width:38px!important;background-color:var(--ecu-fond)!important;color:var(--ecu-texte)!important}
+body.look-neuf.look-ecusson[data-section] .lect-pas:hover,body.look-neuf.look-ecusson[data-section] .lect-play:hover{filter:brightness(1.15)!important}

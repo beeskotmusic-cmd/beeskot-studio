@@ -3,6 +3,11 @@
 // Pour une nouvelle version : ajouter un bloc EN HAUT de la liste. Une ligne courte par point : « Onglet : ce qui change. »
 // =====================================================================
 BK.NOUVEAUTES = [
+  { v: '0.9.128', titre: '', l: [
+    ['🟥', 'Nouveau look : tous les boutons et onglets ont la forme du logo BEESKOT, à plat, sans dégradé. Une couleur par section : rouge du logo (Musique, Contenus), or du tweed (Organisation), vert du tapis (Accueil, Réglages), turquoise (Show). Le menu de gauche est gris foncé.'],
+    ['▶', 'Les lecteurs (fiche de la Bibliothèque, mini-lecteur en bas, Retours, Light Toast) suivent le même style.'],
+    ['↩', 'Réglages › Apparence : « Ancien look » = le look d\'avant cette version (celui de la 0.9.126/0.9.127).'],
+  ] },
   { v: '0.9.127', titre: '', l: [
     ['✨', 'Les nouvelles animations (boutons, sections, tiroirs, barres de lecture) sont réservées au Nouveau look. L\'Ancien look reste exactement comme avant.'],
   ] },
