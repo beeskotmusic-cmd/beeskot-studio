@@ -4,22 +4,23 @@
    ===================================================================== */
 :root{--mv-ease:cubic-bezier(.23,1,.32,1)}
 
+/* Tout est réservé au NOUVEAU look (body.look-neuf) : l'ancien look reste exactement comme avant. */
 /* boutons / onglets / interrupteurs : l'enfoncement et le relâchement sont fluides (avant : 0,06 s, sec) */
-.btn,.chip,.dec,.seg button,body.look-neuf .seg.ec-ab button,.tab,.inter{
+body.look-neuf .btn,body.look-neuf .chip,body.look-neuf .dec,body.look-neuf .seg button,body.look-neuf .seg.ec-ab button,body.look-neuf .tab,body.look-neuf .inter{
   transition:transform .13s var(--mv-ease),box-shadow .13s var(--mv-ease),filter .15s var(--mv-ease)}
 
 /* on change de section : le contenu arrive en douceur (0,18 s, pas plus) */
 @keyframes bk-arrive{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
-#pages>section:not(.hidden){animation:bk-arrive .18s var(--mv-ease)}
+body.look-neuf #pages>section:not(.hidden){animation:bk-arrive .18s var(--mv-ease)}
 
 /* un tiroir de la Bibliothèque s'ouvre : son contenu se déplie au lieu d'apparaître d'un coup */
 @keyframes bk-deplie{from{opacity:0;transform:translateY(-4px)}to{opacity:1;transform:none}}
-.tiroir-corps{animation:bk-deplie .16s var(--mv-ease)}
+body.look-neuf .tiroir-corps{animation:bk-deplie .16s var(--mv-ease)}
 
 /* barres de lecture : avancent en continu au lieu de sauter 4 fois par seconde */
-.lect-barre i,.mini-plein,.mini-niveau{transition:width .28s linear}
+body.look-neuf .lect-barre i,body.look-neuf .mini-plein,body.look-neuf .mini-niveau{transition:width .28s linear}
 
 @media (prefers-reduced-motion:reduce){
-  #pages>section:not(.hidden),.tiroir-corps{animation:none!important}
-  .lect-barre i,.mini-plein,.mini-niveau{transition:none!important}
+  body.look-neuf #pages>section:not(.hidden),body.look-neuf .tiroir-corps{animation:none!important}
+  body.look-neuf .lect-barre i,body.look-neuf .mini-plein,body.look-neuf .mini-niveau{transition:none!important}
 }

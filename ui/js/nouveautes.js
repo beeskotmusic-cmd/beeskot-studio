@@ -3,6 +3,9 @@
 // Pour une nouvelle version : ajouter un bloc EN HAUT de la liste. Une ligne courte par point : « Onglet : ce qui change. »
 // =====================================================================
 BK.NOUVEAUTES = [
+  { v: '0.9.127', titre: '', l: [
+    ['✨', 'Les nouvelles animations (boutons, sections, tiroirs, barres de lecture) sont réservées au Nouveau look. L\'Ancien look reste exactement comme avant.'],
+  ] },
   { v: '0.9.126', titre: '', l: [
     ['✨', 'Animations plus douces, sans rien changer au look : les boutons s\'enfoncent et reviennent en douceur, le contenu d\'une section arrive en fondu léger, les tiroirs de la Bibliothèque se déplient, et les barres de lecture avancent sans saccades. Rien ne bouge si Windows est réglé sur « moins d\'animations ».'],
   ] },
