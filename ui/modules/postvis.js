@@ -111,7 +111,7 @@ BK.module('postvis', function (page) {
   function taille() {
     const f = F(), sc = $('.rv-scene', page), dispo = Math.max(220, (sc ? sc.clientHeight : 600) - 150);
     const h = Math.min(520, dispo), w = Math.min(380, Math.round(h * f.L / f.H));
-    ecran.style.maxHeight = 'none'; ecran.style.maxWidth = 'none'; ecran.style.width = w + 'px'; ecran.style.height = Math.round(w * f.H / f.L) + 'px'; const tel = $('.pv-tel', page); if (tel) tel.style.width = Math.max(300, w + 20) + 'px';
+    ecran.style.maxHeight = 'none'; ecran.style.maxWidth = 'none'; ecran.style.width = w + 'px'; ecran.style.height = Math.round(w * f.H / f.L) + 'px'; const tel = $('.pv-tel', page); if (tel) { tel.style.width = Math.max(300, w + 20) + 'px'; tel.style.setProperty('--pv-r', f.L / f.H); }   // --pv-r : la forme du format, lue par style/telephone.css
   }
   window.addEventListener('resize', () => { if (!page.classList.contains('hidden')) taille(); });
   // la scène n'a sa vraie hauteur qu'une fois l'onglet affiché : on recalcule à ce moment-là (sinon le téléphone part tout petit)

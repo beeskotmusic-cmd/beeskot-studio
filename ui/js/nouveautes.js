@@ -3,6 +3,17 @@
 // Pour une nouvelle version : ajouter un bloc EN HAUT de la liste. Une ligne courte par point : « Onglet : ce qui change. »
 // =====================================================================
 BK.NOUVEAUTES = [
+  { v: '0.9.133', titre: 'Téléphone : plus léger', l: [
+    ['📱', 'Téléphone : tout est plus petit et plus simple. Le bandeau du haut est fin et se cache quand on descend. Sur le PC, rien ne change.'],
+    ['▶', 'Téléphone : le lecteur du bas tient sur une ligne. Touche-le : il s\'ouvre en grand, et tu glisses le doigt sur la barre pour te balader dans le morceau.'],
+    ['⬇', 'Téléphone : « Garder sur le téléphone » (lecteur en grand, ou Bibliothèque › Outils) : le morceau démarre tout de suite, même sans réseau.'],
+    ['🎵', 'Téléphone, Bibliothèque : un morceau par ligne, les filtres sur une ligne. Les outils (nouveau morceau…) sont derrière le bouton en haut à droite et le bouton +.'],
+    ['✅', 'Téléphone, To-do : les blocs ne se montent plus dessus. « Miette propose » et « Déjà fait » sont repliés, le bouton + ajoute une tâche.'],
+    ['📱', 'Téléphone, Accueil : seulement la prochaine release, le fil du groupe et l\'avancement.'],
+    ['📸', 'Téléphone, Social Photo : l\'aperçu prend la bonne forme (story, portrait, carré, paysage).'],
+    ['📁', 'Téléphone, Médias : une liste au lieu des grosses vignettes.'],
+    ['🔧', 'Téléphone : un écran de chargement à l\'ouverture, et un morceau ne reste plus collé à l\'écran (on ne glisse plus les morceaux au doigt).'],
+  ] },
   { v: '0.9.132', titre: '', l: [
     ['🔔', 'Notifications sur le téléphone (appli Android) : une tâche pour toi, un rendez-vous ajouté ou déplacé, des notes sur un mix ou une vidéo, un morceau qui avance.'],
     ['⏰', 'Calendrier : rappel sur le téléphone la veille à 18 h.'],
@@ -756,7 +767,8 @@ BK.TUTO = [
       ['Le viseur Miette (nouveau look)', 'Clic sur Miette en haut, puis sur le cadre à remplir (pointillés). Échap ou clic à côté : on sort. La flèche ▾ à côté d\'elle : tout relire, actualiser, qui est là.'],
       ['Changer de look', 'Ce PC › Apparence : « Nouveau look » (menu par sections, un tapis et une couleur par section, les pins du groupe) ou « Ancien look ». Seulement sur ce PC.'],
       ['Recevoir les notifications sur le téléphone', 'Il faut l\'appli Android à jour (BEESKOT Mobile › Télécharger l\'application). À l\'ouverture, accepte « Autoriser les notifications ». Tu es prévenu quand on te donne une tâche, quand un rendez-vous est ajouté, déplacé ou retiré (avec un rappel la veille à 18 h), quand quelqu\'un laisse des notes sur un mix ou une vidéo, et quand un morceau avance. Tu ne reçois jamais tes propres actions. BEESKOT Mobile › Notifications montre qui est inscrit ; « Envoyer un essai » fait sonner tous les téléphones.'],
-      ['Mettre BEESKOT Studio sur un téléphone', 'BEESKOT Mobile › Télécharger l\'application : scanne le QR code avec l\'appareil photo (Android). Puis Lier au téléphone › Afficher le QR code, et dans l\'appli : Scanner le QR code du PC. Sur le téléphone, c\'est le même logiciel que sur le PC (tous les onglets sauf Light Toast et Ableton Live) : le menu s\'ouvre avec le bouton en haut à gauche. Appui long = clic droit, pincer = zoomer, et des boutons Espace / Maj / Ctrl apparaissent en bas quand un onglet s\'en sert.'] ],
+      ['Mettre BEESKOT Studio sur un téléphone', 'BEESKOT Mobile › Télécharger l\'application : scanne le QR code avec l\'appareil photo (Android). Puis Lier au téléphone › Afficher le QR code, et dans l\'appli : Scanner le QR code du PC. Sur le téléphone, c\'est le même logiciel que sur le PC (tous les onglets sauf Light Toast et Ableton Live) : le menu s\'ouvre avec le bouton en haut à gauche. Appui long = clic droit, pincer = zoomer, et des boutons Espace / Maj / Ctrl apparaissent en bas quand un onglet s\'en sert.'],
+      ['Sur le téléphone : outils, lecteur, garder un morceau', 'Le bandeau du haut se cache quand on descend dans la page et revient quand on remonte. Dans Bibliothèque, Médias et Reels, les outils du PC (colonne Réglages) sont derrière le bouton en haut à droite ; le bouton rond + lance l\'action principale (nouveau morceau, nouvelle tâche, nouveau reel). Le lecteur du bas tient sur une ligne : touche-le pour l\'ouvrir en grand, puis glisse le doigt sur la barre pour avancer ou reculer. « Garder sur le téléphone » (dans le lecteur en grand, ou Bibliothèque › Outils › Sur ce téléphone) garde le morceau : il démarre tout de suite, même sans réseau.'] ],
     astuces: [ 'Taille de l\'interface : Ce PC › Zoom.', 'Le QR code « Lier » contient la clé du Drive : seulement aux membres du groupe.' ] },
   { o: 'Questions fréquentes', ic: '❓', quoi: 'Les questions qu\'on se pose le plus souvent.',
     comment: [

@@ -202,7 +202,7 @@ BK.module('biblio', function (page) {
 
   // ---------- le lecteur : un seul son à la fois, sous chaque morceau ----------
   const lecteur = {
-    audio: new Audio(), id: null, urls: {}, nom: {},
+    audio: new Audio(), id: null, urls: {}, nom: {}, srcs: {},
     // ce qu'on écoute : l'export principal (ce PC ou Drive), sinon le plus récent du Drive
     async source(m) {                                  // l'export ★ de la fiche : le même partout dans le logiciel
       const exps = BK.inv.exportsDe(m, B.fichiers, B.morceaux);
@@ -221,7 +221,7 @@ BK.module('biblio', function (page) {
         if (!BK.estExe && src.chemin) { lecteur.id = null; lecteur.maj(); return msg('Disponible dans le logiciel installé'); }
         const cle = m.id + '|' + (src.drive || src.chemin);
         if (!lecteur.urls[cle]) { msg('Chargement de ' + src.nom + '…'); lecteur.urls[cle] = URL.createObjectURL(new Blob([await lecteur.octets(src)])); }
-        lecteur.urls[m.id] = lecteur.urls[cle]; lecteur.nom[m.id] = src.nom;
+        lecteur.urls[m.id] = lecteur.urls[cle]; lecteur.nom[m.id] = src.nom; lecteur.srcs[m.id] = src;
         a.src = lecteur.urls[cle]; await a.play(); msg('▶ ' + src.nom);
       } catch (e) { console.error(e); lecteur.id = null; msg('Lecture impossible'); }
       lecteur.maj();
@@ -243,6 +243,7 @@ BK.module('biblio', function (page) {
     for (let n = 0; n < Math.min(ids.length, 8); n++) {                  // un morceau sans export : on passe au suivant
       i = (i < 0 ? 0 : i + dir + ids.length) % ids.length; const m = B.morceaux.find(x => x.id === ids[i]); if (!m) continue;
       await lecteur.jouer(m, null, true); if (lecteur.id) return; } };
+  lecteur.liste = () => (B.affiches && B.affiches.length ? B.affiches : B.morceaux); BK.biblioLecteur = lecteur;   // lu par js/telephone.js
   lecteur.arreter = () => { lecteur.audio.pause(); lecteur.audio.currentTime = 0; lecteur.maj(); };
   BK.mini.suivre(lecteur.audio, { page: 'biblio', precedent: () => lecteur.voisin(-1), suivant: () => lecteur.voisin(1), titre: () => { const m = B.morceaux.find(x => x.id === lecteur.id); return (m ? m.nom + ' · ' : '') + (lecteur.nom[lecteur.id] || ''); } });
 
@@ -575,6 +576,7 @@ BK.module('biblio', function (page) {
   let gl = null;
   const ongletSous = (x, y) => { const el = document.elementFromPoint(x, y); return el && el.closest('#biVues .chip[data-v]:not([data-v="ranger"])'); };
   $('#biListe').addEventListener('pointerdown', e => {
+    if (window.BK_MOBILE || e.pointerType === 'touch') return;        // au doigt : pas de glisser (on fait défiler la liste)
     const t = e.target.closest('.fiche-tete'), bt = e.target.closest('button,input,select,a,.lecteur'); if (!t || e.button !== 0 || (bt && bt !== t)) return;
     const f = t.closest('.fiche');
     gl = { id: f.dataset.id, tete: t, x: e.clientX, y: e.clientY, fantome: null, pret: false };   // on attrape et on glisse, comme une tâche
@@ -592,6 +594,9 @@ BK.module('biblio', function (page) {
     if (!o) { const el = document.elementFromPoint(e.clientX, e.clientY), f2 = el && el.closest('.fiche');
       if (f2 && f2.dataset.id !== gl.id) { const r = f2.getBoundingClientRect(); f2.classList.add(e.clientY > r.top + r.height / 2 ? 'apres' : 'avant'); } }
   });
+  window.addEventListener('pointercancel', () => { if (!gl) return; const d = gl; gl = null;                  // le glisser est coupé net : on range tout
+    d.fantome && d.fantome.remove(); d.tete.classList.remove('prise'); $('#biVues').classList.remove('cible'); $('#biListe').classList.remove('en-ordre');
+    $$('#biVues .chip').forEach(c => c.classList.remove('survol')); $$('#biListe .fiche').forEach(x => x.classList.remove('avant', 'apres')); });
   window.addEventListener('pointerup', async e => {
     if (!gl) return; const d = gl; gl = null; clearTimeout(d.minuteur);
     d.tete.classList.remove('prise'); $('#biVues').classList.remove('cible'); $('#biListe').classList.remove('en-ordre'); $$('#biVues .chip').forEach(c => c.classList.remove('survol'));

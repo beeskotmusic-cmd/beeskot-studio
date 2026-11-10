@@ -6,6 +6,7 @@
 //     - ce fichier            : ce qui change de comportement (menu tiroir, relier par QR code, bouton Retour, onglets retirés)
 //     - style/telephone.css   : toute la mise en page téléphone (rien d'autre : le PC ne lit jamais ces règles)
 //     - SANS_TELEPHONE        : la liste des onglets qu'on n'affiche pas sur le téléphone (une ligne à changer)
+//     - OUTILS_RANGES, PLUS, COURTS : la version allégée (outils rangés derrière un bouton, bouton « + », noms courts)
 //
 //   Quand est-ce que ça s'allume : jamais dans le .exe. Seulement dans un navigateur, si l'écran est petit,
 //   si le lien finit par ?tel=1, ou dans l'appli Android (l'enveloppe qui ouvre cette page).
@@ -29,8 +30,27 @@
     [/clic droit/g, 'appui long'], [/Clic droit/g, 'Appui long'], [/molette/g, 'pincer'], [/double-clic/g, 'double appui'], [/Double-clic/g, 'Double appui'],
     [/Maj ?\+ ?clic/g, 'bouton Maj + appui'], [/Ctrl ?\+ ?clic/g, 'bouton Ctrl + appui'], [/glisse la souris/g, 'glisse le doigt'], [/\bClic = /g, 'Appui = '],
     [/(?<!bouton )\bEspace\b/g, 'bouton Espace'], [/ · Tab = A\/B/g, ''],
+    [/Crée-en un à droite/g, 'Crée-en un avec le bouton +'],
     [/\b[Cc]e PC\b/g, m => m[0] === 'C' ? 'Ce téléphone' : 'ce téléphone'], [/cet ordinateur/g, 'ce téléphone'],
   ];
+
+  // ---------- la version allégée : moins de choses à l'écran ----------
+  //   OUTILS_RANGES : les onglets dont la colonne « ② Réglages » du PC est rangée derrière le bouton Outils (elle monte du bas de l'écran)
+  const OUTILS_RANGES = ['biblio', 'medias', 'suivi'];
+  //   PLUS : le bouton rond « + » en bas à droite. outils = ouvre les outils rangés · montre = fait apparaître ce bloc · vise = le champ où on écrit
+  const PLUS = {
+    biblio: { nom: 'Nouveau morceau', outils: true, vise: '#biNom' },
+    taches: { nom: 'Nouvelle tâche', montre: 'tel-ajout', vise: '#taTexte' },
+    suivi: { nom: 'Nouveau reel', outils: true, vise: '#suTitre' },
+  };
+  //   COURTS : des boutons au nom trop long pour un téléphone → un nom court
+  const COURTS = [['#reSrc [data-s="biblio"]', 'Bibliothèque'], ['#reSrc [data-s="fichier"]', 'Local']];
+  const ICO = {                                                    // petits dessins (pas d'émojis)
+    outils: '<svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 7h10M18 7h2M4 17h2M10 17h10"/><circle cx="16" cy="7" r="2"/><circle cx="8" cy="17" r="2"/></svg>',
+    plus: '<svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>',
+    haut: '<svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 15l6-6 6 6"/></svg>',
+    bas: '<svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>',
+  };
 
   window.BK_MOBILE = true;
   const H = document.documentElement; H.classList.add('tel'); if (enAppli) H.classList.add('appli');
@@ -38,6 +58,13 @@
   const vp = document.querySelector('meta[name=viewport]'); if (vp) vp.content = 'width=device-width, initial-scale=1, viewport-fit=cover';
   for (const [n, c] of [['theme-color', '#2b1b11'], ['color-scheme', 'dark']]) { const m = document.createElement('meta'); m.name = n; m.content = c; document.head.appendChild(m); }
   const man = document.createElement('link'); man.rel = 'manifest'; man.href = 'mobile/manifest.json'; document.head.appendChild(man);
+
+  // ---------- 0. l'écran de chargement (bois + logo) : affiché tout de suite, retiré quand le logiciel est prêt ----------
+  const charge = document.createElement('div'); charge.className = 'tel-charge'; charge.setAttribute('role', 'status'); charge.setAttribute('aria-label', 'BEESKOT Studio se prépare');
+  charge.innerHTML = '<img src="look/logo-beeskot-studio.png" alt="BEESKOT Studio"><div class="tel-charge-b"><i></i></div>';
+  document.body.appendChild(charge);
+  const finCharge = () => { if (!charge.isConnected) return; charge.classList.add('fin'); setTimeout(() => charge.remove(), 320); };
+  setTimeout(finCharge, 15000);                                    // quoi qu'il arrive, il ne reste jamais bloqué
 
   // ---------- 1. la clé du Drive : reçue par le QR code du PC (#k=…), un lien collé ou la carte d'accès ----------
   const garderCle = j => {
@@ -57,7 +84,7 @@
 
   // ---------- 2. pas encore relié : on n'ouvre PAS le logiciel (rien ne doit s'écrire sur le téléphone avant le Drive) ----------
   function ecranRelier() {
-    document.body.classList.add('tel-relier');
+    finCharge(); document.body.classList.add('tel-relier');
     const v = document.createElement('div'); v.className = 'tel-porte';
     v.innerHTML = `<img class="tel-porte-logo" src="look/logo-beeskot-studio.png" alt="BEESKOT Studio">
       <div class="tel-carte">
@@ -111,7 +138,7 @@
   }
 
   // ---------- 3. le menu : un tiroir qui glisse depuis la gauche (bouton en haut à gauche) ----------
-  const tiroir = o => { document.body.classList.toggle('tel-menu', !!o); const b = $('#telBurger'); if (b) b.setAttribute('aria-expanded', o ? 'true' : 'false'); };
+  const tiroir = o => { document.body.classList.toggle('tel-menu', !!o); if (o) document.body.classList.remove('tel-haut-cache', 'tel-outils'); const b = $('#telBurger'); if (b) b.setAttribute('aria-expanded', o ? 'true' : 'false'); };
   function habiller() {
     const top = $('header.top'), side = $('.side'); if (!top || !side || $('#telBurger')) return;
     const b = document.createElement('button'); b.id = 'telBurger'; b.className = 'tel-burger'; b.setAttribute('aria-label', 'Menu'); b.innerHTML = '<i></i><i></i><i></i>';
@@ -140,6 +167,8 @@
   // ---------- 4. le bouton Retour d'Android : ferme ce qui est ouvert, revient à l'Accueil, puis quitte ----------
   function retour() {
     const sc = $('#telScanX'); if (sc) return sc.click(), true;
+    const gl = $('.tel-lect.ouvert'); if (gl) return gl.classList.remove('ouvert'), true;
+    if (document.body.classList.contains('tel-outils')) return outils(false), true;
     if (document.body.classList.contains('tel-menu')) return tiroir(false), true;
     const voiles = [...document.querySelectorAll('.voile:not(.hidden)')].filter(v => v.offsetParent !== null || getComputedStyle(v).position === 'fixed');
     const v = voiles[voiles.length - 1];
@@ -228,9 +257,14 @@
         let v = n.nodeValue; for (const [a, b] of MOTS) v = v.replace(a, b); if (v !== n.nodeValue) n.nodeValue = v; }
       for (const el of z.querySelectorAll('[placeholder]')) { let v = el.placeholder; for (const [a, b] of MOTS) v = v.replace(a, b); if (v !== el.placeholder) el.placeholder = v; } }
   }
-  const motsBientot = () => { if (motsPrevu) return; motsPrevu = setTimeout(() => { motsPrevu = 0; mots(); barreTouches(); }, 500); };   // au plus 2 fois par seconde, même pendant une lecture
+  const courts = () => { for (const [sel, nom] of COURTS) { const el = document.querySelector(sel); if (el && el.textContent !== nom) el.textContent = nom; } };
+  const motsBientot = () => { if (motsPrevu) return; motsPrevu = setTimeout(() => { motsPrevu = 0; mots(); courts(); barreTouches(); equiper(); }, 500); };   // au plus 2 fois par seconde, même pendant une lecture
 
   // f) un morceau déjà écouté reste sur le téléphone : il repart tout de suite, même sans réseau (400 Mo au plus, les plus anciens sortent)
+  //    « Garder sur le téléphone » (lecteur en grand, outils de la Bibliothèque) : ceux-là ne sortent jamais tout seuls
+  const gardes = () => BK.reglage('tel.gardes', {}) || {};                              // { id du fichier Drive : son nom }
+  async function garder(id, nom) { const g = gardes(); g[id] = nom || '1'; BK.regler('tel.gardes', g); await BK.drive.telecharger(id); }
+  function lacher(id) { const g = gardes(); delete g[id]; BK.regler('tel.gardes', g); }
   function garderLesSons() {
     if (!BK.drive || !BK.drive.telecharger || !window.caches) return;
     const CACHE = 'beeskot-sons', MAX = 400e6, GROS = 120e6, cle = id => 'https://beeskot.local/son/' + encodeURIComponent(id);
@@ -244,7 +278,7 @@
       if (frais && o.byteLength <= GROS) (async () => { try { const c = await caches.open(CACHE); await c.put(cle(id), new Response(o.slice ? o.slice() : o));
           const l2 = liste(); l2[id] = { t: frais.modifiedTime, n: o.byteLength, q: Date.now() };
           let tot = Object.values(l2).reduce((a, x) => a + (x.n || 0), 0);
-          for (const [k, x] of Object.entries(l2).sort((a, b) => a[1].q - b[1].q)) { if (tot <= MAX) break; if (k === id) continue; await c.delete(cle(k)); tot -= x.n || 0; delete l2[k]; }
+          for (const [k, x] of Object.entries(l2).sort((a, b) => a[1].q - b[1].q)) { if (tot <= MAX) break; if (k === id || gardes()[k]) continue; await c.delete(cle(k)); tot -= x.n || 0; delete l2[k]; }
           BK.regler('tel.sons', l2); try { navigator.storage && navigator.storage.persist && navigator.storage.persist(); } catch (e) {} } catch (e) { console.warn('son non gardé', e); } })();
       return o;
     };
@@ -255,6 +289,125 @@
       try { if (window.MediaMetadata) navigator.mediaSession.metadata = new MediaMetadata({ title: 'BEESKOT Studio', artist: 'BEESKOT', artwork: [{ src: new URL('mobile/icone-192.png', location.href).href, sizes: '192x192', type: 'image/png' }] });
         navigator.mediaSession.setActionHandler('play', () => jouer0.call(m)); navigator.mediaSession.setActionHandler('pause', () => m.pause()); } catch (e) {}
       return jouer0.apply(m, arguments); }; }
+
+  // ---------- 5 bis. la version allégée ----------
+  // h) le bandeau du haut se cache quand on descend dans la page, et revient dès qu'on remonte
+  function bandeauQuiSeCache() {
+    const m = $('#pages'); if (!m) return; let y0 = 0, verrou = 0;
+    m.addEventListener('scroll', () => { const y = m.scrollTop, d = y - y0; if (Math.abs(d) < 10) return; y0 = y;
+      const cacher = d > 0 && y > 90, n = Date.now(); if (n < verrou || cacher === document.body.classList.contains('tel-haut-cache')) return;
+      verrou = n + 300; document.body.classList.toggle('tel-haut-cache', cacher); }, { passive: true });
+  }
+  const onglet = () => BK.reglage('dernierOnglet', 'accueil');
+
+  // i) les outils rangés (OUTILS_RANGES) : un bouton dans l'en-tête de l'onglet, la colonne monte du bas de l'écran
+  function outils(o) {
+    document.body.classList.toggle('tel-outils', !!o); if (!o) return;
+    const r = $('#pages > section:not(.hidden) .pane.reg'); if (r) r.scrollTop = 0;
+  }
+  // j) le bouton « + » (PLUS) et le bouton Outils : remis à jour à chaque changement d'onglet
+  function habillerOnglet() { outils(false); document.body.classList.remove('tel-haut-cache'); equiper(); }      // on change d'onglet
+  function equiper() {                                                                                          // peut être rappelé sans risque
+    const id = onglet(), sec = document.getElementById('p-' + id);
+    if (id === 'biblio') boiteGarder();
+    if (sec && OUTILS_RANGES.includes(id) && sec.querySelector('.pane.reg')) {
+      sec.classList.add('tel-range'); const h = sec.querySelector('.hdr');
+      if (h && !h.querySelector('.tel-b-outils')) { const b = document.createElement('button'); b.type = 'button'; b.className = 'tel-b-outils'; b.setAttribute('aria-label', 'Outils de cet onglet'); b.innerHTML = ICO.outils;
+        b.onclick = () => outils(true); h.appendChild(b); } }
+    let v = $('.tel-voile-o'); if (!v) { v = document.createElement('div'); v.className = 'tel-voile-o'; v.onclick = () => outils(false); ($('#pages') || document.body).appendChild(v); }   // dans la même couche que la page : juste sous les outils
+    let p = $('#telPlus'); if (!p) { p = document.createElement('button'); p.type = 'button'; p.id = 'telPlus'; p.className = 'tel-plus'; p.innerHTML = ICO.plus; document.body.appendChild(p);
+      p.onclick = () => { const id = onglet(), c = PLUS[id], sec = document.getElementById('p-' + id); if (!c || !sec) return;
+        if (c.outils) outils(true);
+        if (c.montre) { const ouvert = sec.classList.toggle(c.montre); if (!ouvert) return; $('#pages').scrollTop = 0; }
+        const champ = c.vise && sec.querySelector(c.vise); if (champ) setTimeout(() => { champ.scrollIntoView({ block: 'center' }); champ.focus(); }, 280); }; }
+    const c = PLUS[id]; p.hidden = !(c && sec); if (c) p.setAttribute('aria-label', c.nom);
+  }
+
+  // k) le lecteur en grand : on touche le mini-lecteur → il s'ouvre ; on glisse le doigt sur la barre pour se balader dans le morceau
+  let grand = null, tire = false;
+  const sonEnCours = () => { const s = BK.mini && BK.mini.actuel; if (!s) return null;
+    return s.ext ? { s, d: s.duree() || 0, t: s.temps() || 0, pause: !s.joue() } : { s, d: s.el.duration || 0, t: s.el.currentTime || 0, pause: s.el.paused }; };
+  const allerA = f => { const c = sonEnCours(); if (!c || !c.d) return; const t = Math.max(0, Math.min(1, f)) * c.d; if (c.s.ext) c.s.aller && c.s.aller(t); else c.s.el.currentTime = Math.min(t, c.d - .05); };
+  const fichierEnCours = () => { const L = BK.biblioLecteur, s = BK.mini && BK.mini.actuel; if (!L || !s || s.page !== 'biblio' || !L.id) return null;
+    const src = L.srcs[L.id]; return src && src.drive ? { id: src.drive, nom: src.nom } : null; };
+  function lecteurGrand() {
+    if (grand) return grand;
+    const g = grand = document.createElement('div'); g.className = 'tel-lect'; g.setAttribute('role', 'dialog'); g.setAttribute('aria-label', 'Lecteur');
+    g.innerHTML = `<div class="tel-lect-tete"><button type="button" class="tel-lect-x" aria-label="Refermer le lecteur">${ICO.bas}</button><span>Lecture en cours</span></div>
+      <div class="tel-lect-po"><img src="look/logo-beeskot-studio.png" alt=""></div>
+      <div class="tel-lect-ti"></div><div class="tel-lect-so"></div>
+      <div class="tel-lect-ba" role="slider" aria-label="Position dans le morceau" aria-valuemin="0" aria-valuemax="100"><i></i><b></b></div>
+      <div class="tel-lect-te"><span></span><span></span></div>
+      <div class="tel-lect-ct"><button type="button" data-l="prec" aria-label="Morceau précédent">⏮</button><button type="button" data-l="jouer" class="jouer" aria-label="Lecture ou pause">▶</button><button type="button" data-l="stop" aria-label="Arrêt">⏹</button><button type="button" data-l="suiv" aria-label="Morceau suivant">⏭</button></div>
+      <div class="tel-lect-vide"></div>
+      <div class="tel-lect-bas"><button type="button" data-l="garder"></button><button type="button" data-l="page"></button><button type="button" data-l="fermer">Arrêter</button></div>`;
+    document.body.appendChild(g);
+    const fermer = () => g.classList.remove('ouvert');
+    g.querySelector('.tel-lect-x').onclick = fermer;
+    g.addEventListener('click', async e => { const b = e.target.closest('[data-l]'); if (!b) return; const k = b.dataset.l, mini = document.getElementById('bkMini');
+      if (k === 'garder') { const f = fichierEnCours(); if (!f) return;
+        if (gardes()[f.id]) lacher(f.id); else { b.textContent = 'Je le garde…'; try { await garder(f.id, f.nom); } catch (er) { lacher(f.id); } }
+        return majGrand(true); }
+      const cible = mini && mini.querySelector(`[data-mi="${k}"]`); if (cible) cible.click();          // le mini-lecteur sait déjà tout faire : on appuie sur son bouton
+      if (k === 'page' || k === 'fermer') fermer(); });
+    // la barre : le doigt posé dessus, on glisse ; le son suit (au plus 8 fois par seconde)
+    const ba = g.querySelector('.tel-lect-ba'); let dernier = 0, fr = 0;
+    const part = e => { const r = ba.getBoundingClientRect(); return Math.max(0, Math.min(1, (e.clientX - r.left) / r.width)); };
+    const poser = f => { ba.querySelector('i').style.width = (f * 100) + '%'; ba.querySelector('b').style.left = (f * 100) + '%'; const c = sonEnCours(); if (c) g.querySelector('.tel-lect-te span').textContent = T(f * c.d); };
+    ba.addEventListener('pointerdown', e => { tire = true; ba.classList.add('tenu'); try { ba.setPointerCapture(e.pointerId); } catch (er) {} fr = part(e); poser(fr); e.preventDefault(); });
+    ba.addEventListener('pointermove', e => { if (!tire) return; fr = part(e); poser(fr); const n = Date.now(); if (n - dernier > 120) { dernier = n; allerA(fr); } });
+    const lache = () => { if (!tire) return; tire = false; ba.classList.remove('tenu'); allerA(fr); setTimeout(() => majGrand(), 80); };
+    ba.addEventListener('pointerup', lache); ba.addEventListener('pointercancel', lache);
+    return g;
+  }
+  const T = x => (BK.audio ? BK.audio.temps(x) : Math.round(x) + ' s').replace(/\.\d$/, '');
+  function majGrand(tout) {
+    const g = grand; if (!g || !g.classList.contains('ouvert')) return; const c = sonEnCours(); if (!c) return g.classList.remove('ouvert');
+    if (!tire) { const f = c.d ? c.t / c.d : 0; g.querySelector('.tel-lect-ba i').style.width = (f * 100) + '%'; g.querySelector('.tel-lect-ba b').style.left = (f * 100) + '%';
+      const te = g.querySelectorAll('.tel-lect-te span'); const a = T(c.t), b = T(c.d); if (te[0].textContent !== a) te[0].textContent = a; if (te[1].textContent !== b) te[1].textContent = b; }
+    const j = g.querySelector('[data-l="jouer"]'), v = c.pause ? '▶' : '❚❚'; if (j.textContent !== v) j.textContent = v;
+    const titre = String((typeof c.s.titre === 'function' ? c.s.titre() : c.s.titre) || ''), cle = titre + '|' + c.s.page;
+    if (!tout && g.dataset.cle === cle) return; g.dataset.cle = cle;                       // le reste ne change qu'avec le morceau
+    const i = titre.indexOf(' · '); g.querySelector('.tel-lect-ti').textContent = i > 0 ? titre.slice(0, i) : titre; g.querySelector('.tel-lect-so').textContent = i > 0 ? titre.slice(i + 3) : '';
+    const voisins = !!(c.s.precedent || c.s.suivant); g.querySelector('[data-l="prec"]').hidden = g.querySelector('[data-l="suiv"]').hidden = !voisins;
+    const nomPage = ((BK.onglets || []).find(m => m.id === c.s.page) || {}).titre || ''; const bp = g.querySelector('[data-l="page"]'); bp.textContent = 'Voir dans ' + nomPage; bp.hidden = !nomPage;
+    const f = fichierEnCours(), bg = g.querySelector('[data-l="garder"]'); bg.hidden = !f || !window.caches;
+    if (f) { const on = !!gardes()[f.id]; bg.classList.toggle('on', on); bg.textContent = on ? 'Gardé sur le téléphone ✓' : 'Garder sur le téléphone'; }
+    // la pochette du morceau (Bibliothèque), sinon le logo
+    const po = g.querySelector('.tel-lect-po'); let photo = '';
+    try { const L = BK.biblioLecteur; if (L && c.s.page === 'biblio') { const m = L.liste().find(x => x.id === L.id); photo = (m && m.photo) || ''; } } catch (e) {}
+    po.classList.toggle('photo', !!photo); po.style.backgroundImage = '';
+    if (photo && BK.img && BK.img.bg) { const tmp = document.createElement('div'); tmp.innerHTML = `<i ${BK.img.bg(photo)}></i>`; const el = tmp.firstChild;
+      po.style.backgroundImage = el.style.backgroundImage; for (const a of el.attributes) if (/^data-/.test(a.name)) po.setAttribute(a.name, a.value); if (BK.img.remplir) BK.img.remplir(g); }
+  }
+  function ouvrirGrand() { if (!sonEnCours()) return; lecteurGrand().classList.add('ouvert'); majGrand(true); }
+  function brancherMini() {
+    if (!BK.mini) return; const maj0 = BK.mini.maj;
+    BK.mini.maj = function () { maj0.apply(BK.mini, arguments);
+      const z = document.getElementById('bkMini'); if (z && z.dataset.pret && !z.querySelector('.tel-mini-ouvre')) { const b = document.createElement('button'); b.type = 'button'; b.className = 'tel-mini-ouvre'; b.setAttribute('aria-label', 'Ouvrir le lecteur en grand'); b.innerHTML = ICO.haut; z.appendChild(b);
+        z.addEventListener('click', e => { if (e.target.closest('.tel-mini-ouvre, .mini-titre, .mini-t')) ouvrirGrand(); }); }
+      majGrand(); };
+  }
+
+  // l) Bibliothèque › Outils : « Sur ce téléphone » (garder les morceaux pour les écouter vite, même sans réseau)
+  function boiteGarder() {
+    const reg = $('#p-biblio .pane.reg'); if (!reg || $('#telGarde') || !window.caches) return;
+    const b = document.createElement('div'); b.className = 'box'; b.id = 'telGarde';
+    b.innerHTML = `<span class="lb">Sur ce téléphone</span><span class="nt" id="telGardeTxt"></span>
+      <button class="btn sm" id="telGardeTout" style="margin-top:8px">Garder les morceaux affichés</button>
+      <button class="btn sm" id="telGardeRien" style="margin-top:6px">Tout retirer du téléphone</button>`;
+    reg.insertBefore(b, reg.querySelector('.box'));
+    const dire = () => { const g = gardes(), l = BK.reglage('tel.sons', {}) || {}, n = Object.keys(g).length, mo = Math.round(Object.keys(g).reduce((a, k) => a + ((l[k] && l[k].n) || 0), 0) / 1e6);
+      $('#telGardeTxt').textContent = n ? `${n} morceau${n > 1 ? 'x' : ''} gardé${n > 1 ? 's' : ''} (${mo} Mo) : ils démarrent tout de suite, même sans réseau.` : 'Garde des morceaux ici : ils démarrent tout de suite, même sans réseau.';
+      $('#telGardeRien').hidden = !n; };
+    dire(); let enCours = false;
+    $('#telGardeTout').onclick = async () => { const L = BK.biblioLecteur, bt = $('#telGardeTout'); if (!L || enCours) return; enCours = true;
+      const l = L.liste(); let k = 0, ok = 0;
+      for (const m of l) { k++; bt.textContent = `Je garde ${k} / ${l.length}…`;                       // un par un : le téléphone reste fluide
+        try { const src = await L.source(m); if (src && src.drive) { await garder(src.drive, src.nom); ok++; } } catch (e) { console.warn('pas gardé', m && m.nom, e); } }
+      enCours = false; bt.textContent = ok ? `${ok} morceau${ok > 1 ? 'x' : ''} gardé${ok > 1 ? 's' : ''} ✓` : 'Rien à garder ici (pas d\'export sur le Drive)'; setTimeout(() => { bt.textContent = 'Garder les morceaux affichés'; dire(); majGrand(true); }, 2500); };
+    $('#telGardeRien').onclick = async () => { BK.regler('tel.gardes', {}); dire(); majGrand(true); };
+  }
 
   // ---------- 6. démarrage : on se glisse juste avant le démarrage normal du logiciel ----------
   const demarrerPc = BK.demarrer;
@@ -269,13 +422,16 @@
     for (const g of ['seme.v1', 'budget.v1', 'alias.v1']) BK.regler(g, true);
     BK.regler('zoom', 100); BK.regler('menu.etroit', false);                          // le zoom et le menu replié du PC n'ont pas de sens ici
     if (BK.reglage('look', null) === null) BK.regler('look', 'neuf');                // un seul look sur le téléphone : pas de question au démarrage
+    // la première fois : les blocs secondaires de la To-do sont repliés (on les ouvre d'un appui)
+    if (!BK.reglage('tel.allege', 0)) { BK.regler('todo.faitesPli', true); BK.regler('todo.mietteOuvert', false); BK.regler('todo.panPli', true); BK.regler('tel.allege', 1); }
     if (!BK.reglage('bienvenue.vue', false)) { BK.regler('bienvenue.vue', true); BK.regler('nouveautes.vu', BK.nouveautes ? BK.nouveautes.num(BK.version) : ''); }   // le guide d'installation du PC (dossiers, Ableton…) ne sert pas ici
     habiller(); garderLesSons();
     // les autres onglets se construisent en fond plus tard que sur le PC (5 s) : l'onglet ouvert est prêt plus vite
     const reste0 = BK.construireLeReste; BK.construireLeReste = function (ordre) { setTimeout(() => reste0.call(BK, ordre), 5000); };
-    const ouvrir0 = BK.ouvrir; BK.ouvrir = function () { const r = ouvrir0.apply(BK, arguments); motsBientot(); return r; };
-    await demarrerPc.apply(BK, arguments);
-    ranger(); mots(); barreTouches();
+    const ouvrir0 = BK.ouvrir; BK.ouvrir = function () { const r = ouvrir0.apply(BK, arguments); motsBientot(); habillerOnglet(); return r; };
+    brancherMini();
+    try { await demarrerPc.apply(BK, arguments); } finally { finCharge(); }
+    ranger(); mots(); courts(); barreTouches(); bandeauQuiSeCache(); habillerOnglet();
     new MutationObserver(motsBientot).observe(document.body, { childList: true, subtree: true });       // une aide qui change, une fenêtre qui s'ouvre
     // un nouveau téléphone : on demande d'abord qui s'en sert (les tâches cochées, les notes et « ONLINE » portent ce prénom)
     if (!BK.reglage('nomPc', '')) { BK.ouvrir('reglages'); BK.reglagesOnglet && BK.reglagesOnglet('pc'); }
@@ -287,5 +443,5 @@
   // sans réseau : l'appli s'ouvre quand même (les fichiers de l'appli gardés sur le téléphone : voir sw.js)
   if ('serviceWorker' in navigator && location.protocol === 'https:') navigator.serviceWorker.register('sw.js').catch(e => console.warn('hors réseau indisponible', e));
 
-  BK.telephone = { enAppli, tiroir, retour, scanner, SANS_TELEPHONE, TOUCHES, MOTS, pret: false };
+  BK.telephone = { enAppli, tiroir, retour, scanner, outils, garder, lacher, gardes, SANS_TELEPHONE, TOUCHES, MOTS, OUTILS_RANGES, PLUS, COURTS, pret: false };
 })();

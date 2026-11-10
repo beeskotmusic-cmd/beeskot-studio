@@ -264,3 +264,211 @@ html.tel .rv-tel,html.tel .pv-tel{position:sticky!important;top:0;z-index:6;widt
 html.tel .pv-tel{width:min(52vw,calc((46dvh - 90px) * 9 / 16))!important}
 html.tel .reel-onde,html.tel .ec-onde-box{position:sticky;top:0;z-index:6;box-shadow:0 0 0 100vmax #130c08;clip-path:inset(-6px -100vmax -8px -100vmax)}
 @media (prefers-reduced-motion:reduce){html.tel .tel-touches button{transition:none}}
+
+/* =====================================================================
+   7. VERSION ALLÉGÉE : moins gros, moins de choses à l'écran (demande de Dari, nov. 2026)
+      a. l'écran de chargement          e. les outils rangés derrière un bouton + le bouton « + »
+      b. le bandeau fin, qui se cache   f. tout est plus petit, décor simplifié
+      c. le mini-lecteur sur une ligne  g. les retouches par onglet
+      d. le lecteur en grand
+   Les listes qui vont avec (quels onglets, quels boutons) sont en haut de js/telephone.js.
+   ===================================================================== */
+
+/* ---------- a. l'écran de chargement (bois + logo), le temps que le logiciel se prépare ---------- */
+.tel-charge{position:fixed;inset:0;z-index:200;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:26px;
+  background:linear-gradient(rgba(20,10,4,.5),rgba(20,10,4,.78)),#24140c url(../look/bois-fond.jpg) center/cover;transition:opacity .3s}
+.tel-charge.fin{opacity:0;pointer-events:none}
+.tel-charge img{width:min(62vw,250px);filter:drop-shadow(0 4px 8px rgba(0,0,0,.75))}
+.tel-charge-b{width:120px;height:4px;border-radius:2px;background:rgba(239,228,204,.16);overflow:hidden}
+.tel-charge-b i{display:block;width:40%;height:100%;border-radius:2px;background:#e7c796;animation:tel-charge 1.1s ease-in-out infinite alternate}
+@keyframes tel-charge{from{transform:translateX(-40%)}to{transform:translateX(190%)}}
+@media (prefers-reduced-motion:reduce){.tel-charge-b i{animation:none;width:100%;opacity:.6}}
+
+/* ---------- b. le bandeau : plus fin, et il se cache quand on descend dans la page ---------- */
+html.tel{--tel-haut:44px}
+html.tel .top{transition:margin-top .22s cubic-bezier(.23,1,.32,1)}
+html.tel .top .patch{height:34px!important}
+html.tel .top .estop{width:34px!important;height:38px!important}
+html.tel .top .estop img{width:28px!important;height:28px!important}
+html.tel .top .estop::after{width:34px!important;height:34px!important;margin-left:-17px!important;top:2px!important}
+html.tel .tel-burger{width:40px;height:40px}
+html.tel .tel-burger i{width:20px;height:2.5px}
+html.tel body.tel-menu .tel-burger i:nth-child(1){transform:translateY(7.5px) rotate(45deg)}
+html.tel body.tel-menu .tel-burger i:nth-child(3){transform:translateY(-7.5px) rotate(-45deg)}
+html.tel .stripe{height:3px!important}
+html.tel body.tel-haut-cache:not(.tel-menu) .top{margin-top:calc(-1 * (var(--tel-haut) + env(safe-area-inset-top,0px)))}
+@media (prefers-reduced-motion:reduce){html.tel .top{transition:none}}
+
+/* ---------- c. le mini-lecteur : une seule ligne (lecture, titre, temps) ; on le touche pour l'ouvrir en grand ---------- */
+html.tel .mini-lect{position:relative;flex-wrap:nowrap!important;min-height:46px;padding:0 4px var(--tel-bas) 6px!important;gap:8px!important}
+html.tel .mini-lect [data-mi=prec],html.tel .mini-lect [data-mi=stop],html.tel .mini-lect [data-mi=suiv],html.tel .mini-lect [data-mi=page],html.tel .mini-lect [data-mi=fermer],html.tel .mini-lect .mini-vol{display:none!important}
+html.tel .mini-lect .mini-jouer{min-width:40px!important;min-height:36px!important}
+html.tel .mini-lect .mini-titre{flex:1 1 0;min-width:0;max-width:none!important;font-size:12px!important;line-height:46px}
+html.tel .mini-lect .mini-t{flex:none;font-size:11px!important;white-space:nowrap!important;word-break:normal!important;opacity:.8}
+html.tel .mini-lect .mini-barre{position:absolute!important;left:0;right:0;top:-2px;height:3px!important;border-radius:0!important;flex:none!important;pointer-events:none}
+html.tel .tel-mini-ouvre{flex:none;width:40px;height:40px;border:0;background:none;color:#efe4cc;display:flex;align-items:center;justify-content:center;cursor:pointer;border-radius:8px}
+html.tel .tel-mini-ouvre:active{background:rgba(255,255,255,.08)}
+
+/* ---------- d. le lecteur en grand : on glisse le doigt sur la barre pour se balader dans le morceau ---------- */
+html.tel .tel-lect{position:fixed;inset:0;z-index:70;display:flex;flex-direction:column;padding:calc(6px + env(safe-area-inset-top,0px)) 22px calc(22px + var(--tel-bas));
+  background:linear-gradient(rgba(20,10,4,.72),rgba(14,7,3,.92)),#24140c url(../look/bois-fond.jpg) center/cover;color:#efe4cc;
+  transform:translateY(102%);visibility:hidden;transition:transform .28s cubic-bezier(.23,1,.32,1),visibility 0s .28s}
+html.tel .tel-lect.ouvert{transform:none;visibility:visible;transition:transform .28s cubic-bezier(.23,1,.32,1)}
+html.tel .tel-lect-tete{flex:none;height:46px;display:flex;align-items:center;justify-content:center;position:relative;font:600 11px/1 Jost,sans-serif;letter-spacing:.16em;text-transform:uppercase;opacity:.75}
+html.tel .tel-lect-x{position:absolute;left:-12px;top:1px;width:44px;height:44px;border:0;background:none;color:#efe4cc;display:flex;align-items:center;justify-content:center;border-radius:8px}
+html.tel .tel-lect-po{flex:0 1 300px;min-height:90px;border-radius:12px;background:#1a110a center/cover no-repeat;box-shadow:inset 0 0 0 1px rgba(239,228,204,.18),0 10px 26px rgba(0,0,0,.55);display:flex;align-items:center;justify-content:center}
+html.tel .tel-lect-po img{width:46%;opacity:.55}
+html.tel .tel-lect-po.photo img{display:none}
+html.tel .tel-lect-ti{margin-top:18px;font:600 20px/1.2 Jost,sans-serif;letter-spacing:.06em;text-transform:uppercase;overflow-wrap:anywhere}
+html.tel .tel-lect-so{margin-top:4px;font-size:13px;opacity:.7;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-height:17px}
+html.tel .tel-lect-ba{position:relative;margin-top:16px;height:44px;touch-action:none;cursor:pointer}
+html.tel .tel-lect-ba::before{content:"";position:absolute;left:0;right:0;top:17px;height:10px;border-radius:5px;background:rgba(0,0,0,.55);box-shadow:inset 0 0 0 1px rgba(239,228,204,.2)}
+html.tel .tel-lect-ba i{position:absolute;left:0;top:17px;height:10px;border-radius:5px;background:#e7c796;pointer-events:none}
+html.tel .tel-lect-ba b{position:absolute;top:9px;width:26px;height:26px;margin-left:-13px;border-radius:50%;background:#e7c796;box-shadow:0 0 0 3px #6d1a24,0 3px 8px rgba(0,0,0,.6);pointer-events:none}
+html.tel .tel-lect-ba.tenu b{transform:scale(1.2)}
+html.tel .tel-lect-te{display:flex;justify-content:space-between;font:500 13px/1 "DM Mono",ui-monospace,monospace;opacity:.85}
+html.tel .tel-lect-ct{margin-top:18px;display:flex;align-items:center;justify-content:center;gap:14px}
+html.tel .tel-lect-ct button{width:52px;height:52px;border:0;border-radius:10px;background:#232325;color:#efe4cc;font-size:17px;display:flex;align-items:center;justify-content:center;box-shadow:inset 0 0 0 1px rgba(239,228,204,.16)}
+html.tel .tel-lect-ct button.jouer{width:66px;height:66px;border-radius:14px;background:#6d1a24;font-size:22px}
+html.tel .tel-lect-ct button:active{transform:scale(.95)}
+html.tel .tel-lect-ct button[hidden]{display:none}
+html.tel .tel-lect-vide{flex:1}
+html.tel .tel-lect-bas{display:flex;gap:8px;flex-wrap:wrap}
+html.tel .tel-lect-bas button{flex:1 1 auto;min-height:44px;padding:0 12px;border:0;border-radius:8px;background:#232325;color:#efe4cc;font:600 11.5px/1 Jost,sans-serif;letter-spacing:.08em;text-transform:uppercase;box-shadow:inset 0 0 0 1px rgba(239,228,204,.16)}
+html.tel .tel-lect-bas button.on{background:#3a4a26;box-shadow:inset 0 0 0 1px rgba(160,200,110,.6)}
+html.tel .tel-lect-bas button[hidden]{display:none}
+@media (prefers-reduced-motion:reduce){html.tel .tel-lect,html.tel .tel-lect.ouvert{transition:none}}
+
+/* ---------- e. les outils d'un onglet (colonne « ② Réglages » du PC) : rangés, ils montent du bas quand on touche le bouton ---------- */
+html.tel #pages>section.tel-range .pane.reg{display:none!important}
+html.tel body.tel-outils #pages>section.tel-range:not(.hidden) .pane.reg{display:flex!important;flex-direction:column;gap:10px;position:fixed!important;left:0;right:0;bottom:0;z-index:52;
+  max-height:80dvh!important;overflow-y:auto!important;overscroll-behavior:contain;padding:8px 12px calc(16px + var(--tel-bas))!important;border-radius:16px 16px 0 0!important;
+  background:#1a110b!important;box-shadow:0 -10px 30px rgba(0,0,0,.7),inset 0 1px 0 rgba(239,228,204,.2)!important;animation:tel-monte .26s cubic-bezier(.23,1,.32,1)}
+html.tel body.tel-outils #pages>section.tel-range .pane.reg::before{content:"";flex:none;align-self:center;width:38px;height:4px;border-radius:2px;background:rgba(239,228,204,.3)}
+@keyframes tel-monte{from{transform:translateY(40%);opacity:.4}to{transform:none;opacity:1}}
+html.tel .tel-voile-o{position:fixed;inset:0;z-index:51;background:rgba(8,4,2,.62);opacity:0;pointer-events:none;transition:opacity .2s}
+html.tel body.tel-outils .tel-voile-o{opacity:1;pointer-events:auto}
+html.tel .tel-b-outils{flex:none;order:3;width:38px;height:34px;border:0;border-radius:7px;background:#232325;color:#efe4cc;display:flex;align-items:center;justify-content:center;box-shadow:inset 0 0 0 1px rgba(239,228,204,.16)}
+html.tel .tel-b-outils:active,html.tel .tel-plus:active{transform:scale(.94)}
+/* le bouton « + » : l'action principale de l'onglet, sous le pouce */
+html.tel .tel-plus{position:fixed;right:14px;bottom:calc(16px + var(--tel-bas));z-index:44;width:50px;height:50px;border:0;border-radius:50%;background:#e7c796;color:#2a1608;
+  display:flex;align-items:center;justify-content:center;box-shadow:0 6px 16px rgba(0,0,0,.6),inset 0 0 0 1px rgba(255,255,255,.35)}
+html.tel .tel-plus[hidden],html.tel body.tel-menu .tel-plus,html.tel body.tel-outils .tel-plus,html.tel body.tel-relier .tel-plus{display:none}
+html.tel body:has(#bkMini:not(.hidden)) .tel-plus{bottom:calc(62px + var(--tel-bas))}
+html.tel body:has(#bkMini:not(.hidden)) .tel-touches{bottom:calc(58px + var(--tel-bas))}
+@media (prefers-reduced-motion:reduce){html.tel body.tel-outils #pages>section.tel-range:not(.hidden) .pane.reg{animation:none}}
+
+/* ---------- f. tout est plus petit, et le décor plus simple ---------- */
+/* l'en-tête de l'onglet : UNE ligne (le titre ou les sous-onglets) ; les compteurs du PC ne s'affichent pas */
+html.tel #pages .hdr{padding:4px 6px!important;gap:6px!important;margin-bottom:8px;flex-wrap:nowrap!important;align-items:center!important;min-height:42px!important}
+html.tel #pages .hdr.a-sous .h1{display:none!important}
+html.tel #pages .hdr .h1{font-size:13px!important;margin:0 0 0 6px!important}
+html.tel #pages .hdr .right{order:2;flex:none}
+html.tel #pages .hdr .right>div:not(:has(button,input,select,a)){display:none!important}
+html.tel #pages .hdr .right:not(:has(button,input,select,a)){display:none!important}
+html.tel #pages .hdr .look-sous{order:1;flex:1 1 0!important;min-width:0;padding:2px!important}
+html.tel #pages .hdr .look-sous button{min-height:32px!important;padding:0 10px!important;font-size:11px!important;letter-spacing:.08em!important}
+/* les grands cadres (colonnes du PC) disparaissent : il ne reste que les boîtes */
+html.tel #pages .pane.vit,html.tel #pages .pane.reg{padding:0!important;background:none!important;box-shadow:none!important;border:0!important;backdrop-filter:none!important}
+html.tel #pages .pane.vit::before,html.tel #pages .pane.vit::after,html.tel #pages .pane.reg::after{display:none!important}
+html.tel #pages .ptitle{display:none!important}
+html.tel body.tel-outils #pages>section.tel-range .pane.reg .ptitle{display:block!important;text-align:center;font-size:11px!important;opacity:.7}
+html.tel #pages .cols{gap:8px!important}
+html.tel #pages .pane{gap:8px!important}
+html.tel #pages .box{padding:8px 10px!important;border-radius:10px!important}
+html.tel #pages .box .box{padding:8px!important}
+html.tel body.look-neuf #pages .box{background:rgba(8,4,2,.3)!important}
+html.tel body.look-neuf #pages .box .box{background:rgba(0,0,0,.2)!important;border-radius:8px!important;box-shadow:inset 0 0 0 1px rgba(239,228,204,.14)!important}
+html.tel #pages .box>.lb,html.tel #pages .box>.ligne-titre .lb{font-size:10.5px!important}
+html.tel .panier-tete,html.tel .ta-plier,html.tel #pages .box.bx>.lb,html.tel #pages .box.bx>.ligne-titre>.lb{min-height:34px}
+/* les boutons */
+html.tel .btn,html.tel .chip,html.tel .seg button,html.tel .dec{min-height:34px}
+html.tel .btn{padding:0 12px;font-size:11.5px!important;letter-spacing:.06em!important}
+html.tel .btn.sm{min-height:34px}
+html.tel .btn.xs{min-height:32px!important;min-width:32px}
+html.tel .btn.pri{min-height:38px;padding:0 14px}
+html.tel .chip,html.tel .seg button,html.tel .pv-seg button,html.tel .rg-tabs button{min-height:32px!important;padding:0 10px!important;font-size:11px!important;letter-spacing:.06em!important}
+/* une rangée de boutons au choix (filtres, vues) : UNE ligne ; si ça ne tient pas, elle glisse sur le côté */
+/*   (les listes d'étiquettes, elles, continuent de passer à la ligne : on doit toutes les voir) */
+html.tel .seg,html.tel #biVues,html.tel #pvFmt{flex-wrap:nowrap!important;overflow-x:auto;scrollbar-width:none;max-width:100%}
+html.tel .seg::-webkit-scrollbar,html.tel #biVues::-webkit-scrollbar,html.tel #pvFmt::-webkit-scrollbar{display:none}
+html.tel .seg>button,html.tel #biVues>*,html.tel #pvFmt>*{flex:0 0 auto;white-space:nowrap}
+html.tel input:not([type=range]):not([type=checkbox]):not([type=radio]):not([type=color]),html.tel select,html.tel .fld{min-height:38px}
+html.tel .nt{font-size:12.5px}
+html.tel #pages>section{padding:6px 8px calc(76px + var(--tel-bas))!important}
+
+/* ---------- g. les retouches par onglet ---------- */
+/* Accueil : seulement la prochaine release, le fil du groupe et l'avancement */
+html.tel #p-accueil .box.next,html.tel #p-accueil #acResume,html.tel #p-accueil #acDernier,html.tel #p-accueil .pane.vit>.box.grow,html.tel #p-accueil .pane.reg>.box:not(.ac-fil):not(.grow){display:none!important}
+html.tel #p-accueil .pane.vit:not(:has(.ac-rel)){display:none!important}
+html.tel #p-accueil .box.grow{min-height:0!important}
+
+/* Bibliothèque : les filtres sur une ligne, un morceau par ligne (le lecteur est en bas de l'écran) */
+html.tel #p-biblio .ligne-titre{gap:6px!important}
+html.tel #p-biblio #biVues{flex:1 1 100%}
+html.tel #p-biblio #biCherche{flex:1 1 0!important;min-width:0}
+html.tel #p-biblio #biPartager{order:2;margin:0!important}
+html.tel #p-biblio .fiche{margin:0!important}
+html.tel #p-biblio .bi-liste{gap:6px!important}
+html.tel #p-biblio .fiche-haut{flex-wrap:nowrap!important;align-items:center!important;gap:10px!important;padding:6px 8px!important}
+html.tel #p-biblio .fiche-photo{width:46px!important;height:46px!important;font-size:16px}
+html.tel #p-biblio .fiche-tete{min-height:46px!important;padding:0!important;display:grid!important;grid-template-columns:auto 1fr auto;gap:3px 8px!important;align-items:center;background:none!important;box-shadow:none!important;text-align:left}
+html.tel #p-biblio .fiche-tete .fiche-nom{grid-column:1/-1;font-size:14px!important;white-space:nowrap!important;overflow:hidden;text-overflow:ellipsis}
+html.tel #p-biblio .fiche-tete .dymo{font-size:9.5px!important}
+html.tel #p-biblio .fiche-tete .mini-etapes{min-width:0;width:100%}
+html.tel #p-biblio .fiche-tete .fiche-pc{font-size:11px!important;padding:2px 6px!important;min-width:0!important}
+html.tel #p-biblio .fiche-tete .fleche{display:none!important}
+html.tel #p-biblio .fiche .lecteur{flex:none!important;margin:0!important;padding:0!important;gap:0!important;background:none!important;box-shadow:none!important;border:0!important;min-width:0!important;width:auto!important}
+html.tel #p-biblio .lecteur .lect-pas,html.tel #p-biblio .lecteur .lect-barre,html.tel #p-biblio .lecteur .lect-t,html.tel #p-biblio .lecteur .lect-src{display:none!important}
+html.tel #p-biblio .lecteur .lect-play{min-width:42px!important;width:42px!important;min-height:42px!important;height:42px!important}
+
+/* To-do : les blocs restent l'un sous l'autre (sur le PC ils ont une hauteur limitée et un ascenseur : ici non) */
+html.tel .paniers,html.tel .panier-cartes,html.tel .ta-props,html.tel .ta-faites,html.tel .vrac-cartes{max-height:none!important;overflow:visible!important}
+html.tel #p-taches .box.grow,html.tel #p-taches .ta-faites-box,html.tel .todo-vrac{min-height:0!important;flex:none!important}
+html.tel #p-taches:not(.tel-ajout) .todo-ajout{display:none!important}                 /* « écrire une tâche » : derrière le bouton + */
+html.tel #p-taches .pane.reg{order:0}
+html.tel .carte{padding:6px 8px!important;gap:8px!important}
+/* « Miette propose » replié : il reste sa ligne de titre (un appui la rouvre) */
+html.tel #taMiette.replie>.ligne-titre{display:flex!important}
+html.tel #taMiette.replie>.ligne-titre>:not(.ta-plier){display:none!important}
+
+/* Reels Audio, Notes et retours, Notes vidéos : les rangées de boutons sur une ligne (noms courts : COURTS dans js/telephone.js) */
+html.tel #reSrc,html.tel #ecVues{width:100%}
+html.tel #reSrc button,html.tel #ecVues button{flex:1 1 0!important;justify-content:center}
+
+/* Social Photo : l'aperçu prend la forme du format choisi (--pv-r est posé par modules/postvis.js) */
+html.tel .pv-tel{width:min(74vw,calc(38dvh * var(--pv-r,.5625) + 20px))!important;max-width:none!important}
+html.tel .pv-ecran{width:100%!important;height:auto!important;max-height:none!important;aspect-ratio:var(--pv-r,.5625)}
+html.tel #pvFmt .chip{flex:1 0 auto;justify-content:center}
+
+/* Médias : une liste (petite image + nom) plutôt que de grosses vignettes */
+html.tel .md-grille{display:flex!important;flex-direction:column;gap:4px!important}
+html.tel .md-grille .md-tuile{flex-direction:row!important;align-items:center;gap:10px!important;padding:5px 8px!important;width:100%;min-height:48px;box-sizing:border-box}
+html.tel .md-grille .md-img{flex:none;width:44px;height:44px;aspect-ratio:auto!important}
+html.tel .md-grille .md-img .md-sur,html.tel .md-grille .md-img .md-ext{display:none!important}
+html.tel .md-grille .md-img .md-duree{font-size:8.5px!important;padding:1px 3px!important}
+html.tel .md-grille .md-nom{display:block!important;flex:1 1 0;min-width:0;font-size:13.5px!important;text-align:left!important;white-space:nowrap!important;overflow:hidden;text-overflow:ellipsis}
+html.tel .md-grille .md-dos-ic{flex:none;width:44px;text-align:center;font-size:22px!important}
+html.tel .md-grille .md-dos-badge{position:static!important;flex:none}
+html.tel .md-grille .md-x{position:static!important;flex:none;min-width:34px;min-height:34px}
+html.tel .md-outils #mdMoins,html.tel .md-outils #mdPlus2{display:none!important}           /* la taille des vignettes : plus besoin en liste */
+html.tel .box.md-barre{gap:6px!important}
+html.tel .md-barre .md-types{order:2}
+html.tel .md-barre .md-filtre{order:3}
+html.tel .md-barre .md-outils{order:4}
+html.tel .tel-b-outils{margin-left:auto}
+/* la barre de message en bas d'un onglet : une ligne */
+html.tel #pages .pane.abar{padding:6px 0!important;background:none!important;box-shadow:none!important;border:0!important}
+html.tel #pages .pane.abar .vfd{flex:1 1 130px!important;white-space:nowrap!important;overflow:hidden;text-overflow:ellipsis}
+html.tel #pages .pane.abar .right{width:auto!important;flex:0 1 auto;margin-left:0!important}
+html.tel #pages .pane.abar .right .btn{flex:0 1 auto}
+html.tel #pages .pane.abar>.nt{display:none!important}                                  /* les rappels « double-clic… » : dans le Tuto */
+html.tel #p-accueil .pane.abar{display:none!important}
+html.tel #p-biblio #biVues .chip{padding:0 8px!important;font-size:10.5px!important;letter-spacing:.02em!important}
+html.tel #p-biblio #biVues{gap:4px!important}
+/* la page ne dépasse jamais la largeur de l'écran (une rangée trop longue glisse sur le côté, elle n'élargit pas la page) */
+html.tel .app,html.tel .rowm,html.tel .mainc{width:100vw!important;max-width:100vw!important;min-width:0!important;box-sizing:border-box}
+html.tel #pages>section{max-width:100%;box-sizing:border-box;overflow-x:clip}
+html.tel #pages .cols,html.tel #pages .pane,html.tel #pages .box,html.tel #pages .grid{min-width:0!important;max-width:100%!important;box-sizing:border-box}
+html.tel body.tel-outils .tel-touches{display:none}
+html.tel body.tel-outils .mini-lect{visibility:hidden}                    /* les outils ouverts prennent tout le bas de l'écran */
