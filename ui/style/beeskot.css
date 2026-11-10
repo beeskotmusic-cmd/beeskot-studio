@@ -1986,6 +1986,7 @@ body.bas-cache .rainure-bas .languette{width:auto;padding:0 12px}
 .sb-menu button{all:unset;cursor:pointer;padding:8px 10px;border-radius:4px;font:500 13px Jost,sans-serif;color:var(--ink)}
 .sb-menu button:hover{background:rgba(239,230,210,.08);color:#ffb23e}
 .sb-aide{flex:1;min-width:200px;margin:0!important}
+.sb-aide-tel{display:none}
 #sbZoom{min-width:64px;text-align:center}
 .sb-board{position:relative;flex:1;min-height:300px;overflow:hidden;border-radius:6px;cursor:grab;outline:none;touch-action:none;
   background-color:#120c08;background-image:radial-gradient(circle,rgba(239,230,210,.13) 1.2px,transparent 1.6px);box-shadow:inset 0 3px 9px #000,0 0 0 1px var(--laiton)}

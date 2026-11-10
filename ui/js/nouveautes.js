@@ -8,6 +8,8 @@ BK.NOUVEAUTES = [
     ['📱', 'Téléphone : tu apparais en ligne seulement quand l\'appli est à l\'écran.'],
     ['⬇', 'Téléphone : quand l\'appli Android doit être mise à jour, un bouton « Mettre à jour » apparaît dans l\'appli (plus besoin du QR code).'],
     ['🔴', 'Notifications : la petite icône est maintenant le rond DARI, en rouge.'],
+    ['🧵', 'Notifications : le rond DARI brodé, en couleur, à droite de chaque notification (avec la nouvelle appli Android).'],
+    ['🎬', 'Storyline - Mood sur le téléphone : on regarde seulement (se déplacer, zoomer, lire). Les modifications se font sur le PC.'],
   ] },
   { v: '0.9.133', titre: 'Téléphone : plus léger', l: [
     ['📱', 'Téléphone : tout est plus petit et plus simple. Le bandeau du haut est fin et se cache quand on descend. Sur le PC, rien ne change.'],

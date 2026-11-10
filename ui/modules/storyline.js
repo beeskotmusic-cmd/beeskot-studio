@@ -10,6 +10,8 @@ const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '
 const COUL = ['#e0a43c', '#c9682c', '#d8473a', '#7a2430', '#b05a8c', '#2f7377', '#4f9a6a', '#2a3f6a', '#5a8fd0', '#8a8a4a', '#efe4cc', '#141414'];
 const TAILLES = [['P', 13], ['M', 18], ['G', 30], ['XL', 54]], EPAIS = [['fine', 2], ['moyenne', 4], ['épaisse', 9]];
 const fmt = t => { t = Math.max(0, t || 0); return Math.floor(t / 60) + ':' + String(Math.floor(t % 60)).padStart(2, '0'); };
+// sur le téléphone, le board se regarde seulement : se déplacer, zoomer, lire, ouvrir — rien ne se modifie
+const lecture = () => !!window.BK_MOBILE;
 const vue = () => S.vues[S.board] || (S.vues[S.board] = { x: 60, y: 60, k: 1 });
 
 // ---------- les liens : reconnaître YouTube / Instagram / TikTok / Vimeo ----------
@@ -266,7 +268,7 @@ function installerSouris(board) {
     board.focus({ preventScroll: true });
     const el = e.target.closest('.sb-it'), v = vue();
     if (e.target.closest('[contenteditable="true"],video,audio,iframe,button')) return;
-    if (!el || e.button === 1) {                                   // le fond (ou clic molette) : on déplace la vue
+    if (!el || e.button === 1 || lecture()) {                       // le fond (ou clic molette, ou le téléphone) : on déplace la vue
       if (S.sel) choisir(null);
       const x0 = e.clientX, y0 = e.clientY, vx = v.x, vy = v.y; board.setPointerCapture(e.pointerId); board.classList.add('main');
       const mv = ev => { v.x = vx + ev.clientX - x0; v.y = vy + ev.clientY - y0; appliquerVue(); };
@@ -294,23 +296,24 @@ function installerSouris(board) {
     const a = b.dataset.a;
     if (a === 'ouvrir') BK.ouvrirLien(it.url);
     else if (a === 'driveo') BK.ouvrirLien(BK.driveUrl(it.fid));
-    else if (a === 'aller') { choisir(it.id); aller(it); }
-    else if (a === 'jouer') { choisir(it.id); if (it.type === 'media') jouerMedia(it, el); else { const L = lienInfo(it.url); el.querySelector('.sb-c').innerHTML = `<iframe src="${esc(L.embed)}" allow="autoplay; encrypted-media; fullscreen; picture-in-picture" allowfullscreen referrerpolicy="strict-origin-when-cross-origin"></iframe>`; } }
+    else if (a === 'aller') { if (!lecture()) choisir(it.id); aller(it); }
+    else if (a === 'jouer') { if (!lecture()) choisir(it.id); if (it.type === 'media') jouerMedia(it, el); else { const L = lienInfo(it.url); el.querySelector('.sb-c').innerHTML = `<iframe src="${esc(L.embed)}" allow="autoplay; encrypted-media; fullscreen; picture-in-picture" allowfullscreen referrerpolicy="strict-origin-when-cross-origin"></iframe>`; } }
   });
   // double-clic sur un texte ou le titre d'une boîte : on écrit
-  board.addEventListener('dblclick', e => { const t = e.target.closest('.sb-txt,.sb-titre,.sb-pied span'), el = e.target.closest('.sb-it'); if (!t || !el || !S.items[el.dataset.id]) return; ecrire(S.items[el.dataset.id], el); });
+  board.addEventListener('dblclick', e => { if (lecture()) return; const t = e.target.closest('.sb-txt,.sb-titre,.sb-pied span'), el = e.target.closest('.sb-it'); if (!t || !el || !S.items[el.dataset.id]) return; ecrire(S.items[el.dataset.id], el); });
   // clic droit
-  board.addEventListener('contextmenu', e => { if (e.target.closest('[contenteditable="true"],input,.sb-saisie')) return; e.preventDefault(); if (e.target.closest('.sb-menu,.sb-style')) return; menuClicDroit(e); });
+  board.addEventListener('contextmenu', e => { if (lecture()) { e.preventDefault(); return; } if (e.target.closest('[contenteditable="true"],input,.sb-saisie')) return; e.preventDefault(); if (e.target.closest('.sb-menu,.sb-style')) return; menuClicDroit(e); });
   // Suppr : retirer l'élément choisi · M : marqueur · Espace : lecture / pause · Échap : fermer les menus
   board.addEventListener('keydown', async e => { if (e.target.closest('[contenteditable="true"],input,select')) return;
+    if (lecture() && e.key !== ' ') return;
     if ((e.key === 'Delete' || e.key === 'Backspace') && S.sel && S.items[S.sel]) retirer(S.items[S.sel]);
     else if ((e.key === 'm' || e.key === 'M') && S.board !== 'general') { e.preventDefault(); marquer(); }
     else if (e.key === ' ' && S.board !== 'general') { e.preventDefault(); lirePause(); }
     else if (e.key === 'Escape') fermerMenus(); });
   // glisser des fichiers du PC directement sur le board
-  board.addEventListener('dragover', e => { e.preventDefault(); board.classList.add('survol'); });
+  board.addEventListener('dragover', e => { if (lecture()) return; e.preventDefault(); board.classList.add('survol'); });
   board.addEventListener('dragleave', () => board.classList.remove('survol'));
-  board.addEventListener('drop', e => { e.preventDefault(); board.classList.remove('survol'); const fs = [...(e.dataTransfer.files || [])]; if (!fs.length) return;
+  board.addEventListener('drop', e => { if (lecture()) return; e.preventDefault(); board.classList.remove('survol'); const fs = [...(e.dataTransfer.files || [])]; if (!fs.length) return;
     if (!BK.drive.relie()) return msg('Relie le Drive (Réglages) pour partager des médias');
     poserMedias(fs.map(f => ({ nom: f.name, mime: f.type, fichier: f })), sousSouris(e)); });
   board.addEventListener('wheel', () => fermerMenus(), { passive: true });
@@ -343,7 +346,7 @@ BK.storyline = {
     zone.innerHTML = `<div class="sb-wrap">
       <div class="sb-barre box"><label class="sb-ch"><span class="eng">Chanson</span><select class="fld" id="sbMorceau"></select></label>
         <div class="sb-aj"><button class="btn pri sm" id="sbAjout">＋ Ajouter</button><div class="sb-menu hidden" id="sbMenu"></div></div>
-        <span class="nt sb-aide">Clic droit = ajouter ici · glisser le fond = se déplacer · molette = zoom · double-clic = écrire · les ronds et rectangles emportent ce qu'il y a dedans</span>
+        <span class="nt sb-aide sb-aide-tel">Consultation : glisse pour te déplacer, pince pour zoomer</span><span class="nt sb-aide sb-aide-pc">Clic droit = ajouter ici · glisser le fond = se déplacer · molette = zoom · double-clic = écrire · les ronds et rectangles emportent ce qu'il y a dedans</span>
         <button class="btn xs" id="sbMoins" title="Dézoomer">−</button><span class="vfd" id="sbZoom">100 %</span><button class="btn xs" id="sbPlus" title="Zoomer">+</button><button class="btn xs" id="sbTout">Tout voir</button>
         <span class="vfd" id="sbMsg">PRÊT</span></div>
       <div class="sb-lect box hidden" id="sbLect"><span class="eng">Son</span><select class="fld" id="sbVersion" title="La version de la chanson"></select>

@@ -485,3 +485,8 @@ html.tel .side .tel-enligne #syQuiL{display:flex!important;flex-direction:column
 html.tel .side .tel-enligne .sy-p{font-size:12px!important;gap:6px!important}
 html.tel .side .tel-enligne .sy-p small{font-size:11px!important}
 html.tel .side .tel-enligne .sy-app img,html.tel .side .tel-enligne .sy-app .pic{width:14px;height:14px}
+
+/* Storyline › Mood : sur le téléphone on regarde seulement (rien ne se modifie) */
+html.tel .sb-aide-pc, html.tel #sbAjout, html.tel .sb-aj, html.tel #sbMarq, html.tel .sb-style, html.tel .sb-poi, html.tel .sb-bout, html.tel .sb-ctx, html.tel #sbLien { display: none !important; }
+html.tel .sb-aide-tel { display: inline !important; }
+html.tel .sb-vide span { display: none; }

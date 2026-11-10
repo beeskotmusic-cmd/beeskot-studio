@@ -102,9 +102,9 @@
         if (!N._ecoute) { N._ecoute = true;
           P.addListener('registration', t => { const jeton = t && t.value; if (!jeton) return;
             let ap = BK.reglage('notif.appareil', ''); if (!ap) { ap = 'tel-' + Date.now().toString(36) + Math.random().toString(36).slice(2, 8); BK.regler('notif.appareil', ap); }
-            const sig = moi() + '|' + jeton, vu = BK.reglage('notif.inscrit', {});
+            const boite = +((/BeeskotBoite\/(\d+)/.exec(navigator.userAgent) || [0, 1])[1]), sig = moi() + '|' + jeton + '|' + boite, vu = BK.reglage('notif.inscrit', {});
             if (vu.sig === sig && Date.now() - (vu.t || 0) < 7 * 864e5) { N.etatTel = 'actif'; return; }          // déjà inscrit avec ce prénom : on ne redit rien pendant une semaine
-            N.poster({ inscrire: { appareil: ap, qui: moi(), jeton } }).then(r => { if (r && r.ok) { BK.regler('notif.inscrit', { sig, t: Date.now() }); N.etatTel = 'actif'; N.redessiner(); } }); });
+            N.poster({ inscrire: { appareil: ap, qui: moi(), jeton, boite } }).then(r => { if (r && r.ok) { BK.regler('notif.inscrit', { sig, t: Date.now() }); N.etatTel = 'actif'; N.redessiner(); } }); });
           P.addListener('registrationError', e => { console.warn('notif : inscription refusée', e); N.etatTel = 'absent'; N.redessiner(); });
           // l'appli est ouverte : un petit message en haut, pas de notification Android en double
           P.addListener('pushNotificationReceived', n => { BK.avis && BK.avis([n.title, n.body].filter(Boolean).join(' · '), 6000); BK.fil && BK.fil.maj && BK.fil.maj(); });

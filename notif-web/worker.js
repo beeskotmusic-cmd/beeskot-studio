@@ -5,7 +5,7 @@
 //   BEESKOT Studio (PC ou téléphone)  →  ce Worker  →  Firebase (gratuit)  →  les téléphones
 //
 // Tout passe par UNE adresse (POST https://notif.beeskot-music.workers.dev/) avec la clé du groupe :
-//   { cle, inscrire: { appareil, qui, jeton } }             un téléphone s'inscrit (ou change de prénom)
+//   { cle, inscrire: { appareil, qui, jeton, boite } }      un téléphone s'inscrit (ou change de prénom) ; boite = numéro de l'appli Android
 //   { cle, oublier: appareil }                               un téléphone se désinscrit
 //   { cle, de, pour, titre, texte, onglet, id }              envoyer maintenant. pour = 'autres' | 'tous' | ['Pierre', …]
 //   { cle, rappel: { id, quand, titre, texte, onglet } }     envoyer plus tard (quand = date ISO) à tout le monde
@@ -47,7 +47,7 @@ async function laissezPasser(env) {
 async function telephones(env) {
   const out = []; let curseur;
   do { const l = await env.CARNET.list({ prefix: 'j:', cursor: curseur }); curseur = l.list_complete ? null : l.cursor;
-    for (const k of l.keys) { const v = k.metadata || await env.CARNET.get(k.name, 'json'); if (v && v.jeton) out.push({ appareil: k.name.slice(2), qui: v.qui || '', jeton: v.jeton }); } } while (curseur);
+    for (const k of l.keys) { const v = k.metadata || await env.CARNET.get(k.name, 'json'); if (v && v.jeton) out.push({ appareil: k.name.slice(2), qui: v.qui || '', jeton: v.jeton, boite: v.boite || 1 }); } } while (curseur);
   return out;
 }
 const memeNom = (a, b) => String(a || '').trim().toLowerCase() === String(b || '').trim().toLowerCase();
@@ -58,7 +58,11 @@ async function envoyer(env, cibles, m) {
   const c = JSON.parse(env.FCM_COMPTE), jeton = await laissezPasser(env); let envoyes = 0, rates = 0;
   await Promise.all(cibles.map(async tel => {
     const r = await fetch(`https://fcm.googleapis.com/v1/projects/${c.project_id}/messages:send`, { method: 'POST', headers: { Authorization: 'Bearer ' + jeton, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ message: { token: tel.jeton, notification: { title: m.titre, body: m.texte }, data: { onglet: m.onglet || 'accueil' }, android: { priority: 'high', notification: { channel_id: 'beeskot', tag: m.id || undefined } } } }) });
+      body: JSON.stringify({ message: tel.boite >= 2
+        // appli récente (boîte 2+) : on n'envoie que les données, c'est l'appli qui fabrique la notification avec le rond DARI en couleur
+        ? { token: tel.jeton, data: { titre: m.titre, texte: m.texte || '', onglet: m.onglet || 'accueil', id: m.id || '' }, android: { priority: 'high' } }
+        // ancienne appli : Google fabrique la notification lui-même
+        : { token: tel.jeton, notification: { title: m.titre, body: m.texte }, data: { onglet: m.onglet || 'accueil' }, android: { priority: 'high', notification: { channel_id: 'beeskot', tag: m.id || undefined } } } }) });
     if (r.ok) { envoyes++; return; }
     rates++;
     if (r.status === 404 || r.status === 400) { const t = await r.text(); if (/UNREGISTERED|INVALID_ARGUMENT|registration token/i.test(t)) await env.CARNET.delete('j:' + tel.appareil); }   // l'appli a été désinstallée : on raye ce téléphone
@@ -77,7 +81,7 @@ export default {
     try {
       if (d.inscrire) { const i = d.inscrire;
         if (!ID_OK.test(i.appareil || '') || !NOM_OK.test(i.qui || '') || typeof i.jeton !== 'string' || i.jeton.length < 20 || i.jeton.length > 4096) return json({ erreur: 'inscription incomplète' }, 400);
-        const v = { qui: court(i.qui, 30), jeton: i.jeton, t: Date.now() };
+        const v = { qui: court(i.qui, 30), jeton: i.jeton, t: Date.now(), boite: Math.max(1, Math.min(99, parseInt(i.boite, 10) || 1)) };
         await env.CARNET.put('j:' + i.appareil, JSON.stringify(v), { metadata: v }); return json({ ok: true }); }
       if (d.oublier) { if (ID_OK.test(d.oublier)) await env.CARNET.delete('j:' + d.oublier); return json({ ok: true }); }
       if (d.etat) { const l = await telephones(env); return json({ ok: true, pret: !!env.FCM_COMPTE, telephones: l.map(t => ({ appareil: t.appareil, qui: t.qui })) }); }
