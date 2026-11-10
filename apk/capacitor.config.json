@@ -10,6 +10,7 @@
   },
   "android": {
     "allowMixedContent": false,
-    "backgroundColor": "#2b1b11"
+    "backgroundColor": "#2b1b11",
+    "appendUserAgent": "BeeskotBoite/2"
   }
 }

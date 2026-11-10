@@ -446,11 +446,15 @@
     document.hidden ? BK.presence.battre(true) : BK.presence.maj(true); });
   // l'appli Android installée est-elle trop ancienne ? (elle n'a pas ce qu'il faut pour les notifications)
   // Le logiciel dedans se met à jour tout seul ; la « boîte » Android, elle, se réinstalle par-dessus : on propose un bouton.
-  const boiteAncienne = () => enAppli && !(window.Capacitor.Plugins && window.Capacitor.Plugins.PushNotifications);
+  // Chaque nouvelle boîte porte un numéro dans son « user agent » (apk/capacitor.config.json › appendUserAgent).
+  // Pour proposer une nouvelle boîte à tout le monde : augmenter les DEUX numéros ensemble.
+  const BOITE_VOULUE = 2;
+  const numBoite = () => { const m = /BeeskotBoite\/(\d+)/.exec(navigator.userAgent); return m ? +m[1] : 1; };
+  const boiteAncienne = () => enAppli && numBoite() < BOITE_VOULUE;
   function bandeauMaj() {
     if (!boiteAncienne() || $('#telMaj') || Date.now() - BK.reglage('tel.majPlusTard', 0) < 20 * 3600e3) return;
     const b = document.createElement('div'); b.id = 'telMaj'; b.className = 'tel-maj';
-    b.innerHTML = `<span><b>Nouvelle version de l'appli</b><br>Elle apporte les notifications. Rien n'est perdu, le téléphone reste relié.</span>
+    b.innerHTML = `<span><b>Nouvelle version de l'appli</b><br>Elle apporte les dernières nouveautés du téléphone. Rien n'est perdu, le téléphone reste relié.</span>
       <a class="btn sm pri" href="${BK.LIEN_APK || ''}" target="_blank" rel="noopener">Mettre à jour</a><button class="btn sm" id="telMajTard">Plus tard</button>`;
     document.body.appendChild(b);
     b.querySelector('#telMajTard').onclick = () => { BK.regler('tel.majPlusTard', Date.now()); b.remove(); };
