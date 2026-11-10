@@ -3,6 +3,11 @@
 // Pour une nouvelle version : ajouter un bloc EN HAUT de la liste. Une ligne courte par point : « Onglet : ce qui change. »
 // =====================================================================
 BK.NOUVEAUTES = [
+  { v: '0.9.131', titre: '', l: [
+    ['💰', 'Budget : les comptes étaient faux. Un remboursement dont la dépense avait été supprimée comptait encore. Il ne compte plus, et supprimer une dépense retire maintenant aussi ses remboursements.'],
+    ['👀', 'Budget : les remboursements apparaissent dans la liste des dépenses (avec ✕ pour en retirer un). Ce qui ne compte plus est grisé.'],
+    ['🧹', 'Budget : bouton « Clean » (en haut de Remboursements) pour remettre tous les comptes à 0. Deux clics pour confirmer. Rien n\'est effacé : les anciennes dépenses restent visibles, en grisé. Ctrl+Z pour annuler.'],
+  ] },
   { v: '0.9.130', titre: '', l: [
     ['📱', 'Téléphone : c\'est maintenant le même logiciel que sur le PC, rangé en une colonne. Tous les onglets y sont, sauf Light Toast et Ableton Live (il lui faut un PC).'],
     ['☰', 'Téléphone : le menu s\'ouvre avec le bouton en haut à gauche (ou en glissant depuis le bord gauche). Le fil du groupe et « Tout replier » sont en haut du menu.'],

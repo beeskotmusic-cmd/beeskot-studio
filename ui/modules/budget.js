@@ -11,9 +11,16 @@ const CATS = ['Studio', 'Abonnement', 'Mixage / master', 'Matériel', 'Tournage'
 const auj = () => BK.auj();
 
 // le calcul : chacun = ce qu'il a payé − sa part ; puis le moins de remboursements possible
+// Ce qui ne compte PAS : ce qui date d'avant un « Clean » (remise à zéro), et un remboursement dont la dépense a été supprimée.
+BK.budgetCompte = function (dep) {
+  const avant = new Set(dep.filter(d => d.type === 'remise').flatMap(d => d.avant || []));
+  const existe = new Set(dep.filter(d => !d.type).map(d => d.id));
+  return d => d.type !== 'remise' && !avant.has(d.id) && !(d.type === 'remboursement' && d.dep && !existe.has(d.dep));
+};
 BK.budgetSoldes = function (dep, membres) {
-  const solde = Object.fromEntries(membres.map(m => [m, 0]));
+  const solde = Object.fromEntries(membres.map(m => [m, 0])), compte = BK.budgetCompte(dep);
   for (const d of dep) {
+    if (!compte(d)) continue;
     if (d.type === 'remboursement') { solde[d.de] = (solde[d.de] || 0) + d.montant; solde[d.a] = (solde[d.a] || 0) - d.montant; continue; }
     const pour = (d.pour && d.pour.length ? d.pour : membres), part = d.montant / pour.length;
     solde[d.payePar] = (solde[d.payePar] || 0) + d.montant;
@@ -33,7 +40,7 @@ BK.module('budget', function (page) {
   $('.grid', page).innerHTML = `
     <div class="cols">
       <section class="pane vit">
-        <div class="box bu-qui"><div class="ligne-titre"><span class="lb">Remboursements</span></div><div id="buVir" class="bu-vir"></div><div id="buSoldes" class="bu-soldes"></div></div>
+        <div class="box bu-qui"><div class="ligne-titre"><span class="lb">Remboursements</span><button class="btn xs" id="buClean" style="margin-left:auto" title="Remet tous les comptes à 0 (les dépenses restent visibles, en grisé)">Clean</button></div><div id="buVir" class="bu-vir"></div><div id="buSoldes" class="bu-soldes"></div></div>
         <div class="box" id="buMiette"></div>
         <div class="box grow"><div class="ligne-titre"><span class="lb">Dépenses</span>
             <select class="fld" id="buMois" style="margin-left:auto;width:auto"></select>
@@ -127,19 +134,21 @@ BK.module('budget', function (page) {
     B.mois = B.mois || 'tout';                                         // par défaut : toutes les dépenses
     $('#buMois').innerHTML = '<option value="tout">Tout</option>' + mois.map(m => `<option value="${m}"${m === B.mois ? ' selected' : ''}>${new Date(m + '-15').toLocaleDateString('fr-CA', { month: 'long', year: 'numeric' })}</option>`).join('');
     if (B.mois === 'tout') $('#buMois').value = 'tout';
-    const l = B.dep.filter(d => d.type !== 'remboursement' && (B.mois === 'tout' || (d.date || '').startsWith(B.mois))).sort((a, b) => (b.date || '').localeCompare(a.date || ''));
-    $('#buMoisH').textContent = argent(B.dep.filter(d => d.type !== 'remboursement' && (d.date || '').startsWith(ce)).reduce((a, d) => a + d.montant, 0));
+    const compte = BK.budgetCompte(B.dep);
+    const l = B.dep.filter(d => d.type !== 'remise' && (B.mois === 'tout' || (d.date || '').startsWith(B.mois))).sort((a, b) => (b.date || '').localeCompare(a.date || ''));
+    const pourquoiPas = d => !compte(d) ? (d.type === 'remboursement' && d.dep && !B.dep.some(x => x.id === d.dep) ? ' · dépense supprimée : ne compte plus' : ' · avant le Clean : ne compte plus') : '';
+    $('#buMoisH').textContent = argent(B.dep.filter(d => !d.type && (d.date || '').startsWith(ce)).reduce((a, d) => a + d.montant, 0));
     const moi = B.membres.find(m => m.toLowerCase() === String(BK.reglage('nomPc', '')).trim().toLowerCase()) || '';
     B.rOuvert = B.rOuvert || new Set();
     $('#buListe').innerHTML = l.length ? l.map(d => d.type === 'remboursement'
-      ? `<div class="bu-d remb"><span class="bu-d-c"><b>↩ ${esc(d.de)} a remboursé ${esc(d.a)}${d.dep ? ' — ' + esc(d.titre || '') : ''}</b><span class="nt">${esc(d.date || '')}</span></span><span class="vfd">${argent(d.montant)}</span><button class="btn xs" data-x="${d.id}" title="Retirer">✕</button></div>`
+      ? `<div class="bu-d remb${compte(d) ? '' : ' bu-vieux'}"><span class="bu-d-c"><b>↩ ${esc(d.de)} a remboursé ${esc(d.a)}${d.dep ? ' — ' + esc(d.titre || '') : ''}</b><span class="nt">${esc(d.date || '')}${pourquoiPas(d)}</span></span><span class="vfd">${argent(d.montant)}</span><button class="btn xs" data-x="${d.id}" title="Retirer">✕</button></div>`
       : (() => {
         const pr = partsRestantes(d), part = pr.part, ouvert = B.rOuvert.has(d.id);
-        const aPayer = moi && pr.doivent.includes(moi);
-        return `<div class="bu-d${d.miette ? ' mi-prop' : ''}"${d.miette ? ' title="Ajoutée par Miette (lue sur Discord) : vérifie, puis ✓"' : ''}><span class="bu-d-c"><b${aMoi(d) ? ` class="bu-titre" data-renom="${d.id}" title="Clic pour changer l'intitulé"` : ''}>${esc(d.titre)}</b><span class="nt">${esc(d.date || '')} · payé par ${esc(d.payePar)} · pour ${esc((d.pour && d.pour.length && d.pour.length < B.membres.length ? d.pour : ['tout le monde']).join(', '))} · ${esc(d.cat || '')}${d.abo ? ' · ↻ revient tout seul' : ''}${pr.payes.length ? ' · part payée par ' + esc(pr.payes.join(', ')) : ''}</span></span>
+        const vieux = !compte(d), aPayer = !vieux && moi && pr.doivent.includes(moi);
+        return `<div class="bu-d${d.miette ? ' mi-prop' : ''}${vieux ? ' bu-vieux' : ''}"${d.miette ? ' title="Ajoutée par Miette (lue sur Discord) : vérifie, puis ✓"' : ''}><span class="bu-d-c"><b${aMoi(d) ? ` class="bu-titre" data-renom="${d.id}" title="Clic pour changer l'intitulé"` : ''}>${esc(d.titre)}</b><span class="nt">${esc(d.date || '')} · payé par ${esc(d.payePar)} · pour ${esc((d.pour && d.pour.length && d.pour.length < B.membres.length ? d.pour : ['tout le monde']).join(', '))} · ${esc(d.cat || '')}${d.abo ? ' · ↻ revient tout seul' : ''}${pr.payes.length ? ' · part payée par ' + esc(pr.payes.join(', ')) : ''}</span></span>
           <span class="vfd">${argent(d.montant)}</span>
           ${aPayer ? `<button class="btn xs pri" data-part="${d.id}|${esc(moi)}" title="Tu fais le virement à ${esc(d.payePar)}">↩ Ma part · ${argent(part)}</button>` : ''}
-          ${pr.doivent.filter(m => m !== moi).length ? `<button class="btn xs" data-rp="${d.id}" title="Noter la part de quelqu'un d'autre">${ouvert ? '▾' : '↩'}</button>` : ''}
+          ${!vieux && pr.doivent.filter(m => m !== moi).length ? `<button class="btn xs" data-rp="${d.id}" title="Noter la part de quelqu'un d'autre">${ouvert ? '▾' : '↩'}</button>` : ''}
           ${d.miette ? `<button class="mi-val" data-mival="${d.id}" title="C'est bon : valider">✓</button>` : ''}<button class="btn xs" data-x="${d.id}" title="Retirer">✕</button>
           ${ouvert ? `<div class="bu-parts"><span class="lb">Qui a déjà remboursé sa part ?</span>${pr.doivent.filter(m => m !== moi).map(m => `<button class="chip" data-part="${d.id}|${esc(m)}" title="${esc(m)} a remboursé ${esc(d.payePar)}">${esc(m)} · ${argent(part)}</button>`).join('')}<button class="btn xs" data-rp="${d.id}" style="margin-left:auto">✕ Annuler</button></div>` : ''}</div>`;
       })()).join('')
@@ -175,6 +184,14 @@ BK.module('budget', function (page) {
       msg(n ? `Miette a trouvé ${n} paiement(s) : vérifie-les en vert` : 'Miette n\'a pas trouvé de nouveau paiement'); }
     catch (e) { msg(e.message || 'Miette n\'a pas pu chercher'); }
     finally { b.disabled = false; b.innerHTML = avant; } };
+  // CLEAN : tous les comptes à 0. Rien n'est effacé : une marque « remise » note ce qui existait, et ça ne compte plus.
+  let cleanArme = 0;
+  $('#buClean').onclick = async () => { const b = $('#buClean');
+    if (Date.now() - cleanArme > 4000) { cleanArme = Date.now(); b.textContent = 'Sûr ? Re-clique'; setTimeout(() => { if (b.isConnected) b.textContent = 'Clean'; }, 4000); return; }
+    cleanArme = 0; b.textContent = 'Clean';
+    const avant = B.dep.filter(d => d.type !== 'remise').map(d => d.id);
+    B.dep.push(await BK.db.ecrire('depenses', { type: 'remise', date: auj(), avant, par: BK.reglage('nomPc', '') || '' }));
+    msg('Comptes remis à zéro'); rendre(); };
   page.addEventListener('click', async e => {
     const rn = e.target.closest('[data-renom]');
     if (rn && !rn.querySelector('input')) { const d = B.dep.find(y => y.id === rn.dataset.renom); if (!d) return;
@@ -194,7 +211,10 @@ BK.module('budget', function (page) {
     if (ok || non) { const p = (B.props || []).find(y => y.id === (ok || non).dataset[ok ? 'pok' : 'pnon']); if (!p) return;
       if (ok) B.dep.push(await BK.db.ecrire('depenses', { titre: p.titre, montant: +p.montant, payePar: B.membres.includes(p.payePar) ? p.payePar : paye, pour: (p.pour || []).filter(m => B.membres.includes(m)), date: p.date || auj(), cat: 'Autre', discord: p.source || '' }));
       p.statut = ok ? 'ok' : 'non'; await BK.db.ecrire('propositions', p); B.props = B.props.filter(y => y !== p); msg(ok ? 'Dépense ajoutée' : 'Ignorée'); rendre(); return; }
-    if (x) { B.dep = B.dep.filter(d => d.id !== x.dataset.x); await BK.db.supprimer('depenses', x.dataset.x); msg('Retirée'); rendre(); }
+    if (x) { const id = x.dataset.x, liés = B.dep.filter(d => d.type === 'remboursement' && d.dep === id).map(d => d.id);
+      B.dep = B.dep.filter(d => d.id !== id && !liés.includes(d.id));
+      await BK.db.supprimer('depenses', id); for (const r of liés) await BK.db.supprimer('depenses', r);
+      msg(liés.length ? 'Retirée (avec ses ' + liés.length + ' remboursement(s))' : 'Retirée'); rendre(); }
     if (r) { const [de, a, m] = r.dataset.remb.split('|'); B.dep.push(await BK.db.ecrire('depenses', { type: 'remboursement', de, a, montant: +m, date: auj() })); msg(de + ' a remboursé ' + a); rendre(); }
     if (ab) { const a = B.abos.find(y => y.id === ab.dataset.ab); a.actif = a.actif === false; if (a.actif) a.depuis = auj().slice(0, 7); await BK.db.ecrire('abonnements', a); msg(a.actif ? 'Repris' : 'Arrêté (plus ajouté les prochains mois)'); rendre(); }
   });

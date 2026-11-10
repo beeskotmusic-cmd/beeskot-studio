@@ -186,7 +186,7 @@ Règles : "taches" = ce que quelqu'un doit faire et qui n'est pas déjà fait ni
     const existe = [
       'Tâches déjà dans la liste : ' + (ts.map(t => t.texte + (t.fait ? ' (fait)' : '')).slice(-120).join(' ; ') || 'aucune'),
       'Rendez-vous déjà au calendrier : ' + (evs.map(e => `${e.date} ${e.titre}`).join(' ; ') || 'aucun'),
-      'Dépenses déjà notées : ' + (deps.filter(x => x.type !== 'remboursement').slice(-60).map(x => `${x.date} ${x.titre} ${x.montant}$ (${x.payePar})`).join(' ; ') || 'aucune'),
+      'Dépenses déjà notées : ' + (deps.filter(x => !x.type).slice(-60).map(x => `${x.date} ${x.titre} ${x.montant}$ (${x.payePar})`).join(' ; ') || 'aucune'),
       'Fiches de tournage existantes : ' + (tours.map(t => `${t.titre} ${t.date || ''}`).join(' ; ') || 'aucune'),
     ].join('\n');
     const r = await BK.ia.demander(`${existe}\n\nMessages Discord des 45 derniers jours :\n${BK.discord.texte(recents.slice(-900))}`, { systeme, json: true, temperature: 0.2, vite: true, delai: 150 });

@@ -532,7 +532,7 @@ Réponds en JSON : un tableau de {"texte":"…","qui":"Yacine|Pierre|Baptiste|BE
     const j = await BK.discord.journal(3), depuis = new Date(Date.now() - 60 * 864e5).toISOString(), recents = j.filter(l => l.t >= depuis);
     if (!recents.length) return 0;
     const [ds, props] = await Promise.all([BK.db.liste('depenses'), BK.db.liste('propositions')]);
-    const deja = [...ds.map(d => `${d.date} ${d.titre} ${d.montant}$ (${d.payePar})`), ...props.filter(p => p.type === 'depense').map(p => `${p.date} ${p.titre} ${p.montant}$`)];
+    const deja = [...ds.filter(d => !d.type).map(d => `${d.date} ${d.titre} ${d.montant}$ (${d.payePar})`), ...props.filter(p => p.type === 'depense').map(p => `${p.date} ${p.titre} ${p.montant}$`)];
     const systeme = `Tu tiens le budget du groupe de musique BEESKOT à partir de leurs messages Discord (français familier) et des mails recopiés par un bot.
 Trouve les PAIEMENTS faits pour le groupe : location de studio, matériel, pub, mix/master, distribution, transport, nourriture en session… (« j'ai payé », « j'ai avancé 40 $ », facture réglée, reçu).
 Pas les prix seulement envisagés, pas ce qui est déjà dans la liste.
