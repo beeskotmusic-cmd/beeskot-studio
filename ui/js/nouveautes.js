@@ -7,7 +7,7 @@ BK.NOUVEAUTES = [
     ['👥', 'En ligne : un petit picto à côté de chaque prénom montre s\'il est sur ordinateur, sur téléphone, ou les deux.'],
     ['📱', 'Téléphone : tu apparais en ligne seulement quand l\'appli est à l\'écran.'],
     ['⬇', 'Téléphone : quand l\'appli Android doit être mise à jour, un bouton « Mettre à jour » apparaît dans l\'appli (plus besoin du QR code).'],
-    ['🔴', 'Notifications : la petite icône est maintenant le rond DARI, en rouge.'],
+    ['🔴', 'Notifications : la petite icône est maintenant le rond DARI.'],
     ['🧵', 'Notifications : le rond DARI brodé, en couleur, à droite de chaque notification (avec la nouvelle appli Android).'],
     ['🎬', 'Storyline - Mood sur le téléphone : on regarde seulement (se déplacer, zoomer, lire). Les modifications se font sur le PC.'],
   ] },
