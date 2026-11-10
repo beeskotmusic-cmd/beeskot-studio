@@ -64,7 +64,7 @@ const F = BK.fil = {
     const c = $('#filCorps'), la = $('#filLa'); if (!c) return;
     const moi = BK.reglage('nomPc', ''), ici = (BK.onglets.find(o => o.id === BK.reglage('dernierOnglet', 'accueil')) || {}).titre || '';
     const pres = (BK.presence && BK.presence.derniers) || [];
-    la.innerHTML = (moi ? `<span class="fil-p on">● ${esc(moi)} · ${esc(ici)}</span>` : '') + pres.map(x => `<span class="fil-p on">● ${esc(x.qui)}${x.onglet ? ' · ' + esc(x.onglet) : ''}</span>`).join('')
+    la.innerHTML = (moi ? `<span class="fil-p on">● ${esc(moi)} ${BK.presence ? BK.presence.pictos(BK.presence.moiApps) : ''} · ${esc(ici)}</span>` : '') + pres.map(x => `<span class="fil-p on">● ${esc(x.qui)} ${BK.presence ? BK.presence.pictos(x.apps) : ''}${x.onglet ? ' · ' + esc(x.onglet) : ''}</span>`).join('')
       + ['Yacine', 'Pierre', 'Baptiste', 'Studio'].filter(m => m !== moi && !pres.some(x => String(x.qui).toLowerCase() === m.toLowerCase())).map(m => `<span class="fil-p">${m} · pas là</span>`).join('');
     c.innerHTML = lignes.length ? F.liste(lignes.slice(0, 120), F.vuAvant || 0) : '<span class="nt">Rien pour l\'instant. Ce que chacun fait (notes, tâches, dates, reels…) arrive ici.</span>';
   },

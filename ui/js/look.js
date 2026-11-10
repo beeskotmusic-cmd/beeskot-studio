@@ -99,11 +99,11 @@ const L = BK.look = {
   pins(autres) {
     const z = $('#syPins'); if (!z) return;
     const moi = BK.reglage('nomPc', ''), ou = {};
-    (autres || []).forEach(x => { ou[String(x.qui || '').toLowerCase()] = x.onglet || ''; });
+    const sur = {}; (autres || []).forEach(x => { ou[String(x.qui || '').toLowerCase()] = x.onglet || ''; sur[String(x.qui || '').toLowerCase()] = BK.presence ? BK.presence.surQuoi(x.apps) : ''; });
     const ici = (BK.onglets.find(o => o.id === BK.reglage('dernierOnglet', 'accueil')) || {}).titre || '';
     z.innerHTML = MEMBRES.map(m => { const lui = m === moi, la = lui || ou[m.toLowerCase()] !== undefined, onglet = lui ? ici : ou[m.toLowerCase()];
-      const t = lui ? `${m} (toi, sur ce PC)${onglet ? ' · ' + onglet : ''} : clic pour changer` : la ? `${m} · ${onglet || 'en ligne'}` : `${m} · pas là`;
-      return `<button class="pin${la ? ' la' : ''}${lui ? ' moi' : ''}" ${lui ? '' : 'tabindex="-1"'} title="${t}" aria-label="${t}"><img src="${PIN(m)}" alt=""></button>`; }).join('')
+      const t = lui ? `${m} (toi, sur ce PC)${onglet ? ' · ' + onglet : ''} : clic pour changer` : la ? `${m} · ${onglet || 'en ligne'}${sur[m.toLowerCase()] ? ' · sur ' + sur[m.toLowerCase()] : ''}` : `${m} · pas là`;
+      return `<button class="pin${la ? ' la' : ''}${lui ? ' moi' : ''}" ${lui ? '' : 'tabindex="-1"'} title="${t}" aria-label="${t}"><img src="${PIN(m)}" alt="">${la && !lui && /téléphone/.test(sur[m.toLowerCase()] || '') ? `<i class="pin-tel">📱</i>` : ''}</button>`; }).join('')
       + (moi && MEMBRES.includes(moi) ? '' : `<button class="pin-qui" title="Qui utilise cet ordinateur ?">${moi ? moi.toUpperCase() : 'QUI ?'}</button>`);
     z.querySelectorAll('.pin.moi, .pin-qui').forEach(b => b.onclick = () => { BK.ouvrir('reglages'); BK.reglagesOnglet && BK.reglagesOnglet('pc'); });
   },

@@ -162,6 +162,7 @@
       const l = document.createElement('div'); l.className = 'tel-outil'; l.append(b); const s = document.createElement('span'); s.textContent = nom; l.append(s);
       l.addEventListener('click', e => { if (!e.target.closest('button')) b.click(); tiroir(false); }); z.append(l); }
     if (z.children.length) side.insertBefore(z, nav);
+    const enLigne = document.querySelector('.top > .sy-online'); if (enLigne) { enLigne.classList.add('tel-enligne'); side.insertBefore(enLigne, z.isConnected ? z : nav); }   // « qui est en ligne » : en haut du menu (il passait sur le logo)
   }
 
   // ---------- 4. le bouton Retour d'Android : ferme ce qui est ouvert, revient à l'Accueil, puis quitte ----------
@@ -431,7 +432,7 @@
     const ouvrir0 = BK.ouvrir; BK.ouvrir = function () { const r = ouvrir0.apply(BK, arguments); motsBientot(); habillerOnglet(); return r; };
     brancherMini();
     try { await demarrerPc.apply(BK, arguments); } finally { finCharge(); }
-    ranger(); mots(); courts(); barreTouches(); bandeauQuiSeCache(); habillerOnglet();
+    ranger(); mots(); courts(); barreTouches(); bandeauQuiSeCache(); habillerOnglet(); bandeauMaj();
     new MutationObserver(motsBientot).observe(document.body, { childList: true, subtree: true });       // une aide qui change, une fenêtre qui s'ouvre
     // un nouveau téléphone : on demande d'abord qui s'en sert (les tâches cochées, les notes et « ONLINE » portent ce prénom)
     if (!BK.reglage('nomPc', '')) { BK.ouvrir('reglages'); BK.reglagesOnglet && BK.reglagesOnglet('pc'); }
@@ -440,8 +441,23 @@
   window.addEventListener('hashchange', () => { if (lireLien()) location.reload(); });
   // le clavier : le champ où on écrit reste visible
   document.addEventListener('focusin', e => { if (e.target.matches && e.target.matches('input:not([type=range]):not([type=checkbox]),textarea,select')) setTimeout(() => e.target.scrollIntoView({ block: 'center', behavior: 'smooth' }), 300); });
+  // « en ligne » seulement quand l'appli est à l'écran : en fond ou écran éteint, les autres te voient parti
+  document.addEventListener('visibilitychange', () => { if (!BK.presence || !BK.telephone || !BK.telephone.pret) return;
+    document.hidden ? BK.presence.battre(true) : BK.presence.maj(true); });
+  // l'appli Android installée est-elle trop ancienne ? (elle n'a pas ce qu'il faut pour les notifications)
+  // Le logiciel dedans se met à jour tout seul ; la « boîte » Android, elle, se réinstalle par-dessus : on propose un bouton.
+  const boiteAncienne = () => enAppli && !(window.Capacitor.Plugins && window.Capacitor.Plugins.PushNotifications);
+  function bandeauMaj() {
+    if (!boiteAncienne() || $('#telMaj') || Date.now() - BK.reglage('tel.majPlusTard', 0) < 20 * 3600e3) return;
+    const b = document.createElement('div'); b.id = 'telMaj'; b.className = 'tel-maj';
+    b.innerHTML = `<span><b>Nouvelle version de l'appli</b><br>Elle apporte les notifications. Rien n'est perdu, le téléphone reste relié.</span>
+      <a class="btn sm pri" href="${BK.LIEN_APK || ''}" target="_blank" rel="noopener">Mettre à jour</a><button class="btn sm" id="telMajTard">Plus tard</button>`;
+    document.body.appendChild(b);
+    b.querySelector('#telMajTard').onclick = () => { BK.regler('tel.majPlusTard', Date.now()); b.remove(); };
+    b.querySelector('a').addEventListener('click', () => setTimeout(() => { const s = b.querySelector('span'); if (s) s.innerHTML = '<b>Téléchargement lancé</b><br>Ouvre le fichier téléchargé, puis « Mettre à jour ».'; }, 300));
+  }
   // sans réseau : l'appli s'ouvre quand même (les fichiers de l'appli gardés sur le téléphone : voir sw.js)
   if ('serviceWorker' in navigator && location.protocol === 'https:') navigator.serviceWorker.register('sw.js').catch(e => console.warn('hors réseau indisponible', e));
 
-  BK.telephone = { enAppli, tiroir, retour, scanner, outils, garder, lacher, gardes, SANS_TELEPHONE, TOUCHES, MOTS, OUTILS_RANGES, PLUS, COURTS, pret: false };
+  BK.telephone = { enAppli, tiroir, retour, scanner, outils, garder, lacher, gardes, SANS_TELEPHONE, TOUCHES, MOTS, OUTILS_RANGES, PLUS, COURTS, boiteAncienne, pret: false };
 })();

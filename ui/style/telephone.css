@@ -265,7 +265,7 @@ html.tel .pv-tel{width:min(52vw,calc((46dvh - 90px) * 9 / 16))!important}
 html.tel .reel-onde,html.tel .ec-onde-box{position:sticky;top:0;z-index:6;box-shadow:0 0 0 100vmax #130c08;clip-path:inset(-6px -100vmax -8px -100vmax)}
 @media (prefers-reduced-motion:reduce){html.tel .tel-touches button{transition:none}}
 
-/* =====================================================================
+/* ==============================================================
    7. VERSION ALLÉGÉE : moins gros, moins de choses à l'écran (demande de Dari, nov. 2026)
       a. l'écran de chargement          e. les outils rangés derrière un bouton + le bouton « + »
       b. le bandeau fin, qui se cache   f. tout est plus petit, décor simplifié
@@ -472,3 +472,16 @@ html.tel #pages>section{max-width:100%;box-sizing:border-box;overflow-x:clip}
 html.tel #pages .cols,html.tel #pages .pane,html.tel #pages .box,html.tel #pages .grid{min-width:0!important;max-width:100%!important;box-sizing:border-box}
 html.tel body.tel-outils .tel-touches{display:none}
 html.tel body.tel-outils .mini-lect{visibility:hidden}                    /* les outils ouverts prennent tout le bas de l'écran */
+=======
+/* « Nouvelle version de l'appli » : le bandeau quand l'appli Android installée est trop ancienne */
+html.tel .tel-maj{position:fixed;left:8px;right:8px;top:calc(var(--tel-haut) + env(safe-area-inset-top,0px) + 8px);z-index:38;display:flex;flex-wrap:wrap;align-items:center;gap:8px;padding:10px 12px;border-radius:10px;background:#1a120c;color:#efe4cc;font-size:13px;line-height:1.35;box-shadow:0 0 0 1px rgba(255,178,62,.55),0 8px 22px rgba(0,0,0,.7)}
+html.tel .tel-maj span{flex:1 1 100%}
+html.tel .tel-maj b{color:#ffb23e}
+html.tel .tel-maj .btn{flex:1;justify-content:center;text-decoration:none}
+
+/* « qui est en ligne » en haut du menu : une personne par ligne, lisible */
+html.tel .side .tel-enligne{position:static!important;transform:none!important;display:flex!important;flex-direction:column;align-items:flex-start;gap:6px;margin:12px 12px 0;padding:10px 12px;border-radius:8px;background:rgba(0,0,0,.4);max-width:none!important;width:auto!important;height:auto!important;overflow:visible!important}
+html.tel .side .tel-enligne #syQuiL{display:flex!important;flex-direction:column;gap:6px;white-space:normal}
+html.tel .side .tel-enligne .sy-p{font-size:12px!important;gap:6px!important}
+html.tel .side .tel-enligne .sy-p small{font-size:11px!important}
+html.tel .side .tel-enligne .sy-app img,html.tel .side .tel-enligne .sy-app .pic{width:14px;height:14px}

@@ -3,6 +3,11 @@
 // Pour une nouvelle version : ajouter un bloc EN HAUT de la liste. Une ligne courte par point : « Onglet : ce qui change. »
 // =====================================================================
 BK.NOUVEAUTES = [
+  { v: '0.9.134', titre: '', l: [
+    ['👥', 'En ligne : un petit picto à côté de chaque prénom montre s\'il est sur ordinateur, sur téléphone, ou les deux.'],
+    ['📱', 'Téléphone : tu apparais en ligne seulement quand l\'appli est à l\'écran.'],
+    ['⬇', 'Téléphone : quand l\'appli Android doit être mise à jour, un bouton « Mettre à jour » apparaît dans l\'appli (plus besoin du QR code).'],
+  ] },
   { v: '0.9.133', titre: 'Téléphone : plus léger', l: [
     ['📱', 'Téléphone : tout est plus petit et plus simple. Le bandeau du haut est fin et se cache quand on descend. Sur le PC, rien ne change.'],
     ['▶', 'Téléphone : le lecteur du bas tient sur une ligne. Touche-le : il s\'ouvre en grand, et tu glisses le doigt sur la barre pour te balader dans le morceau.'],

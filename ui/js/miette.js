@@ -277,15 +277,25 @@ BK.presence = {
     const absent = parti || BK.presence.afk();
     if (absent && BK.presence._absent && !parti) return;                // déjà dit « hors ligne » : on ne répète pas
     BK.presence._absent = absent;
-    try { await BK.db.ecrire('config', { id: 'ici-' + moi.toLowerCase().replace(/[^a-z0-9]+/g, '-'), qui: moi, onglet: o ? o.titre : '', action, t: absent ? 0 : Date.now() }, { sansAnnuler: true }); } catch (e) {}
+    // un petit mot par appareil : le PC et le téléphone d'une même personne ne s'écrasent pas (app = 'pc' ou 'tel')
+    const tel = !!window.BK_MOBILE;
+    try { await BK.db.ecrire('config', { id: 'ici-' + moi.toLowerCase().replace(/[^a-z0-9]+/g, '-') + (tel ? '-tel' : ''), qui: moi, app: tel ? 'tel' : 'pc', onglet: o ? o.titre : '', action, t: absent ? 0 : Date.now() }, { sansAnnuler: true }); } catch (e) {}
   },
   async lire() {
     if (!BK.drive || !BK.drive.relie()) return [];
     const moi = (BK.reglage('nomPc', '') || 'ce PC').toLowerCase();
     try {
-      return (await BK.db.liste('config')).filter(d => /^ici-/.test(d.id) && Date.now() - (d.t || 0) < 7 * 60e3 && String(d.qui || '').toLowerCase() !== moi);
+      const la = (await BK.db.liste('config')).filter(d => /^ici-/.test(d.id) && Date.now() - (d.t || 0) < 7 * 60e3).sort((a, b) => (b.t || 0) - (a.t || 0));
+      // une ligne par personne, avec ses appareils allumés (apps : 'pc', 'tel' ou les deux) ; l'onglet = celui de l'appareil le plus récent
+      const par = {}; for (const d of la) { const k = String(d.qui || '').toLowerCase(), app = d.app === 'tel' ? 'tel' : 'pc';
+        if (!par[k]) par[k] = { ...d, apps: [app] }; else if (!par[k].apps.includes(app)) par[k].apps.push(app); }
+      BK.presence.moiApps = [window.BK_MOBILE ? 'tel' : 'pc', ...((par[moi] || {}).apps || [])].filter((x, i, l) => l.indexOf(x) === i);   // toi : cet appareil + ton autre appareil s'il est allumé
+      return Object.values(par).filter(d => String(d.qui || '').toLowerCase() !== moi);
     } catch (e) { return []; }
   },
+  // les petits pictos « ordinateur » / « téléphone » d'une personne (ils deviennent des tampons maison : voir js/pictos.js)
+  pictos: apps => (apps && apps.length ? apps : ['pc']).slice().sort().map(a => a === 'tel' ? '📱' : '💻').join(''),
+  surQuoi: apps => (apps && apps.length ? apps : ['pc']).slice().sort().map(a => a === 'tel' ? 'téléphone' : 'ordinateur').join(' + '),
   async maj(ecrire) {
     const z = document.getElementById('syQuiL'), b = document.getElementById('syQui'); if (!z) return;
     if (ecrire || Date.now() - BK.presence.dernierEnvoi > 3 * 60e3) await BK.presence.battre();
@@ -294,9 +304,9 @@ BK.presence = {
     if (!b) return;
     b.style.display = BK.drive && BK.drive.relie() ? '' : 'none';
     const moi = BK.reglage('nomPc', '') || 'ce PC';
-    const tous = [{ qui: moi, onglet: '', moi: true }, ...l];                 // toi d'abord, puis les autres
-    z.innerHTML = tous.map(x => `<span class="sy-p${x.moi ? ' moi' : ''}" title="${String(x.qui + (x.onglet ? ' — ' + x.onglet : '')).replace(/"/g, '')}">● ${String(x.qui).toUpperCase().replace(/[<>&]/g, '')}${x.onglet ? `<small>${String(x.onglet).replace(/[<>&]/g, '')}</small>` : ''}</span>`).join('');
-    b.title = l.length ? l.map(x => x.qui + (x.onglet ? ' — ' + x.onglet : '')).join('\n') : 'Tu es seul sur BEESKOT Studio en ce moment';
+    const P = BK.presence, tous = [{ qui: moi, onglet: '', moi: true, apps: P.moiApps }, ...l];                 // toi d'abord, puis les autres
+    z.innerHTML = tous.map(x => `<span class="sy-p${x.moi ? ' moi' : ''}" title="${String(x.qui + ' — sur ' + P.surQuoi(x.apps) + (x.onglet ? ' — ' + x.onglet : '')).replace(/"/g, '')}">● ${String(x.qui).toUpperCase().replace(/[<>&]/g, '')}<span class="sy-app">${P.pictos(x.apps)}</span>${x.onglet ? `<small>${String(x.onglet).replace(/[<>&]/g, '')}</small>` : ''}</span>`).join('');
+    b.title = l.length ? l.map(x => x.qui + ' (' + P.surQuoi(x.apps) + ')' + (x.onglet ? ' — ' + x.onglet : '')).join('\n') : 'Tu es seul sur BEESKOT Studio en ce moment';
     b.classList.toggle('qui-on', !!l.length);
     // la ligne d'équipe en bas de chaque page : qui fait quoi, en ce moment
     const txt = l.filter(x => x.action || x.onglet).map(x => `<b>${String(x.qui).replace(/[<>&]/g, '')}</b> ${String(x.action || x.onglet).replace(/[<>&]/g, '')}`).join('<i>·</i>');

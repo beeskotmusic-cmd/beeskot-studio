@@ -130,7 +130,7 @@
         : etat && etat.erreur ? 'Le facteur ne répond pas (' + etat.erreur + ') : voir notif-web/LISEZ-MOI.txt.'
         : !etat.pret ? 'Clé du groupe reconnue, mais le compte Firebase n\'est pas encore collé chez Cloudflare.'
         : noms.length ? 'Prêtes · téléphones inscrits : ' + noms.join(', ') + '.' : 'Prêtes, mais aucun téléphone inscrit : ouvrez l\'appli Android sur chaque téléphone.';
-      const ici = !tel ? '' : !P ? '<span class="nt">Ce téléphone : les notifications arrivent dans l\'appli Android BEESKOT (pas dans Chrome). Si tu es dans l\'appli, mets-la à jour (QR code au-dessus).</span>'
+      const ici = !tel ? '' : !P ? '<span class="nt">Ce téléphone : les notifications arrivent dans l\'appli Android BEESKOT (pas dans Chrome). Si tu es dans l\'appli, mets-la à jour :</span><a class="btn sm pri" style="text-decoration:none;align-self:flex-start" href="' + (BK.LIEN_APK || '') + '" target="_blank" rel="noopener">Mettre à jour l\'appli</a>'
         : N.etatTel === 'actif' ? '<span class="nt">Ce téléphone : <b>notifications activées</b> pour ' + esc(moi()) + '.</span>'
         : N.etatTel === 'refuse' ? '<span class="nt">Ce téléphone : notifications refusées. Réglages du téléphone › Applis › BEESKOT Studio › Notifications : autorise, puis reviens ici.</span>'
         : '<span class="nt">Ce téléphone : pas encore activé.</span>';
