@@ -1,0 +1,266 @@
+/* =====================================================================
+   LE TÉLÉPHONE — le même logiciel que le PC, rangé en une colonne.
+   TOUT est sous « html.tel » (classe posée par js/telephone.js, jamais dans le .exe) : le PC ne lit rien d'ici.
+   Rangement de ce fichier :
+     1. la coquille (bandeau, menu tiroir, page qui défile)
+     2. les règles générales (colonnes → une colonne, boutons au doigt, fenêtres)
+     3. les retouches onglet par onglet (une petite section par onglet, dans l'ordre du menu)
+     4. l'écran « Relier ce téléphone » et le scanner
+   ===================================================================== */
+
+/* ---------- 1. la coquille ---------- */
+html.tel{--tel-haut:52px;--tel-bas:env(safe-area-inset-bottom,0px);-webkit-text-size-adjust:100%;text-size-adjust:100%}
+html.tel,html.tel body{height:100%;overflow:hidden;overscroll-behavior:none}
+html.tel body{-webkit-tap-highlight-color:transparent;touch-action:manipulation}
+html.tel .app{height:100dvh!important;--z:1}
+html.tel .top{height:calc(var(--tel-haut) + env(safe-area-inset-top,0px))!important;padding:env(safe-area-inset-top,0px) 8px 0 4px!important;gap:6px!important}
+html.tel .top .patch{height:40px!important;margin:0!important;max-width:42vw;object-fit:contain;object-position:left center}
+html.tel .top .sys{gap:4px!important;margin-left:auto}
+html.tel .top .estop{width:40px!important;height:44px!important;justify-content:center}
+html.tel .top .estop img{width:34px!important;height:34px!important}
+html.tel .top .estop .plate{display:none}
+html.tel .top .estop::after{width:42px!important;height:42px!important;margin-left:-21px!important;top:1px!important}
+html.tel .top .pins,html.tel .top .look-pins{display:none!important}
+html.tel .tel-burger{flex:none;width:44px;height:44px;border:0;background:none;padding:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;cursor:pointer;border-radius:8px}
+html.tel .tel-burger i{display:block;width:22px;height:3px;border-radius:2px;background:#efe4cc;box-shadow:0 1px 2px rgba(0,0,0,.7);transition:transform .2s cubic-bezier(.23,1,.32,1),opacity .15s}
+html.tel .tel-burger:active{background:rgba(255,255,255,.08)}
+html.tel body.tel-menu .tel-burger i:nth-child(1){transform:translateY(8px) rotate(45deg)}
+html.tel body.tel-menu .tel-burger i:nth-child(2){opacity:0}
+html.tel body.tel-menu .tel-burger i:nth-child(3){transform:translateY(-8px) rotate(-45deg)}
+html.tel .volet,html.tel .volet-d,html.tel .rainure-haut,html.tel .rainure-bas,html.tel .languette{display:none!important}
+
+/* le menu : un tiroir qui glisse depuis la gauche */
+html.tel .rowm{padding:0!important;gap:0!important;display:block!important;position:relative;overflow:hidden}
+html.tel .side{position:fixed!important;z-index:40;left:0;top:calc(var(--tel-haut) + env(safe-area-inset-top,0px));bottom:0;width:min(82vw,300px)!important;
+  background:#17100b url(../textures/bois-menu.jpg) center/cover;box-shadow:6px 0 24px rgba(0,0,0,.7);padding:0 0 var(--tel-bas);
+  transform:translateX(-105%);transition:transform .26s cubic-bezier(.23,1,.32,1);overflow-y:auto!important;overscroll-behavior:contain;visibility:hidden}
+html.tel body.tel-menu .side{transform:none;visibility:visible}
+html.tel #nav{padding:12px 12px 8px!important;align-items:stretch!important}
+html.tel #nav .tab{min-height:46px!important;height:auto!important;justify-content:flex-start!important;padding:0 12px!important}
+html.tel #nav .tab .t,html.tel #nav .tab .led{display:flex!important}
+html.tel #nav .cote{display:block!important;min-height:34px}
+html.tel .tel-voile{position:fixed;inset:calc(var(--tel-haut) + env(safe-area-inset-top,0px)) 0 0 0;z-index:39;background:rgba(8,4,2,.6);opacity:0;pointer-events:none;transition:opacity .22s}
+html.tel body.tel-menu .tel-voile{opacity:1;pointer-events:auto}
+html.tel .side .sysgrid{display:flex!important;flex-direction:column;gap:6px;padding:4px 12px 14px}
+html.tel .side .sysgrid .vfd{min-width:0!important;font-size:11px!important;padding:6px 10px!important}
+html.tel .side .sysgrid .vfd:has(#syCpu){display:none!important}           /* « charge du PC » : pas de sens sur un téléphone */
+html.tel #syMaj{display:none}
+
+/* la page : UNE seule zone qui défile (plus de petites zones à ascenseur comme sur le PC) */
+html.tel .mainc{height:100%;overflow-y:auto!important;overflow-x:hidden;-webkit-overflow-scrolling:touch;overscroll-behavior-y:contain;gap:0!important;padding:0!important;display:block!important;scroll-padding-top:60px}
+html.tel #pages>section{display:block!important;height:auto!important;min-height:100%;padding:8px 8px calc(16px + var(--tel-bas))!important;animation:none!important}
+html.tel #pages>section.hidden{display:none!important}
+html.tel #pages .grid{display:block!important;height:auto!important;min-height:0!important;overflow:visible!important}
+html.tel #pages .cols{display:flex!important;flex-direction:column!important;gap:10px!important;height:auto!important;min-height:0!important;overflow:visible!important}
+html.tel #pages .pane{width:auto!important;max-width:none!important;min-width:0!important;flex:none!important;height:auto!important;max-height:none!important;overflow:visible!important;padding:10px!important;margin:0!important}
+html.tel #pages .hidden{display:none!important}
+html.tel #pages .pane.reg{order:2}
+html.tel body.droite-cachee #pages>section:not(.hidden) .pane.reg{display:flex!important}
+html.tel body.bas-cache #pages>section:not(.hidden) .pane.abar{display:flex!important}
+html.tel body.haut-cache .top,html.tel body.haut-cache #pages .hdr{display:flex!important}
+
+/* l'en-tête de l'onglet : titre + sous-onglets qui défilent sur le côté */
+html.tel #pages .hdr{height:auto!important;min-height:0!important;padding:8px 10px!important;gap:8px!important;flex-wrap:wrap!important;margin-bottom:10px;overflow:visible!important}
+html.tel #pages .hdr .screw{display:none}
+html.tel #pages .hdr .h1{font-size:15px!important;flex:none}
+html.tel #pages .hdr .sub{display:none!important}
+html.tel #pages .hdr .right{margin-left:auto!important;gap:8px!important;flex-wrap:wrap;justify-content:flex-end;min-width:0}
+html.tel #pages .hdr .right .vfd{font-size:12px!important}
+html.tel #pages .hdr .look-sous{order:5;flex:1 0 100%;overflow-x:auto;scrollbar-width:none;flex-wrap:nowrap!important;justify-content:flex-start}
+html.tel #pages .hdr .look-sous::-webkit-scrollbar{display:none}
+html.tel #pages .hdr .look-sous button{flex:1 0 auto;min-height:38px!important;justify-content:center}
+
+/* la barre du bas de l'onglet (message + bouton principal) : à la fin de la page */
+html.tel #pages .pane.abar{margin-top:10px!important;flex-wrap:wrap!important;gap:8px!important;height:auto!important;padding:8px 10px!important}
+html.tel #pages .pane.abar:empty{display:none!important}
+html.tel #pages .pane.abar .vfd{flex:1 1 100%;min-width:0;white-space:normal!important;font-size:11px!important}
+html.tel #pages .pane.abar .right{margin-left:auto!important;flex-wrap:wrap;gap:8px!important;justify-content:flex-end;width:100%}
+html.tel #pages .pane.abar .right .btn{flex:1 1 auto;justify-content:center}
+html.tel .mini-lect{flex-wrap:wrap;padding:6px 10px calc(6px + var(--tel-bas))!important;gap:6px!important}
+
+/* ---------- 2. règles générales ---------- */
+/* au doigt : tout ce qui se touche fait au moins 40 px, et un champ ne zoome pas la page (16 px) */
+html.tel .btn,html.tel .chip,html.tel .seg button,html.tel .dec{min-height:40px}
+html.tel .btn.sm{min-height:38px}
+html.tel .btn.xs{min-height:32px;padding:0 10px}
+html.tel .btn.pri{min-height:46px;padding:0 18px}
+html.tel input:not([type=range]):not([type=checkbox]):not([type=radio]):not([type=color]),html.tel select,html.tel textarea,html.tel .fld{font-size:16px!important;min-height:42px}
+html.tel textarea{min-height:90px}
+html.tel input[type=checkbox],html.tel input[type=radio]{min-width:20px;min-height:20px}
+html.tel .seg{flex-wrap:wrap}
+html.tel .chips{flex-wrap:wrap!important;gap:6px}
+html.tel .ligne-titre{flex-wrap:wrap!important;gap:8px!important;height:auto!important}
+html.tel .ligne-titre .fld,html.tel .ligne-titre input[type=search]{flex:1 1 140px;min-width:0;max-width:none!important;width:auto!important}
+html.tel .box{min-width:0!important;max-width:100%}
+html.tel img,html.tel video,html.tel canvas{max-width:100%}
+html.tel .nt{font-size:13px}
+html.tel .nt.mono,html.tel .mono{white-space:normal;word-break:break-all}
+html.tel [title]{-webkit-touch-callout:none}
+/* ce qui n'apparaissait qu'au survol de la souris : toujours visible au doigt */
+html.tel .md-x,html.tel .pv-mb,html.tel .su-aff-outils,html.tel .dp-o,html.tel .to-af-x,html.tel .carte-qui{opacity:1!important}
+html.tel .to-med .md-x,html.tel .md-dos-lie .md-x{display:block!important}
+html.tel .md-x{min-width:26px;min-height:26px}
+/* les fenêtres (confirmation, choix, Quoi de neuf…) : presque tout l'écran, et elles défilent */
+html.tel .voile{padding:10px!important;align-items:center!important;z-index:60}
+html.tel .voile>.stopbox,html.tel .voile>[role=dialog],html.tel .voile>div:not(.screw){max-width:100%!important;width:100%!important;max-height:calc(100dvh - 20px)!important;overflow-y:auto!important;box-sizing:border-box;min-width:0!important}
+html.tel .voile .screw{display:none}
+html.tel .stopbox{padding:16px 14px!important}
+html.tel .stopbox-btns{flex-wrap:wrap}
+html.tel .stopbox-btns .btn{flex:1 1 auto;justify-content:center}
+html.tel #stVerif,html.tel #stVerifTxt,html.tel #stMaj,html.tel #stFermer{display:none!important}   /* les mises à jour arrivent toutes seules sur le téléphone */
+html.tel .look-cartes{flex-direction:column}
+/* un menu au clic droit du PC (appui long sur le téléphone) reste dans l'écran */
+html.tel .bk-menu,html.tel .ctx,html.tel .menu-ctx{max-width:calc(100vw - 16px)!important}
+
+/* ---------- 4. « Relier ce téléphone » + scanner ---------- */
+html.tel body.tel-relier .app{display:none}
+html.tel .tel-porte{position:fixed;inset:0;overflow-y:auto;display:flex;flex-direction:column;align-items:center;gap:18px;padding:calc(28px + env(safe-area-inset-top,0px)) 16px calc(24px + var(--tel-bas));
+  background:linear-gradient(rgba(20,10,4,.55),rgba(20,10,4,.8)),#24140c url(../look/bois-fond.jpg) center/cover;color:#efe4cc}
+html.tel .tel-porte-logo{width:min(64vw,240px);filter:drop-shadow(0 4px 6px rgba(0,0,0,.7))}
+html.tel .tel-carte{width:100%;max-width:440px;display:flex;flex-direction:column;align-items:flex-start;gap:12px;padding:18px 16px;border-radius:10px;background:rgba(18,11,6,.82);box-shadow:inset 0 0 0 1px rgba(217,169,60,.35),0 8px 24px rgba(0,0,0,.6)}
+html.tel .tel-carte p{margin:0;font-size:15px;line-height:1.45}
+html.tel .tel-carte b{color:#ffb23e}
+html.tel .tel-gros{width:100%;justify-content:center;min-height:54px;font-size:15px!important}
+html.tel .tel-carte details{width:100%}
+html.tel .tel-carte summary{cursor:pointer;color:#ffb23e;font-size:14px;padding:8px 0;user-select:none}
+html.tel .tel-carte details>*:not(summary){margin-top:8px}
+html.tel .tel-ligne{display:flex;gap:8px;align-items:center}
+html.tel .tel-ligne .fld{flex:1;min-width:0}
+html.tel .tel-scan{position:fixed;inset:0;z-index:80;display:flex;flex-direction:column;align-items:center;justify-content:center;background:#000}
+html.tel .tel-scan video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;max-width:none}
+html.tel .tel-scan-cadre{position:relative;width:min(70vw,70vh);aspect-ratio:1;border-radius:14px;box-shadow:0 0 0 100vmax rgba(0,0,0,.55);outline:3px solid #ffb23e;transition:outline-color .2s}
+html.tel .tel-scan.ok .tel-scan-cadre{outline-color:#7bd389}
+html.tel .tel-scan-txt{position:relative;margin:22px 24px 0;text-align:center;color:#efe4cc;font-size:14px;text-shadow:0 1px 3px #000}
+html.tel .tel-scan-x{position:absolute;left:50%;bottom:max(28px,env(safe-area-inset-bottom));transform:translateX(-50%)}
+@media (prefers-reduced-motion:reduce){html.tel .side,html.tel .tel-voile,html.tel .tel-burger i{transition:none}}
+
+/* ---------- 3. les retouches onglet par onglet ---------- */
+/* une rangée de petits réglages (champ + liste + bouton…) passe à la ligne au lieu de sortir de l'écran */
+html.tel #pages .box.todo-ajout,html.tel #pages .box.md-barre,html.tel #pages .nv-barre,html.tel #pages .ec-form,html.tel #pages .ec-filtres{flex-wrap:wrap!important;gap:8px!important;height:auto!important}
+html.tel #pages select{max-width:100%;min-width:0!important}
+
+/* Bibliothèque */
+html.tel .bi-liste{overflow:visible!important;max-height:none!important}
+
+/* Médias */
+html.tel .box.md-barre{padding:8px!important}
+html.tel .md-barre .md-fil{flex:1 1 100%!important;order:-1;overflow-x:auto!important;scrollbar-width:none}
+html.tel .md-barre .md-types{flex:1 1 100%}
+html.tel .md-barre .md-types button{flex:1;min-height:38px!important;justify-content:center;padding:0 6px!important}
+html.tel .md-barre .md-filtre{flex:1 1 auto;min-width:0}
+html.tel .md-barre .md-filtre select{min-width:0!important;width:100%!important;flex:1}
+html.tel .md-haut,html.tel .md-ico{min-height:38px!important;height:38px!important;min-width:38px}
+
+/* To-do list */
+html.tel .todo-ajout #taTexte{flex:1 1 100%}
+html.tel .todo-ajout #taMorceau,html.tel .todo-ajout #taDate{flex:1 1 120px;width:auto!important}
+html.tel .todo-ajout #taAjout{flex:1 1 100%;justify-content:center}
+
+/* Calendrier : 7 petites cases par ligne, les rendez-vous en pastilles */
+html.tel .cal{gap:3px!important;grid-auto-rows:minmax(54px,auto)!important}
+html.tel .cal-c{min-height:54px!important;padding:3px!important}
+
+/* Notes et retours (Mix) + Notes vidéos */
+html.tel .ec-choix{grid-template-columns:1fr 1fr!important}
+html.tel .ec-choix>label:first-child{grid-column:1/-1}
+html.tel .ec-poignee{display:none!important}                      /* la poignée qui règle la largeur des colonnes : pas de colonnes ici */
+html.tel .ec-haut,html.tel .ec-liste{overflow:visible!important;max-height:none!important}
+html.tel .ec-form .fld{flex:1 1 100%}
+html.tel .nv-barre .nv-lien{flex:1 1 100%;max-width:none!important;width:100%!important}
+
+/* Reels Vidéo + Social Photo : l'aperçu « téléphone » au-dessus, les réglages dessous */
+html.tel .rv-scene{flex-direction:column!important;align-items:stretch!important;gap:12px!important}
+html.tel .rv-tel,html.tel .pv-tel{width:min(100%,300px)!important;max-height:none!important;height:auto!important;align-self:center!important;flex:none!important}
+html.tel .rv-cote{overflow:visible!important;width:100%;flex:none!important}
+
+/* Réglages */
+html.tel #p-reglages .pane.rg-corps{display:flex!important;flex-direction:column!important;gap:10px!important;padding:10px!important}
+html.tel .rg-tabs{flex-wrap:wrap}
+html.tel .rg-tabs button{flex:1 1 auto;justify-content:center}
+
+/* Accueil */
+html.tel .af-l{flex-wrap:wrap!important;row-gap:2px}
+html.tel .af-l .af-t{flex:1 1 0;min-width:0}
+html.tel .af-l .af-m{flex:1 1 100%;margin:0 0 0 34px!important}
+
+/* To-do : un panier par ligne (les noms et les tâches respirent) */
+html.tel .paniers{grid-template-columns:1fr!important}
+html.tel .vrac-cartes .carte{flex:1 1 100%;max-width:none!important;width:100%}
+html.tel .carte .carte-c{flex:1 1 0;min-width:0}
+html.tel .carte .carte-qui,html.tel .carte .carte-x,html.tel .ta-case{min-width:30px;min-height:30px}
+
+/* fenêtre du bouton rouge (version, tuto…) */
+html.tel .suite-ligne{flex-wrap:wrap}
+
+/* Bibliothèque : la fiche d'un morceau */
+html.tel .fiche-haut{flex-wrap:wrap!important}
+html.tel .fiche-photo{width:56px!important;height:56px!important;flex:none}
+html.tel .fiche-droite{flex:1 1 0!important;min-width:0!important;display:contents!important}
+html.tel .fiche-tete{flex:1 1 0!important;min-width:0!important;flex-wrap:wrap!important;gap:4px 8px!important;min-height:56px}
+html.tel .fiche-tete .fiche-nom{flex:1 1 100%;min-width:0;white-space:normal!important}
+html.tel .fiche-tete .fleche{margin-left:auto}
+html.tel .fiche .lecteur{flex:1 1 100%!important;margin:6px 8px 10px!important;flex-wrap:wrap!important;gap:8px!important;padding:8px 10px!important}
+html.tel .lecteur .lect-barre{flex:1 1 100%!important;order:9;height:14px!important;min-width:100%}
+html.tel .lecteur .lect-pas,html.tel .lecteur .lect-play{min-width:44px!important;min-height:40px!important}
+html.tel .fiche-actions{flex-wrap:wrap!important;justify-content:stretch!important}
+html.tel .fiche-actions .btn{flex:1 1 40%;justify-content:center}
+html.tel .tiroir-tete{min-height:44px;flex-wrap:wrap}
+html.tel .tiroir-corps{overflow-x:auto}
+
+/* Tournages : la fiche d'une journée */
+html.tel .to-infos{grid-template-columns:1fr 1fr!important}
+html.tel .to-infos label.large{grid-column:1/-1!important}
+html.tel .to-fiche-barre{flex-wrap:wrap}
+html.tel .to-tenue2{grid-template-columns:1fr!important}
+html.tel .to-plans{display:block;overflow-x:auto;table-layout:auto!important}
+html.tel #pages table{max-width:100%}
+
+/* =====================================================================
+   5. CONFORT (lot A) : bandeau allégé, textes lisibles, tout se touche au doigt
+   ===================================================================== */
+/* le menu : en haut, « Fil du groupe » et « Tout replier » (sortis du bandeau par js/telephone.js) */
+html.tel .tel-outils{display:flex;gap:8px;padding:12px 12px 0}
+html.tel .tel-outil{flex:1;display:flex;align-items:center;gap:8px;min-height:48px;padding:0 10px 0 4px;border-radius:8px;background:rgba(0,0,0,.35);box-shadow:inset 0 0 0 1px rgba(239,230,210,.14);color:#efe4cc;font:600 11px/1.15 "Work Sans",sans-serif;letter-spacing:.08em;text-transform:uppercase;cursor:pointer}
+html.tel .tel-outil .fil-cloche{flex:none;width:38px!important;height:38px!important;margin:0!important;position:relative}
+html.tel .top .patch{max-width:none}
+/* les petites étiquettes au-dessus des champs (9 px sur le PC) et les petits boutons : 11 px au moins */
+html.tel #pages .eng,html.tel .voile .eng,html.tel .side .eng{font-size:11px!important}
+html.tel .chip,html.tel .btn.sm,html.tel .btn.xs,html.tel .seg button,html.tel .pv-seg button,html.tel .rg-tabs button{font-size:11.5px!important}
+html.tel .cal-j{font-size:11px!important}
+html.tel #pages .kb .lb,html.tel #pages .knob .tk{font-size:11px!important}
+html.tel .cal-c,html.tel .cal-c *{font-size:11px}
+/* tout ce qui se touche : 36 px au moins */
+html.tel .seg button,html.tel .pv-seg button{min-height:38px!important}
+html.tel .btn.xs{min-height:36px!important;min-width:36px;justify-content:center}
+html.tel .panier-tete,html.tel .ta-plier,html.tel #pages .box.bx>.lb,html.tel #pages .box.bx>.ligne-titre>.lb{min-height:40px;display:flex;align-items:center}
+html.tel .md-ico,html.tel .md-aj-plier{min-width:38px!important;width:38px!important;min-height:38px!important;height:38px!important}
+html.tel .md-voir{min-height:40px!important}
+html.tel input[type=range]{min-height:30px;touch-action:pan-y}
+html.tel .ec-vol,html.tel .tri-vol input{min-width:84px}
+/* on ne sélectionne pas le texte de l'interface en appuyant longtemps (l'appui long = le clic droit du PC) ; dans les champs, si */
+html.tel body{-webkit-user-select:none;user-select:none}
+html.tel input,html.tel textarea,html.tel [contenteditable],html.tel .ac-texte,html.tel .selectionnable,html.tel pre{-webkit-user-select:text;user-select:text}
+/* Réglages : ce qui ne sert que sur un PC */
+html.tel .rg-tabs [data-rgt="ableton"],html.tel #rgCorps>.box:has(#rgZoom),html.tel #rgCorps>.box:has(#rgMaj){display:none!important}
+
+/* les boutons flottants « Espace / Maj / Ctrl » (voir TOUCHES dans js/telephone.js) */
+html.tel .tel-touches{position:fixed;right:10px;bottom:calc(14px + var(--tel-bas));z-index:45;display:flex;gap:8px}
+html.tel .tel-touches[hidden]{display:none}
+html.tel body.tel-menu .tel-touches,html.tel body.tel-relier .tel-touches{display:none}
+html.tel .tel-touches button{min-width:58px;height:48px;padding:0 14px;border:0;border-radius:10px;background:#232325;color:#efe4cc;font:700 12px/1 "Work Sans",sans-serif;letter-spacing:.1em;text-transform:uppercase;box-shadow:0 0 0 1px rgba(239,230,210,.3),0 6px 14px rgba(0,0,0,.6);cursor:pointer;transition:transform .12s cubic-bezier(.23,1,.32,1)}
+html.tel .tel-touches button:active{transform:scale(.94)}
+html.tel .tel-touches button.on{background:#ffb23e;color:#241709;box-shadow:0 0 0 2px #fff0c8,0 0 14px rgba(255,178,62,.6)}
+html.tel .tel-touches button[data-t=espace]{min-width:96px}
+html.tel #pages>section{padding-bottom:calc(76px + var(--tel-bas))!important}        /* la fin de la page ne passe pas sous ces boutons */
+/* pendant qu'on transporte quelque chose au doigt */
+html.tel .tel-fantome{border-radius:8px;box-shadow:0 10px 24px rgba(0,0,0,.7),0 0 0 2px #ffb23e!important}
+html.tel body.tel-glisse #pages{scroll-behavior:auto}
+
+/* =====================================================================
+   6. LONGUES PAGES (lot C) : l'aperçu reste collé en haut pendant qu'on règle dessous
+   ===================================================================== */
+html.tel .rv-tel,html.tel .pv-tel{position:sticky!important;top:0;z-index:6;width:calc(40dvh * 9 / 16)!important;max-width:60vw;
+  box-shadow:0 0 0 100vmax #130c08!important;clip-path:inset(-6px -100vmax -10px -100vmax)}
+html.tel .pv-tel{width:min(52vw,calc((46dvh - 90px) * 9 / 16))!important}
+html.tel .reel-onde,html.tel .ec-onde-box{position:sticky;top:0;z-index:6;box-shadow:0 0 0 100vmax #130c08;clip-path:inset(-6px -100vmax -8px -100vmax)}
+@media (prefers-reduced-motion:reduce){html.tel .tel-touches button{transition:none}}

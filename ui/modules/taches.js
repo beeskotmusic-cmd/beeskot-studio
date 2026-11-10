@@ -206,6 +206,7 @@ Réponds en JSON : {"taches":[{"texte":"phrase courte, commence par un verbe","q
   window.addEventListener('pointermove', e => {
     if (!g) return;
     if (!g.fantome) {
+      if (e.pointerType === 'touch') return;                              // au doigt, bouger = faire défiler la page : on choisit la tâche d'un appui, puis on touche un panier
       if (Math.hypot(e.clientX - g.x, e.clientY - g.y) < 6) return;
       const r = g.carte.getBoundingClientRect();
       g.fantome = g.carte.cloneNode(true); g.fantome.classList.add('fantome'); g.fantome.style.width = r.width + 'px';
@@ -222,6 +223,7 @@ Réponds en JSON : {"taches":[{"texte":"phrase courte, commence par un verbe","q
     T.choisie = T.choisie === d.id ? null : d.id; T.choisieDe = d.depuis; rendre();             // simple clic : choisir
     if (T.choisie) msg('Clique sur un panier');
   });
+  window.addEventListener('pointercancel', () => { if (!g) return; if (g.fantome) { g.fantome.remove(); g.carte.classList.remove('glisse'); } g = null; });   // le téléphone a pris la main (défilement) : on lâche tout
   vit.addEventListener('click', e => {
     if (e.target.closest('.carte') || !T.choisie) return;
     const z = e.target.closest('.zone'); if (z) deplacer(T.choisie, z.dataset.zone, T.choisieDe, e.ctrlKey || e.metaKey);

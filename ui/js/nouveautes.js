@@ -3,6 +3,16 @@
 // Pour une nouvelle version : ajouter un bloc EN HAUT de la liste. Une ligne courte par point : « Onglet : ce qui change. »
 // =====================================================================
 BK.NOUVEAUTES = [
+  { v: '0.9.130', titre: '', l: [
+    ['📱', 'Téléphone : c\'est maintenant le même logiciel que sur le PC, rangé en une colonne. Tous les onglets y sont, sauf Light Toast et Ableton Live (il lui faut un PC).'],
+    ['☰', 'Téléphone : le menu s\'ouvre avec le bouton en haut à gauche (ou en glissant depuis le bord gauche). Le fil du groupe et « Tout replier » sont en haut du menu.'],
+    ['👆', 'Téléphone : appui long = clic droit, deux appuis = double-clic, pincer = zoomer, appui tenu puis glisser = déplacer.'],
+    ['⌨', 'Téléphone : des boutons Espace, Maj et Ctrl apparaissent en bas dans les onglets qui s\'en servent (Reels, Retours, Calendrier, Médias).'],
+    ['🎬', 'Téléphone : dans Reels Vidéo, Social Photo et Reels Audio, l\'aperçu reste en haut pendant que tu règles dessous.'],
+    ['🎧', 'Téléphone : un morceau déjà écouté repart tout de suite, même sans réseau. Lecture / pause depuis l\'écran verrouillé.'],
+    ['📱', 'Téléphone : rien à réinstaller, l\'appli et le QR code « Lier au téléphone » restent les mêmes.'],
+    ['💻', 'PC : rien ne change.'],
+  ] },
   { v: '0.9.129', titre: '', l: [
     ['🗑', 'Le très vieux look (d\'avant le nouveau look) est retiré. Ceux qui l\'avaient passent sur « Ancien look » (les boutons avec relief de la 0.9.126).'],
   ] },
@@ -734,7 +744,7 @@ BK.TUTO = [
       ['Cacher un onglet sur ce PC', 'Onglets → éteins l\'interrupteur de l\'onglet.'],
       ['Le viseur Miette (nouveau look)', 'Clic sur Miette en haut, puis sur le cadre à remplir (pointillés). Échap ou clic à côté : on sort. La flèche ▾ à côté d\'elle : tout relire, actualiser, qui est là.'],
       ['Changer de look', 'Ce PC › Apparence : « Nouveau look » (menu par sections, un tapis et une couleur par section, les pins du groupe) ou « Ancien look ». Seulement sur ce PC.'],
-      ['Mettre BEESKOT Studio sur un téléphone', 'BEESKOT Mobile › Télécharger l\'application : scanne le QR code avec l\'appareil photo (Android). Puis Lier au téléphone › Afficher le QR code, et dans l\'appli : Scanner le QR code du PC.'] ],
+      ['Mettre BEESKOT Studio sur un téléphone', 'BEESKOT Mobile › Télécharger l\'application : scanne le QR code avec l\'appareil photo (Android). Puis Lier au téléphone › Afficher le QR code, et dans l\'appli : Scanner le QR code du PC. Sur le téléphone, c\'est le même logiciel que sur le PC (tous les onglets sauf Light Toast et Ableton Live) : le menu s\'ouvre avec le bouton en haut à gauche. Appui long = clic droit, pincer = zoomer, et des boutons Espace / Maj / Ctrl apparaissent en bas quand un onglet s\'en sert.'] ],
     astuces: [ 'Taille de l\'interface : Ce PC › Zoom.', 'Le QR code « Lier » contient la clé du Drive : seulement aux membres du groupe.' ] },
   { o: 'Questions fréquentes', ic: '❓', quoi: 'Les questions qu\'on se pose le plus souvent.',
     comment: [

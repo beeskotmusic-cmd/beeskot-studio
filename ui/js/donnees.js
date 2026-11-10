@@ -216,7 +216,7 @@ BK.montrerExports = function (el, faits, { drive, msg = () => {} } = {}) {
 // ---------- voyant et afficheur « Drive » du bandeau ----------
 BK.etatDrive = function () {
   const ok = BK.drive && BK.drive.relie(), hl = ok && !BK.db.enLigne;
-  $('#syDrive').textContent = !BK.estExe ? 'APERÇU' : !ok ? 'NON RELIÉ' : hl ? 'HORS LIGNE' : 'RELIÉ';
+  $('#syDrive').textContent = !BK.estExe && !window.BK_MOBILE ? 'APERÇU' : !ok ? 'NON RELIÉ' : hl ? 'HORS LIGNE' : 'RELIÉ';
   const led = $('#ledDrive'); if (led) { led.className = 'led ' + (ok ? (hl ? 'amb' : 'grn') : ''); }
 };
 

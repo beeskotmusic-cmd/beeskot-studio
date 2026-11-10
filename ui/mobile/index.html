@@ -6,54 +6,15 @@
 <meta name="robots" content="noindex">
 <meta name="referrer" content="no-referrer">
 <meta name="theme-color" content="#2b1b11">
-<meta name="color-scheme" content="dark">
-<title>BEESKOT Mobile</title>
-<link rel="icon" href="../look/beeskot.png">
-<link rel="apple-touch-icon" href="icone-192.png">
+<title>BEESKOT Studio</title>
 <link rel="manifest" href="manifest.json">
-<link rel="stylesheet" href="../style/fonts.css">
-<link rel="stylesheet" href="../style/base.css">
-<link rel="stylesheet" href="mobile.css">
+<style>body{margin:0;background:#2b1b11;color:#efe4cc;font:16px system-ui,sans-serif;display:grid;place-items:center;height:100vh;text-align:center}a{color:#ffb23e}</style>
 </head>
 <body>
-<!-- BEESKOT Studio Mobile : la même base que le PC (coeur, données, Drive), avec un écran pensé pour le téléphone -->
-<header class="mo-haut">
-  <button class="mo-burger" id="moBurger" aria-label="Menu">☰</button>
-  <img class="mo-logo" src="../look/logo-beeskot-studio.png" alt="BEESKOT Studio">
-  <span class="vfd mo-etat" id="moEtat">—</span>
-  <button class="mo-relire" id="moRelire" aria-label="Relire le Drive" title="Relire le Drive">↻</button>
-</header>
-<nav class="mo-menu" id="moMenu" aria-hidden="true"></nav>
-<div class="mo-voile" id="moVoile"></div>
-<main class="mo-page" id="moPage"></main>
-<div class="mo-lecteur" id="moLecteur" hidden>
-  <button class="mo-lp" id="moLp" aria-label="Lecture / pause">▶</button>
-  <div class="mo-lt"><b id="moLtitre">—</b><input type="range" id="moLpos" min="0" max="1000" value="0"><span class="mo-ltemps" id="moLtemps">0:00 / 0:00</span></div>
-</div>
-<div class="mo-toast" id="moToast"></div>
-<script>window.BK_MOBILE = true; window.BK_RACINE = '../';</script>
-<script src="../js/coeur.js"></script>
-<script src="../js/pictos.js"></script>
-<script src="../js/donnees.js"></script>
-<script src="../js/drive.js"></script>
-<script src="../js/audio.js"></script>
-<script src="../js/inventaire.js"></script>
-<script src="../js/dossiers.js"></script>
-<script src="../js/images.js"></script>
-<script src="../js/itineraire.js"></script>
-<script src="../js/pdftournage.js"></script>
-<script src="mobile.js"></script>
-<!-- les écrans : un fichier chacun (ordre du menu = « ordre » dans chaque fichier) -->
-<script src="ecrans/accueil.js"></script>
-<script src="ecrans/biblio.js"></script>
-<script src="ecrans/agenda.js"></script>
-<script src="ecrans/taches.js"></script>
-<script src="ecrans/ecoute.js"></script>
-<script src="ecrans/notesvid.js"></script>
-<script src="ecrans/tournage.js"></script>
-<script src="ecrans/reels.js"></script>
-<script src="ecrans/budget.js"></script>
-<script src="ecrans/reglages.js"></script>
-<script>BKM.demarrer()</script>
+<!-- BEESKOT Studio sur le téléphone = le MÊME logiciel que sur le PC (ui/index.html), en mode téléphone (js/telephone.js).
+     Cette adresse (…/mobile/) est celle que connaissent l'appli Android et les QR codes : elle envoie simplement au bon endroit,
+     en gardant la clé du QR code (#k=…). L'ancienne page mobile (écrans à part) est gardée telle quelle dans ancien.html. -->
+<p>BEESKOT Studio s'ouvre…<br><a href="../index.html?tel=1">Appuie ici si rien ne se passe</a></p>
+<script>location.replace('../index.html?tel=1' + location.hash);</script>
 </body>
 </html>

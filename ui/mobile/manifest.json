@@ -1,8 +1,8 @@
 {
   "name": "BEESKOT Studio Mobile",
   "short_name": "BEESKOT",
-  "start_url": "./",
-  "scope": "./",
+  "start_url": "../index.html?tel=1",
+  "scope": "../",
   "display": "standalone",
   "background_color": "#2b1b11",
   "theme_color": "#2b1b11",

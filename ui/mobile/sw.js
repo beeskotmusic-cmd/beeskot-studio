@@ -5,7 +5,7 @@
 // Les données (Drive, Google) ne passent jamais par ici : elles ont leur propre copie (voir js/drive.js).
 // =====================================================================
 const CACHE = 'beeskot-appli-v1';
-const BASE = ['./', 'index.html', 'mobile.js', 'mobile.css', 'manifest.json', 'icone-192.png',
+const BASE = ['./', 'index.html', 'ancien.html', 'mobile.js', 'mobile.css', 'manifest.json', 'icone-192.png',
   'ecrans/accueil.js', 'ecrans/biblio.js', 'ecrans/agenda.js', 'ecrans/taches.js', 'ecrans/reels.js', 'ecrans/ecoute.js', 'ecrans/notesvid.js', 'ecrans/budget.js', 'ecrans/tournage.js', 'ecrans/reglages.js',
   '../js/coeur.js', '../js/pictos.js', '../js/donnees.js', '../js/drive.js', '../js/audio.js', '../js/inventaire.js', '../js/dossiers.js', '../js/images.js', '../js/itineraire.js', '../js/pdftournage.js',
   '../style/base.css', '../style/fonts.css', '../look/beeskot.png', '../look/logo-beeskot-studio.png', '../look/wood.jpg', '../look/bandeau-beeskot.jpg', '../textures/bois-menu.jpg'];

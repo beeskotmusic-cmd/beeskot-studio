@@ -38,7 +38,7 @@ BK.module('reglages', function (page) {
           <button class="btn sm" id="rgMaj" style="margin-top:8px">🔍 Vérifier les mises à jour</button>
           <span class="nt" id="rgMajTxt">Le logiciel regarde tout seul au démarrage, puis toutes les 20 minutes.</span></div>
         <div data-rgo="mobile" class="box rg-mobile"><div class="ligne-titre"><span class="lb">Télécharger l'application</span><span class="dymo sm">Android</span></div>
-          <span class="nt">BEESKOT Studio sur le téléphone : Bibliothèque, Calendrier, To-do, Notes et retours, Tournages. Mêmes fiches que le PC, par le Drive.</span>
+          <span class="nt">BEESKOT Studio sur le téléphone : le même logiciel que sur le PC (tous les onglets, sauf Light Toast et Ableton Live). Mêmes fiches que le PC, par le Drive.</span>
           <div class="rg-mob-l">
             <div class="rg-qr-img vrai" title="Scanne-moi avec l'appareil photo du téléphone">${qrVrai(BK.LIEN_APK)}</div>
             <div class="rg-mob-t">
