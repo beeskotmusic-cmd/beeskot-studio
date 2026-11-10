@@ -31,6 +31,11 @@
 
         </activity>
 
+        <!-- les notifications : la petite icône (blanche, obligatoire sur Android) et la couleur ambre de BEESKOT -->
+        <meta-data android:name="com.google.firebase.messaging.default_notification_icon" android:resource="@drawable/ic_notif" />
+        <meta-data android:name="com.google.firebase.messaging.default_notification_color" android:resource="@color/colorAccent" />
+        <meta-data android:name="com.google.firebase.messaging.default_notification_channel_id" android:value="beeskot" />
+
         <provider
             android:name="androidx.core.content.FileProvider"
             android:authorities="${applicationId}.fileprovider"
@@ -48,4 +53,6 @@
     <!-- la caméra : seulement pour scanner le QR code « Lier au téléphone » (demandée au moment de scanner) -->
     <uses-permission android:name="android.permission.CAMERA" />
     <uses-feature android:name="android.hardware.camera" android:required="false" />
+    <!-- les notifications (Android 13 et plus : l'appli demande l'accord au premier lancement) -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
 </manifest>

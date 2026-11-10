@@ -1,0 +1,77 @@
+BEESKOT · NOTIF — mettre en place les notifications (une seule fois, environ 20 minutes)
+========================================================================================
+
+Le chemin d'une notification :
+
+   BEESKOT Studio (PC ou téléphone)  -->  le facteur (Cloudflare, gratuit)  -->  Firebase (Google, gratuit)  -->  les téléphones
+
+Tout est gratuit. Aucune carte bancaire. Tant que ce n'est pas fait, le logiciel marche comme avant (il n'envoie rien).
+
+Il y a 3 clés. Ne les colle QUE là où c'est écrit, et jamais sur Discord ni dans le Drive partagé :
+   1. google-services.json      (pas secret)  -> à donner à Claude, il la met dans l'appli Android
+   2. le compte de service      (SECRET)      -> à coller chez Cloudflare, nulle part ailleurs
+   3. la clé du groupe          (SECRET)      -> fabriquée par BEESKOT Studio, à coller chez Cloudflare
+
+
+ÉTAPE 1 — Firebase (avec le compte Gmail BEESKOT)
+-------------------------------------------------
+ 1. Ouvre https://console.firebase.google.com  (vérifie en haut à droite que c'est bien le compte BEESKOT).
+ 2. « Créer un projet » (ou « Ajouter un projet »). Nom : BEESKOT Studio. Google Analytics : désactive-le. « Créer ».
+ 3. Dans le projet, clique l'icône Android (« Ajouter une application Android »).
+       Nom du package Android :   com.beeskot.studio       (exactement, sans espace)
+       Pseudo de l'appli :        BEESKOT Studio
+    « Enregistrer l'application ».
+ 4. « Télécharger google-services.json ». Garde ce fichier : c'est la clé n° 1, à envoyer à Claude dans la conversation.
+    Les étapes suivantes de l'assistant (« Ajouter le SDK », etc.) : clique « Suivant » jusqu'au bout, il n'y a rien à faire.
+ 5. La roue dentée en haut à gauche › « Paramètres du projet » › onglet « Comptes de service ».
+    « Générer une nouvelle clé privée » › « Générer la clé ». Un fichier .json se télécharge : c'est la clé n° 2 (SECRET).
+    Ne l'envoie à personne, ne la mets pas dans le Drive BEESKOT.
+
+
+ÉTAPE 2 — Cloudflare (compte Beeskot.music@gmail.com, connexion par GitHub)
+---------------------------------------------------------------------------
+ 1. https://dash.cloudflare.com › « Workers & Pages » › « Create » › « Create Worker ».
+       Nom :  notif        (l'adresse doit être  https://notif.beeskot-music.workers.dev )
+    « Deploy », puis « Edit code » : efface tout, colle le contenu du fichier worker.js (à côté de ce LISEZ-MOI), « Deploy ».
+ 2. Le carnet : menu de gauche « Storage & Databases » › « KV » › « Create » › nom :  beeskot-carnet .
+    Reviens au Worker notif › « Settings » › « Bindings » › « Add » › « KV namespace » :
+       Variable name :  CARNET        KV namespace :  beeskot-carnet        « Deploy ».
+ 3. Les deux secrets : Worker notif › « Settings » › « Variables and Secrets » › « Add », type « Secret » :
+       CLE          = la clé du groupe (dans BEESKOT Studio sur ton PC : Réglages › BEESKOT Mobile › Notifications
+                      › « Créer la clé du groupe », puis « Copier la clé du groupe »)
+       FCM_COMPTE   = ouvre le fichier de la clé n° 2 avec le Bloc-notes, sélectionne TOUT, copie, colle.
+    « Deploy ».
+ 4. Le réveil des rappels : Worker notif › « Settings » › « Trigger Events » › « Add » › « Cron Triggers » :
+       */15 * * * *        (toutes les 15 minutes)
+ 5. Vérifie : ouvre https://notif.beeskot-music.workers.dev dans le navigateur. Tu dois lire « BEESKOT · notif ».
+
+
+ÉTAPE 3 — l'appli Android
+-------------------------
+ 1. Envoie google-services.json (clé n° 1) à Claude : il la range dans apk/android/app/ et pousse.
+    GitHub refabrique l'appli (environ 5 minutes).
+ 2. Sur chaque téléphone : BEESKOT Studio (PC) › Réglages › BEESKOT Mobile › scanne le QR code « Télécharger l'application »,
+    installe par-dessus l'ancienne (rien n'est perdu, le téléphone reste relié).
+ 3. Ouvre l'appli : elle demande « Autoriser les notifications ? » -> Autoriser.
+ 4. Sur le PC : Réglages › BEESKOT Mobile › Notifications. Tu dois lire « Prêtes · téléphones inscrits : … ».
+    « Envoyer un essai à tout le monde » : chaque téléphone sonne.
+
+
+CE QUI ENVOIE UNE NOTIFICATION (la liste REGLES dans ui/js/notifs.js)
+---------------------------------------------------------------------
+ - une tâche donnée à quelqu'un (seulement à lui) ou au panier BEESKOT (aux autres)
+ - un rendez-vous ajouté, déplacé ou retiré + un rappel à tout le monde la veille à 18 h
+ - des notes ou une réponse sur un mix ou une vidéo (une notification par quart d'heure au plus)
+ - un nouveau morceau, une étape franchie, un morceau sorti, une nouvelle version choisie
+Celui qui fait l'action ne reçoit jamais sa propre notification.
+Pas encore : les notes laissées par un invité externe (lien de partage).
+
+
+SI ÇA NE MARCHE PAS
+-------------------
+ - Réglages › BEESKOT Mobile › Notifications dit ce qui manque (clé, compte Firebase, aucun téléphone inscrit).
+ - « clé refusée » : le secret CLE chez Cloudflare n'est pas la clé copiée dans le logiciel (recolle-la).
+ - « Google a refusé le compte de service » : FCM_COMPTE est mal collé (il faut tout le fichier, de { à }).
+ - Un téléphone ne sonne pas : Réglages du téléphone › Applis › BEESKOT Studio › Notifications (autorisées ?) et
+   Batterie (pas de restriction), puis rouvre l'appli.
+ - Changer de clé du groupe : supprime la fiche « notif » ? Non : demande à Claude, il faut changer les deux côtés ensemble.

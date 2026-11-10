@@ -3,6 +3,12 @@
 // Pour une nouvelle version : ajouter un bloc EN HAUT de la liste. Une ligne courte par point : « Onglet : ce qui change. »
 // =====================================================================
 BK.NOUVEAUTES = [
+  { v: '0.9.132', titre: '', l: [
+    ['🔔', 'Notifications sur le téléphone (appli Android) : une tâche pour toi, un rendez-vous ajouté ou déplacé, des notes sur un mix ou une vidéo, un morceau qui avance.'],
+    ['⏰', 'Calendrier : rappel sur le téléphone la veille à 18 h.'],
+    ['📱', 'Téléphone : mets l\'appli à jour (Réglages › BEESKOT Mobile › QR code), puis accepte les notifications.'],
+    ['⚙', 'Réglages › BEESKOT Mobile › Notifications : qui est inscrit, et un bouton d\'essai.'],
+  ] },
   { v: '0.9.131', titre: '', l: [
     ['💰', 'Budget : les comptes étaient faux. Un remboursement dont la dépense avait été supprimée comptait encore. Il ne compte plus, et supprimer une dépense retire maintenant aussi ses remboursements.'],
     ['👀', 'Budget : les remboursements apparaissent dans la liste des dépenses (avec ✕ pour en retirer un). Ce qui ne compte plus est grisé.'],
@@ -749,6 +755,7 @@ BK.TUTO = [
       ['Cacher un onglet sur ce PC', 'Onglets → éteins l\'interrupteur de l\'onglet.'],
       ['Le viseur Miette (nouveau look)', 'Clic sur Miette en haut, puis sur le cadre à remplir (pointillés). Échap ou clic à côté : on sort. La flèche ▾ à côté d\'elle : tout relire, actualiser, qui est là.'],
       ['Changer de look', 'Ce PC › Apparence : « Nouveau look » (menu par sections, un tapis et une couleur par section, les pins du groupe) ou « Ancien look ». Seulement sur ce PC.'],
+      ['Recevoir les notifications sur le téléphone', 'Il faut l\'appli Android à jour (BEESKOT Mobile › Télécharger l\'application). À l\'ouverture, accepte « Autoriser les notifications ». Tu es prévenu quand on te donne une tâche, quand un rendez-vous est ajouté, déplacé ou retiré (avec un rappel la veille à 18 h), quand quelqu\'un laisse des notes sur un mix ou une vidéo, et quand un morceau avance. Tu ne reçois jamais tes propres actions. BEESKOT Mobile › Notifications montre qui est inscrit ; « Envoyer un essai » fait sonner tous les téléphones.'],
       ['Mettre BEESKOT Studio sur un téléphone', 'BEESKOT Mobile › Télécharger l\'application : scanne le QR code avec l\'appareil photo (Android). Puis Lier au téléphone › Afficher le QR code, et dans l\'appli : Scanner le QR code du PC. Sur le téléphone, c\'est le même logiciel que sur le PC (tous les onglets sauf Light Toast et Ableton Live) : le menu s\'ouvre avec le bouton en haut à gauche. Appui long = clic droit, pincer = zoomer, et des boutons Espace / Maj / Ctrl apparaissent en bas quand un onglet s\'en sert.'] ],
     astuces: [ 'Taille de l\'interface : Ce PC › Zoom.', 'Le QR code « Lier » contient la clé du Drive : seulement aux membres du groupe.' ] },
   { o: 'Questions fréquentes', ic: '❓', quoi: 'Les questions qu\'on se pose le plus souvent.',

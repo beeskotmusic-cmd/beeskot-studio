@@ -54,6 +54,7 @@ BK.module('reglages', function (page) {
               <div class="chips"><button class="btn sm pri" id="rgRelierTel"${BK.drive && BK.drive.relie() ? '' : ' disabled title="Relie d\'abord ce PC au Drive"'}>Afficher le QR code</button><button class="btn sm" id="rgCopierLien"${BK.drive && BK.drive.relie() ? '' : ' disabled'}>Copier le lien</button></div>
               <span class="nt" id="rgQrTxt">Le QR code s'affiche 2 minutes, le temps de le scanner. « Copier le lien » : si la caméra du téléphone ne marche pas, colle-le dans l'appli (« Ça ne marche pas ? »).</span>
             </div></div></div>
+        <div data-rgo="mobile" class="box rg-mobile" id="rgNotif"><span class="lb">Notifications</span></div>
         <div data-rgo="pc" class="box"><span class="lb">Qui utilise cet ordinateur ?</span>
           <span class="nt">Ton prénom (Yacine, Pierre, Baptiste) ou « Studio ». C'est à ce nom que partent les tâches que tu coches et les reels que tu fais avancer.</span>
           <input class="fld" id="rgNom" style="margin-top:10px" maxlength="16" placeholder="ton prénom, ou Studio" value="${BK.reglage('nomPc', '')}">
@@ -96,7 +97,8 @@ BK.module('reglages', function (page) {
   const RG = ['aide', 'pc', 'mobile', 'onglets', 'miette', 'drive', 'ableton', 'outils'];
   const montrerRg = BK.reglagesOnglet = (k = BK.reglage('reglages.onglet', 'aide')) => { if (!RG.includes(k) || (k === 'outils' && !(BK.look && BK.look.neuf()))) k = 'aide'; BK.regler('reglages.onglet', k);
     $$('#rgTabs button', page).forEach(b => b.classList.toggle('on', b.dataset.rgt === k));
-    $$('#rgCorps > [data-rgo]', page).forEach(x => x.classList.toggle('hidden', x.dataset.rgo !== k)); };
+    $$('#rgCorps > [data-rgo]', page).forEach(x => x.classList.toggle('hidden', x.dataset.rgo !== k));
+    if (k === 'mobile' && BK.notif) BK.notif.dessiner($('#rgNotif', page)); };                    // la case Notifications se met à jour quand on ouvre cet onglet
   $$('#rgTabs button', page).forEach(b => b.onclick = () => montrerRg(b.dataset.rgt));
   // nouveau look : les cadres « à régler une fois » des pages (adresse de l'agenda Google, dossiers de ce PC) vont ici
   //   (on déplace le vrai cadre : ses boutons marchent pareil ; l'ancien look ne bouge pas)
