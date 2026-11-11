@@ -310,7 +310,7 @@ BK.module('medias', function (page) {
     const v = document.createElement('div'); v.className = 'voile md-choix-voile';
     v.innerHTML = `<div class="stopbox md-choix"><button class="btn xs rt-x" data-c="x" title="Fermer">✕</button>
       <span class="dymo md-choix-titre" title="${esc(titre)}">🖼 ${esc(titre)}</span><div class="md-choix-c"></div>
-      <div class="md-choix-pied">${pc ? '<button class="btn sm" data-c="pc">💻 Ce PC…</button>' : ''}${retirer ? `<button class="btn sm" data-c="retirer">${esc(retirer)}</button>` : ''}<span class="nt" id="mdChN">Clic = choisir · Ctrl+clic = en ajouter · Maj+clic = une suite · double-clic = choisir et ajouter</span>
+      <div class="md-choix-pied">${pc ? (window.BK_MOBILE ? '<button class="btn sm" data-c="pc">📱 Du téléphone…</button>' : '<button class="btn sm" data-c="pc">💻 Ce PC…</button>') : ''}${retirer ? `<button class="btn sm" data-c="retirer">${esc(retirer)}</button>` : ''}<span class="nt" id="mdChN">Clic = choisir · Ctrl+clic = en ajouter · Maj+clic = une suite · double-clic = choisir et ajouter</span>
         <button class="btn" data-c="x">Annuler</button><button class="btn pri" data-c="ok" disabled>${esc(bouton)}</button>
         <input type="file" multiple hidden accept="${type === 'video' ? 'video/*' : type === 'image' ? 'image/*' : type === 'audio' ? 'audio/*,.wav,.mp3,.aif,.aiff,.flac,.m4a,.ogg' : 'image/*,video/*,application/pdf,.pdf'}"></div></div>`;
     const c = v.querySelector('.md-choix-c'); c.appendChild(aj); c.appendChild(vit);
@@ -321,7 +321,8 @@ BK.module('medias', function (page) {
       M.sel.clear(); M.choisi = null; M.filtre = avant.filtre; M.pile = avant.pile; M.racine = avant.racine;
       const sel = $('#mdFiltre'); if (sel) sel.value = M.filtre || ''; paniers(); charger(); ok(l); };
     M.choix = { type, maj: () => { const n = choisis().length, b = v.querySelector('[data-c="ok"]'); b.disabled = !n; b.textContent = n ? `${bouton} (${n}) ▶` : bouton;
-      v.querySelector('#mdChN').textContent = n ? n + ' choisi(s) · Ctrl+clic pour en ajouter' : 'Clic = choisir · Ctrl+clic = en ajouter · Maj+clic = une suite · double-clic = choisir et ajouter'; } };
+      v.querySelector('#mdChN').textContent = window.BK_MOBILE ? (n ? n + ' choisi(s)' : 'Touche une image pour la choisir (ou touche-la deux fois)')
+        : n ? n + ' choisi(s) · Ctrl+clic pour en ajouter' : 'Clic = choisir · Ctrl+clic = en ajouter · Maj+clic = une suite · double-clic = choisir et ajouter'; } };
     v.addEventListener('click', e => { const b = e.target.closest('[data-c]'); if (!b) return;
       if (b.dataset.c === 'x') return fin([]);
       if (b.dataset.c === 'ok') return fin(choisis());
@@ -339,7 +340,7 @@ BK.module('medias', function (page) {
     const dbl = e => { const t = e.target.closest('.md-tuile[data-id]'); if (!t) return; e.stopPropagation(); e.preventDefault(); M.sel.add(t.dataset.id); fin(choisis()); };
     const k = e => { if (e.key === 'Escape') fin([]); };
     vit.addEventListener('dblclick', dbl, true); document.addEventListener('keydown', k, true);
-    paniers();
+    paniers(); M.choix.maj();
     (async () => { try { if (!M.morceaux.length) await etiquettes(); } catch (e) {}
       if (sujet) { const sel = $('#mdFiltre'); sel.value = sujet; if (sel.value === sujet) { sel.onchange({ target: sel }); return paniers(); } }
       if (!M.fichiers.length || M.filtre) allerRacine('cloud'); else rendre(!!M.filtre); })();

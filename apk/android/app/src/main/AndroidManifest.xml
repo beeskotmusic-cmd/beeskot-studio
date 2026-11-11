@@ -39,6 +39,8 @@
 
         <!-- notre facteur à nous (Facteur.java) remplace celui du plugin : il met le rond DARI en couleur dans la notification -->
         <service android:name="com.capacitorjs.plugins.pushnotifications.MessagingService" tools:node="remove" />
+        <!-- le petit lecteur d'Android : écran verrouillé, haut de l'écran, écouteurs ; garde la musique quand l'appli est fermée -->
+        <service android:name=".LecteurService" android:exported="false" android:foregroundServiceType="mediaPlayback" />
         <service android:name=".Facteur" android:exported="false">
             <intent-filter>
                 <action android:name="com.google.firebase.MESSAGING_EVENT" />
@@ -64,4 +66,6 @@
     <uses-feature android:name="android.hardware.camera" android:required="false" />
     <!-- les notifications (Android 13 et plus : l'appli demande l'accord au premier lancement) -->
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK" />
 </manifest>

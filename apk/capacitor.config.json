@@ -11,6 +11,6 @@
   "android": {
     "allowMixedContent": false,
     "backgroundColor": "#2b1b11",
-    "appendUserAgent": "BeeskotBoite/2"
+    "appendUserAgent": "BeeskotBoite/3"
   }
 }

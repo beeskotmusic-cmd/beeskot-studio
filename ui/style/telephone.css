@@ -259,9 +259,14 @@ html.tel body.tel-glisse #pages{scroll-behavior:auto}
 /* =====================================================================
    6. LONGUES PAGES (lot C) : l'aperçu reste collé en haut pendant qu'on règle dessous
    ===================================================================== */
-html.tel .rv-tel,html.tel .pv-tel{position:sticky!important;top:0;z-index:6;width:calc(40dvh * 9 / 16)!important;max-width:60vw;
-  box-shadow:0 0 0 100vmax #130c08!important;clip-path:inset(-6px -100vmax -10px -100vmax)}
-html.tel .pv-tel{width:min(52vw,calc((46dvh - 90px) * 9 / 16))!important}
+html.tel .rv-tel,html.tel .pv-tel{width:calc(40dvh * 9 / 16)!important;max-width:60vw}
+/* quand on descend : petit aperçu dans un coin (telephone.js › miniApercu) */
+html.tel .tel-mini{position:fixed!important;right:10px;bottom:calc(84px + var(--tel-bas));z-index:44;margin:0!important;transform:scale(var(--mini,.4));transform-origin:100% 100%;
+  box-shadow:0 0 0 2px rgba(239,228,204,.5),0 10px 30px rgba(0,0,0,.8)!important;border-radius:14px;cursor:pointer}
+html.tel .tel-mini *{pointer-events:none}
+html.tel .tel-mini-x{position:fixed;right:4px;bottom:calc(84px + var(--tel-bas));z-index:46;width:30px;height:30px;border-radius:50%;border:0;background:#232325;color:#efe4cc;font-size:14px;box-shadow:0 0 0 1px rgba(239,228,204,.4)}
+html.tel .tel-mini-x[hidden]{display:none}
+html.tel .tel-touches button[data-t="phrase"]{background:#c0281e;height:56px;padding:0 20px}
 html.tel .reel-onde,html.tel .ec-onde-box{position:sticky;top:0;z-index:6;box-shadow:0 0 0 100vmax #130c08;clip-path:inset(-6px -100vmax -8px -100vmax)}
 @media (prefers-reduced-motion:reduce){html.tel .tel-touches button{transition:none}}
 
@@ -490,3 +495,36 @@ html.tel .side .tel-enligne .sy-app img,html.tel .side .tel-enligne .sy-app .pic
 html.tel .sb-aide-pc, html.tel #sbAjout, html.tel .sb-aj, html.tel #sbMarq, html.tel .sb-style, html.tel .sb-poi, html.tel .sb-bout, html.tel .sb-ctx, html.tel #sbLien { display: none !important; }
 html.tel .sb-aide-tel { display: inline !important; }
 html.tel .sb-vide span { display: none; }
+
+/* Fenêtre « Choisir dans Médias » (photo d'un morceau, etc.) : plein écran, les images prennent la place, le bouton reste en bas */
+html.tel .md-choix-voile{padding:0!important}
+html.tel .md-choix-voile .md-choix{position:fixed;inset:0;width:100vw!important;max-width:none!important;height:100dvh!important;max-height:none!important;border-radius:0!important;margin:0!important;
+  padding:calc(env(safe-area-inset-top,0px) + 10px) 10px calc(env(safe-area-inset-bottom,0px) + 10px)!important;display:flex;flex-direction:column;gap:8px!important}
+html.tel .md-choix .rt-x{position:absolute;top:calc(env(safe-area-inset-top,0px) + 8px);right:8px;z-index:2}
+html.tel .md-choix-titre{align-self:flex-start!important;max-width:calc(100vw - 70px)!important;font-size:12px}
+html.tel .md-choix-c{flex:1;min-height:0;gap:6px!important;overflow:hidden}
+html.tel .md-choix-c .pane.md-ajouter{padding:8px!important;gap:4px!important}
+html.tel .md-choix-c .md-ajouter .md-lab,html.tel .md-choix-c .md-aj-aide{display:none!important}
+html.tel .md-choix-c .md-aj-tete{display:block!important}
+html.tel .md-choix-c #mdRub,html.tel .md-choix-c .md-ajouter .md-paniers{display:flex!important;flex-wrap:nowrap!important;overflow-x:auto!important;overflow-y:hidden;padding:2px 0!important;scrollbar-width:none;width:100%}
+html.tel .md-choix-c #mdRub>*,html.tel .md-choix-c .md-paniers>*{flex:none}
+html.tel .md-choix-c .md-paniers>.nt{flex:1;white-space:normal;font-size:12px}
+html.tel .md-choix-c .md-vit{padding:6px!important;gap:6px}
+html.tel .md-choix-c .md-barre{display:flex!important;flex-wrap:nowrap!important;align-items:center;gap:6px!important;padding:4px!important;min-height:0!important}
+html.tel .md-choix-c .md-barre #mdMaison,html.tel .md-choix-c .md-barre #mdTypes,html.tel .md-choix-c .md-barre .md-filtre,html.tel .md-choix-c .md-barre .md-outils{display:none!important}
+html.tel .md-choix-c .md-barre #mdHaut{flex:none}
+html.tel .md-choix-c .md-barre #mdFil{flex:1;min-width:0;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
+html.tel .md-choix-c .md-zone{flex:1!important;min-height:0!important;overflow:auto!important;padding:6px!important}
+html.tel .md-choix-pied{display:flex!important;flex-wrap:wrap!important;gap:6px!important;flex:none}
+html.tel .md-choix-pied #mdChN{order:-1;flex:1 1 100%!important;width:100%;text-align:center;font-size:12px;writing-mode:horizontal-tb}
+html.tel .md-choix-pied .btn{flex:1 1 auto;min-height:40px}
+html.tel .md-choix-pied .btn.pri{order:5;flex:1 1 100%!important;min-height:50px;font-size:15px}
+html.tel .md-choix-c .md-barre #mdHaut{order:-1}
+html.tel .md-choix-pied .btn[data-c="x"]{display:none}
+/* dans la fenêtre de choix : les images en grille de 3 (on choisit en voyant), les dossiers restent en lignes */
+html.tel .md-choix-c .md-grille{display:grid!important;grid-template-columns:repeat(3,1fr);gap:6px!important}
+html.tel .md-choix-c .md-grille .md-dos,html.tel .md-choix-c .md-grille .md-plus{grid-column:1/-1}
+html.tel .md-choix-c .md-grille .md-tuile:not(.md-dos):not(.md-plus){flex-direction:column!important;padding:3px!important;min-height:0;gap:3px!important}
+html.tel .md-choix-c .md-grille .md-tuile:not(.md-dos):not(.md-plus) .md-img{width:100%;height:auto;aspect-ratio:1!important}
+html.tel .md-choix-c .md-grille .md-tuile:not(.md-dos):not(.md-plus) .md-nom{font-size:10.5px!important;text-align:center!important;width:100%}
+html.tel .md-choix-c .md-grille .md-tuile.choisie{box-shadow:0 0 0 3px #ffb23e!important}

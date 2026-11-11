@@ -189,13 +189,14 @@
   function barreTouches() {
     let b = $('#telTouches'); if (!b) { b = document.createElement('div'); b.id = 'telTouches'; b.className = 'tel-touches'; document.body.appendChild(b);
       b.addEventListener('click', e => { const t = e.target.closest('[data-t]'); if (!t) return; const k = t.dataset.t;
-        if (k === 'espace') { for (const n of ['keydown', 'keyup']) document.body.dispatchEvent(new KeyboardEvent(n, { key: ' ', code: 'Space', keyCode: 32, which: 32, bubbles: true, cancelable: true })); return; }
+        if (k === 'espace' || k === 'phrase') { for (const n of ['keydown', 'keyup']) document.body.dispatchEvent(new KeyboardEvent(n, { key: ' ', code: 'Space', keyCode: 32, which: 32, bubbles: true, cancelable: true })); return; }
         tenu[k] = !tenu[k]; t.classList.toggle('on', tenu[k]); t.setAttribute('aria-pressed', tenu[k]); }); }
     const choix = document.querySelector('.voile:not(.hidden) #mdChN');                 // la fenêtre « Choisir dans Médias » (ouverte depuis n'importe quel onglet)
-    const l = choix ? ['ctrl', 'maj'] : (TOUCHES[BK.reglage('dernierOnglet', 'accueil')] || []);
+    const ong = BK.reglage('dernierOnglet', 'accueil');
+    const l = choix ? ['ctrl', 'maj'] : ong === 'reelvis' ? (document.body.classList.contains('rv-calage') ? ['phrase'] : []) : (TOUCHES[ong] || []);
     const cle = l.join(); if (b.dataset.l === cle) return; b.dataset.l = cle; tenu.maj = tenu.ctrl = false;
-    const NOM = { espace: ['Espace', 'Comme la barre d\'espace : lecture, ou caler une phrase'], maj: ['Maj', 'Allumé : l\'appui suivant choisit toute la suite (ou une période)'], ctrl: ['Ctrl', 'Allumé : chaque appui en ajoute un au choix'] };
-    b.innerHTML = l.map(k => `<button type="button" data-t="${k}" aria-label="${NOM[k][1]}"${k === 'espace' ? '' : ' aria-pressed="false"'}>${NOM[k][0]}</button>`).join(''); b.hidden = !l.length;
+    const NOM = { phrase: ['Phrase suivante', 'Touche au début de chaque phrase pour caler les sous-titres'], espace: ['Espace', 'Comme la barre d\'espace : lecture, ou caler une phrase'], maj: ['Maj', 'Allumé : l\'appui suivant choisit toute la suite (ou une période)'], ctrl: ['Ctrl', 'Allumé : chaque appui en ajoute un au choix'] };
+    b.innerHTML = l.map(k => `<button type="button" data-t="${k}" aria-label="${NOM[k][1]}"${k === 'espace' || k === 'phrase' ? '' : ' aria-pressed="false"'}>${NOM[k][0]}</button>`).join(''); b.hidden = !l.length;
   }
   // Maj / Ctrl allumés : l'appui est rejoué comme un clic avec la touche tenue
   document.addEventListener('click', e => { if (!e.isTrusted || !(tenu.maj || tenu.ctrl) || e.target.closest('.tel-touches, .tel-burger, .side')) return;
@@ -284,8 +285,43 @@
       return o;
     };
   }
-  // g) l'écran verrouillé et les écouteurs : lecture / pause du son en cours
-  if ('mediaSession' in navigator) { const jouer0 = HTMLMediaElement.prototype.play;
+  // g) l'écran verrouillé et les écouteurs : le son en cours
+  //    · dans l'appli Android (boîte 3+) : le petit lecteur d'Android (LecteurService), branché sur le mini-lecteur du bas ;
+  //      la musique continue quand l'appli est fermée ;
+  //    · dans le navigateur : le lecteur du navigateur (lecture / pause).
+  const LECTEUR = enAppli && window.Capacitor.isPluginAvailable && window.Capacitor.isPluginAvailable('Lecteur') ? window.Capacitor.Plugins.Lecteur : null;
+  if (LECTEUR) {
+    let envoye = null, vu = 0;                                   // ce qu'Android affiche, et quand on le lui a dit
+    const etat = () => { const m = BK.mini, s = m && m.actuel; if (!s || m.cache) return null;
+      const a = s.ext ? { paused: !s.joue(), currentTime: s.temps() || 0, duration: s.duree() || 0, currentSrc: 'x' } : s.el;
+      if (!a.currentSrc || !(a.duration > 0) || !isFinite(a.duration)) return null;
+      const page = ((BK.onglets || []).find(o => o.id === s.page) || {}).titre || '';
+      return { titre: String((typeof s.titre === 'function' ? s.titre() : s.titre) || 'BEESKOT Studio'), sousTitre: 'BEESKOT' + (page ? ' · ' + page : ''),
+        joue: !a.paused, t: a.currentTime || 0, d: a.duration, prec: !!s.precedent, suiv: !!s.suivant }; };
+    const envoyer = () => { const e = etat();
+      if (!e) { if (envoye) { envoye = null; LECTEUR.arreter().catch(() => {}); } return; }
+      const n = Date.now(), prevu = envoye ? envoye.t + (envoye.joue ? (n - vu) / 1000 : 0) : 0;
+      const pareil = envoye && ['titre', 'sousTitre', 'joue', 'prec', 'suiv'].every(k => envoye[k] === e[k]) && Math.abs(envoye.d - e.d) < 1 && Math.abs(prevu - e.t) < 2 && n - vu < 15000;
+      if (pareil) return;
+      if (!envoye && !e.joue) return;                            // le petit lecteur n'apparaît qu'au moment où un son démarre
+      envoye = e; vu = n; LECTEUR.maj(e).catch(() => {}); };
+    const brancher = () => { if (!BK.mini || BK.mini._tel) return !!(BK.mini && BK.mini._tel); BK.mini._tel = 1;
+      const maj0 = BK.mini.maj; BK.mini.maj = function () { const r = maj0.apply(this, arguments); envoyer(); return r; }; return true; };
+    if (!brancher()) document.addEventListener('DOMContentLoaded', brancher);
+    setInterval(() => { if (envoye) envoyer(); }, 5000);         // filet : un son arrêté sans prévenir
+    LECTEUR.addListener('action', ({ action, t }) => {
+      const s = BK.mini && BK.mini.actuel, z = document.getElementById('bkMini'); if (!s) return;
+      const clic = k => { const b = z && z.querySelector(`[data-mi="${k}"]`); if (b) b.click(); };
+      const joue = s.ext ? s.joue() : !s.el.paused;
+      if (action === 'jouer' && !joue) clic('jouer');
+      else if (action === 'pause' && joue) clic('jouer');
+      else if (action === 'prec') clic('prec');
+      else if (action === 'suiv') clic('suiv');
+      else if (action === 'aller') { if (s.ext) s.aller && s.aller(t); else s.el.currentTime = t; }
+      else if (action === 'arreter') clic('fermer');
+      setTimeout(() => { envoye = envoye && { ...envoye, t: -99 }; envoyer(); }, 150);   // on redit tout de suite le nouvel état
+    });
+  } else if ('mediaSession' in navigator) { const jouer0 = HTMLMediaElement.prototype.play;
     HTMLMediaElement.prototype.play = function () { const m = this;
       try { if (window.MediaMetadata) navigator.mediaSession.metadata = new MediaMetadata({ title: 'BEESKOT Studio', artist: 'BEESKOT', artwork: [{ src: new URL('mobile/icone-192.png', location.href).href, sizes: '192x192', type: 'image/png' }] });
         navigator.mediaSession.setActionHandler('play', () => jouer0.call(m)); navigator.mediaSession.setActionHandler('pause', () => m.pause()); } catch (e) {}
@@ -307,7 +343,46 @@
     const r = $('#pages > section:not(.hidden) .pane.reg'); if (r) r.scrollTop = 0;
   }
   // j) le bouton « + » (PLUS) et le bouton Outils : remis à jour à chaque changement d'onglet
-  function habillerOnglet() { outils(false); document.body.classList.remove('tel-haut-cache'); equiper(); }      // on change d'onglet
+  function habillerOnglet() { outils(false); document.body.classList.remove('tel-haut-cache'); equiper(); miniApercu(); }      // on change d'onglet
+
+  // Réel visuel / Post visuel : quand on descend dans les réglages, l'aperçu devient un petit aperçu dans un coin
+  // (on voit l'effet en direct sans qu'il cache la page). Le toucher remonte en haut, ✕ le cache jusqu'à ce qu'on remonte.
+  function miniApercu() {
+    let x = $('#telMiniX');
+    if (!x) { x = document.createElement('button'); x.id = 'telMiniX'; x.type = 'button'; x.className = 'tel-mini-x'; x.textContent = '✕'; x.hidden = true; x.setAttribute('aria-label', 'Cacher le petit aperçu'); document.body.appendChild(x);
+      x.onclick = () => { const el = $('.tel-mini'); if (el) { el.dataset.cache = '1'; mini(el, false); } }; }
+    document.querySelectorAll('.rv-tel, .pv-tel').forEach(el => {
+      if (el.dataset.mini) return; el.dataset.mini = '1';
+      const place = document.createElement('div'); place.className = 'tel-mini-place'; el.before(place);
+      const fin = document.createElement('div'); fin.className = 'tel-mini-fin'; el.after(fin);
+      el._fin = fin;
+      const aller = e => { if (!el.classList.contains('tel-mini')) return; e.preventDefault(); e.stopPropagation();
+        if (e.type === 'click') place.scrollIntoView({ behavior: 'smooth', block: 'start' }); };
+      ['pointerdown', 'mousedown', 'touchstart', 'click', 'dblclick'].forEach(t => el.addEventListener(t, aller, { capture: true, passive: false }));
+      el._place = place;
+    });
+    verifierMini();
+  }
+  // à chaque défilement (une fois par image) : le bas de l'aperçu est-il passé au-dessus de l'écran ?
+  let miniPrevu = 0;
+  function verifierMini() { miniPrevu = 0;
+    document.querySelectorAll('.rv-tel, .pv-tel').forEach(el => { if (!el._fin) return;
+      const cache = el.closest('section.hidden'), dessus = !cache && el._fin.getBoundingClientRect().bottom < 0;
+      if (!dessus) delete el.dataset.cache;
+      mini(el, dessus && !el.dataset.cache); });
+  }
+  document.addEventListener('scroll', () => { if (!miniPrevu) miniPrevu = requestAnimationFrame(verifierMini); }, { capture: true, passive: true });
+  window.addEventListener('resize', () => { if (!miniPrevu) miniPrevu = requestAnimationFrame(verifierMini); });
+  function mini(el, oui) {
+    const x = $('#telMiniX'), place = el._place;
+    if (oui === el.classList.contains('tel-mini')) { if (x) x.hidden = !$('.tel-mini'); return; }
+    if (oui) { const w = el.offsetWidth || 200, h = el.offsetHeight || 300; place.style.height = h + 'px';
+      const k = Math.min(.45, 130 / w); el.style.setProperty('--mini', k.toFixed(3)); el.classList.add('tel-mini');
+      if (x) { x.style.bottom = `calc(${Math.round(84 + h * k - 16)}px + var(--tel-bas))`; x.style.right = `${Math.round(w * k - 6)}px`; } }
+    else { el.classList.remove('tel-mini'); place.style.height = ''; }
+    if (x) x.hidden = !$('.tel-mini');
+  }
+
   function equiper() {                                                                                          // peut être rappelé sans risque
     const id = onglet(), sec = document.getElementById('p-' + id);
     if (id === 'biblio') boiteGarder();
@@ -448,7 +523,7 @@
   // Le logiciel dedans se met à jour tout seul ; la « boîte » Android, elle, se réinstalle par-dessus : on propose un bouton.
   // Chaque nouvelle boîte porte un numéro dans son « user agent » (apk/capacitor.config.json › appendUserAgent).
   // Pour proposer une nouvelle boîte à tout le monde : augmenter les DEUX numéros ensemble.
-  const BOITE_VOULUE = 2;
+  const BOITE_VOULUE = 3;
   const numBoite = () => { const m = /BeeskotBoite\/(\d+)/.exec(navigator.userAgent); return m ? +m[1] : 1; };
   const boiteAncienne = () => enAppli && numBoite() < BOITE_VOULUE;
   function bandeauMaj() {

@@ -76,8 +76,8 @@ BK.module('reelvis', function (page) {
             <div class="box rv-sous-box"><div class="ligne-titre"><span class="lb">④ Sous-titres</span>
                 <button class="chip on" id="rvSousOn" style="margin-left:auto">Afficher</button></div>
               <div class="rv-sous-src"><select class="fld" id="rvSousM"><option value="">Paroles d'un morceau…</option></select><button class="btn xs" id="rvSousColler">Coller du texte…</button></div>
-              <button class="btn sm warm" id="rvCaler" disabled>⏺ Caler en écoutant (Espace à chaque phrase)</button>
-              <div class="rv-sous" id="rvSous"><span class="nt">Choisis les paroles d'un morceau, puis « Caler en écoutant » : appuie sur Espace au début de chaque phrase.</span></div></div>
+              <button class="btn sm warm" id="rvCaler" disabled>${window.BK_MOBILE ? '⏺ Caler en écoutant' : '⏺ Caler en écoutant (Espace à chaque phrase)'}</button>
+              <div class="rv-sous" id="rvSous"><span class="nt">Choisis les paroles d'un morceau, puis « Caler en écoutant » : ${window.BK_MOBILE ? 'touche « Phrase suivante »' : 'appuie sur Espace'} au début de chaque phrase.</span></div></div>
           </div>
         </div>
       </section>
@@ -387,6 +387,7 @@ BK.module('reelvis', function (page) {
     if (V.ficheId) $('#rvSousM').value = V.ficheId;
   }
   function majSous() {
+    document.body.classList.toggle('rv-calage', V.calage >= 0 && !page.classList.contains('hidden'));   // le téléphone montre alors le bouton « Phrase suivante »
     const z = $('#rvSous');
     if (!V.lignes.length) { z.innerHTML = '<span class="nt">Aucune parole : remplis-les dans la Bibliothèque (tiroir Paroles), ou colle du texte.</span>'; return; }
     z.innerHTML = V.lignes.map((l, i) => { const s = V.sous.find(x => x.i === i);
@@ -409,7 +410,7 @@ BK.module('reelvis', function (page) {
   $('#rvSousOn').onclick = e => { V.sousOn = !V.sousOn; e.target.classList.toggle('on', V.sousOn); dessiner(); };
   $('#rvCaler').onclick = () => {
     if (!V.lignes.length) return msg('Choisis d\'abord des paroles');
-    V.sous = []; V.calage = 0; majSous(); lire(true); msg('Appuie sur Espace au début de chaque phrase');
+    V.sous = []; V.calage = 0; majSous(); lire(true); msg(window.BK_MOBILE ? 'Touche « Phrase suivante » au début de chaque phrase' : 'Appuie sur Espace au début de chaque phrase');
   };
   document.addEventListener('keydown', e => {
     if (page.classList.contains('hidden') || V.calage < 0 || e.code !== 'Space') return;

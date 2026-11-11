@@ -3,6 +3,12 @@
 // Pour une nouvelle version : ajouter un bloc EN HAUT de la liste. Une ligne courte par point : « Onglet : ce qui change. »
 // =====================================================================
 BK.NOUVEAUTES = [
+  { v: '0.9.135', titre: 'Téléphone : le petit lecteur', l: [
+    ['🎧', 'Téléphone : quand un morceau joue, un petit lecteur apparaît sur l\'écran verrouillé et en haut de l\'écran (pause, suivant, barre pour avancer). La musique continue même quand l\'appli est fermée. Il faut la nouvelle appli Android : le bouton « Mettre à jour » apparaît tout seul.'],
+    ['🖼', 'Téléphone : la fenêtre « Photo de… » prend tout l\'écran. Les images s\'affichent en grand, le bouton « Choisir » reste en bas, et « Du téléphone… » ouvre ta galerie.'],
+    ['👁', 'Téléphone · Réel visuel et Post visuel : quand tu descends dans les réglages, l\'aperçu devient un petit aperçu dans un coin. Touche-le pour remonter, ✕ pour le cacher.'],
+    ['⏺', 'Téléphone · Réel visuel : pour caler les sous-titres, un gros bouton « Phrase suivante » apparaît pendant le calage.'],
+  ] },
   { v: '0.9.134', titre: '', l: [
     ['👥', 'En ligne : un petit picto à côté de chaque prénom montre s\'il est sur ordinateur, sur téléphone, ou les deux.'],
     ['📱', 'Téléphone : tu apparais en ligne seulement quand l\'appli est à l\'écran.'],
@@ -774,6 +780,7 @@ BK.TUTO = [
       ['Cacher un onglet sur ce PC', 'Onglets → éteins l\'interrupteur de l\'onglet.'],
       ['Le viseur Miette (nouveau look)', 'Clic sur Miette en haut, puis sur le cadre à remplir (pointillés). Échap ou clic à côté : on sort. La flèche ▾ à côté d\'elle : tout relire, actualiser, qui est là.'],
       ['Changer de look', 'Ce PC › Apparence : « Nouveau look » (menu par sections, un tapis et une couleur par section, les pins du groupe) ou « Ancien look ». Seulement sur ce PC.'],
+      ['Écouter avec l\'appli fermée (téléphone)', 'Lance un morceau dans l\'appli Android : un petit lecteur BEESKOT apparaît sur l\'écran verrouillé et quand tu tires le haut de l\'écran. Pause, suivant, barre pour avancer, et les boutons des écouteurs marchent. La musique continue appli fermée. Le ✕ du mini-lecteur (ou balayer le petit lecteur en pause) l\'arrête.'],
       ['Recevoir les notifications sur le téléphone', 'Il faut l\'appli Android à jour (BEESKOT Mobile › Télécharger l\'application). À l\'ouverture, accepte « Autoriser les notifications ». Tu es prévenu quand on te donne une tâche, quand un rendez-vous est ajouté, déplacé ou retiré (avec un rappel la veille à 18 h), quand quelqu\'un laisse des notes sur un mix ou une vidéo, et quand un morceau avance. Tu ne reçois jamais tes propres actions. BEESKOT Mobile › Notifications montre qui est inscrit ; « Envoyer un essai » fait sonner tous les téléphones.'],
       ['Mettre BEESKOT Studio sur un téléphone', 'BEESKOT Mobile › Télécharger l\'application : scanne le QR code avec l\'appareil photo (Android). Puis Lier au téléphone › Afficher le QR code, et dans l\'appli : Scanner le QR code du PC. Sur le téléphone, c\'est le même logiciel que sur le PC (tous les onglets sauf Light Toast et Ableton Live) : le menu s\'ouvre avec le bouton en haut à gauche. Appui long = clic droit, pincer = zoomer, et des boutons Espace / Maj / Ctrl apparaissent en bas quand un onglet s\'en sert.'],
       ['Sur le téléphone : outils, lecteur, garder un morceau', 'Le bandeau du haut se cache quand on descend dans la page et revient quand on remonte. Dans Bibliothèque, Médias et Reels, les outils du PC (colonne Réglages) sont derrière le bouton en haut à droite ; le bouton rond + lance l\'action principale (nouveau morceau, nouvelle tâche, nouveau reel). Le lecteur du bas tient sur une ligne : touche-le pour l\'ouvrir en grand, puis glisse le doigt sur la barre pour avancer ou reculer. « Garder sur le téléphone » (dans le lecteur en grand, ou Bibliothèque › Outils › Sur ce téléphone) garde le morceau : il démarre tout de suite, même sans réseau.'] ],
