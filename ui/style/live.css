@@ -72,8 +72,8 @@
 /* ---- le moniteur ---- */
 .lv-moniteur{flex:1;min-height:230px;overflow:hidden;background:var(--noir);border:1px solid var(--bd2);border-radius:10px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;padding:12px;text-align:center}
 .lv-m1{font:400 13px "Share Tech Mono",monospace;letter-spacing:.14em;color:var(--mu)}
-.lv-m2{font:700 clamp(64px,13vh,170px)/.9 "Barlow Condensed",sans-serif;color:var(--amb);font-variant-numeric:tabular-nums}
-.lv-m2.texte{font-size:clamp(30px,6vh,56px);color:var(--tx);line-height:1}
+.lv-m2{font:400 clamp(56px,11vh,150px)/.95 "Share Tech Mono",monospace;color:var(--amb);font-variant-numeric:tabular-nums}
+.lv-m2.texte{font:700 clamp(30px,6vh,56px)/1 "Barlow Condensed",sans-serif;color:var(--tx);line-height:1}
 .lv-lampes{display:flex;gap:12px;min-height:20px}
 .lv-lampes span{width:20px;height:20px;border-radius:50%;background:var(--bd2)}.lv-lampes span.on{background:var(--amb)}
 .lv-m3{font:400 20px "Share Tech Mono",monospace}
@@ -89,7 +89,14 @@
 .lv-zone{position:absolute;top:0;bottom:0;background:rgba(95,224,210,.2);border-left:3px solid var(--amb);border-right:3px solid var(--amb)}
 .lv-poignee{position:absolute;top:0;bottom:0;width:28px;display:none;cursor:ew-resize}
 .lv-zone.edite .lv-poignee{display:block}.lv-poignee.g{left:-14px}.lv-poignee.d{right:-14px}
-.lv-tete{position:absolute;top:0;bottom:0;width:2px;background:var(--tx);display:none}
+.lv-tete{position:absolute;top:0;bottom:0;width:3px;margin-left:-1px;background:var(--amb);box-shadow:0 0 8px var(--amb);display:none;pointer-events:none;z-index:3}
+.lv-joue{position:absolute;top:0;bottom:0;left:0;background:rgba(95,224,210,.16);display:none;pointer-events:none;z-index:1}
+.lv-zone{z-index:2}
+.lv-num{font-family:"Share Tech Mono",monospace!important;font-size:16px!important;color:var(--amb)}
+.lv-ecoute{display:flex;align-items:center;gap:12px;margin:10px 0 8px}.lv-ecoute .lv-b{flex:0 0 auto;min-width:130px}
+.lv-ecpos{font:400 26px "Share Tech Mono",monospace;color:var(--amb)}
+.lv-edit>.lv-b,.lv-edit>.lv-duo{margin-top:8px}.lv-edit>.lv-b{width:100%}
+.lv-m3{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}
 .lv-note{font-size:12px;color:var(--mu);min-height:16px}
 
 /* ---- les fenêtres (entrée, réglage, invitation) ---- */
@@ -113,7 +120,7 @@
 .lv.etroit .lv-haut{padding:8px 10px;gap:8px}
 .lv.etroit .lv-morceau{min-width:0;flex:1 1 150px}
 .lv.etroit .lv-moniteur{min-height:200px;flex:none}
-.lv.etroit .lv-m2{font-size:104px}.lv.etroit .lv-m2.texte{font-size:32px}
+.lv.etroit .lv-m2{font-size:80px}.lv.etroit .lv-m2.texte{font-size:32px}
 .lv.etroit .lv-transport .lv-b{flex:1 1 30%;padding:0 8px;font-size:18px;min-height:52px}
 .lv.etroit .lv-options{gap:8px}.lv.etroit .lv-options label{flex:1 1 44%;justify-content:space-between}
 .lv.etroit .lv-opt,.lv.etroit .lv-b,.lv.etroit .lv-champ{min-height:44px}

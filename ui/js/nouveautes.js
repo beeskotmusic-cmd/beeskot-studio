@@ -3,6 +3,14 @@
 // Pour une nouvelle version : ajouter un bloc EN HAUT de la liste. Une ligne courte par point : « Onglet : ce qui change. »
 // =====================================================================
 BK.NOUVEAUTES = [
+  { v: '0.9.138', titre: 'Synch bread : écouter avant de garder', l: [
+    ['▶', 'Synch bread : « Nouveau passage » a son petit lecteur, comme Reels Audio. Écouter, toucher la forme d\'onde, I / O pour placer l\'entrée et la sortie, écouter le passage en boucle. Toi seul l\'entends.'],
+    ['📍', 'Synch bread : une barre montre où en est la lecture sur la forme d\'onde.'],
+    ['🔊', 'Synch bread : l\'interrupteur « Synchro » s\'appelle « Audio on / Audio off ».'],
+    ['🔢', 'Synch bread : tous les chiffres prennent la police des afficheurs de Reels Audio.'],
+    ['🎞', 'Synch bread : quand on joue un export, son nom s\'affiche (« Export entier » au lieu de « Morceau entier »).'],
+    ['✂', 'Synch bread : chaque téléphone retrouve lui-même les passages prévus dans Reels Audio.'],
+  ] },
   { v: '0.9.137', titre: 'Synch bread', l: [
     ['🍞', 'L\'onglet Live s\'appelle maintenant Synch bread, avec les couleurs de la section Show (comme Light Toast).'],
     ['🎚', 'Synch bread : bouton SYNCHRONISER sur chaque appareil. Ton téléphone écoute l\'écouteur du lead témoin et le tien, et se cale tout seul.'],

@@ -32,7 +32,7 @@ L.monter = function (racine, hote) {
         <section class="lv-moniteur" aria-live="off"><div class="lv-m1" data-m="titre"></div><div class="lv-m2" data-m="gros"></div><div class="lv-lampes" data-m="lampes" aria-hidden="true"></div><div class="lv-m3" data-m="temps"></div><div class="lv-m4" data-m="qui"></div></section>
         <div class="lv-transport" data-z="transport"></div>
         <div class="lv-options" data-z="options"></div>
-        <section class="lv-onde"><div class="lv-regle" data-z="regle"></div><div class="lv-bande" data-b><canvas></canvas><div class="lv-zone" data-zone><span class="lv-poignee g" data-p="debut"></span><span class="lv-poignee d" data-p="fin"></span></div><div class="lv-tete" data-tete></div></div><div class="lv-note" data-z="note"></div></section>
+        <section class="lv-onde"><div class="lv-regle" data-z="regle"></div><div class="lv-bande" data-b><canvas></canvas><div class="lv-joue" data-joue></div><div class="lv-zone" data-zone><span class="lv-poignee g" data-p="debut"></span><span class="lv-poignee d" data-p="fin"></span></div><div class="lv-tete" data-tete></div></div><div class="lv-note" data-z="note"></div></section>
       </main>
       <aside class="lv-d" data-z="droite"></aside>
     </div>
@@ -49,7 +49,17 @@ L.monter = function (racine, hote) {
   const E = () => S.etat();
   const chef = () => E().chef === L.id;
   const piste = () => E().piste || null;
-  const passage = () => { const e = E(), p = e.passage; if (p && p.fin > p.debut) return p; const d = P.buffer && U.chargee === (piste() || {}).fichier ? P.buffer.duration : 0; return { nom: 'Morceau entier', debut: 0, fin: d, entier: true }; };
+  const passage = () => { const e = E(), p = e.passage; if (p && p.fin > p.debut) return p; const d = P.buffer && U.chargee === (piste() || {}).fichier ? P.buffer.duration : 0; return { nom: nomEntier(), debut: 0, fin: d, entier: true }; };
+  // les passages : ceux annoncés par le lead témoin + ceux que CET appareil trouve lui-même (Reels Audio : PLAN, Tournages, gardés…)
+  const clePiste = () => { const p = piste(); return p ? p.id + '|' + p.fichier : ''; };
+  const passagesTous = () => { const e = E(), l = [...(e.passages || [])], vu = new Set(l.map(x => x.debut + '-' + x.fin));
+    if (U.loc && U.loc.cle === clePiste()) for (const x of U.loc.liste) if (!vu.has(x.debut + '-' + x.fin)) { vu.add(x.debut + '-' + x.fin); l.push(x); }
+    return l.sort((a, b) => a.debut - b.debut); };
+  async function chercherPassages() { const p = piste(); if (!p || !hote.passages) return; const cle = clePiste();
+    try { const liste = await hote.passages(p); if (clePiste() === cle) { U.loc = { cle, liste }; dessiner(); } } catch (e) { console.warn('passages', e); } }
+  const nomPiste = p => !p ? '' : p.export ? ((p.origine || {}).nom || String(p.nom || '').replace(/ · export$/, '')) : p.nom;
+  const nomEntier = () => (piste() || {}).export ? 'Export entier' : 'Morceau entier';
+  const nomFichier = p => { const n = String((p || {}).nomFichier || '').replace(/\.[a-z0-9]{2,4}$/i, ''); return n.length > 42 ? n.slice(0, 40) + '…' : n; };
   const opts = () => ({ coups: 4, inter: 500, elan: 0, v: 1, boucle: false, ...(E().opts || {}) });
   const moi = () => ({ nom: hote.nom, type: hote.type, os: /iPhone|iPad/.test(navigator.userAgent) ? 'iPhone' : /Android/.test(navigator.userAgent) ? 'Android' : 'ordinateur', sync: P.sync, regle: P.regle || 0 });
   const dire = t => { U.msg = t; dessiner(); clearTimeout(U._m); U._m = setTimeout(() => { U.msg = ''; dessiner(); }, 5000); };
@@ -82,8 +92,29 @@ L.monter = function (racine, hote) {
       if (P.pret()) { L.cal.jouer(k.T0, 0); const g = S.gens().find(x => x.id === k.cible); dire((g ? g.nom : 'Quelqu\'un') + ' se synchronise sur toi : garde ton écouteur près de son micro.'); } }
     // personne ne tient la barre : le premier membre présent devient chef
     if (hote.membre && S.connecte && (!e.chef || !S.gens().some(g => g.id === e.chef)) && S.gens().filter(g => g.type !== 'invite').map(g => g.id).sort()[0] === L.id) S.maj('etat', { chef: L.id });
+    if (U.entre && U.cleVue !== clePiste()) { U.cleVue = clePiste(); ecStop(); U.edite = null; U.curseur = null; chercherPassages(); }
     chargerPiste(); dessiner();
   }
+
+  // ---------- l'écoute perso (Nouveau passage) : seulement sur cet appareil, sans synchro ----------
+  const chargeOk = () => !!(P.buffer && piste() && U.chargee === piste().fichier);
+  function ecStop() { const e = U.ecoute; if (!e) return; try { e.src.onended = null; e.src.stop(); } catch (er) {} try { e.g.disconnect(); } catch (er) {} U.curseur = ecPos(); U.ecoute = null; dessiner(); }
+  function ecPos() { const e = U.ecoute; if (!e) return U.curseur || 0; let t = e.off + (P.ctx.currentTime - e.t0); if (e.boucle) { const l = e.fin - e.debut; if (t >= e.fin && l > 0) t = e.debut + ((t - e.debut) % l); } return Math.min(t, P.buffer ? P.buffer.duration : t); }
+  function ecJouer(depuis, boucle) {
+    if (!chargeOk()) return dire('Le morceau se charge encore…'); if (P.position(E().cmd)) return dire('La lecture synchro est en cours : arrête-la d\'abord.');
+    if (U.ecoute) { try { U.ecoute.src.onended = null; U.ecoute.src.stop(); U.ecoute.g.disconnect(); } catch (er) {} U.ecoute = null; }
+    const c = P.ctx; if (!c) return; if (c.state !== 'running') c.resume().catch(() => {});
+    const d = P.buffer.duration, x = U.edite || {}, debut = Math.max(0, x.debut || 0), fin = Math.min(d, x.fin > debut ? x.fin : d);
+    const off = Math.max(0, Math.min(d - 0.05, boucle ? debut : depuis)), src = c.createBufferSource(), g = c.createGain();
+    src.buffer = P.buffer; src.connect(g); g.connect(P.sortie || c.destination);
+    if (boucle) { src.loop = true; src.loopStart = debut; src.loopEnd = fin; src.start(0, off); } else src.start(0, off);
+    src.onended = () => { if (U.ecoute && U.ecoute.src === src) { U.ecoute = null; U.curseur = 0; dessiner(); } };
+    U.ecoute = { src, g, t0: c.currentTime, off, boucle: !!boucle, debut, fin }; dessiner();
+  }
+  const ecMarque = quoi => { if (!U.edite) return; const t = Math.round((U.ecoute ? ecPos() : U.curseur || 0) * 10) / 10, d = P.buffer ? P.buffer.duration : 36000;
+    if (quoi === 'debut') { U.edite.debut = Math.min(t, d - 0.5); if (U.edite.fin < U.edite.debut + 0.5) U.edite.fin = Math.min(d, U.edite.debut + 20); }
+    else { U.edite.fin = Math.max(t, 0.5); if (U.edite.debut > U.edite.fin - 0.5) U.edite.debut = Math.max(0, U.edite.fin - 0.5); }
+    const a = q('#lvPd'), f = q('#lvPf'); if (a) a.value = tc(U.edite.debut, 1); if (f) f.value = tc(U.edite.fin, 1); dessinerZone(); };
 
   // ---------- les ordres ----------
   const ordre = o => S.maj('etat', { cmd: { n: Date.now(), par: hote.nom, ...o } });
@@ -114,33 +145,37 @@ L.monter = function (racine, hote) {
     // --- le haut ---
     z('haut').html = `
       ${hote.membre && hote.morceaux ? `<select class="lv-champ lv-morceau" data-c="morceau" aria-label="Morceau" ${ch ? '' : 'disabled'}><option value="">Choisir un morceau…</option>${(U.morceaux || []).map(x => `<option value="${esc(x.id)}"${p && p.id === x.id ? ' selected' : ''}>${esc(x.nom)}</option>`).join('')}</select>`
-        : `<div class="lv-nompiste">${esc(p ? p.nom : 'Pas encore de morceau')}</div>`}
+        : `<div class="lv-nompiste">${esc(p ? nomPiste(p) + (p.export ? ' · export' : '') : 'Pas encore de morceau')}</div>`}
       <span class="lv-etatreseau ${S.connecte && H.decal != null ? 'ok' : 'ko'}">${S.erreur ? 'Salle injoignable' : !S.connecte ? 'Connexion…' : H.decal == null ? 'Heure commune…' : 'En ligne'}</span>
       <span class="lv-vide"></span>
       <span class="lv-chef">Lead témoin : <b>${esc(ch ? 'toi' : nomChef)}</b></span>
       ${ch ? '' : '<button type="button" class="lv-b ambre" data-a="main">Prendre la main</button>'}
-      <label class="lv-sync"><span>Synchro</span><button type="button" class="lv-inter${P.sync ? ' on' : ''}" role="switch" aria-checked="${P.sync}" data-a="sync" aria-label="Synchro sur cet appareil"><i></i></button></label>`;
+      <label class="lv-sync"><span>${P.sync ? 'Audio on' : 'Audio off'}</span><button type="button" class="lv-inter${P.sync ? ' on' : ''}" role="switch" aria-checked="${P.sync}" data-a="sync" aria-label="Musique sur cet appareil"><i></i></button></label>`;
     // --- la colonne de gauche : passages / exports (/ connectés sur téléphone) ---
     const ong = [['passages', 'Passages'], ...(hote.membre && hote.exports ? [['exports', 'Exports']] : []), ['gens', `Connectés (${gens.length})`]];
     let corps = '';
     if (U.onglet === 'passages') {
-      const liste = [{ nom: 'Morceau entier', debut: 0, fin: 0, entier: true }, ...(e.passages || [])];
-      corps = liste.map((x, i) => { const on = x.entier ? pa.entier : (!pa.entier && Math.abs(pa.debut - x.debut) < .05 && Math.abs(pa.fin - x.fin) < .05);
+      const liste = [{ nom: nomEntier(), debut: 0, fin: 0, entier: true }, ...passagesTous()];
+      const lignes = liste.map((x, i) => { const on = x.entier ? pa.entier : (!pa.entier && Math.abs(pa.debut - x.debut) < .05 && Math.abs(pa.fin - x.fin) < .05);
         return `<div class="lv-ligne${on ? ' on' : ''}"><button type="button" class="lv-pass" data-a="passage" data-i="${i}" ${ch ? '' : 'disabled'}><b>${esc(x.nom || 'Passage')}</b><em>${x.entier ? 'du début à la fin' : tc(x.debut) + ' → ' + tc(x.fin) + (x.v && x.v !== 1 ? ' · vitesse ' + pc(x.v) : '')}</em></button>
-          ${hote.membre && x.source === 'live' ? `<button type="button" class="lv-x" data-a="oublier" data-i="${i}" aria-label="Supprimer ce passage">✕</button>` : ''}</div>`; }).join('')
-        + (hote.membre && hote.garderPassage ? (U.edite && p
+          ${hote.membre && x.source === 'live' ? `<button type="button" class="lv-x" data-a="oublier" data-i="${i}" aria-label="Supprimer ce passage">✕</button>` : ''}</div>`; }).join('');
+      const edition = (hote.membre && hote.garderPassage ? (U.edite && p
           ? `<div class="lv-edit"><label class="lv-lb" for="lvPn">Nom du passage</label><input class="lv-champ" id="lvPn" maxlength="30" value="${esc(U.edite.nom)}" data-e="nom">
-              <div class="lv-duo"><div><label class="lv-lb" for="lvPd">Entrée</label><input class="lv-champ" id="lvPd" inputmode="decimal" value="${tc(U.edite.debut, 1)}" data-e="debut"></div><div><label class="lv-lb" for="lvPf">Sortie</label><input class="lv-champ" id="lvPf" inputmode="decimal" value="${tc(U.edite.fin, 1)}" data-e="fin"></div></div>
-              <p class="lv-petit">Glisse aussi les deux bords orange sur la forme d'onde.</p>
+              <div class="lv-duo"><div><label class="lv-lb" for="lvPd">Entrée</label><input id="lvPd" inputmode="decimal" value="${tc(U.edite.debut, 1)}" data-e="debut" class="lv-champ lv-num"></div><div><label class="lv-lb" for="lvPf">Sortie</label><input id="lvPf" inputmode="decimal" value="${tc(U.edite.fin, 1)}" data-e="fin" class="lv-champ lv-num"></div></div>
+              <div class="lv-ecoute"><button type="button" class="lv-b ${U.ecoute && !U.ecoute.boucle ? 'rouge' : 'vert'}" data-a="ecouter" ${chargeOk() ? '' : 'disabled'}>${!chargeOk() ? 'Chargement…' : U.ecoute && !U.ecoute.boucle ? '⏸ Pause' : '▶ Écouter'}</button><span class="lv-ecpos" data-ecpos></span></div>
+              <div class="lv-duo"><button type="button" class="lv-b" data-a="marqueI" ${chargeOk() ? '' : 'disabled'}>I · Entrée ici</button><button type="button" class="lv-b" data-a="marqueO" ${chargeOk() ? '' : 'disabled'}>O · Sortie ici</button></div>
+              <button type="button" class="lv-b ${U.ecoute && U.ecoute.boucle ? 'rouge' : ''}" data-a="ecpass" ${chargeOk() ? '' : 'disabled'}>${U.ecoute && U.ecoute.boucle ? '⏸ Arrêter la boucle' : '⟲ Écouter le passage (en boucle)'}</button>
+              <p class="lv-petit">Toi seul l'entends. Touche la forme d'onde pour aller à un endroit, glisse les bords pour ajuster.</p>
               <div class="lv-duo"><button type="button" class="lv-b vert" data-a="garder">Garder</button><button type="button" class="lv-b" data-a="annuler">Annuler</button></div></div>`
-          : `<button type="button" class="lv-b pointille" data-a="nouveau" ${p && U.chargee === p.fichier ? '' : 'disabled'}>+ Nouveau passage</button>${!p ? '<p class="lv-petit">Choisis d\'abord un morceau en haut.</p>' : U.chargee !== p.fichier ? '<p class="lv-petit">Le morceau se charge…</p>' : ''}`) : '');
+          : `<button type="button" class="lv-b pointille" data-a="nouveau" ${p ? '' : 'disabled'}>+ Nouveau passage</button>${!p ? '<p class="lv-petit">Choisis d\'abord un morceau en haut.</p>' : ''}`) : '');
+      corps = U.edite ? edition + lignes : lignes + edition;            // pendant la création, l'éditeur passe en haut (près de la forme d'onde)
     } else if (U.onglet === 'exports') {
       corps = U.exports == null ? '<p class="lv-petit">Recherche des exports…</p>' : !U.exports.length ? '<p class="lv-petit">Aucun passage exporté pour ce morceau (Reels Audio › Exporter).</p>'
         : U.exports.map((x, i) => `<div class="lv-ligne${p && p.fichier === x.fichier ? ' on' : ''}"><button type="button" class="lv-pass" data-a="export" data-i="${i}" ${ch ? '' : 'disabled'}><b>${esc(x.nom)}</b><em>${esc(x.detail || 'fichier exporté, joué tel quel')}</em></button></div>`).join('')
           + (p && p.export ? '<button type="button" class="lv-b" data-a="retour">Revenir au morceau</button>' : '');
     }
     const listeGens = gens.map(g => { const pret = g.pret === true && (!p || g.piste === p.fichier), coul = g.sync === false ? 'gris' : !pret ? 'orange' : g.regle || g.id === e.chef ? 'vert' : 'jaune';
-      const txt = g.sync === false ? 'synchro coupée' : g.pret === 'dl' ? 'télécharge le morceau…' : g.pret === 'dec' ? 'prépare le morceau…' : g.pret === 'err' ? 'morceau pas chargé' : !pret ? 'pas prêt' : g.regle || g.id === e.chef ? 'prêt' : 'prêt · pas synchronisé';
+      const txt = g.sync === false ? 'audio coupé' : g.pret === 'dl' ? 'télécharge le morceau…' : g.pret === 'dec' ? 'prépare le morceau…' : g.pret === 'err' ? 'morceau pas chargé' : !pret ? 'pas prêt' : g.regle || g.id === e.chef ? 'prêt' : 'prêt · pas synchronisé';
       return `<div class="lv-pers${g.id === e.chef ? ' chef' : ''}"><span class="lv-voyant ${coul}" aria-hidden="true"></span><div><b>${esc(g.nom)}${g.id === L.id ? ' (toi)' : ''}${g.id === e.chef ? ' <span class="lv-tagchef">· LEAD TÉMOIN</span>' : ''}${g.type === 'invite' ? ' <span class="lv-tag">· invité</span>' : ''}</b><em>${esc(g.type === 'pc' ? 'Ordinateur' : g.os || 'Téléphone')} · ${txt}</em></div></div>`; }).join('');
     const outils = `${ch && gens.length > 1 ? `<select class="lv-champ" data-c="passer" aria-label="Passer la main"><option value="">Passer la main à…</option>${gens.filter(g => g.id !== L.id).map(g => `<option value="${esc(g.id)}">${esc(g.nom)}</option>`).join('')}</select>` : ''}
       <span class="lv-vide"></span>
@@ -178,7 +213,10 @@ L.monter = function (racine, hote) {
   }
   // glisser les bords orange (seulement pendant « Nouveau passage »)
   q('.lv-bande').addEventListener('pointerdown', ev => {
-    const po = ev.target.closest('[data-p]'); if (!po || !U.edite || !P.buffer) return; ev.preventDefault(); po.setPointerCapture(ev.pointerId);
+    const po = ev.target.closest('[data-p]');
+    if (!po && U.edite && chargeOk()) { const b = q('.lv-bande').getBoundingClientRect(), t = Math.min(P.buffer.duration, Math.max(0, (ev.clientX - b.left) / b.width * P.buffer.duration));
+      U.curseur = t; if (U.ecoute && !U.ecoute.boucle) ecJouer(t, false); return; }
+    if (!po || !U.edite || !P.buffer) return; ev.preventDefault(); po.setPointerCapture(ev.pointerId);
     const b = q('.lv-bande').getBoundingClientRect(), d = P.buffer.duration, quoi = po.dataset.p;
     const bouge = e2 => { const t = Math.min(d, Math.max(0, (e2.clientX - b.left) / b.width * d));
       if (quoi === 'debut') U.edite.debut = Math.min(t, U.edite.fin - 0.5); else U.edite.fin = Math.max(t, U.edite.debut + 0.5);
@@ -196,11 +234,15 @@ L.monter = function (racine, hote) {
     let titre, gros, temps, qui = '', lampes = 0, total = 0;
     if (pos && pos.avant != null) { total = c.coups || 0; const dans = pos.coup <= total; titre = 'DÉCOMPTE · ' + (pa.nom || '').toUpperCase(); gros = dans ? String(pos.coup) : 'PRÊTS…'; lampes = dans ? total - pos.coup + 1 : 0; temps = tc(c.pos0, 1) + ' / ' + tc(c.fin, 1); qui = 'Lancé par ' + (c.par || '?'); }
     else if (pos) { titre = 'EN LECTURE · ' + (pa.nom || '').toUpperCase(); gros = tc(pos.pos, 1); temps = 'jusqu\'à ' + tc(c.fin, 1) + (c.boucle ? ' · en boucle' : '') + (c.v && c.v !== 1 ? ' · ' + pc(c.v) : ''); qui = 'Lancé par ' + (c.par || '?'); }
-    else { titre = !P.sync ? 'SYNCHRO COUPÉE SUR CET APPAREIL' : chef() ? 'PRÊT À LANCER' : 'EN ATTENTE DU LEAD TÉMOIN'; gros = (piste() || {}).nom || '—'; temps = pa.entier ? (d ? 'Morceau entier · ' + tc(d) : '') : pa.nom + ' · ' + tc(pa.debut) + ' → ' + tc(pa.fin); if (c && c.type === 'stop' && c.par) qui = 'Arrêté par ' + c.par; }
+    else { titre = !P.sync ? 'AUDIO COUPÉ SUR CET APPAREIL' : chef() ? 'PRÊT À LANCER' : 'EN ATTENTE DU LEAD TÉMOIN'; gros = nomPiste(piste()) || '—'; temps = pa.entier ? ((piste() || {}).export ? 'EXPORT · ' + nomFichier(piste()) + (d ? ' · ' + tc(d) : '') : d ? 'Morceau entier · ' + tc(d) : '') : pa.nom + ' · ' + tc(pa.debut) + ' → ' + tc(pa.fin); if (c && c.type === 'stop' && c.par) qui = 'Arrêté par ' + c.par; }
     const sig = titre + '|' + gros + '|' + temps + '|' + qui + '|' + lampes + '/' + total;
     if (sig !== dernierM) { dernierM = sig; m('titre').textContent = titre; const g = m('gros'); g.textContent = gros; g.classList.toggle('texte', !pos || gros === 'PRÊTS…'); m('temps').textContent = temps; m('qui').textContent = qui;
       m('lampes').innerHTML = total ? Array.from({ length: total }, (_, i) => `<span class="${i < lampes ? 'on' : ''}"></span>`).join('') : ''; }
-    if (pos && pos.pos != null && d) { tete.style.display = ''; tete.style.left = pos.pos / d * 100 + '%'; } else tete.style.display = 'none';
+    if (pos && U.ecoute) ecStop();                                     // la vraie lecture passe avant l'écoute perso
+    const ici = U.ecoute ? ecPos() : pos && pos.pos != null ? pos.pos : null, jo = q('[data-joue]');
+    if (ici != null && d) { tete.style.display = 'block'; tete.style.left = ici / d * 100 + '%'; jo.style.display = 'block'; jo.style.width = ici / d * 100 + '%'; }
+    else { jo.style.display = 'none'; tete.style.display = U.edite && U.curseur != null && d ? 'block' : 'none'; if (U.edite && U.curseur != null && d) tete.style.left = U.curseur / d * 100 + '%'; }
+    const ep = q('[data-ecpos]'); if (ep) { const t = tc(U.ecoute ? ecPos() : U.curseur || 0, 1); if (ep.textContent !== t) ep.textContent = t; }
   }
 
   // ---------- les fenêtres : réglage des écouteurs, invitation ----------
@@ -252,24 +294,28 @@ L.monter = function (racine, hote) {
   const actions = {
     async entrer() {
       if (!hote.membre) { const n = (q('#lvNom').value || '').trim(); if (!n) return q('#lvNom').focus(); hote.nom = n; L.outils.garde('bk.live.nom', n); }
-      await P.debloquer(); U.entre = true; dessiner();
+      await P.debloquer(); U.entre = true; U.cleVue = clePiste(); chercherPassages(); dessiner();
       if (!U._suivi) { U._suivi = true; S.suivre(surSalle); } S.ouvrir(hote.salle); P.surveiller();
       S.presence(moi()); await H.suivre(); rejoindre();
       if (hote.morceaux) hote.morceaux().then(l => { U.morceaux = l; dessiner(); }).catch(() => {});
       surSalle();
     },
-    onglet(b) { U.onglet = b.dataset.o; if (U.onglet === 'exports' && U.exports == null && piste()) hote.exports(piste()).then(l => { U.exports = l; dessiner(); }).catch(() => { U.exports = []; dessiner(); }); },
+    onglet(b) { U.onglet = b.dataset.o; if (U.onglet === 'passages') chercherPassages(); if (U.onglet === 'exports' && U.exports == null && piste()) hote.exports(piste()).then(l => { U.exports = l; dessiner(); }).catch(() => { U.exports = []; dessiner(); }); },
     main() { S.maj('etat', { chef: L.id }); },
     sync() { P.activer(!P.sync); S.presence(moi()); rejoindre(); },
     lancer() { if (chef()) lancer(); }, stop,
     boucle() { if (chef()) S.maj('etat/opts', { ...opts(), boucle: !opts().boucle }); },
-    passage(b) { if (!chef()) return; const x = [{ entier: true }, ...(E().passages || [])][+b.dataset.i]; choisirPassage(x.entier ? null : x); },
-    nouveau() { const d = P.buffer.duration, p = passage(); U.edite = { nom: 'Passage ' + ((E().passages || []).length + 1), debut: p.entier ? Math.min(d * 0.25, d - 1) : p.debut, fin: p.entier ? Math.min(d * 0.25 + 20, d) : p.fin }; },
-    annuler() { U.edite = null; },
-    async garder() { const x = U.edite, p = piste(); if (!x || !p) return; const np = { nom: (x.nom || 'Passage').trim().slice(0, 30), debut: Math.round(x.debut * 10) / 10, fin: Math.round(x.fin * 10) / 10, v: 1, source: 'live' };
-      U.edite = null; try { await hote.garderPassage(p, np); const ps = await hote.passages(p); await S.maj('etat', { passages: ps }); if (chef()) choisirPassage(np); } catch (e) { dire('Passage non gardé : ' + (e.message || e)); } },
-    async oublier(b) { const x = (E().passages || [])[+b.dataset.i - 1], p = piste(); if (!x || !p) return; if (b.dataset.sur !== '1') { b.dataset.sur = '1'; b.textContent = 'Sûr ?'; return; }
-      try { await hote.oublierPassage(p, x); await S.maj('etat', { passages: await hote.passages(p) }); } catch (e) { dire(String(e.message || e)); } },
+    passage(b) { if (!chef()) return; const x = [{ entier: true }, ...passagesTous()][+b.dataset.i]; choisirPassage(x.entier ? null : x); },
+    nouveau() { const d = P.buffer && U.chargee === (piste() || {}).fichier ? P.buffer.duration : 0, p = passage();       // sans morceau chargé : on tape les temps à la main
+      U.curseur = null; U.edite = { nom: 'Passage ' + (passagesTous().length + 1), debut: p.entier ? (d ? Math.min(d * 0.25, d - 1) : 0) : p.debut, fin: p.entier ? (d ? Math.min(d * 0.25 + 20, d) : 20) : p.fin }; },
+    annuler() { ecStop(); U.edite = null; U.curseur = null; },
+    ecouter() { if (U.ecoute && !U.ecoute.boucle) ecStop(); else ecJouer(U.curseur != null ? U.curseur : (U.edite || {}).debut || 0, false); },
+    ecpass() { if (U.ecoute && U.ecoute.boucle) ecStop(); else ecJouer(0, true); },
+    marqueI() { ecMarque('debut'); }, marqueO() { ecMarque('fin'); },
+    async garder() { ecStop(); U.curseur = null; const x = U.edite, p = piste(); if (!x || !p) return; const np = { nom: (x.nom || 'Passage').trim().slice(0, 30), debut: Math.round(x.debut * 10) / 10, fin: Math.round(x.fin * 10) / 10, v: 1, source: 'live' };
+      U.edite = null; try { await hote.garderPassage(p, np); const ps = await hote.passages(p); U.loc = { cle: clePiste(), liste: ps }; await S.maj('etat', { passages: ps }); if (chef()) choisirPassage(np); } catch (e) { dire('Passage non gardé : ' + (e.message || e)); } },
+    async oublier(b) { const x = passagesTous()[+b.dataset.i - 1], p = piste(); if (!x || !p) return; if (b.dataset.sur !== '1') { b.dataset.sur = '1'; b.textContent = 'Sûr ?'; return; }
+      try { await hote.oublierPassage(p, x); const ps = await hote.passages(p); U.loc = { cle: clePiste(), liste: ps }; await S.maj('etat', { passages: ps }); } catch (e) { dire(String(e.message || e)); } },
     export(b) { if (!chef()) return; const x = U.exports[+b.dataset.i], p = piste(); choisirPiste({ id: p.id, nom: (p.origine || p).nom + ' · export', fichier: x.fichier, nomFichier: x.nom, export: true, bpm: 0, origine: p.origine || { ...p, cle: '' } }).then(() => { U.onglet = 'exports'; hote.exports(piste()).then(l => { U.exports = l; dessiner(); }); }); },
     retour() { const p = piste(); if (chef() && p && p.origine) choisirPiste(p.origine); },
     reglage() { U.voile = 'reglage'; }, fermer() { U.voile = ''; if (!U.enSync) L.cal.fermer(); },
@@ -288,7 +334,7 @@ L.monter = function (racine, hote) {
     dessiner(); });
   racine.addEventListener('input', ev => { const t = ev.target;
     if (t.dataset.c === 'calib') { P.regler(+t.value); majReglage(); }
-    if (t.dataset.e && U.edite) { if (t.dataset.e === 'nom') U.edite.nom = t.value; else { const s = enSec(t.value), d = P.buffer ? P.buffer.duration : 0; if (!isNaN(s)) { U.edite[t.dataset.e] = Math.min(d, Math.max(0, s)); if (U.edite.fin < U.edite.debut + 0.5) U.edite.fin = Math.min(d, U.edite.debut + 0.5); dessinerZone(); } } } });
+    if (t.dataset.e && U.edite) { if (t.dataset.e === 'nom') U.edite.nom = t.value; else { const s = enSec(t.value), d = P.buffer && U.chargee ? P.buffer.duration : 36000; if (!isNaN(s)) { U.edite[t.dataset.e] = Math.min(d, Math.max(0, s)); if (U.edite.fin < U.edite.debut + 0.5) U.edite.fin = Math.min(d, U.edite.debut + 0.5); dessinerZone(); } } } });
   window.addEventListener('resize', dessinerOnde); window.addEventListener('pagehide', () => S.partir());
   P.fin = dessiner;
   peindre(); requestAnimationFrame(moniteur);
