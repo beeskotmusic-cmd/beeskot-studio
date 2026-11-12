@@ -1,0 +1,134 @@
+/* =====================================================================
+   LIGHT TOAST (nouveau) — l'habillage. Couleurs de la section Show :
+   tissu violet foncé pour les panneaux, bleu canard pour l'action, ambre pour le temps.
+   Tout est sous .lt2 : rien ne déborde sur le reste du logiciel.
+   ===================================================================== */
+.lt2{--lt-pan:#1c1640;--lt-txt:#ece9e2;--lt-doux:rgba(236,233,226,.55);--lt-ac:#3fb0a6;--lt-ac2:#1d6a6c;--lt-clair:#a6f0e6;--lt-ambre:#ffb84d;--lt-btn:#232325;
+  display:grid;grid-template-rows:minmax(260px,1fr) auto minmax(220px,42%);gap:8px;height:100%;min-height:0;color:var(--lt-txt);font:13px 'Work Sans',sans-serif}
+.lt2 *{box-sizing:border-box}
+.lt2-pan,.lt2-barre,.lt2-tl{background:url(../look/toile-douce-show.png) 0 0/128px 128px repeat,var(--lt-pan);border-radius:8px;box-shadow:inset 0 0 0 1px #8a7fd055,inset 0 1px 0 #ffffff22,inset 0 0 26px #0009,0 4px 10px #000a}
+.lt2 h3{margin:0 0 8px;font:600 12px 'Barlow Condensed',sans-serif;letter-spacing:.22em;text-transform:uppercase;color:var(--lt-txt)}
+.lt2 h4{margin:10px 0 4px;font:600 10px 'Barlow Condensed',sans-serif;letter-spacing:.2em;text-transform:uppercase;color:var(--lt-clair)}
+.lt2 button{font:600 12px 'Work Sans',sans-serif;background:var(--lt-btn);color:var(--lt-txt);border:0;border-radius:6px;padding:5px 9px;min-width:30px;cursor:pointer;box-shadow:0 2px 4px rgba(0,0,0,.45);transition:filter .12s,transform .08s}
+.lt2 button:hover{filter:brightness(1.2)}
+.lt2 button:active{transform:translateY(1px)}
+.lt2 button.on{background:var(--lt-clair);color:#0e2e2c}
+.lt2 button.lt2-pri{background:var(--lt-ac);color:#e8fffb}
+
+/* le haut : bibliothèque | moniteur | inspecteur */
+.lt2-haut{display:grid;grid-template-columns:190px minmax(0,1fr) 240px;gap:8px;min-height:0}
+.lt2-pan{padding:10px 12px;min-height:0;overflow:auto}
+.lt2-moni{display:flex;flex-direction:column}
+.lt2-ecran{flex:1;min-height:0;display:flex;align-items:center;justify-content:center;background:#000;border-radius:6px;overflow:hidden}
+.lt2-ecran canvas{max-width:100%;max-height:100%;aspect-ratio:16/9;display:block}
+.lt2-item{padding:4px 8px;border-radius:5px;color:var(--lt-doux);cursor:grab}
+.lt2-item:hover{background:rgba(255,255,255,.06);color:var(--lt-txt)}
+.lt2-vide{color:var(--lt-doux);font-size:12px}
+.lt2-titre{font:600 15px 'Work Sans',sans-serif;margin-bottom:8px}
+.lt2-ligne{display:flex;justify-content:space-between;padding:3px 0;border-bottom:1px solid rgba(255,255,255,.06)}
+.lt2-ligne b{font:400 12px 'DM Mono',monospace;color:var(--lt-ambre)}
+
+/* la barre */
+.lt2-barre{display:flex;align-items:center;gap:14px;padding:6px 10px}
+.lt2-grp{display:flex;gap:4px}
+.lt2-lcd{font:400 15px 'DM Mono',monospace;color:var(--lt-ambre);background:#0b0a12;border-radius:5px;padding:4px 10px;box-shadow:inset 0 1px 4px #000;min-width:92px;text-align:center}
+.lt2-aide{margin-left:auto;color:var(--lt-doux);font-size:11px}
+
+/* la timeline */
+.lt2-tl{display:flex;flex-direction:column;min-height:0;overflow:hidden;padding:4px 0 4px 4px}
+.lt2-regle{display:flex;flex:none;height:26px}
+.lt2-coin{width:150px;flex:none}
+.lt2-regle canvas{flex:1;min-width:0;height:26px;cursor:pointer}
+.lt2-corps{flex:1;min-height:0;overflow-y:auto;overflow-x:hidden;display:flex;position:relative}
+.lt2-tetes{width:150px;flex:none;position:relative}
+.lt2-tete{position:absolute;left:0;right:6px;display:flex;align-items:center;gap:5px;padding:0 6px;font-size:12px;color:var(--lt-doux);background:rgba(0,0,0,.25);border-radius:4px 0 0 4px;white-space:nowrap;overflow:hidden}
+.lt2-tete span{flex:1;overflow:hidden;text-overflow:ellipsis}
+.lt2-tete.s-fondzone{padding-left:22px;font-size:11px}
+.lt2-tete.s-fond,.lt2-tete.s-effets,.lt2-tete.s-peches{color:var(--lt-txt)}
+.lt2 .lt2-tb{min-width:0;padding:0 6px;height:18px;font-size:11px;box-shadow:none;background:rgba(255,255,255,.08)}
+.lt2 .lt2-tb.off{opacity:.5}
+.lt2-pistes{flex:1;min-width:0;display:block}
+/* étape 3 : musique, stems, réglages */
+.lt2-musique{display:flex;flex-direction:column;gap:6px;margin-bottom:6px}
+.lt2-mnom{font:400 12px 'DM Mono',monospace;color:var(--lt-ambre);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.lt2 select,.lt2 input[type=text]{font:400 12px 'DM Mono',monospace;background:#0b0a12;color:#7fe6da;border:1px solid #3a3a3e;border-radius:5px;padding:4px 6px;width:100%}
+.lt2-reg{display:flex;flex-direction:column;gap:3px;margin:8px 0;font-size:12px;color:var(--lt-doux)}
+.lt2-reg b{font:400 11px 'DM Mono',monospace;color:var(--lt-ambre);font-weight:400}
+.lt2-reg input[type=range]{accent-color:var(--lt-ac);width:100%}
+.lt2-reg input[type=color]{width:48px;height:24px;border:0;background:none;padding:0}
+.lt2-coche{flex-direction:row;align-items:center}
+.lt2-tete.choisi{background:rgba(63,176,166,.25);color:var(--lt-txt)}
+.lt2-tete.s-stem{cursor:pointer}
+.lt2 button[disabled]{opacity:.35;cursor:default}
+/* étape 4 : inspecteur, roue, bibliothèque */
+.lt2-haut{grid-template-columns:190px minmax(0,1fr) 260px}
+.lt2-roue{margin:6px 0 4px}
+.lt2-roue-h{display:flex;gap:10px;align-items:stretch}
+.lt2-roue canvas{width:140px;height:140px;border-radius:50%;cursor:crosshair;touch-action:none;box-shadow:0 2px 8px #0008}
+.lt2-roue-v{display:flex;align-items:center}
+.lt2-roue-v input{writing-mode:vertical-lr;direction:rtl;height:134px;width:18px;accent-color:var(--lt-ac)}
+.lt2-roue-l{display:flex;gap:6px;align-items:center;margin:8px 0}
+.lt2-roue-ech{width:26px;height:26px;border-radius:5px;flex:none;box-shadow:inset 0 0 0 1px #fff3}
+.lt2 .lt2-hex{flex:1;min-width:0;width:auto}
+.lt2-harmo{display:flex;flex-direction:column;gap:4px}
+.lt2-hl{display:grid;grid-template-columns:92px 1fr;align-items:center;gap:6px}
+.lt2-hl span{font-size:10px;letter-spacing:.04em;color:var(--lt-doux)}
+.lt2-hl i{display:flex;gap:3px;flex-wrap:wrap;font-style:normal}
+.lt2-hl .lt2-pas{width:18px;height:18px}
+.lt2-hl .lt2-tb{height:18px}
+.lt2 .lt2-pas{width:22px;height:22px;min-width:0;padding:0;border-radius:5px;box-shadow:inset 0 0 0 1px #fff3,0 1px 3px #0008;cursor:pointer;display:inline-block}
+.lt2-pal{display:flex;gap:5px;flex-wrap:wrap;margin-bottom:4px}
+.lt2-pal .lt2-pas{cursor:grab}
+.lt2-slots{display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin:8px 0 2px}
+.lt2 .lt2-slot{width:40px;height:28px;min-width:0;padding:0;border-radius:6px;color:#000a;font-weight:700;box-shadow:inset 0 0 0 1px #fff4}
+.lt2 .lt2-slot.on{box-shadow:0 0 0 2px var(--lt-clair),inset 0 0 0 1px #0006}
+.lt2-seg{display:flex;gap:0;margin:8px 0}
+.lt2-seg button{flex:1;border-radius:0}
+.lt2-seg button:first-child{border-radius:6px 0 0 6px}
+.lt2-seg button:last-child{border-radius:0 6px 6px 0}
+.lt2-zones{display:flex;flex-wrap:wrap;gap:4px 10px;font-size:12px;color:var(--lt-doux)}
+.lt2-zones label{display:flex;align-items:center;gap:3px}
+.lt2-rang{display:flex;gap:6px}
+.lt2-rang input{flex:1;font:400 12px 'DM Mono',monospace;background:#0b0a12;color:#7fe6da;border:1px solid #3a3a3e;border-radius:5px;padding:4px 6px;min-width:0}
+.lt2-dc.lt2-off{opacity:.4;pointer-events:none}
+.lt2-insp>.lt2-insp-c>button{margin-top:8px}
+/* étape 7 : le moniteur Tubes / Studio 3D */
+.lt2-moni-h{display:flex;align-items:center;gap:12px;margin-bottom:8px;flex-wrap:wrap}
+.lt2-moni-h h3{margin:0}
+.lt2-moni-h .lt2-seg{margin:0}
+.lt2-moni-h button{padding:3px 9px;font-size:11px}
+.lt2-3dc{display:flex;align-items:center;gap:10px;font-size:11px;color:var(--lt-doux)}
+.lt2-3dc[hidden],.lt2-3d[hidden],.lt2-ecran canvas[hidden]{display:none}
+.lt2-3dc select{width:auto;padding:2px 4px}
+.lt2-3dc label{display:flex;align-items:center;gap:3px}
+.lt2-ecran{position:relative}
+.lt2-3d{position:absolute;inset:0}
+.lt2-3d canvas{width:100%;height:100%;max-width:none;max-height:none;aspect-ratio:auto}
+/* la vue 3D : qui joue quoi */
+.lt2-roles{position:absolute;left:8px;bottom:8px;background:rgba(10,8,18,.78);border-radius:6px;padding:8px 10px;display:flex;flex-direction:column;gap:5px;font-size:11px;backdrop-filter:blur(2px)}
+.lt2-roles[hidden]{display:none}
+.lt2-role{display:grid;grid-template-columns:64px 88px 90px;align-items:center;gap:6px}
+.lt2-role b{font-weight:600;color:var(--lt-txt)}
+.lt2-roles select{width:auto;padding:2px 4px;font-size:11px}
+.lt2-roles input[type=range]{accent-color:var(--lt-ac);width:90px}
+.lt2-roles button{font-size:11px;padding:3px 8px;margin-top:2px}
+
+/* outil « Placer les objets » (version d'essai) */
+.lt2-placer{position:absolute;right:8px;top:8px;width:230px;background:rgba(10,8,18,.85);border-radius:6px;padding:10px;display:flex;flex-direction:column;gap:6px;font-size:11px;backdrop-filter:blur(2px)}
+.lt2-placer[hidden]{display:none}
+.lt2-placer b{font-weight:600;color:var(--lt-txt)}
+.lt2-placer p{margin:0;color:var(--lt-doux);line-height:1.35}
+.lt2-pl-c{display:flex;flex-direction:column;gap:4px}
+.lt2-pl-c label{display:grid;grid-template-columns:1fr 70px 14px;align-items:center;gap:6px}
+.lt2-pl-c input{width:100%;padding:2px 4px;font-size:11px;box-sizing:border-box}
+.lt2-pl-c i{font-style:normal;opacity:.6}
+.lt2-pl-b{display:flex;flex-wrap:wrap;gap:4px}
+.lt2-placer button{font-size:11px;padding:3px 8px}
+.lt2-placer textarea{width:100%;height:90px;font:10px/1.3 'DM Mono',monospace;box-sizing:border-box}
+.lt2-pl-m{display:flex;flex-direction:column;gap:3px}.lt2-pl-m select{font-size:11px;padding:2px 4px}
+.lt2-lampes{position:absolute;left:8px;top:8px;width:270px;max-height:calc(100% - 16px);overflow:auto;background:rgba(10,8,18,.85);border-radius:6px;padding:10px;display:flex;flex-direction:column;gap:5px;font-size:11px;backdrop-filter:blur(2px)}
+.lt2-lampes[hidden]{display:none}
+.lt2-lampes b{font-weight:600}.lt2-lampes p{margin:0 0 4px;color:var(--lt-doux)}
+.lt2-lp{display:grid;grid-template-columns:16px 1fr 22px 70px;align-items:center;gap:6px}
+.lt2-lp .lt2-pas{width:20px;height:20px}.lt2-lp input[type=range]{width:70px;accent-color:var(--lt-ac)}
+.lt2-lampes>button{font-size:11px;padding:3px 8px;margin-top:4px}

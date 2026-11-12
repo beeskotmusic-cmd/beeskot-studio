@@ -3,6 +3,14 @@
 // Pour une nouvelle version : ajouter un bloc EN HAUT de la liste. Une ligne courte par point : « Onglet : ce qui change. »
 // =====================================================================
 BK.NOUVEAUTES = [
+  { v: '0.9.140', titre: 'TOAST2 : le nouveau Light Toast', l: [
+    ['🎬', 'Light Toast est remplacé par TOAST2, fait comme un logiciel de montage : Bibliothèque, Moniteur, Inspecteur, et une timeline avec des pistes (une ligne par tube et pour le panneau, des calques d\'effets, les stems).'],
+    ['🎨', 'Couleurs avec la roue chromatique et les couleurs qui vont ensemble. Les effets (flamme, strobo, balayage…) suivent le tempo. Les stems peuvent déclencher des flashs, des changements de couleur ou de luminosité.'],
+    ['🎵', 'La musique vient de la Bibliothèque (morceau → version), de Médias ou du PC. Les passages de Reels Audio sont proposés.'],
+    ['🏠', 'Vue « Studio 3D » : le studio 200 aux vraies mesures, avec les instruments, les lampes (bouton « Lumières »), et les 3 membres qui jouent. « Charger les poses » une seule fois : elles vont dans le Drive pour tout le monde.'],
+    ['💾', 'Nouveau / Ouvrir / Enregistrer en haut à droite : les projets sont dans le Drive (Light Toast / TOAST2).'],
+    ['⏳', 'Pas encore : la sortie de la vidéo .mp4 pour les tubes (prochaine version).'],
+  ] },
   { v: '0.9.139', titre: '', l: [
     ['🔗', 'Tournages : bouton « 🔗 Lien cameraman » (en bas). On coche des tournages, on obtient un lien web : la personne voit ces tournages comme dans le logiciel (infos, reels, découpage, moodboard, tenues, itinéraire, matériel), en lecture seule, et rien d\'autre. Le lien se met à jour tout seul quand vous modifiez ces tournages. « Révoquer » le coupe.'],
   ] },

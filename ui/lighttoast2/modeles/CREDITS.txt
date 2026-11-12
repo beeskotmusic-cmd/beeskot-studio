@@ -1,0 +1,24 @@
+Modèles 3D libres de droits (licence CC0, aucune attribution requise) — Poly Haven, https://polyhaven.com
+  bar_chair_round_01.glb        ← https://polyhaven.com/a/bar_chair_round_01
+  potted_plant_02.glb           ← https://polyhaven.com/a/potted_plant_02
+
+Modèles sous licence CC BY 4.0 (http://creativecommons.org/licenses/by/4.0/) — attribution obligatoire, allégés pour Light Toast :
+  batterie_rouge.glb       « Red_drums » par meshplalette66 — https://sketchfab.com/3d-models/red-drums-3be1c3caa39c4302b95902fc7e7e261c
+  fender_stratocaster.glb  « Fender Stratocaster Guitar » par Ryan_Nein — https://sketchfab.com/3d-models/fender-stratocaster-guitar-15a37147641b4c1b963bb494b234593f
+  basse.glb                « Bass Guitar » par CharlotteMeehan — https://sketchfab.com/3d-models/bass-guitar-df76e88db43c4060ad045e481459df6e
+  fender_jaguar.glb        « Fender Jaguar Electric Guitar » par dannpastor — https://sketchfab.com/3d-models/fender-jaguar-electric-guitar-h8G3IqzmKOMRsOS2iiuq7Xs3wOV
+  guitare_explorer.glb     « Electric Guitar Explorer » par Skabl — https://sketchfab.com/3d-models/electric-guitar-explorer-a7ffc570d3fe41c89b9dde195ab0faea
+  orgue_hammond_b3.glb     « Hammond B3 Organ » par boogie4631 — https://sketchfab.com/3d-models/hammond-b3-organ-f43f95cbb30f4ae2926338289d40bdf6
+  conga.glb                « Conga drum » par makou — https://sketchfab.com/3d-models/conga-drum-1d13ba6ff9974679a995692d4392d648
+  ampli_fender_deluxe.glb  « Fender 65' Deluxe Amp (PS1) » par braindeadrat — https://sketchfab.com/3d-models/fender-65-deluxe-amp-ps1-892eb476ad3b43baaf719678b2d195a4
+  bongos.glb               « Bongos » par Logan S. — https://sketchfab.com/3d-models/bongos-eabd5b51151349d8af54bf520c1ae4d7
+  ampli_basse_fender.glb   « Fender Bass Amp » par Ryan_Nein — https://sketchfab.com/3d-models/fender-bass-amp-087b5a3601b040aa96adce426f8e685d
+  ampli.glb                « Amp » par Bobby Cairns — https://sketchfab.com/3d-models/amp-b39c78a6a2ce4ff3805c4c1c7f165919
+  fauteuil_studio.glb      « Chair » par denovdiyenko — https://sketchfab.com/3d-models/chair-d5be346315a747ba9d25f29f052cc85e
+  rideaux.glb              « Victorian curtains » par BATRIC_18 — https://sketchfab.com/3d-models/victorian-curtains-c65681a779fe4cbf87941abb1185844e
+  tapis_batterie.glb       « Carpet » par Sapizon — https://sketchfab.com/3d-models/carpet-42fac4a7c4be41d783ebda6770f1ef97
+  tapis.glb                « carpet » par ahmagh2e — https://sketchfab.com/3d-models/carpet-e261ea97a64b48719c4d40009efd9ee1
+  chaise_bureau.glb        « Cadeira Luna – Base Ajustável » par CriaMesh — https://sketchfab.com/3d-models/cadeira-luna-base-ajustavel-46e2340bd9504f9e880cbb26e4980fb8
+  suspension.glb           « Lampshade » par Sina — https://sketchfab.com/3d-models/lampshade-943fcaf1af3141aebe22ce8b3af5428c
+  micro_pied.glb           « Mics + Mic stand (low poly) » par pizzaguyty — https://sketchfab.com/3d-models/mics-mic-stand-low-poly-fde31ba0b84f4cc494149b9dbb566358
+  micro_vintage.glb        « mic stand texture for both characters » par shaylastewart — https://sketchfab.com/3d-models/mic-stand-texture-for-both-characters-c1b2d618c637446886d8c91778a7e6d5

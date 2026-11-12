@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<!-- Page de RÉGLAGE (pas dans DBS) : placer les objets du studio 3D une bonne fois, puis « Sauvegarder ».
+     Le placement sauvegardé est ensuite recopié dans ecran/studio.js → mesures().placement. -->
+<html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Placer le studio</title>
+<link rel="stylesheet" href="lt2.css">
+<style>
+html,body{margin:0;height:100%;background:#0d0b16;color:#ece9e2;font:13px 'Work Sans',sans-serif}
+.ps.lt2{display:grid;grid-template-columns:200px 1fr;grid-template-rows:100vh;height:100vh;gap:0}
+.ps-g{padding:12px;overflow:auto;min-height:0;background:#151126;border-right:1px solid #2d2650;display:flex;flex-direction:column;gap:8px}
+.ps-g h1{margin:0;font:700 16px 'Barlow Condensed',sans-serif;letter-spacing:.15em;text-transform:uppercase}
+.ps-g h2{margin:6px 0 0;font:600 10px 'Barlow Condensed',sans-serif;letter-spacing:.2em;text-transform:uppercase;color:#a6f0e6}
+.ps-l{display:flex;flex-direction:column;gap:2px}
+.ps-l button{text-align:left;background:none;border:0;color:#ece9e2;padding:3px 6px;border-radius:4px;cursor:pointer;font:12px 'Work Sans',sans-serif}
+.ps-l button:hover{background:#ffffff14}.ps-l button.on{background:#3fb0a6;color:#0d0b16}
+.ps-l button.bouge::after{content:' •';color:#ffb84d}
+.ps-l button.cache{text-decoration:line-through;opacity:.5}
+.ps-g>*{flex-shrink:0}
+.ps-sauve{background:#3fb0a6;color:#0d0b16;border:0;border-radius:5px;padding:8px;font:600 13px 'Work Sans',sans-serif;cursor:pointer}
+.ps-sauve:disabled{opacity:.5;cursor:default}
+.ps-etat{font-size:11px;color:rgba(236,233,226,.6);min-height:14px}
+.ps-c{display:flex;flex-wrap:wrap;gap:4px}.ps-c button,.ps-g select{font-size:11px;padding:3px 7px;background:#232325;color:#ece9e2;border:1px solid #3a3550;border-radius:4px;cursor:pointer}
+.ps-v{position:relative;min-width:0}.ps-v>.lt2-3d{position:absolute;inset:0}
+.ps-aide{position:absolute;left:10px;bottom:10px;background:rgba(10,8,18,.8);padding:8px 10px;border-radius:6px;font-size:11px;line-height:1.5;color:rgba(236,233,226,.75)}
+</style></head><body>
+<div class="ps lt2">
+  <div class="ps-g">
+    <h1>Placer le studio</h1>
+    <button class="ps-sauve" disabled>Sauvegarder</button><div class="ps-etat">Chargement…</div>
+    <h2>Vue</h2><div class="ps-c"><button data-cam="camera">Caméra</button><button data-cam="large">Large</button><button data-cam="dessus">Dessus</button><button data-cam="regie">Arrière</button></div>
+    <select data-amb><option value="tamise">Tamisé</option><option value="jour" selected>Jour</option><option value="noir">Noir</option></select>
+    <h2>Objets</h2><div class="ps-l"></div>
+    <h2>Membres</h2><div class="ps-c"><button data-poses>Charger les poses (.fbx)…</button></div>
+  </div>
+  <div class="ps-v"><div class="lt2-3d"></div><div class="lt2-placer"></div>
+    <div class="ps-aide">Clic sur un objet = le choisir · glisser = bouger · Maj + glisser = monter · molette dessus = tourner<br>Flèches = pousser de 1 cm (Maj = 10 cm) · Ctrl+Z = annuler · clic dans le vide = tourner la caméra · clic du milieu maintenu = déplacer la caméra</div></div>
+</div>
+<script src="moteur/base.js"></script><script src="moteur/materiel.js"></script>
+<script src="moteur/effets.js"></script><script src="moteur/decompte.js"></script><script src="moteur/projet.js"></script><script src="moteur/moteur.js"></script>
+<script src="ecran/son.js"></script><script src="vendor/three.min.js"></script><script src="vendor/chargeurs-3d.js"></script><script src="ecran/studio.js"></script><script src="ecran/vue3d.js"></script><script src="ecran/placer.js"></script><script src="ecran/poses-navigateur.js"></script>
+<script>
+LT.modeReglage = true;
+(async function () {
+  const projet = LT.projet.demo(), moteur = new LT.Moteur(projet); moteur.rendre(4);
+  const m = { projet, moteur }, el = document.querySelector('.ps-v .lt2-3d');
+  const v = new LT.Vue3D(el, m); v.ambiance('jour'); v.vue('large'); v.placerMembres();
+  const pl = new LT.Placer(v, document.querySelector('.lt2-placer')); pl.nomCopier = 'Copier (texte)'; pl.activer(true);
+  const liste = document.querySelector('.ps-l'), etat = document.querySelector('.ps-etat'), sauve = document.querySelector('.ps-sauve');
+  const noms = () => Object.keys(v.cibles).concat(Object.keys(LT.studio.mesures().postes).map(r => 'poste:' + r));
+  const majListe = () => { liste.innerHTML = noms().map(n => `<button data-n="${n}" class="${n === pl.choix ? 'on' : ''} ${v.placement[n] ? 'bouge' : ''} ${(v.placement[n] || {}).cache ? 'cache' : ''}">${LT.Placer.nomDe(n)}</button>`).join(''); };
+  liste.onclick = e => { const b = e.target.closest('[data-n]'); if (b) pl.choisir(b.dataset.n); majListe(); };
+  const choisir0 = pl.choisir.bind(pl); pl.choisir = n => { choisir0(n); majListe(); };
+  let modifie = false; pl.onChange = () => { modifie = true; sauve.disabled = !db; etat.textContent = db ? 'Pas encore sauvegardé' : etat.textContent; majListe(); };
+  document.querySelectorAll('[data-cam]').forEach(b => b.onclick = () => { v.vue(b.dataset.cam); v.rendre(); });
+  document.querySelector('[data-amb]').onchange = e => v.ambiance(e.target.value);
+  document.querySelector('[data-poses]').onclick = () => {
+    const i = Object.assign(document.createElement('input'), { type: 'file', accept: '.fbx', multiple: true });
+    i.onchange = async () => { const o = {}; for (const f of i.files) o[f.name] = await f.arrayBuffer(); v.ajouterPoses(o); pl.majCadre(); };
+    i.click();
+  };
+  new ResizeObserver(() => { v.taille(); v.rendre(); }).observe(el); majListe();
+  // la sauvegarde : dans la page (Claude la relit), et dans le navigateur en secours
+  let db = null;
+  try { db = window.claude && await window.claude.use('db'); } catch (e) { db = null; }
+  if (!db) { etat.textContent = 'Sauvegarde en ligne indisponible : utilise « Copier (texte) » et colle-le à Claude.'; return; }
+  const doc = db.doc('studio/placement');
+  try {
+    const d = await Promise.race([doc.get(), new Promise((_, ko) => setTimeout(() => ko(new Error('délai')), 10000))]);
+    const data = d && d.exists ? d.data() : null;
+    if (data && data.placement && !modifie) { v.placement = JSON.parse(JSON.stringify(data.placement)); v.appliquer(); pl.majCadre(); majListe(); }
+    etat.textContent = data && data.quand ? 'Dernière sauvegarde : ' + new Date(data.quand).toLocaleString('fr-CA') : 'Rien de sauvegardé pour l\'instant';
+  } catch (e) { etat.textContent = 'Lecture impossible (' + (e.message || e) + ')'; }
+  sauve.disabled = !modifie;
+  sauve.onclick = async () => {
+    sauve.disabled = true; etat.textContent = 'Sauvegarde…';
+    try { const quand = Date.now(); await doc.set({ placement: v.placement, quand }); modifie = false; etat.textContent = 'Sauvegardé ✓ ' + new Date(quand).toLocaleTimeString('fr-CA'); }
+    catch (e) { sauve.disabled = false; etat.textContent = 'Échec : ' + (e.message || e) + ' — utilise « Copier (texte) »'; }
+  };
+})();
+</script>
+</body></html>

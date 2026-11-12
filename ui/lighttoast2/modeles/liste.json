@@ -1,0 +1,90 @@
+{
+ "fauteuil": {
+  "fichier": "fauteuil_studio.glb",
+  "rotY": 160
+ },
+ "tabouret": {
+  "fichier": "bar_chair_round_01.glb"
+ },
+ "plante": {
+  "fichier": "potted_plant_02.glb"
+ },
+ "batterie": {
+  "fichier": "batterie_rouge.glb"
+ },
+ "basse": {
+  "fichier": "basse.glb",
+  "rotX": 90
+ },
+ "guitare-mur": {
+  "fichier": "fender_stratocaster.glb",
+  "rotY": -90
+ },
+ "guitare-mur2": {
+  "fichier": "fender_jaguar.glb",
+  "rotY": -90,
+  "rotZ": 38
+ },
+ "guitare-mur3": {
+  "fichier": "guitare_explorer.glb",
+  "rotX": 90,
+  "dy": -0.15
+ },
+ "orgue": {
+  "fichier": "orgue_hammond_b3.glb",
+  "rotY": 90
+ },
+ "conga": {
+  "fichier": "conga.glb"
+ },
+ "ampli-basse": {
+  "fichier": "ampli_basse_fender.glb"
+ },
+ "ampli-bas": {
+  "fichier": "ampli_fender_deluxe.glb",
+  "rotY": -90
+ },
+ "ampli-haut": {
+  "fichier": "ampli.glb",
+  "rotY": -90
+ },
+ "bongos": {
+  "fichier": "bongos.glb",
+  "hauteur": 0.28,
+  "dy": 0.72
+ },
+ "rideau-g": {
+  "fichier": "rideaux.glb"
+ },
+ "rideau-d": {
+  "fichier": "rideaux.glb"
+ },
+ "tapis-batterie": {
+  "fichier": "tapis_batterie.glb"
+ },
+ "tapis": {
+  "fichier": "tapis.glb"
+ },
+ "chaise-bureau": {
+  "fichier": "chaise_bureau.glb",
+  "rotY": -69
+ },
+ "suspension-1": {
+  "fichier": "suspension.glb",
+  "rotX": 180,
+  "largeur": 0.25,
+  "pendu": true
+ },
+ "suspension-2": {
+  "fichier": "suspension.glb",
+  "rotX": 180,
+  "largeur": 0.25,
+  "pendu": true
+ },
+ "micro": {
+  "fichier": "micro_vintage.glb"
+ },
+ "micro-2": {
+  "fichier": "micro_pied.glb"
+ }
+}

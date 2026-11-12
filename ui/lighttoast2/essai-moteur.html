@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="fr"><head><meta charset="utf-8"><title>Light Toast — essai du moteur</title>
+<link rel="stylesheet" href="../style/fonts.css">
+<style>
+body{margin:0;background:#141416;color:#e6e2d8;font:14px 'Work Sans',sans-serif;padding:16px}
+canvas{display:block;width:960px;height:540px;background:#000;border-radius:6px}
+.l{display:flex;gap:12px;align-items:center;margin:10px 0;width:960px}
+input[type=range]{flex:1}
+#t,#ms{font-family:'DM Mono',monospace;color:#ffb84d;min-width:90px}
+button{font:inherit;background:#2a2a2e;color:#e6e2d8;border:0;border-radius:6px;padding:6px 12px;cursor:pointer}
+</style></head><body>
+<canvas id="cv" width="1920" height="1080"></canvas>
+<div class="l"><button id="lec">▶</button><input type="range" id="pos" min="0" max="20" step="0.01" value="0"><span id="t">0.00 s</span><span id="ms"></span><label><input type="checkbox" id="mur" checked> mur</label></div>
+<script src="moteur/base.js"></script><script src="moteur/materiel.js"></script>
+<script src="moteur/effets.js"></script><script src="moteur/decompte.js"></script><script src="moteur/projet.js"></script><script src="moteur/moteur.js"></script>
+<script>
+const P = LT.projet.demo(), M = new LT.Moteur(P), cv = document.getElementById('cv'), ctx = cv.getContext('2d');
+const pos = document.getElementById('pos'), mur = document.getElementById('mur');
+let joue = false, t0 = 0, depart = 0, moy = 0;
+function image(t) {
+  const a = performance.now(); M.rendre(t).dessiner(ctx, cv.width, cv.height, { mur: mur.checked }); const d = performance.now() - a;
+  moy = moy ? moy * .9 + d * .1 : d;
+  document.getElementById('t').textContent = t.toFixed(2) + ' s'; document.getElementById('ms').textContent = moy.toFixed(1) + ' ms / image';
+}
+function boucle(n) { if (!joue) return; const t = (depart + (n - t0) / 1000) % P.duree; pos.value = t; image(t); requestAnimationFrame(boucle); }
+document.getElementById('lec').onclick = e => { joue = !joue; e.target.textContent = joue ? '⏸' : '▶'; if (joue) { t0 = performance.now(); depart = +pos.value; requestAnimationFrame(boucle); } };
+pos.oninput = () => image(+pos.value); mur.onchange = () => image(+pos.value);
+window.allerA = t => { pos.value = t; image(t); return moy; };
+image(0);
+</script></body></html>

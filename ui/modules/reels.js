@@ -20,6 +20,24 @@ function fabriquerClic(sr, bpm, canaux) {
 }
 const coller = (a, b) => a.map((x, c) => { const y = new Float32Array(x.length + b[c].length); y.set(x); y.set(b[c], x.length); return y; });
 
+// ---------- les passages prévus pour un morceau (fiches Tournages, PLAN.xlsx, gardés dans Reels, Discord) ----------
+// partagé : Assistant audio Reel ET Light Toast s'en servent. reels:true = ajoute aussi les passages des cartes Reels.
+const enSec = txt => { const t = String(txt || '').replace(/\s*[:'’]\s*/g, ':'), m = t.match(/(\d{1,2}):(\d{2})\s*[-–—à>]+\s*(\d{1,2}):(\d{2})/); return m ? { debut: +m[1] * 60 + +m[2], fin: +m[3] * 60 + +m[4] } : null; };
+BK.passagesDuMorceau = async function (m, ms, { reels = false } = {}) {
+  ms = ms || await BK.db.liste('morceaux');
+  const l = [], vu = new Set(), ajout = p => { const k = p.debut + '-' + p.fin; if (!vu.has(k)) { vu.add(k); l.push(p); } };
+  const deCeMorceau = nom => { const x = BK.inv.trouverMorceau(nom || '', ms); return x && x.id === m.id; };
+  if (reels) for (const r of await BK.db.liste('reels')) if (r.morceau === m.id && r.passage && r.passage.fin > r.passage.debut) ajout({ debut: r.passage.debut, fin: r.passage.fin, nom: '🎞 Reel · ' + (r.nom || r.titre || 'sans nom') });
+  for (const t of await BK.db.liste('tournages')) for (const p of t.plans || []) {
+    if (!deCeMorceau(p.reel) && !(t.morceau === m.nom && !p.reel)) continue;
+    const ps = enSec(p.audio); if (ps) ajout({ ...ps, nom: '🎬 ' + (t.titre || 'Tournage') + (p.action ? ' · ' + p.action : '') });
+  }
+  for (const r of await BK.partage.lire('plan.lignes', [])) if (deCeMorceau(r.reel)) { const ps = enSec(r.audio); if (ps) ajout({ ...ps, nom: '📋 PLAN · ' + (r.jour || '') + (r.plans ? ' · ' + r.plans : '') }); }
+  for (const p of ((await BK.partage.lire('passages.reels', {}))[m.id] || [])) ajout({ ...p, nom: '🎞 Gardé dans Reels' });
+  for (const p of ((await BK.partage.lire('passages.discord', {}))[m.id] || [])) ajout(p);
+  return l;
+};
+
 BK.module('reels', function (page) {
   $('.hdr .right', page).innerHTML = `
     <div><span class="eng" style="font-size:9px">Morceau</span><span class="vfd" id="reNomH" style="width:220px">—</span></div>
@@ -210,24 +228,14 @@ BK.module('reels', function (page) {
       if (debut != null && fin > debut && R.buffer) { R.debut = debut; R.duree = Math.min(fin - debut, R.buffer.duration - debut); suivreDuree(); maj(); msg(`Passage ${BK.audio.temps(debut)} → ${BK.audio.temps(fin)} placé`); }
     } catch (e) { msg('Impossible : ' + e.message); }
   };
-  // ---------- les passages déjà prévus (fiches Tournages, PLAN.xlsx, Discord) ----------
-  const enSec = txt => { const t = String(txt || '').replace(/\s*[:'’]\s*/g, ':'), m = t.match(/(\d{1,2}):(\d{2})\s*[-–—à>]+\s*(\d{1,2}):(\d{2})/); return m ? { debut: +m[1] * 60 + +m[2], fin: +m[3] * 60 + +m[4] } : null; };
+  // ---------- les passages déjà prévus (fiches Tournages, PLAN.xlsx, Discord) : voir BK.passagesDuMorceau ----------
   async function morceauActuel() {
     const ms = await BK.db.liste('morceaux'), id = R.source === 'biblio' && $('#reMorceau').value;
     return { ms, m: (id && ms.find(x => x.id === id)) || (R.nom ? BK.inv.trouverMorceau(R.nom, ms) : null) };
   }
   async function passagesPrevus() {
     const { ms, m } = await morceauActuel(); if (!m) return { m: null, l: [] };
-    const l = [], vu = new Set(), ajout = p => { const k = p.debut + '-' + p.fin; if (!vu.has(k)) { vu.add(k); l.push(p); } };
-    const deCeMorceau = nom => { const x = BK.inv.trouverMorceau(nom || '', ms); return x && x.id === m.id; };
-    for (const t of await BK.db.liste('tournages')) for (const p of t.plans || []) {
-      if (!deCeMorceau(p.reel) && !(t.morceau === m.nom && !p.reel)) continue;
-      const ps = enSec(p.audio); if (ps) ajout({ ...ps, nom: '🎬 ' + (t.titre || 'Tournage') + (p.action ? ' · ' + p.action : '') });
-    }
-    for (const r of await BK.partage.lire('plan.lignes', [])) if (deCeMorceau(r.reel)) { const ps = enSec(r.audio); if (ps) ajout({ ...ps, nom: '📋 PLAN · ' + (r.jour || '') + (r.plans ? ' · ' + r.plans : '') }); }
-    for (const p of ((await BK.partage.lire('passages.reels', {}))[m.id] || [])) ajout({ ...p, nom: '🎞 Gardé dans Reels' });
-    for (const p of ((await BK.partage.lire('passages.discord', {}))[m.id] || [])) ajout(p);
-    return { m, l };
+    return { m, l: await BK.passagesDuMorceau(m, ms) };
   }
   async function remplirPrevus() {
     const { m, l } = await passagesPrevus(), sel = $('#rePrevus'); R.prevus = l;

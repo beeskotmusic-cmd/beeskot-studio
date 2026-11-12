@@ -1,0 +1,7 @@
+Les vrais modèles 3D du studio (personnes, instruments) se rangent ici :
+  - liste.json : quelle pièce utilise quel fichier (voir l'exemple en haut de ecran/vue3d.js)
+  - les fichiers .glb
+
+ATTENTION : ce dépôt est public. N'y mettre que des modèles LIBRES (licence CC0).
+Les personnages Mixamo (Adobe) et les modèles faits à partir de photos du groupe
+ne doivent PAS être ici : ils vont sur le Drive BEESKOT.
