@@ -46,7 +46,7 @@ BK.module('tournage', function (page) {
       </section>
     </div>
     <div class="pane abar" id="toAbar"><span class="vfd" id="toMsg">PRÊT</span>
-      <div class="right"><button class="btn" id="toCal" disabled>📅 Mettre au Calendrier</button><button class="btn" id="toVeo" disabled title="Un prompt Veo 3 par plan, pour tester le reel en IA avant de tourner">🎬 Prompts Veo 3</button><button class="btn pri" id="toPdf" disabled title="Le PDF de la fiche : aperçu, couleur ou noir et blanc, enregistrer, imprimer">📄 PDF / Imprimer</button></div></div>`;
+      <div class="right"><button class="btn" id="toLienCam" title="Un lien web pour le cameraman : les tournages cochés, en lecture seule">🔗 Lien cameraman</button><button class="btn" id="toCal" disabled>📅 Mettre au Calendrier</button><button class="btn" id="toVeo" disabled title="Un prompt Veo 3 par plan, pour tester le reel en IA avant de tourner">🎬 Prompts Veo 3</button><button class="btn pri" id="toPdf" disabled title="Le PDF de la fiche : aperçu, couleur ou noir et blanc, enregistrer, imprimer">📄 PDF / Imprimer</button></div></div>`;
   const msg = t => $('#toMsg').textContent = String(t).toUpperCase();
   // ---------- les deux sous-onglets : Tournages (les fiches) et Storyline - Mood (le grand board, js : modules/storyline.js) ----------
   function vueTo(v) { BK.regler('tournage.vue', v); $$('#toVues button').forEach(b => b.classList.toggle('on', b.dataset.v === v));
@@ -672,12 +672,10 @@ BK.module('tournage', function (page) {
     T.tour = deja ? null : T.liste.find(x => x.id === id); T.courant = null; T.vue = deja ? 'jours' : 'tournage'; T.defiler = !deja; rendreListe(); rendreFiche(); }
 
   // ---------- un tournage ouvert : ses infos, ses tenues et son matériel (pour tous), ses assets, et ses reels qui se déplient ----------
-  async function rendreTournage(z) {
-    const tr = T.tour; if (!tr || !z) return;
-    if (!T.non || !T.vrac) prechargerPartage();                         // tout de suite avec ce que ce PC connaît ; le Drive suit en fond
-    const rs = reelsDe(tr), img = tr.couverture || '', ouvert = T.courant && T.courant.parent === tr.id ? T.courant.id : '';
+  // le contenu d'un tournage ouvert (utilisé par la page, et par le lien web du cameraman)
+  function corpsTournage(tr, rs, ouvert) {
     const etape = r => { const x = (T.reels || []).find(y => y.tournage === r.id); return x ? ETAPES_R[x.statut || 'idee'] : ''; };
-    z.innerHTML = `
+    return `
       <div class="to-fiche-barre"><button class="btn sm" id="toCouv" style="margin-left:auto" title="Une image en fond de l'en-tête (facultatif)">🖼 ${tr.couverture ? 'Changer la couverture' : 'Image de couverture'}</button>${tr.couverture ? '<button class="btn sm" id="toCouvX" title="Enlever l\'image de couverture">✕</button>' : ''}
         <button class="btn sm to-fini${tr.fini ? ' on' : ''}" id="toFiniT">${tr.fini ? '✓ Fait' : esc(nomJ(tr)) + ' fini'}</button></div>
       ${T.vrac.length ? `<div class="to-vrac"><span class="eng">Médias à ranger</span><div class="to-meds">${T.vrac.map(x => vign(x, 'vrac')).join('')}</div></div>` : ''}
@@ -703,6 +701,13 @@ BK.module('tournage', function (page) {
         <textarea class="fld" data-tc="materiel" rows="3" placeholder="ex. 2 caméras, trépied, lampes Globe en rouge">${esc(tr.materiel)}</textarea>
         <textarea class="fld" data-tc="notes" rows="2" placeholder="Notes pour l'équipe…" style="margin-top:8px">${esc(tr.notes)}</textarea>
         <button class="btn xs" id="toSupprT" style="margin-top:8px;align-self:flex-start">Retirer ce tournage</button></div>`;
+  }
+  async function rendreTournage(z) {
+    const tr = T.tour; if (!tr || !z) return;
+    if (!T.non || !T.vrac) prechargerPartage();                         // tout de suite avec ce que ce PC connaît ; le Drive suit en fond
+    const rs = reelsDe(tr), img = tr.couverture || '', ouvert = T.courant && T.courant.parent === tr.id ? T.courant.id : '';
+    const etape = r => { const x = (T.reels || []).find(y => y.tournage === r.id); return x ? ETAPES_R[x.statut || 'idee'] : ''; };
+    z.innerHTML = corpsTournage(tr, rs, ouvert);
     $('#toPdf').disabled = $('#toVeo').disabled = false; $('#toCal').disabled = !tr.date;
     $('#toCouv').onclick = async () => { const l = await BK.choisirDansMedias({ titre: 'Image de couverture', bouton: 'Choisir', type: 'image' }); if (!l || !l.length) return;
       try { const d = await BK.img.depuisChoix(l[0], 'moodboard'); if (d.ref) { tr.couverture = d.ref; await BK.db.ecrire('tournages', tr); rendreFiche(); rendreListe(); } } catch (e) { msg('Image impossible'); } };
@@ -1037,6 +1042,145 @@ BK.module('tournage', function (page) {
     q('#pdfFermer').onclick = () => { Object.values(faits).forEach(p => p.then(r => URL.revokeObjectURL(r.url)).catch(() => {})); v.remove(); };
     montrer();
   }
+
+  // =====================================================================
+  // 🔗 LIEN CAMERAMAN — les tournages cochés, en lecture seule, sur une page web (Cloudflare).
+  //   Le lien : https://ecoute.beeskot-music.workers.dev/t/<id du fichier du lien dans le Drive>
+  //   Une fiche « partages » (type 'tournage') contient une photo de la page (le même HTML que le logiciel,
+  //   en mode lecture, sans boutons) ; Cloudflare l'affiche avec les mêmes styles. Les images passent par
+  //   Cloudflare (__IMG__/n) : l'adresse du Drive n'est jamais montrée. Mise à jour toute seule quand
+  //   quelqu'un du groupe modifie un tournage du lien. « Révoquer » = la page ne répond plus.
+  // =====================================================================
+  const PORTE_T = 'https://ecoute.beeskot-music.workers.dev/t/';
+  // les champs → comme le mode lecture du logiciel (rien n'est modifiable, les vides sont cachés)
+  function lectureWeb(z) {
+    z.querySelectorAll('.to-vrac, .to-fiche-barre, [data-sans], .mi-prop, input[type=file]').forEach(e => e.remove());
+    z.querySelectorAll('button[data-itiurl]').forEach(b => { const a = document.createElement('a'); a.className = b.className; a.href = b.dataset.itiurl; a.target = '_blank'; a.rel = 'noopener'; a.textContent = b.textContent; b.replaceWith(a); });
+    z.querySelectorAll('button').forEach(b => b.remove());
+    z.querySelectorAll('[draggable]').forEach(e => e.removeAttribute('draggable'));
+    z.querySelectorAll('.box').forEach(b => { b.classList.add('lecture'); b.classList.remove('a-edit'); });
+    // ce qui est vide ne s'affiche pas (passage pas choisi, pas de références, modules sans rien dedans)
+    z.querySelectorAll('.to-pas').forEach(e => { if (/À choisir/.test(e.textContent)) e.remove(); });
+    z.querySelectorAll('.to-refs').forEach(e => { if (!e.querySelector('.to-ref')) e.remove(); });
+    const rempli = b => [...b.querySelectorAll('input.fld:not([type=file]), textarea.fld')].some(i => (i.tagName === 'TEXTAREA' ? i.textContent : i.getAttribute('value') || '').trim())
+      || !!b.querySelector('[data-ref], img, .to-img, .to-tph[data-med], .to-doc, .to-vig, .to-ref, .to-plans tbody tr, .tt-reel, .tt-iti, .to-pas, select.fld option[selected]:not([value=""])');
+    z.querySelectorAll('.box').forEach(b => { if (!b.classList.contains('tt-reels') && !rempli(b)) b.remove(); });
+    z.querySelectorAll('table.to-plans').forEach(t => { const d = document.createElement('div'); d.className = 'tw-defile'; t.before(d); d.appendChild(t); });   // sur téléphone : le découpage défile de côté
+    z.querySelectorAll('input.fld, textarea.fld, select.fld').forEach(f => {
+      const v = f.tagName === 'SELECT' ? ((f.querySelector('option[selected]') || {}).textContent || '') : f.tagName === 'TEXTAREA' ? f.textContent : (f.getAttribute('value') || '');
+      const l = f.closest('label, .to-tenue2'); if (l && !String(v).trim() && !(l.querySelector('[data-ref], img'))) l.classList.add('vide-l');
+      if (f.type === 'date' || f.type === 'time') { const t = f.type === 'date' ? (v ? dateFr(v) : '') : String(v).replace(':', ' h '); const sp = document.createElement('span'); sp.className = 'lect-v'; sp.textContent = t; f.replaceWith(sp); return; }
+      // en texte (et plus en champ) : ça passe à la ligne au lieu d'être coupé, surtout sur téléphone
+      const sp = document.createElement('span'); sp.className = f.className + ' lect-txt'; sp.textContent = v; f.replaceWith(sp);
+    });
+  }
+  // la « photo » HTML des tournages choisis : { html, images: [ids Drive] }
+  function htmlWeb(ids) {
+    const trs = (ids || []).map(id => T.liste.find(x => x.id === id && estTour(x))).filter(Boolean).sort((a, b) => (a.date || '9').localeCompare(b.date || '9'));
+    const tmp = document.createElement('div');
+    tmp.innerHTML = trs.map(tr => { const img = tr.couverture || '';
+      return `<div class="tw-tour"><div class="to-affiche tt-aff on${img ? '' : ' sans'}${tr.fini ? ' fini' : ''}"${BK.img.bg(img)}><span class="to-af-voile"></span><span class="to-af-txt"><span class="eng">${esc(nomJ(tr))}${tr.fini ? ' · ✓ fait' : ''}</span><b class="dymo">${esc(tr.titre || 'Tournage')}</b>
+        <span class="nt">${esc(jourFr(tr.date))}${tr.heure ? ' · ' + esc(tr.heure) : ''}${tr.lieu ? ' · ' + esc(tr.lieu) : ''}</span></span></div>
+        <div class="to-deplie">${corpsTournage(tr, reelsDe(tr), '')}</div></div>`; }).join('');
+    for (const el of tmp.querySelectorAll('.tt-reel[data-rid]')) { const r = T.liste.find(x => x.id === el.dataset.rid); if (!r) continue;
+      el.classList.add('ouvert'); const c = document.createElement('div'); c.className = 'tt-reel-corps'; c.innerHTML = corpsFiche(r, true); el.appendChild(c); }
+    lectureWeb(tmp);
+    const images = [];
+    for (const el of tmp.querySelectorAll('[data-ref]')) { const id = BK.img.estDrive(el.dataset.ref) ? BK.img.id(el.dataset.ref) : ''; el.removeAttribute('data-ref'); if (!id) continue;
+      let n = images.indexOf(id); if (n < 0) { n = images.length; images.push(id); }
+      if (el.tagName === 'IMG') el.setAttribute('src', '__IMG__/' + n); else el.style.backgroundImage = `url('__IMG__/${n}')`; }
+    tmp.querySelectorAll('img[src^="blob:"]').forEach(i => i.removeAttribute('src'));
+    tmp.querySelectorAll('[style*="blob:"]').forEach(e => { e.style.backgroundImage = ''; });
+    return { html: tmp.innerHTML, images, n: trs.length };
+  }
+  // l'habillage autour (les mêmes boîtes que dans le logiciel, pour que les styles s'appliquent pareil)
+  function habillageWeb() {
+    const chaine = []; let e = $('#toFiche');
+    while (e && e !== document.body) { chaine.unshift({ t: e.tagName.toLowerCase(), c: String(e.className || '').split(/\s+/).filter(x => x && x !== 'hidden').join(' '), id: e.id || '' }); e = e.parentElement; }
+    return { chaine, corps: String(document.body.className || '').split(/\s+/).filter(x => /^look-/.test(x)).join(' '),
+      css: [...document.querySelectorAll('link[rel=stylesheet]')].map(l => l.getAttribute('href')).filter(h => /^style\/[\w.-]+\.css$/.test(h || '')) };
+  }
+  const liensT = async () => (await BK.db.liste('partages')).filter(l => l.type === 'tournage');
+  // refait la photo et l'enregistre (seulement si elle a changé) ; ouvre / ferme les accès du lien et de ses images
+  async function garderT(l, forcer) {
+    const w = htmlWeb(l.tournages), h = habillageWeb();
+    const neuf = { html: w.html, images: w.images, elements: w.images.map(id => ({ image: id })), section: 'orga', ...h };
+    const change = forcer || ['html', 'images', 'css', 'corps'].some(k => JSON.stringify(neuf[k]) !== JSON.stringify(l[k])) || JSON.stringify(neuf.chaine) !== JSON.stringify(l.chaine);
+    if (!change) return false;
+    Object.assign(l, neuf); l.type = 'tournage'; l.maj = new Date().toISOString();
+    await BK.db.ecrire('partages', l, { sansAnnuler: true });
+    if (!l.doc) { l.doc = await BK.drive.idFichier('partages', l.id); if (!l.doc) throw new Error('Le lien n\'a pas été rangé dans le Drive'); await BK.db.ecrire('partages', l, { sansAnnuler: true }); }
+    const pb = await BK.externe.synchroAcces(await BK.db.liste('partages')); if (pb.length) throw new Error(pb[0]);
+    return true;
+  }
+  // quelqu'un modifie un tournage : les liens qui le montrent se mettent à jour (8 s après la dernière modif)
+  let tRafr = 0;
+  window.addEventListener('bk:change', e => { if (!e.detail || e.detail.col !== 'tournages') return; clearTimeout(tRafr); tRafr = setTimeout(rafraichirT, 8000); });
+  async function rafraichirT() {
+    if (!BK.drive || !BK.drive.relie() || !T.liste.length || T.rafrEnCours) return; T.rafrEnCours = true;
+    try { for (const l of (await liensT()).filter(x => x.actif !== false)) await garderT(l).catch(err => console.warn('lien cameraman', err)); }
+    catch (err) { console.warn('lien cameraman', err); } finally { T.rafrEnCours = false; }
+  }
+  async function fenetreLien() {
+    if (!BK.drive || !BK.drive.relie()) return BK.avis('Relie d\'abord le Drive (Réglages › Drive) : le lien passe par le Drive du groupe.');
+    const v = document.createElement('div'); v.className = 'voile ec-voile';
+    v.innerHTML = `<div class="stopbox ecp-box"><span class="screw tl"></span><span class="screw tr"></span><span class="screw bl"></span><span class="screw br"></span>
+      <button class="btn xs rt-x" id="twX" title="Fermer">✕</button>
+      <span class="dymo" style="align-self:center">Lien cameraman</span>
+      <p class="nt ecp-aide">Coche les tournages à montrer. La personne voit ces tournages comme dans le logiciel (infos, reels, découpage, moodboard, tenues, itinéraire, matériel), en lecture seule, et rien d'autre. Le lien se met à jour tout seul quand vous modifiez ces tournages.</p>
+      <div class="ecp-cols">
+        <div class="ecp-col"><span class="lb">Tournages</span><div class="ecp-m" id="twT"></div>
+          <div class="ecp-cree"><input class="fld" id="twNom" maxlength="40" placeholder="Pour qui ? (ex. Cameraman)">
+            <button class="btn sm pri" id="twOk">Créer le lien</button><button class="btn sm hidden" id="twAnnul">Annuler</button></div></div>
+        <div class="ecp-col"><span class="lb">Les liens</span><div class="ecp-l" id="twL"><span class="nt">Chargement…</span></div></div>
+      </div><span class="vfd" id="twEtat">PRÊT</span></div>`;
+    document.body.appendChild(v);
+    const q = x => v.querySelector(x), etat = t => { q('#twEtat').textContent = String(t).toUpperCase(); };
+    let liens = [], choix = new Set(), edite = null;
+    const lienDe = l => PORTE_T + l.doc;
+    const dessinerT = () => { const trs = tournagesL();
+      q('#twT').innerHTML = trs.length ? trs.map(tr => `<label class="ecp-ligne"><input type="checkbox" data-t="${tr.id}"${choix.has(tr.id) ? ' checked' : ''}><span class="ecp-ph"${BK.img.bg(tr.couverture || '')}></span><span class="ecp-t"><b>${esc(tr.titre || 'Tournage')}</b><em>${esc(nomJ(tr))} · ${esc(jourFr(tr.date))} · ${reelsDe(tr).length} reel(s)</em></span></label>`).join('') : '<span class="nt">Aucun tournage.</span>';
+      BK.img.remplir(q('#twT'));
+      v.querySelectorAll('[data-t]').forEach(c => c.onchange = () => { c.checked ? choix.add(c.dataset.t) : choix.delete(c.dataset.t); }); };
+    const nomsDe = l => (l.tournages || []).map(id => (T.liste.find(x => x.id === id) || {}).titre).filter(Boolean).join(', ') || '—';
+    const dessinerL = () => {
+      q('#twL').innerHTML = liens.length ? liens.slice().sort((a, b) => (b.cree || '').localeCompare(a.cree || '')).map(l => { const coupe = l.actif === false;
+        return `<div class="ecp-lien${coupe ? ' coupe' : ''}${edite === l ? ' edite' : ''}"><div class="ecp-lt"><b>${esc(l.nom || 'Sans nom')}</b><em>${esc(nomsDe(l))}${coupe ? ' · révoqué' : ''}</em></div>
+          <div class="ecp-lb">${coupe ? '' : `<button class="btn xs pri" data-copier="${l.id}">Copier le lien</button><button class="btn xs" data-voir="${l.id}">Ouvrir</button>`}<button class="btn xs" data-modif="${l.id}">Modifier</button>
+          <button class="btn xs" data-couper="${l.id}">${coupe ? 'Réactiver' : 'Révoquer'}</button><button class="btn xs" data-suppr="${l.id}" title="Supprimer ce lien pour toujours">✕</button></div></div>`; }).join('')
+        : '<span class="nt">Aucun lien pour l\'instant.</span>';
+      const trouve = id => liens.find(x => x.id === id);
+      v.querySelectorAll('[data-copier]').forEach(b => b.onclick = async () => { const u = lienDe(trouve(b.dataset.copier)); try { await navigator.clipboard.writeText(u); etat('Lien copié'); } catch (e) { prompt('Copie ce lien :', u); } });
+      v.querySelectorAll('[data-voir]').forEach(b => b.onclick = () => BK.ouvrirLien(lienDe(trouve(b.dataset.voir))));
+      v.querySelectorAll('[data-modif]').forEach(b => b.onclick = () => { edite = trouve(b.dataset.modif); choix = new Set(edite.tournages || []); q('#twNom').value = edite.nom || ''; q('#twOk').textContent = 'Mettre à jour'; q('#twAnnul').classList.remove('hidden'); dessinerT(); dessinerL(); });
+      v.querySelectorAll('[data-couper]').forEach(b => b.onclick = async () => { const l = trouve(b.dataset.couper); if (!l) return; b.disabled = true; etat('Un instant…');
+        l.actif = l.actif === false; try { await garderT(l, true); etat(l.actif ? 'Lien réactivé' : 'Lien révoqué : il ne marche plus (moins d\'une minute)'); } catch (e) { etat('Problème : ' + (e.message || e)); } dessinerL(); });
+      v.querySelectorAll('[data-suppr]').forEach(b => b.onclick = async () => { const l = trouve(b.dataset.suppr); if (!l) return;
+        if (b.dataset.sur !== '1') { b.dataset.sur = '1'; b.textContent = 'Sûr ?'; setTimeout(() => { if (b.isConnected) { b.dataset.sur = ''; b.textContent = '✕'; } }, 3000); return; }
+        b.disabled = true; etat('Suppression…');
+        try { l.actif = false; await garderT(l, true); await BK.db.supprimer('partages', l.id, { sansAnnuler: true }); liens = liens.filter(x => x !== l); if (edite === l) edite = null;
+          await BK.externe.synchroAcces(await BK.db.liste('partages')); etat('Lien supprimé'); } catch (e) { etat('Problème : ' + (e.message || e)); }
+        dessinerL(); });
+    };
+    const remettre = () => { edite = null; choix = new Set(); q('#twNom').value = ''; q('#twOk').textContent = 'Créer le lien'; q('#twAnnul').classList.add('hidden'); dessinerT(); dessinerL(); };
+    q('#twAnnul').onclick = () => { remettre(); etat('Prêt'); };
+    q('#twX').onclick = () => v.remove();
+    q('#twOk').onclick = async () => { const b = q('#twOk'); b.disabled = true;
+      try { if (!choix.size) throw new Error('Coche au moins un tournage');
+        etat(edite ? 'Mise à jour…' : 'Création du lien…');
+        const l = edite || { id: 'tw-' + BK.db.nouvelId(), cree: new Date().toISOString(), actif: true };
+        l.nom = q('#twNom').value.trim().slice(0, 40) || 'Cameraman'; l.tournages = tournagesL().filter(t => choix.has(t.id)).map(t => t.id);
+        await garderT(l, true); if (!liens.includes(l)) liens.push(l);
+        try { await navigator.clipboard.writeText(lienDe(l)); } catch (e) {}
+        etat(edite ? 'Lien mis à jour' : 'Lien créé et copié'); remettre();
+      } catch (e) { console.error(e); etat('Problème : ' + (e.message || e)); }
+      b.disabled = false; };
+    dessinerT();
+    try { liens = await liensT(); } catch (e) { q('#twL').innerHTML = '<span class="nt">Drive injoignable.</span>'; return; }
+    dessinerL();
+  }
+  $('#toLienCam').onclick = fenetreLien;
+  BK.tournageWeb = { htmlWeb, habillageWeb, fenetre: fenetreLien, rafraichir: rafraichirT };
 
   BK.surOuvrir = BK.surOuvrir || {}; BK.surOuvrir.tournage = charger;
   charger();

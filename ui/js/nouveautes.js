@@ -3,6 +3,9 @@
 // Pour une nouvelle version : ajouter un bloc EN HAUT de la liste. Une ligne courte par point : « Onglet : ce qui change. »
 // =====================================================================
 BK.NOUVEAUTES = [
+  { v: '0.9.139', titre: '', l: [
+    ['🔗', 'Tournages : bouton « 🔗 Lien cameraman » (en bas). On coche des tournages, on obtient un lien web : la personne voit ces tournages comme dans le logiciel (infos, reels, découpage, moodboard, tenues, itinéraire, matériel), en lecture seule, et rien d\'autre. Le lien se met à jour tout seul quand vous modifiez ces tournages. « Révoquer » le coupe.'],
+  ] },
   { v: '0.9.138', titre: 'Synch bread : écouter avant de garder', l: [
     ['▶', 'Synch bread : « Nouveau passage » a son petit lecteur, comme Reels Audio. Écouter, toucher la forme d\'onde, I / O pour placer l\'entrée et la sortie, écouter le passage en boucle. Toi seul l\'entends.'],
     ['📍', 'Synch bread : une barre montre où en est la lecture sur la forme d\'onde.'],

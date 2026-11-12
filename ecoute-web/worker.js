@@ -6,6 +6,9 @@
 //   https://ecoute.beeskot-music.workers.dev/<id>/a/<n>    le son du morceau n (passe par ici)
 //   https://ecoute.beeskot-music.workers.dev/<id>/c/<n>    la pochette du morceau n (passe par ici)
 //
+//   https://ecoute.beeskot-music.workers.dev/t/<id>        TOURNAGES pour le cameraman (lecture seule, même look que le logiciel)
+//   https://ecoute.beeskot-music.workers.dev/t/<id>/i/<n>  l'image n de cette page (passe par ici)
+//
 // <id> = l'identifiant du fichier du lien dans le Drive (BEESKOT Studio/partages/ec-….json),
 // fabriqué par BEESKOT Studio (Bibliothèque › Partager l'écoute). Le fichier n'est lisible que tant
 // que le lien est actif : « Révoquer » dans le logiciel = la page répond « Ce lien n'est plus actif ».
@@ -20,18 +23,22 @@
 // =====================================================================
 const ASSETS = 'https://cdn.jsdelivr.net/gh/beeskotmusic-cmd/beeskot-studio@787cfcf/ui/';
 const DRIVE = 'https://www.googleapis.com/drive/v3/files/';
+// les styles du logiciel (pour la page Tournages : exactement le même look). Figé sur une version : à changer quand le look change.
+const APP = 'https://cdn.jsdelivr.net/gh/beeskotmusic-cmd/beeskot-studio@dede2f0/ui/';
 const ID_OK = /^[A-Za-z0-9_-]{20,80}$/;
 
 const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 
 // la fiche du lien (gardée 30 s : « Révoquer » marche en moins d'une minute)
-async function lireLien(id, env, ctx) {
-  const cache = caches.default, cle = new Request('https://cache.ecoute/lien/' + id);
+const estEcoute = j => j && j.type === 'ecoute' && Array.isArray(j.elements);
+const estTournage = j => j && j.type === 'tournage' && typeof j.html === 'string' && Array.isArray(j.elements);
+async function lireLien(id, env, ctx, valide = estEcoute) {
+  const cache = caches.default, cle = new Request('https://cache.ecoute/lien/' + (valide === estTournage ? 't/' : '') + id);
   const deja = await cache.match(cle); if (deja) { const j = await deja.json(); return j && j.ok ? j.lien : null; }
   let lien = null;
   try {
     const r = await fetch(DRIVE + id + '?alt=media&key=' + encodeURIComponent(env.CLE_API || ''));
-    if (r.ok) { const j = await r.json(); if (j && j.type === 'ecoute' && Array.isArray(j.elements)) lien = j; }
+    if (r.ok) { const j = await r.json(); if (valide(j)) lien = j; }
   } catch (e) { lien = null; }
   ctx.waitUntil(cache.put(cle, new Response(JSON.stringify({ ok: !!lien, lien }), { headers: { 'Cache-Control': 'max-age=30' } })));
   return lien;
@@ -164,6 +171,56 @@ async function stats(id, env) {
 }
 
 // la pochette : gardée un jour chez Cloudflare (rapide), refaite si la photo change (autre fichier)
+// une image de la page Tournages : le fichier s'il est une image, sinon (vidéo, PDF…) la vignette que Google en fait
+async function imageT(fichier, env, ctx) {
+  if (!fichier || !ID_OK.test(fichier)) return new Response('', { status: 404 });
+  const cache = caches.default, cle = new Request('https://cache.ecoute/timg/' + fichier);
+  const deja = await cache.match(cle); if (deja) return deja;
+  const cleApi = encodeURIComponent(env.CLE_API || '');
+  let r = await fetch(DRIVE + fichier + '?alt=media&key=' + cleApi), type = r.headers.get('Content-Type') || '';
+  if (!r.ok || !/^image\//.test(type)) {
+    try { const m = await (await fetch(DRIVE + fichier + '?fields=thumbnailLink&key=' + cleApi)).json();
+      if (m && m.thumbnailLink) { r = await fetch(m.thumbnailLink.replace(/=s\d+$/, '=s1200')); type = r.headers.get('Content-Type') || ''; } } catch (e) {}
+  }
+  if (!r.ok || !/^image\//.test(type)) return new Response('', { status: 404 });
+  const rep = new Response(r.body, { headers: { 'Content-Type': type, 'Cache-Control': 'public, max-age=86400' } });
+  ctx.waitUntil(cache.put(cle, rep.clone()));
+  return rep;
+}
+// la page Tournages : le HTML fabriqué par le logiciel (mode lecture, sans boutons), dans les mêmes boîtes, avec les mêmes styles
+function pageTournage(id, l) {
+  const okC = c => String(c || '').replace(/[^\w -]/g, ''), okT = t => /^(div|section|main|article|aside)$/.test(t) ? t : 'div';
+  const chaine = (Array.isArray(l.chaine) ? l.chaine : []).slice(0, 12);
+  const ouvre = chaine.map(x => `<${okT(x.t)}${x.id ? ` id="${okC(x.id)}"` : ''} class="tw-ch ${okC(x.c)}">`).join('');
+  const ferme = chaine.slice().reverse().map(x => `</${okT(x.t)}>`).join('');
+  const css = (Array.isArray(l.css) ? l.css : []).filter(h => /^style\/[\w.-]+\.css$/.test(h)).map(h => `<link rel="stylesheet" href="${APP}${h}">`).join('');
+  const corps = String(l.html || '').replace(/<script[\s\S]*?<\/script>/gi, '').split('__IMG__/').join('/t/' + id + '/i/');
+  return `<!doctype html><html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex,nofollow">
+<title>BEESKOT · Tournages${l.nom ? ' · ' + esc(l.nom) : ''}</title>${css}<style>${CSS_T}</style></head>
+<body class="${okC(l.corps)} tw-page" data-section="${okC(l.section || 'orga')}"><div class="tw-haut"><img src="${APP}look/logo-beeskot-flat.png" alt="BEESKOT"><span>Tournages · lecture seule</span></div>
+<div class="tw-cadre">${ouvre}${corps}${ferme}</div><footer class="tw-pied">fait avec Dari Band Studio · mis à jour le ${esc(new Date(l.maj || Date.now()).toLocaleString('fr-CA', { timeZone: 'America/Toronto', dateStyle: 'long', timeStyle: 'short' }))}</footer></body></html>`;
+}
+// pour que la page défile normalement dans un navigateur (dans le logiciel, tout tient dans la fenêtre)
+const CSS_T = `
+html{height:auto!important;overflow:auto!important}
+body.tw-page{height:auto!important;max-height:none!important;min-height:100%;overflow:visible!important;display:block!important;position:static!important}
+.tw-page .tw-ch{display:block!important;width:auto!important;max-width:100%!important;min-width:0!important;height:auto!important;max-height:none!important;min-height:0!important;overflow:visible!important;position:static!important;margin:0!important;flex:none!important;grid-template-columns:none!important;transform:none!important;inset:auto!important}
+.tw-page .tw-ch:not(.pane){padding:0!important;border:0!important;background:none!important;box-shadow:none!important}
+.tw-page .tw-cadre{max-width:1180px;margin:0 auto;padding:14px 14px 30px}
+.tw-page .tw-tour{margin-bottom:26px}
+.tw-page .tw-tour .to-affiche{cursor:default;min-height:120px}
+.tw-page .tw-tour .to-deplie{margin-top:10px}
+.tw-page .tt-reel-corps{display:block!important}
+.tw-haut{display:flex;align-items:center;gap:14px;padding:12px 18px;background:rgba(0,0,0,.35);box-shadow:0 3px 10px rgba(0,0,0,.4)}
+.tw-haut img{height:40px}.tw-haut span{font:700 12px Jost,system-ui,sans-serif;letter-spacing:.14em;text-transform:uppercase;color:#e7c796}
+.tw-pied{text-align:center;font:600 11px Jost,system-ui,sans-serif;color:rgba(239,230,210,.5);padding:0 0 24px}
+.tw-page .lect-txt{display:block;white-space:pre-wrap;overflow-wrap:break-word;height:auto!important;min-height:0!important;width:auto!important;max-width:100%}
+.tw-page .lect-v{display:block}
+.tw-page .tw-defile{overflow-x:auto;max-width:100%;-webkit-overflow-scrolling:touch}
+@media (max-width:700px){.tw-page .tw-cadre{padding:6px}.tw-page .to-infos,.tw-page .tt-tenues,.tw-page .to-deux,.tw-page [class*="cols"]{grid-template-columns:1fr!important;display:grid!important}
+  .tw-page .deux-box{display:flex!important;flex-direction:column!important}.tw-page .tw-defile .to-plans{min-width:980px}
+  .tw-page .to-infos>label{grid-column:auto!important}.tw-haut span{font-size:10px}.tw-page .box{padding-left:10px!important;padding-right:10px!important}}
+`;
 async function pochette(el, env, ctx) {
   if (!el.image || !ID_OK.test(el.image)) return new Response('', { status: 404 });
   const cache = caches.default, cle = new Request('https://cache.ecoute/img/' + el.image);
@@ -267,11 +324,26 @@ function pageMessage(texte) {
 <main><div class="vide-l">${esc(texte)}</div></main><footer>fait avec Dari Band Studio</footer></body></html>`;
 }
 
+// ---------- /t/<id> : la page Tournages du cameraman ----------
+async function routeTournage(req, morceaux, env, ctx) {
+  if (req.method !== 'GET' && req.method !== 'HEAD') return new Response('', { status: 405 });
+  const id = morceaux[1] || '';
+  if (!ID_OK.test(id)) return reponseHtml(pageMessage('Ce lien n\'est pas valide.'), 404);
+  const lien = await lireLien(id, env, ctx, estTournage);
+  if (!lien || lien.actif === false) return reponseHtml(pageMessage('Ce lien n\'est plus actif.'), 404);
+  if (lien.expire && Date.now() > Date.parse(lien.expire)) return reponseHtml(pageMessage('Ce lien a expiré.'), 410);
+  if (morceaux.length === 2) return new Response(pageTournage(id, lien), { headers: { 'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'no-store', 'X-Robots-Tag': 'noindex', 'Referrer-Policy': 'no-referrer',
+    'Content-Security-Policy': "default-src 'none'; img-src 'self' https://cdn.jsdelivr.net data:; style-src 'unsafe-inline' https://cdn.jsdelivr.net; font-src https://cdn.jsdelivr.net; base-uri 'none'; form-action 'none'" } });
+  if (morceaux[2] === 'i' && /^\d+$/.test(morceaux[3] || '') && morceaux.length === 4) { const el = lien.elements[+morceaux[3]]; return imageT(el && el.image, env, ctx); }
+  return new Response('', { status: 404 });
+}
+
 export default {
   async fetch(req, env, ctx) {
     const morceaux = new URL(req.url).pathname.split('/').filter(Boolean), id = morceaux[0] || '';
     const ping = req.method === 'POST' && morceaux[1] === 'e';
     if (req.method !== 'GET' && req.method !== 'HEAD' && !ping) return new Response('', { status: 405 });
+    if (id === 't') return routeTournage(req, morceaux, env, ctx);
     if (!id) return reponseHtml(pageMessage('Ce lien n\'est pas complet.'), 404);
     if (!ID_OK.test(id)) return reponseHtml(pageMessage('Ce lien n\'est pas valide.'), 404);
     if (morceaux[1] === 'stats' && morceaux.length === 2) return stats(id, env);
