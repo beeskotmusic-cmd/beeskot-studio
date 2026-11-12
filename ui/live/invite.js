@@ -1,5 +1,5 @@
 // =====================================================================
-// LIVE — la page des invités : ce qu'un invité sait faire (écouter en synchro, lancer, choisir un passage,
+// SYNCH BREAD — la page des invités : ce qu'un invité sait faire (écouter en synchro, lancer, choisir un passage,
 // régler ses écouteurs). Il ne voit rien d'autre de BEESKOT Studio.
 // Le lien contient le code de la salle après le # (il ne part jamais sur Internet tout seul).
 // Le morceau est lu directement dans le Drive, tant que le groupe garde les invitations ouvertes.

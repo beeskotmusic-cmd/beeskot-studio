@@ -7,7 +7,7 @@ const $ = (s, r = document) => r.querySelector(s);
 const $$ = (s, r = document) => [...r.querySelectorAll(s)];
 
 const BK = {
-  version: '0.9.136 bêta',
+  version: '0.9.137 bêta',
   modules: {},
   onglets: [],
   cotes: [],
@@ -243,6 +243,7 @@ const BK = {
     'Qui est dans la corbeille à pain ?<br><b>Mets à jour pour voir qui est là, et d\'où.</b>',
     'La biscotte continue de croustiller, même téléphone en poche.<br><b>Mets à jour et écoute.</b>',
     'Tout le monde croque en même temps, à la miette près.<br><b>Mets à jour : le Live arrive.</b>',
+    'Le pain se synchronise : même tranche, même seconde.<br><b>Mets à jour pour Synch bread.</b>',
   ],
   motMaj(v) { let h = 0; for (const c of String(v || '')) h = (h * 31 + c.charCodeAt(0)) >>> 0; return BK.MOTS_MAJ[(h + 1) % BK.MOTS_MAJ.length]; },
   popupMaj(m) {

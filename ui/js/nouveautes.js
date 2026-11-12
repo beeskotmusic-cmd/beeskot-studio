@@ -3,6 +3,12 @@
 // Pour une nouvelle version : ajouter un bloc EN HAUT de la liste. Une ligne courte par point : « Onglet : ce qui change. »
 // =====================================================================
 BK.NOUVEAUTES = [
+  { v: '0.9.137', titre: 'Synch bread', l: [
+    ['🍞', 'L\'onglet Live s\'appelle maintenant Synch bread, avec les couleurs de la section Show (comme Light Toast).'],
+    ['🎚', 'Synch bread : bouton SYNCHRONISER sur chaque appareil. Ton téléphone écoute l\'écouteur du lead témoin et le tien, et se cale tout seul.'],
+    ['👑', 'Synch bread : le « chef » s\'appelle le lead témoin. C\'est lui qui lance, et c\'est sur son son que les autres se calent.'],
+    ['✂', 'Synch bread : les passages déjà proposés dans Reels Audio s\'affichent sous « Morceau entier ». « + Nouveau passage » est toujours là, même sur un export.'],
+  ] },
   { v: '0.9.136', titre: 'Live : le playback des tournages', l: [
     ['🎧', 'Nouvel onglet Live (Show) : tout le monde entend le même morceau, au même moment, dans ses écouteurs. Sur PC et sur téléphone.'],
     ['🎬', 'Live : le chef lance, arrête, reprend. Tout le monde peut prendre la main.'],
@@ -771,19 +777,19 @@ BK.TUTO = [
       ['Lancer le Light Show', '▶ Ouvrir dans TouchDesigner, ou ▶ Autre programme LED (ce PC).'],
       ['Piloter les lampes Globe', 'Enregistrer et chercher les lampes (une fois) → Allumer / Éteindre chaque lampe.'] ],
     astuces: [ 'À afficher seulement sur les PC qui en ont besoin (Réglages › Onglets).' ] },
-  { o: 'Live', ic: '🎧', quoi: 'Le playback des tournages sans enceinte : chacun met ses écouteurs, et tout le monde entend le même morceau au même moment. Chaque appareil joue sa propre copie du morceau ; une « salle commune » sur Internet donne le départ à tout le monde.',
+  { o: 'Synch bread', ic: '🎧', quoi: 'Le playback des tournages sans enceinte : chacun met ses écouteurs, et tout le monde entend le même morceau au même moment. Chaque appareil joue sa propre copie du morceau ; une « salle commune » sur Internet donne le départ à tout le monde.',
     comment: [
-      ['Entrer', 'Ouvre l\'onglet Live → « Entrer dans le Live ». Mets tes écouteurs. Garde l\'onglet ouvert : l\'écran reste allumé tout seul.'],
-      ['Choisir le morceau', 'Le chef choisit le morceau en haut à gauche. Chaque appareil le télécharge : dans « Connectés », attends que tout le monde soit « prêt ».'],
-      ['Le chef', 'Un seul chef à la fois : c\'est lui qui lance. « Prendre la main » pour devenir chef, « Passer la main à… » pour la donner. Tout le monde peut appuyer sur STOP.'],
+      ['Entrer', 'Ouvre l\'onglet Synch bread (section Show) → « Entrer ». Mets tes écouteurs. Garde l\'onglet ouvert : l\'écran reste allumé tout seul.'],
+      ['Choisir le morceau', 'Le lead témoin choisit le morceau en haut à gauche. Chaque appareil le télécharge : dans « Connectés », attends que tout le monde soit « prêt ».'],
+      ['Le lead témoin', 'Un seul lead témoin à la fois : c\'est lui qui lance, et c\'est sur son son que les autres se calent. « Prendre la main » pour le devenir, « Passer la main à… » pour la donner. Tout le monde peut appuyer sur STOP.'],
       ['Lancer une prise', 'LANCER : un décompte (4 coups), puis la musique part chez tout le monde. STOP arrête tout. REPRENDRE relance le même passage. Sur PC : la barre d\'espace.'],
-      ['Les passages', 'À gauche : le morceau entier, les passages gardés dans Reels Audio, et ceux créés ici. « + Nouveau passage » : donne un nom, glisse les deux bords orange sur la forme d\'onde → Garder. Tout le groupe le voit.'],
-      ['Les exports', 'Onglet « Exports » : les fichiers déjà exportés par Reels Audio (tournage ralenti ou accéléré, en gardant la note). Ils sont joués tels quels.'],
-      ['Décompte, élan, vitesse, boucle', 'Sous les boutons. Élan = la musique démarre quelques secondes avant le passage. Vitesse : la musique change de hauteur, comme un disque (pour garder la note : un export). Boucle = le passage se rejoue tout seul.'],
+      ['Synchroniser (début de tournage)', 'Sur ton appareil : SYNCHRONISER → tiens ton écouteur et celui du lead témoin tout près du micro de ton téléphone → « Synchroniser maintenant ». 6 secondes, et ton téléphone est calé. À refaire si tu changes d\'écouteurs. Secours : « Lancer les clics » et le curseur, à l\'oreille.'],
+      ['Les passages', 'À gauche : le morceau entier, les passages déjà proposés dans Reels Audio (tournages, PLAN, gardés, Discord), et ceux créés ici. « + Nouveau passage » : donne un nom, glisse les deux bords sur la forme d\'onde → Garder. Tout le groupe le voit.'],
+      ['Les exports', 'Onglet « Exports » : les fichiers déjà exportés par Reels Audio. Ils sont joués tels quels ; tu peux aussi changer leur vitesse et y créer des passages.'],
+      ['Décompte, élan, vitesse, boucle', 'Sous les boutons (le lead témoin les règle). Élan = la musique démarre quelques secondes avant le passage. Vitesse : la musique change de hauteur, comme un disque. Boucle = le passage se rejoue tout seul.'],
       ['Inviter le cameraman', '« Inviter (QR code) » → il scanne avec son téléphone (iPhone ou Android), écrit son prénom, et entre. Il peut prendre la main et lancer. « Fermer les invitations » à la fin du tournage.'],
-      ['Régler les écouteurs (début de tournage)', '« Réglage des écouteurs ». Automatique : un appareil devient l\'arbitre (son micro écoute) ; chacun colle son écouteur contre ce micro, on touche « Mesurer », 5 secondes par personne. À l\'oreille : « Lancer les clics », un écouteur de chaque téléphone aux oreilles, et on glisse le curseur jusqu\'à entendre un seul clic.'],
       ['Couper la synchro sur un appareil', 'L\'interrupteur « Synchro » en haut à droite : cet appareil ne suit plus la musique. Les autres le voient « synchro coupée ».'],
-      ['Si ça coince', 'Voyant orange = le morceau n\'est pas encore chargé. « Salle injoignable » = pas de réseau. Dernier recours : le même fichier sur chaque téléphone et un « 3, 2, 1, play ».'],
+      ['Si ça coince', 'Voyant rose = le morceau n\'est pas encore chargé. Voyant violet = prêt mais pas synchronisé. « Salle injoignable » = pas de réseau. Dernier recours : le même fichier sur chaque téléphone et un « 3, 2, 1, play ».'],
     ] },
   { o: 'Light Toast', ic: '💡', quoi: 'TOAST by Beeskot : tu charges un morceau, tu poses des pêches (éclairs, flashs) et des effets sur la frise, tu vois le résultat sur les tubes LED et sur la vue 3D, puis tu exportes la vidéo (.mp4) pour les lumières.',
     comment: [

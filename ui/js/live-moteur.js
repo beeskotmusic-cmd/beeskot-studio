@@ -1,12 +1,12 @@
 // =====================================================================
-// LIVE — le moteur du playback synchronisé (tout le monde entend la même musique au même moment).
+// SYNCH BREAD (ex « Live ») — le moteur du playback synchronisé (tout le monde entend la même musique au même moment).
 // Ce fichier ne dépend PAS du reste de BEESKOT Studio : il sert à l'onglet Live (modules/live.js)
 // ET à la page des invités (ui/live/index.html). L'écran est dans js/live-ecran.js.
 //
 //   BKLive.horloge   l'heure commune (celle du serveur), à quelques millisecondes près
 //   BKLive.salle     la « salle commune » : ce que tout le monde voit en direct (qui est là, quoi jouer, quand)
 //   BKLive.lecteur   joue le morceau pile à l'heure prévue, et se recale tout seul
-//   BKLive.cal       le réglage des écouteurs : un téléphone « arbitre » écoute les autres avec son micro
+//   BKLive.cal       « Synchroniser » : chaque appareil écoute, avec son micro, le clic du lead témoin et le sien, et se cale
 //
 // La salle commune est une base Firebase Realtime Database (gratuite), lue et écrite par simples
 // requêtes web (pas de bibliothèque à installer). Si l'adresse change : la ligne BASE seulement.
@@ -39,7 +39,7 @@ L.id = lu('bk.live.id', '') || (() => { const i = Math.random().toString(36).sli
 // ---------- LA SALLE COMMUNE ----------
 // d = la copie locale de la salle, tenue à jour en direct. Structure :
 //   etat : { piste, passages, passage, opts, chef, cmd, clic, invites }     gens/<id> : { nom, type, pret, sync, regle, vu }
-//   cal  : { n, arbitre, cible, T0 } puis { …, res: { ok, d, conf } }
+//   cal  : { n, cible, temoin, T0 } puis { …, res: { ok, d } }
 L.salle = {
   code: '', d: {}, es: null, connecte: false, erreur: '', suiveurs: new Set(),
   url(chemin = '') { return `${L.BASE}/live/${this.code}${chemin ? '/' + chemin : ''}.json`; },
@@ -211,23 +211,26 @@ L.lecteur = {
 };
 document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible' && L.lecteur.pret()) L.lecteur.ecran(true); });
 
-// ---------- LE RÉGLAGE DES ÉCOUTEURS (l'arbitre écoute, la cible joue des bips) ----------
-// La cible joue 8 petits « sifflements » à des heures connues. L'arbitre les enregistre avec son micro et
-// calcule le retard. Tout le monde est mesuré par le même micro : tout le monde est calé sur la même référence.
+// ---------- SYNCHRONISER (chaque appareil se cale tout seul sur le « lead témoin ») ----------
+// L'appareil qui se synchronise ouvre SON micro. Le lead témoin joue 8 petits sifflements graves ; l'appareil
+// joue les siens, plus aigus, un peu après (DECALE). Avec son micro il entend les deux (l'écouteur du témoin et
+// le sien, tenus près du micro), mesure l'écart entre les deux et se corrige. Le retard du micro ne compte pas :
+// il est le même pour les deux sons.
 L.cal = {
-  flux: null, blocs: [], F1: 1000, F2: 3500, DUREE: 0.03,
-  // le sifflement (fréquence qui monte de F1 à F2), et sa version décalée d'un quart de tour (pour mesurer la force sans se soucier de la phase)
-  gabarit(sr, quart) { const n = Math.round(this.DUREE * sr), y = new Float32Array(n), k = (this.F2 - this.F1) / this.DUREE;
-    for (let i = 0; i < n; i++) { const t = i / sr, ph = 2 * Math.PI * (this.F1 * t + k * t * t / 2), w = 0.5 - 0.5 * Math.cos(2 * Math.PI * i / (n - 1)); y[i] = w * (quart ? Math.cos(ph) : Math.sin(ph)); }
+  flux: null, blocs: [], VOIES: [[1000, 2200], [2600, 3800]], DUREE: 0.03, DECALE: 215,     // voie 0 = le témoin (grave), voie 1 = l'appareil qui se cale (aigu)
+  // le sifflement d'une voie (sa fréquence monte), et sa version décalée d'un quart de tour (pour mesurer la force sans se soucier de la phase).
+  // Les deux voies n'utilisent pas les mêmes fréquences : on les reconnaît même si l'une est bien plus forte que l'autre.
+  gabarit(sr, quart, voie) { const [f1, f2] = this.VOIES[voie ? 1 : 0], n = Math.round(this.DUREE * sr), y = new Float32Array(n), k = (f2 - f1) / this.DUREE;
+    for (let i = 0; i < n; i++) { const t = i / sr, ph = 2 * Math.PI * (f1 * t + k * t * t / 2), w = 0.5 - 0.5 * Math.cos(2 * Math.PI * i / (n - 1)); y[i] = w * (quart ? Math.cos(ph) : Math.sin(ph)); }
     return y; },
-  // LA CIBLE : joue les bips à partir de l'heure commune T0, par son chemin de son habituel (avec son réglage du moment)
-  jouer(T0) {
+  // joue les 8 sifflements à partir de l'heure commune T0 (+ decale ms), par le chemin de son habituel (avec le réglage du moment)
+  jouer(T0, voie, decale = 0) {
     const lec = L.lecteur, c = lec.ctx; if (!c) return false; lec.relever();
-    const g = this.gabarit(c.sampleRate), b = c.createBuffer(1, g.length, c.sampleRate); b.getChannelData(0).set(g);
-    for (const o of L.R.CAL_COUPS) { const s = c.createBufferSource(); s.buffer = b; s.connect(lec.sortie); const t = lec.quand(T0 + o); if (t > c.currentTime) s.start(t); }
+    const g = this.gabarit(c.sampleRate, false, voie), b = c.createBuffer(1, g.length, c.sampleRate); b.getChannelData(0).set(g);
+    for (const o of L.R.CAL_COUPS) { const s = c.createBufferSource(); s.buffer = b; s.connect(lec.sortie); const t = lec.quand(T0 + o + decale); if (t > c.currentTime) s.start(t); }
     return true;
   },
-  // L'ARBITRE : ouvre le micro une fois (sans les « améliorations » du téléphone, qui déforment le son)
+  // ouvre le micro (sans les « améliorations » du téléphone, qui déforment le son)
   async micro() {
     if (this.flux) return true; const c = L.lecteur.contexte();
     if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) throw new Error('micro indisponible ici');
@@ -237,25 +240,26 @@ L.cal = {
     src.connect(n); n.connect(muet); muet.connect(c.destination); this._src = src; return true;
   },
   fermer() { if (this.flux) this.flux.getTracks().forEach(t => t.stop()); try { this._src.disconnect(); this.noeud.disconnect(); } catch (e) {} this.flux = null; this.enr = false; },
-  // enregistre autour des bips attendus à partir de T0, puis mesure. Renvoie { ok, d (ms de retard), conf }
+  // enregistre autour des sifflements attendus à partir de T0, puis mesure les deux séries.
+  // Renvoie { ok, d (ms : de combien CET appareil est en retard sur le témoin), temoin, moi }
   async ecouter(T0) {
     const c = L.lecteur.ctx, h = L.horloge, dernier = L.R.CAL_COUPS[L.R.CAL_COUPS.length - 1];
     this.blocs = []; this.enr = true;
-    // l'heure du micro : horloge du son simple (le décalage constant du micro est le même pour toutes les mesures)
     const ds = []; const rel = setInterval(() => ds.push(c.currentTime - perf() / 1000), 60);
-    await new Promise(r => setTimeout(r, Math.max(0, T0 - h.maintenant()) + dernier + 1300));
+    await new Promise(r => setTimeout(r, Math.max(0, T0 - h.maintenant()) + dernier + this.DECALE + 1300));
     clearInterval(rel); this.enr = false;
-    const blocs = this.blocs; this.blocs = []; if (!blocs.length) return { ok: false, d: 0, conf: 0 };
+    const blocs = this.blocs; this.blocs = []; const rate = { ok: false, d: 0, conf: 0 }; if (!blocs.length) return { ok: false, d: 0, temoin: rate, moi: rate };
     const sr = c.sampleRate, t0 = blocs[0].t, total = Math.round((blocs[blocs.length - 1].t - t0) * sr) + blocs[blocs.length - 1].d.length, rec = new Float32Array(total);
     for (const b of blocs) { const i = Math.round((b.t - t0) * sr); if (i >= 0 && i + b.d.length <= total) rec.set(b.d, i); }
-    const dm = mediane(ds), attendus = L.R.CAL_COUPS.map(o => (dm + (T0 + o - h.decal) / 1000 - t0) * sr);
-    return this.detecter(rec, sr, attendus);
+    const dm = mediane(ds), att = dec => L.R.CAL_COUPS.map(o => (dm + (T0 + o + dec - h.decal) / 1000 - t0) * sr);
+    const temoin = await this.detecter(rec, sr, att(0), 0), moi = await this.detecter(rec, sr, att(this.DECALE), 1);
+    return { ok: temoin.ok && moi.ok, d: moi.d - temoin.d, temoin, moi };
   },
   // le calcul (sans micro : testable tout seul). attendus = la position prévue de chaque bip dans l'enregistrement (en échantillons)
-  async detecter(rec, sr, attendus, min = -0.2, max = 0.8) {
+  async detecter(rec, sr, attendus, voie = 0, min = -0.25, max = 0.8) {
     const q = Math.max(1, Math.round(sr / 12000)), srq = sr / q, n = Math.floor(rec.length / q), x = new Float32Array(n);
     for (let i = 0; i < n; i++) { let s = 0; for (let j = 0; j < q; j++) s += rec[i * q + j]; x[i] = s / q; }      // on allège : 12 000 points par seconde suffisent
-    const a = this.gabarit(srq), b = this.gabarit(srq, true), m = a.length, l0 = Math.round(min * srq), l1 = Math.round(max * srq), N = l1 - l0 + 1, score = new Float32Array(N), parBip = [];
+    const a = this.gabarit(srq, false, voie), b = this.gabarit(srq, true, voie), m = a.length, l0 = Math.round(min * srq), l1 = Math.round(max * srq), N = l1 - l0 + 1, score = new Float32Array(N), parBip = [];
     let energie = 0; for (let i = 0; i < n; i++) energie += x[i] * x[i];
     for (const att of attendus) { const base = Math.round(att / q), sc = new Float32Array(N); parBip.push(sc);
       for (let l = l0; l <= l1; l++) { const p = base + l; if (p < 0 || p + m > n) continue; let s1 = 0, s2 = 0;

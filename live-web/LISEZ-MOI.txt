@@ -1,8 +1,8 @@
-BEESKOT · LIVE — le playback synchronisé des tournages
-======================================================
+BEESKOT · SYNCH BREAD (ex « Live ») — le playback synchronisé des tournages
+===========================================================================
 
 C'est quoi ?
-  Dans BEESKOT Studio › Live, tout le monde entend le même morceau, au même moment, dans ses écouteurs.
+  Dans BEESKOT Studio › Synch bread (dans le code : « live »), tout le monde entend le même morceau, au même moment, dans ses écouteurs.
   Chaque appareil joue SA copie du morceau. Une « salle commune » sur Internet donne l'heure exacte
   et le départ à tout le monde. Les invités (cameraman, chef op) passent par une page web, sans appli :
      https://beeskotmusic-cmd.github.io/beeskot-studio/live/#s=<code de la salle>
@@ -38,11 +38,11 @@ Les invités et le morceau
   clé gratuite Google (Notes et retours › Externe) dans la salle : la page de l'invité télécharge le fichier
   directement dans le Drive. « Fermer les invitations » referme l'accès. À faire à la fin du tournage.
 
-Le réglage des écouteurs
-  Chaque paire d'écouteurs (surtout Bluetooth) a son propre retard. Un appareil « arbitre » ouvre son micro ;
-  chaque personne colle son écouteur dessus ; son téléphone joue 8 petits sifflements à des heures connues ;
-  l'arbitre mesure le retard et l'envoie au téléphone, qui se corrige. Tout le monde est mesuré par le même
-  micro : tout le monde est calé sur la même référence. Le réglage reste gardé sur chaque appareil.
-  Sur le téléphone, le micro demande l'appli Android « boîte 4 » ou plus (permission micro ajoutée).
+« Synchroniser » (0.9.137 : remplace l'ancien « arbitre »)
+  Chaque paire d'écouteurs (surtout Bluetooth) a son propre retard. Le « lead témoin » (celui qui lance) est la
+  référence. Sur son propre appareil, chacun touche SYNCHRONISER : l'appareil ouvre son micro ; le lead témoin
+  joue 8 sifflements graves, l'appareil joue les siens (aigus) juste après ; avec les deux écouteurs près du
+  micro, l'appareil mesure l'écart et se corrige. Le retard du micro ne compte pas (le même pour les deux sons).
+  Sur le téléphone, le micro demande l'appli Android « boîte 4 » ou plus. Secours : clics + curseur, à l'oreille.
 
 Gratuit ? Oui : Firebase Realtime Database, offre gratuite (100 appareils en même temps, bien assez).

@@ -1,5 +1,6 @@
 // =====================================================================
-// LIVE — l'écran (le même pour l'onglet Live du logiciel et pour la page des invités).
+// SYNCH BREAD (ex « Live ») — l'écran (le même pour l'onglet du logiciel et pour la page des invités).
+// Vocabulaire : le « lead témoin » = celui qui lance (dans le code : chef). C'est aussi sur son son que les autres se calent.
 // Le moteur (heure commune, salle, lecteur, réglage) est dans js/live-moteur.js.
 //
 //   BKLive.monter(racine, hote)   construit l'écran dans « racine ».
@@ -21,7 +22,7 @@ const pc = v => Math.round(v * 100) + ' %';
 
 L.monter = function (racine, hote) {
   const S = L.salle, H = L.horloge, P = L.lecteur;
-  const U = { entre: false, onglet: 'passages', charge: '', chargee: '', pics: null, edite: null, exports: null, voile: '', mesures: {}, arbitre: false, vuCmd: 0, vuCal: 0, faitCal: L.outils.lu('bk.live.calfait', 0), msg: '' };
+  const U = { entre: false, onglet: 'passages', charge: '', chargee: '', pics: null, edite: null, exports: null, voile: '', sync: null, enSync: false, vuCmd: 0, vuCal: 0, msg: '' };
   racine.classList.add('lv');
   racine.innerHTML = `
     <div class="lv-haut" data-z="haut"></div>
@@ -77,9 +78,8 @@ L.monter = function (racine, hote) {
     const clics = !!e.clic && H.maintenant() != null && H.maintenant() - e.clic < 15 * 60e3; if (clics !== U.clics) { U.clics = clics; P.clic(clics); }
     const k = S.d.cal;
     const frais = k && H.maintenant() != null && Math.abs(H.maintenant() - k.T0) < 60000;
-    if (frais && k.cible === L.id && k.n !== U.vuCal && !k.res) { U.vuCal = k.n; if (P.pret()) L.cal.jouer(k.T0); }
-    if (frais && k.res && k.cible === L.id && k.n !== U.faitCal) { U.faitCal = k.n; L.outils.garde('bk.live.calfait', k.n); if (k.res.ok) { P.regler(P.calib + k.res.d, true); S.presence(moi()); dire('Écouteurs réglés.'); } else dire('Mesure ratée : rapproche l\'écouteur du micro, ou règle à l\'oreille.'); }
-    if (frais && k.res) U.mesures[k.cible] = k.res;
+    if (frais && k.temoin === L.id && k.cible !== L.id && k.n !== U.vuCal && !k.res) { U.vuCal = k.n;
+      if (P.pret()) { L.cal.jouer(k.T0, 0); const g = S.gens().find(x => x.id === k.cible); dire((g ? g.nom : 'Quelqu\'un') + ' se synchronise sur toi : garde ton écouteur près de son micro.'); } }
     // personne ne tient la barre : le premier membre présent devient chef
     if (hote.membre && S.connecte && (!e.chef || !S.gens().some(g => g.id === e.chef)) && S.gens().filter(g => g.type !== 'invite').map(g => g.id).sort()[0] === L.id) S.maj('etat', { chef: L.id });
     chargerPiste(); dessiner();
@@ -98,7 +98,7 @@ L.monter = function (racine, hote) {
   async function choisirPiste(p) {
     if (!p || !p.fichier) return dire('Ce morceau n\'a pas de version dans le Drive.');
     let cle = ''; if (E().invites && hote.inviter) { try { cle = (await hote.inviter(p, true)).cle || ''; } catch (e) { dire('Invités : ' + (e.message || e)); } }
-    const ps = p.export ? [] : await hote.passages(p).catch(() => []);
+    const ps = await hote.passages(p).catch(() => []);
     U.exports = null; const inter = p.bpm > 30 ? Math.round(60000 / p.bpm) : opts().inter;
     await S.maj('etat', { piste: { ...p, cle }, passages: ps, passage: null, opts: { ...opts(), v: 1, inter }, cmd: { n: Date.now(), type: 'stop', par: hote.nom } });
   }
@@ -108,16 +108,16 @@ L.monter = function (racine, hote) {
   function peindre() {
     const e = E(), p = piste(), ch = chef(), gens = S.gens(), o = opts(), pa = passage(), nomChef = (gens.find(g => g.id === e.chef) || {}).nom || '—';
     q('.lv-entree').classList.toggle('hidden', U.entre);
-    if (!U.entre) { z('entree').innerHTML = `<div class="lv-carte"><div class="lv-t">LIVE</div><p>Tout le monde entend la même musique, au même moment, dans ses écouteurs.</p>
+    if (!U.entre) { z('entree').innerHTML = `<div class="lv-carte"><div class="lv-t">SYNCH BREAD</div><p>Tout le monde entend la même musique, au même moment, dans ses écouteurs.</p>
       ${hote.membre ? '' : `<label class="lv-lb" for="lvNom">Ton prénom</label><input class="lv-champ" id="lvNom" maxlength="20" value="${esc(hote.nom || '')}" autocomplete="off">`}
-      <button type="button" class="lv-b vert gros" data-a="entrer">Entrer dans le Live</button><p class="lv-petit">Mets tes écouteurs et monte le son du téléphone.</p></div>`; return; }
+      <button type="button" class="lv-b vert gros" data-a="entrer">Entrer</button><p class="lv-petit">Mets tes écouteurs et monte le son du téléphone.</p></div>`; return; }
     // --- le haut ---
     z('haut').html = `
       ${hote.membre && hote.morceaux ? `<select class="lv-champ lv-morceau" data-c="morceau" aria-label="Morceau" ${ch ? '' : 'disabled'}><option value="">Choisir un morceau…</option>${(U.morceaux || []).map(x => `<option value="${esc(x.id)}"${p && p.id === x.id ? ' selected' : ''}>${esc(x.nom)}</option>`).join('')}</select>`
         : `<div class="lv-nompiste">${esc(p ? p.nom : 'Pas encore de morceau')}</div>`}
       <span class="lv-etatreseau ${S.connecte && H.decal != null ? 'ok' : 'ko'}">${S.erreur ? 'Salle injoignable' : !S.connecte ? 'Connexion…' : H.decal == null ? 'Heure commune…' : 'En ligne'}</span>
       <span class="lv-vide"></span>
-      <span class="lv-chef">Chef : <b>${esc(ch ? 'toi' : nomChef)}</b></span>
+      <span class="lv-chef">Lead témoin : <b>${esc(ch ? 'toi' : nomChef)}</b></span>
       ${ch ? '' : '<button type="button" class="lv-b ambre" data-a="main">Prendre la main</button>'}
       <label class="lv-sync"><span>Synchro</span><button type="button" class="lv-inter${P.sync ? ' on' : ''}" role="switch" aria-checked="${P.sync}" data-a="sync" aria-label="Synchro sur cet appareil"><i></i></button></label>`;
     // --- la colonne de gauche : passages / exports (/ connectés sur téléphone) ---
@@ -128,38 +128,38 @@ L.monter = function (racine, hote) {
       corps = liste.map((x, i) => { const on = x.entier ? pa.entier : (!pa.entier && Math.abs(pa.debut - x.debut) < .05 && Math.abs(pa.fin - x.fin) < .05);
         return `<div class="lv-ligne${on ? ' on' : ''}"><button type="button" class="lv-pass" data-a="passage" data-i="${i}" ${ch ? '' : 'disabled'}><b>${esc(x.nom || 'Passage')}</b><em>${x.entier ? 'du début à la fin' : tc(x.debut) + ' → ' + tc(x.fin) + (x.v && x.v !== 1 ? ' · vitesse ' + pc(x.v) : '')}</em></button>
           ${hote.membre && x.source === 'live' ? `<button type="button" class="lv-x" data-a="oublier" data-i="${i}" aria-label="Supprimer ce passage">✕</button>` : ''}</div>`; }).join('')
-        + (hote.membre && hote.garderPassage && p && !p.export ? (U.edite
+        + (hote.membre && hote.garderPassage ? (U.edite && p
           ? `<div class="lv-edit"><label class="lv-lb" for="lvPn">Nom du passage</label><input class="lv-champ" id="lvPn" maxlength="30" value="${esc(U.edite.nom)}" data-e="nom">
               <div class="lv-duo"><div><label class="lv-lb" for="lvPd">Entrée</label><input class="lv-champ" id="lvPd" inputmode="decimal" value="${tc(U.edite.debut, 1)}" data-e="debut"></div><div><label class="lv-lb" for="lvPf">Sortie</label><input class="lv-champ" id="lvPf" inputmode="decimal" value="${tc(U.edite.fin, 1)}" data-e="fin"></div></div>
               <p class="lv-petit">Glisse aussi les deux bords orange sur la forme d'onde.</p>
               <div class="lv-duo"><button type="button" class="lv-b vert" data-a="garder">Garder</button><button type="button" class="lv-b" data-a="annuler">Annuler</button></div></div>`
-          : `<button type="button" class="lv-b pointille" data-a="nouveau" ${U.chargee ? '' : 'disabled'}>+ Nouveau passage</button>`) : '');
+          : `<button type="button" class="lv-b pointille" data-a="nouveau" ${p && U.chargee === p.fichier ? '' : 'disabled'}>+ Nouveau passage</button>${!p ? '<p class="lv-petit">Choisis d\'abord un morceau en haut.</p>' : U.chargee !== p.fichier ? '<p class="lv-petit">Le morceau se charge…</p>' : ''}`) : '');
     } else if (U.onglet === 'exports') {
       corps = U.exports == null ? '<p class="lv-petit">Recherche des exports…</p>' : !U.exports.length ? '<p class="lv-petit">Aucun passage exporté pour ce morceau (Reels Audio › Exporter).</p>'
         : U.exports.map((x, i) => `<div class="lv-ligne${p && p.fichier === x.fichier ? ' on' : ''}"><button type="button" class="lv-pass" data-a="export" data-i="${i}" ${ch ? '' : 'disabled'}><b>${esc(x.nom)}</b><em>${esc(x.detail || 'fichier exporté, joué tel quel')}</em></button></div>`).join('')
           + (p && p.export ? '<button type="button" class="lv-b" data-a="retour">Revenir au morceau</button>' : '');
     }
-    const listeGens = gens.map(g => { const pret = g.pret === true && (!p || g.piste === p.fichier), coul = g.sync === false ? 'gris' : !pret ? 'orange' : g.regle ? 'vert' : 'jaune';
-      const txt = g.sync === false ? 'synchro coupée' : g.pret === 'dl' ? 'télécharge le morceau…' : g.pret === 'dec' ? 'prépare le morceau…' : g.pret === 'err' ? 'morceau pas chargé' : !pret ? 'pas prêt' : g.regle ? 'prêt' : 'prêt · écouteurs pas réglés';
-      return `<div class="lv-pers${g.id === e.chef ? ' chef' : ''}"><span class="lv-voyant ${coul}" aria-hidden="true"></span><div><b>${esc(g.nom)}${g.id === L.id ? ' (toi)' : ''}${g.id === e.chef ? ' <span class="lv-tagchef">· CHEF</span>' : ''}${g.type === 'invite' ? ' <span class="lv-tag">· invité</span>' : ''}</b><em>${esc(g.type === 'pc' ? 'Ordinateur' : g.os || 'Téléphone')} · ${txt}</em></div></div>`; }).join('');
+    const listeGens = gens.map(g => { const pret = g.pret === true && (!p || g.piste === p.fichier), coul = g.sync === false ? 'gris' : !pret ? 'orange' : g.regle || g.id === e.chef ? 'vert' : 'jaune';
+      const txt = g.sync === false ? 'synchro coupée' : g.pret === 'dl' ? 'télécharge le morceau…' : g.pret === 'dec' ? 'prépare le morceau…' : g.pret === 'err' ? 'morceau pas chargé' : !pret ? 'pas prêt' : g.regle || g.id === e.chef ? 'prêt' : 'prêt · pas synchronisé';
+      return `<div class="lv-pers${g.id === e.chef ? ' chef' : ''}"><span class="lv-voyant ${coul}" aria-hidden="true"></span><div><b>${esc(g.nom)}${g.id === L.id ? ' (toi)' : ''}${g.id === e.chef ? ' <span class="lv-tagchef">· LEAD TÉMOIN</span>' : ''}${g.type === 'invite' ? ' <span class="lv-tag">· invité</span>' : ''}</b><em>${esc(g.type === 'pc' ? 'Ordinateur' : g.os || 'Téléphone')} · ${txt}</em></div></div>`; }).join('');
     const outils = `${ch && gens.length > 1 ? `<select class="lv-champ" data-c="passer" aria-label="Passer la main"><option value="">Passer la main à…</option>${gens.filter(g => g.id !== L.id).map(g => `<option value="${esc(g.id)}">${esc(g.nom)}</option>`).join('')}</select>` : ''}
       <span class="lv-vide"></span>
       ${hote.membre && hote.inviter ? `<button type="button" class="lv-b moutarde" data-a="inviter">Inviter (QR code)</button>` : ''}
-      <button type="button" class="lv-b" data-a="reglage">Réglage des écouteurs</button>`;
+`;
     if (U.onglet === 'gens') corps = listeGens + outils;
     z('gauche').html = `<div class="lv-onglets" role="tablist">${ong.map(([id, t]) => `<button type="button" role="tab" aria-selected="${U.onglet === id}" class="lv-ong${U.onglet === id ? ' on' : ''}${id === 'gens' ? ' que-etroit' : ''}" data-a="onglet" data-o="${id}">${t}</button>`).join('')}</div><div class="lv-liste">${corps}</div>`;
     z('droite').html = `<div class="lv-tt">CONNECTÉS (${gens.length})</div>${listeGens}${outils}`;
     // --- transport et options ---
     const pos = P.position(e.cmd);
     z('transport').html = ch
-      ? `<button type="button" class="lv-b vert gros" data-a="lancer">▶ LANCER</button><button type="button" class="lv-b rouge gros" data-a="stop">■ STOP</button><button type="button" class="lv-b gros" data-a="lancer" aria-label="Reprendre au début du passage">⟲ REPRENDRE</button>`
-      : `<button type="button" class="lv-b ambre gros" data-a="main">Prendre la main pour lancer</button><button type="button" class="lv-b rouge gros" data-a="stop" ${pos ? '' : 'disabled'}>■ STOP</button>`;
+      ? `<button type="button" class="lv-b vert gros" data-a="lancer">▶ LANCER</button><button type="button" class="lv-b rouge gros" data-a="stop">■ STOP</button><button type="button" class="lv-b gros" data-a="lancer" aria-label="Reprendre au début du passage">⟲ REPRENDRE</button><button type="button" class="lv-b gros bleu" data-a="reglage">SYNCHRONISER</button>`
+      : `<button type="button" class="lv-b ambre gros" data-a="main">Prendre la main pour lancer</button><button type="button" class="lv-b rouge gros" data-a="stop" ${pos ? '' : 'disabled'}>■ STOP</button><button type="button" class="lv-b gros bleu" data-a="reglage">SYNCHRONISER</button>`;
     const sel = (c, vals, cur, fmt) => `<select class="lv-champ lv-opt" data-c="${c}" ${ch ? '' : 'disabled'}>${vals.map(v => `<option value="${v}"${+cur === v ? ' selected' : ''}>${fmt(v)}</option>`).join('')}</select>`;
     z('options').html = `<label><span>Décompte</span>${sel('coups', COUPS, o.coups, v => v ? v + ' coups' : 'aucun')}</label>
       <label><span>Élan</span>${sel('elan', ELANS, o.elan, v => v ? v + ' s avant' : 'aucun')}</label>
       <label><span>Vitesse</span>${sel('v', VITESSES, o.v, pc)}</label>
       <label><span>Boucle</span><button type="button" class="lv-inter${o.boucle ? ' on' : ''}" role="switch" aria-checked="${!!o.boucle}" data-a="boucle" aria-label="Rejouer le passage en boucle" ${ch ? '' : 'disabled'}><i></i></button></label>`;
-    z('note').textContent = U.msg || (S.erreur ? 'La salle commune ne répond pas (' + S.erreur + '). Vérifie le réseau.' : !p ? (ch ? 'Choisis un morceau en haut.' : 'Le chef n\'a pas encore choisi de morceau.') : U.charge ? 'Chargement du morceau…' : o.v !== 1 ? 'Vitesse ' + pc(o.v) + ' : la musique change de hauteur, comme un disque. Pour garder la note, joue un export de Reels Audio.' : '');
+    z('note').textContent = U.msg || (S.erreur ? 'La salle commune ne répond pas (' + S.erreur + '). Vérifie le réseau.' : !p ? (ch ? 'Choisis un morceau en haut.' : 'Le lead témoin n\'a pas encore choisi de morceau.') : U.charge ? 'Chargement du morceau…' : o.v !== 1 ? 'Vitesse ' + pc(o.v) + ' : la musique change de hauteur, comme un disque. Pour garder la note, joue un export de Reels Audio.' : '');
     dessinerZone(); peindreVoile();
   }
 
@@ -167,7 +167,7 @@ L.monter = function (racine, hote) {
   function dessinerOnde() {
     const cv = q('.lv-bande canvas'), b = q('.lv-bande'), w = Math.max(50, b.clientWidth), h = Math.max(30, b.clientHeight), r = Math.min(2, window.devicePixelRatio || 1);
     cv.width = w * r; cv.height = h * r; const g = cv.getContext('2d'); g.clearRect(0, 0, cv.width, cv.height); if (!U.pics) return;
-    g.fillStyle = '#7a5e44'; const n = U.pics.length, pas = cv.width / n, mx = Math.max(0.05, ...U.pics);
+    g.fillStyle = '#6f64c8'; const n = U.pics.length, pas = cv.width / n, mx = Math.max(0.05, ...U.pics);
     for (let i = 0; i < n; i++) { const a = Math.max(1, U.pics[i] / mx * cv.height * 0.9); g.fillRect(i * pas, (cv.height - a) / 2, Math.max(1, pas * 0.7), a); }
   }
   function dessinerZone() {
@@ -196,7 +196,7 @@ L.monter = function (racine, hote) {
     let titre, gros, temps, qui = '', lampes = 0, total = 0;
     if (pos && pos.avant != null) { total = c.coups || 0; const dans = pos.coup <= total; titre = 'DÉCOMPTE · ' + (pa.nom || '').toUpperCase(); gros = dans ? String(pos.coup) : 'PRÊTS…'; lampes = dans ? total - pos.coup + 1 : 0; temps = tc(c.pos0, 1) + ' / ' + tc(c.fin, 1); qui = 'Lancé par ' + (c.par || '?'); }
     else if (pos) { titre = 'EN LECTURE · ' + (pa.nom || '').toUpperCase(); gros = tc(pos.pos, 1); temps = 'jusqu\'à ' + tc(c.fin, 1) + (c.boucle ? ' · en boucle' : '') + (c.v && c.v !== 1 ? ' · ' + pc(c.v) : ''); qui = 'Lancé par ' + (c.par || '?'); }
-    else { titre = !P.sync ? 'SYNCHRO COUPÉE SUR CET APPAREIL' : chef() ? 'PRÊT À LANCER' : 'EN ATTENTE DU CHEF'; gros = (piste() || {}).nom || '—'; temps = pa.entier ? (d ? 'Morceau entier · ' + tc(d) : '') : pa.nom + ' · ' + tc(pa.debut) + ' → ' + tc(pa.fin); if (c && c.type === 'stop' && c.par) qui = 'Arrêté par ' + c.par; }
+    else { titre = !P.sync ? 'SYNCHRO COUPÉE SUR CET APPAREIL' : chef() ? 'PRÊT À LANCER' : 'EN ATTENTE DU LEAD TÉMOIN'; gros = (piste() || {}).nom || '—'; temps = pa.entier ? (d ? 'Morceau entier · ' + tc(d) : '') : pa.nom + ' · ' + tc(pa.debut) + ' → ' + tc(pa.fin); if (c && c.type === 'stop' && c.par) qui = 'Arrêté par ' + c.par; }
     const sig = titre + '|' + gros + '|' + temps + '|' + qui + '|' + lampes + '/' + total;
     if (sig !== dernierM) { dernierM = sig; m('titre').textContent = titre; const g = m('gros'); g.textContent = gros; g.classList.toggle('texte', !pos || gros === 'PRÊTS…'); m('temps').textContent = temps; m('qui').textContent = qui;
       m('lampes').innerHTML = total ? Array.from({ length: total }, (_, i) => `<span class="${i < lampes ? 'on' : ''}"></span>`).join('') : ''; }
@@ -211,18 +211,17 @@ L.monter = function (racine, hote) {
         <button type="button" class="lv-b" data-a="copier">Copier le lien</button>${U.invite.cle ? '' : '<p class="lv-petit">Attention : il manque la clé gratuite Google (Notes et retours › Externe). Sans elle, les invités ne peuvent pas charger le morceau.</p>'}
         <button type="button" class="lv-b" data-a="fermerinv">Fermer les invitations</button>` : '<p>Préparation du lien…</p>'}
         <button type="button" class="lv-b vert" data-a="fermer">OK</button></div>`; return; }
-    const gens = S.gens(), e = E();
-    v.html = `<div class="lv-carte large"><div class="lv-t">RÉGLAGE DES ÉCOUTEURS</div>
-      <p>Chaque paire d'écouteurs a son propre retard. On le mesure une fois au début du tournage.</p>
+    const e = E(), ch = chef(), nomChef = (S.gens().find(g => g.id === e.chef) || {}).nom || 'le lead témoin', r = U.sync;
+    v.html = `<div class="lv-carte large"><div class="lv-t">SYNCHRONISER</div>
+      <p>Chaque paire d'écouteurs a son propre retard. Cet appareil se cale sur le son du lead témoin (${esc(ch ? 'toi' : nomChef)}).</p>
       <div class="lv-bloc"><div class="lv-tt">1 · AUTOMATIQUE</div>
-        ${U.arbitre ? `<p>Cet appareil est l'arbitre : son micro écoute. Chacun, à tour de rôle, colle son écouteur contre le micro, puis on touche « Mesurer ».</p>
-          ${gens.map(g => { const r = U.mesures[g.id], enc = U.mesure === g.id; return `<div class="lv-pers"><span class="lv-voyant ${g.regle ? 'vert' : 'jaune'}" aria-hidden="true"></span><div><b>${esc(g.nom)}${g.id === L.id ? ' (toi)' : ''}</b><em data-res="${esc(g.id)}">${enc ? 'écoute en cours…' : r ? (r.ok ? 'réglé (' + (r.d >= 0 ? '+' : '') + Math.round(r.d) + ' ms)' : 'raté : trop de bruit ou écouteur trop loin') : g.regle ? 'déjà réglé' : 'pas encore réglé'}</em></div>
-            <button type="button" class="lv-b ${r && r.ok ? '' : 'vert'}" data-a="mesurer" data-id="${esc(g.id)}" ${U.mesure ? 'disabled' : ''}>${r ? 'Refaire' : 'Mesurer'}</button></div>`; }).join('')}
-          <button type="button" class="lv-b" data-a="finarbitre">Je ne suis plus l'arbitre</button>`
-        : `<p>Un seul appareil sert d'arbitre : il écoute les écouteurs des autres avec son micro, un par un.</p><button type="button" class="lv-b vert" data-a="arbitre">Cet appareil est l'arbitre</button>${U.errMicro ? `<p class="lv-petit">${esc(U.errMicro)}</p>` : ''}`}
+        ${ch ? '<p>Tu es le lead témoin : c\'est sur ton son que les autres se calent. Rien à faire ici. Quand quelqu\'un se synchronise, tiens ton écouteur près du micro de son téléphone.</p>'
+          : `<p>Tiens <b>ton écouteur</b> et <b>l'écouteur de ${esc(nomChef)}</b> tout près du micro de cet appareil, puis touche le bouton. Tu entends deux séries de petits sifflements : ça dure 6 secondes.</p>
+          <button type="button" class="lv-b vert gros" data-a="synchroniser" ${U.enSync ? 'disabled' : ''}>${U.enSync ? 'Écoute en cours…' : r ? 'Refaire' : 'Synchroniser maintenant'}</button>
+          ${r ? `<p class="lv-res ${r.ok ? 'ok' : 'ko'}">${esc(r.txt)}</p>` : ''}`}
       </div>
       <div class="lv-bloc"><div class="lv-tt">2 · À L'OREILLE (SECOURS)</div>
-        <p>Tous les appareils font « clic » ensemble. Mets un écouteur de chaque téléphone à tes oreilles : glisse le curseur jusqu'à n'entendre qu'un seul clic.</p>
+        <p>Tous les appareils font « clic » ensemble. Mets un écouteur du lead témoin et un des tiens à tes oreilles : glisse le curseur jusqu'à n'entendre qu'un seul clic.</p>
         <button type="button" class="lv-b ${U.clics ? 'rouge' : 'vert'}" data-a="clic">${U.clics ? 'Arrêter les clics' : 'Lancer les clics chez tout le monde'}</button>
         <label class="lv-lb" for="lvCal">Mon décalage : <b data-calv></b></label>
         <input type="range" id="lvCal" min="-200" max="600" step="5" value="${P.calib}" data-c="calib">
@@ -233,13 +232,20 @@ L.monter = function (racine, hote) {
     majReglage();
   }
   const majReglage = () => { const b = q('[data-calv]'), r = q('#lvCal'); if (b) b.textContent = (P.calib >= 0 ? '+' : '') + P.calib + ' ms'; if (r && document.activeElement !== r) r.value = P.calib; };
-  async function mesurer(id) {
-    if (U.mesure) return; const now = H.maintenant(); if (now == null) return dire('Pas d\'heure commune.');
-    U.mesure = id; delete U.mesures[id]; peindreVoile();
-    const n = Date.now(), T0 = Math.round(now + 2200); S.ecrire('cal', { n, arbitre: L.id, cible: id, T0 });
-    let res = { ok: false, d: 0, conf: 0 }; try { res = await L.cal.ecouter(T0); } catch (e) { console.warn('live : mesure', e); }
-    U.mesure = ''; res = { ok: !!res.ok, d: Math.round(res.d * 10) / 10, conf: Math.round(res.conf * 10) / 10 };
-    await S.maj('cal', { res }); peindreVoile();
+  // cet appareil ouvre son micro, écoute le clic du lead témoin et le sien, et se corrige
+  async function synchroniser() {
+    if (U.enSync) return; const now = H.maintenant(), temoin = E().chef;
+    if (now == null) return dire('Pas d\'heure commune : vérifie le réseau.');
+    if (!temoin || temoin === L.id) return;
+    try { await L.cal.micro(); } catch (e) { U.sync = { ok: false, txt: 'Micro refusé ou indisponible sur cet appareil (' + (e.message || e) + '). Mets l\'appli à jour, ou règle à l\'oreille.' }; return peindreVoile(); }
+    U.enSync = true; U.sync = null; peindreVoile();
+    const n = Date.now(), T0 = Math.round(H.maintenant() + 2500); S.ecrire('cal', { n, cible: L.id, temoin, T0 });
+    L.cal.jouer(T0, 1, L.cal.DECALE);
+    let res = null; try { res = await L.cal.ecouter(T0); } catch (e) { console.warn('synchro', e); }
+    L.cal.fermer(); U.enSync = false;
+    if (res && res.ok) { P.regler(P.calib + res.d, true); S.presence(moi()); U.sync = { ok: true, txt: 'Synchronisé : ' + (res.d >= 0 ? '+' : '') + Math.round(res.d) + ' ms de correction.' }; }
+    else U.sync = { ok: false, txt: !res ? 'La mesure n\'a pas marché. Réessaie.' : !res.temoin.ok && !res.moi.ok ? 'Je n\'ai entendu aucun des deux écouteurs. Rapproche-les du micro et monte le son.' : !res.temoin.ok ? 'Je n\'ai pas entendu l\'écouteur du lead témoin. Rapproche-le du micro.' : 'Je n\'ai pas entendu ton écouteur. Rapproche-le du micro.' };
+    S.maj('cal', { res: { ok: !!(res && res.ok), d: res ? Math.round(res.d) : 0 } }); peindreVoile();
   }
 
   // ---------- les gestes ----------
@@ -264,15 +270,13 @@ L.monter = function (racine, hote) {
       U.edite = null; try { await hote.garderPassage(p, np); const ps = await hote.passages(p); await S.maj('etat', { passages: ps }); if (chef()) choisirPassage(np); } catch (e) { dire('Passage non gardé : ' + (e.message || e)); } },
     async oublier(b) { const x = (E().passages || [])[+b.dataset.i - 1], p = piste(); if (!x || !p) return; if (b.dataset.sur !== '1') { b.dataset.sur = '1'; b.textContent = 'Sûr ?'; return; }
       try { await hote.oublierPassage(p, x); await S.maj('etat', { passages: await hote.passages(p) }); } catch (e) { dire(String(e.message || e)); } },
-    export(b) { if (!chef()) return; const x = U.exports[+b.dataset.i], p = piste(); choisirPiste({ id: p.id, nom: p.nom + ' · export', fichier: x.fichier, nomFichier: x.nom, export: true, origine: p.origine || { ...p, cle: '' } }).then(() => { U.onglet = 'exports'; hote.exports(piste()).then(l => { U.exports = l; dessiner(); }); }); },
+    export(b) { if (!chef()) return; const x = U.exports[+b.dataset.i], p = piste(); choisirPiste({ id: p.id, nom: (p.origine || p).nom + ' · export', fichier: x.fichier, nomFichier: x.nom, export: true, bpm: 0, origine: p.origine || { ...p, cle: '' } }).then(() => { U.onglet = 'exports'; hote.exports(piste()).then(l => { U.exports = l; dessiner(); }); }); },
     retour() { const p = piste(); if (chef() && p && p.origine) choisirPiste(p.origine); },
-    reglage() { U.voile = 'reglage'; }, fermer() { U.voile = ''; },
+    reglage() { U.voile = 'reglage'; }, fermer() { U.voile = ''; if (!U.enSync) L.cal.fermer(); },
     async inviter() { U.voile = 'inviter'; U.invite = null; dessiner(); try { U.invite = await hote.inviter(piste(), true); await S.maj('etat', { invites: true, ...(piste() ? { piste: { ...piste(), cle: U.invite.cle || '' } } : {}) }); } catch (e) { U.voile = ''; dire('Invitation impossible : ' + (e.message || e)); } },
     async fermerinv() { U.voile = ''; try { await hote.inviter(piste(), false); await S.maj('etat', { invites: false, ...(piste() ? { piste: { ...piste(), cle: '' } } : {}) }); dire('Invitations fermées.'); } catch (e) { dire(String(e.message || e)); } },
     async copier() { try { await navigator.clipboard.writeText(U.invite.lien); dire('Lien copié.'); } catch (e) { prompt('Copie ce lien :', U.invite.lien); } },
-    async arbitre() { U.errMicro = ''; try { await L.cal.micro(); U.arbitre = true; } catch (e) { U.errMicro = 'Micro refusé ou indisponible sur cet appareil (' + (e.message || e) + '). Essaie avec un autre appareil, ou mets l\'appli à jour.'; } },
-    finarbitre() { L.cal.fermer(); U.arbitre = false; },
-    mesurer(b) { mesurer(b.dataset.id); return false; },
+    synchroniser() { synchroniser(); return false; },
     clic() { S.maj('etat', { clic: U.clics ? 0 : Math.round(H.maintenant() || 0) }); },
     calmoins() { P.regler(P.calib - 10); }, calplus() { P.regler(P.calib + 10); }, calzero() { P.regler(0); P.regle = 0; L.outils.garde('bk.live.regle', 0); S.presence(moi()); },
   };
