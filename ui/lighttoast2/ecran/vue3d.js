@@ -32,7 +32,6 @@ class Vue3D {
   constructor(cont, m) {
     const T = G.THREE; this.T = T; this.m = m; this.cont = cont;
     this.r = new T.WebGLRenderer({ antialias: true, powerPreference: 'low-power' });
-    this.r.setPixelRatio(Math.min(devicePixelRatio || 1, 1.5));     // jamais trop lourd pour le PC
     this.r.toneMapping = T.ACESFilmicToneMapping; this.r.toneMappingExposure = 1.05;
     this.r.shadowMap.enabled = true; this.r.shadowMap.type = T.PCFSoftShadowMap;
     cont.appendChild(this.r.domElement);
@@ -83,6 +82,8 @@ class Vue3D {
     this.placement = Object.assign({}, LT.studio.mesures().placement, LT.placementEssai ? LT.placementEssai() : null);
     this.appliquer();
     this.ambiance('tamise', true); this.vue('camera'); this.souris();
+    let q = null; try { q = localStorage.getItem('lt2.qualite'); } catch (e) { }
+    this.qualite(q || 'mid', true); this.qAuto = !q;
     this.chargerModeles(); this.poses = {}; this.figurants = {};
     LT.sources.poses && LT.sources.poses().then(p => p && this.ajouterPoses(p, true)).catch(() => {});
     new ResizeObserver(() => { this.taille(); this.rendre(); }).observe(cont);
@@ -130,7 +131,26 @@ class Vue3D {
     }
     if (!sansRendu) this.rendre();
   }
-  ombres(oui) { this.tubes.forEach(t => { t.lampes[0].castShadow = oui; }); this.rendre(); }
+  // la QUALITÉ du rendu, gardée par PC : low (rapide) · mid · high (lent). Ne change que la 3D, jamais la vidéo des tubes.
+  //   low  : pas d'ombres, image moins fine, pas de halos     mid : ombres des tubes, image normale
+  //   high : image très fine, ombres plus nettes, les lampes de la pièce font aussi des ombres
+  qualite(q, sansRendu) {
+    q = ['low', 'mid', 'high'].includes(q) ? q : 'mid'; this.q = q;
+    const dpr = devicePixelRatio || 1, low = q === 'low', high = q === 'high', taille = high ? 1024 : 512;
+    this.r.setPixelRatio(low ? Math.min(dpr, 1) * .6 : high ? Math.min(dpr, 2) : Math.min(dpr, 1.25));
+    const ombre = (l, oui) => { if (l.castShadow !== oui || (oui && l.shadow.mapSize.x !== taille)) { l.castShadow = oui; l.shadow.mapSize.set(taille, taille); l.shadow.bias = -.003; l.shadow.radius = 4; l.shadow.camera.near = .06; l.shadow.camera.far = 8; if (l.shadow.map) { l.shadow.map.dispose(); l.shadow.map = null; } } };
+    this.r.shadowMap.enabled = !low;
+    this.tubes.forEach(t => { if (!t.panneau) ombre(t.lampes[0], !low); if (t.halo) t.halo.visible = !low; t.lueurs.forEach(x => { x.visible = !low; }); });
+    for (const L of Object.values(this.S.lampes || {})) if (L.lumiere) ombre(L.lumiere, high);
+    this.scene.traverse(x => { if (x.material) (Array.isArray(x.material) ? x.material : [x.material]).forEach(m => { m.needsUpdate = true; }); });
+    this.taille(); if (!sansRendu) this.rendre();
+  }
+  // au 1er lancement sur un PC : on mesure quelques images et on choisit le niveau tout seul
+  mesurerQualite() {
+    const gl = this.r.getContext(), px = new Uint8Array(4), t0 = performance.now();
+    for (let i = 0; i < 4; i++) { this.r.render(this.scene, this.cam); gl.readPixels(0, 0, 1, 1, gl.RGBA, gl.UNSIGNED_BYTE, px); }
+    const ms = (performance.now() - t0) / 4; return ms > 45 ? 'low' : ms > 14 ? 'mid' : 'high';
+  }
   montrerMembres(oui) { this.S.membres.visible = oui; this.rendre(); }
 
   // ---------- les poses des membres (Mixamo) ----------
@@ -214,6 +234,8 @@ class Vue3D {
       if (corps) {   // tenu par un membre : collé à son buste, tourné comme lui, puis les réglages
         c.g.position.copy(corps.pos).add(new T.Vector3(d.dx || 0, d.dy || 0, d.dz || 0).applyQuaternion(corps.quat));   // décalage dans le sens du membre
         c.g.quaternion.copy(corps.quat).multiply(new T.Quaternion().setFromEuler(new T.Euler((d.rx || 0) * rad, (d.r || 0) * rad, (d.rz || 0) * rad, 'YXZ')));
+      } else if (d.main) {   // personne ne joue de cet instrument : il reste rangé à sa place de départ
+        c.g.position.set(b.x, b.y, b.z); c.g.rotation.set(0, b.r * rad, 0);
       } else {
         c.g.position.set(b.x + (d.dx || 0), b.y + (d.dy || 0), b.z + (d.dz || 0));
         c.g.rotation.set((d.rx || 0) * rad, (b.r + (d.r || 0)) * rad, (d.rz || 0) * rad, 'YXZ');

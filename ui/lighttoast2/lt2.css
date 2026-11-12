@@ -132,3 +132,4 @@
 .lt2-lp{display:grid;grid-template-columns:16px 1fr 22px 70px;align-items:center;gap:6px}
 .lt2-lp .lt2-pas{width:20px;height:20px}.lt2-lp input[type=range]{width:70px;accent-color:var(--lt-ac)}
 .lt2-lampes>button{font-size:11px;padding:3px 8px;margin-top:4px}
+.lt2-morceaux{max-height:150px;overflow:auto}.lt2-morceau{cursor:pointer}

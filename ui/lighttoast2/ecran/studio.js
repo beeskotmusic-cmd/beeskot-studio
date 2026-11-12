@@ -53,7 +53,7 @@ LT.studio = {
       },
       // le PLACEMENT réglé à la main avec l'outil « Placer les objets » (ecran/placer.js, version d'essai seulement) :
       //   { nom: { dx, dy, dz (m), r (degrés), k (taille, 1 = normal) } } — nom = une pièce, un tube (t1…), le panneau (p1) ou « poste:batterie »…
-      placement: {   // réglé par Dari le 12 nov. 2026 (page « Placer le studio », 17 h 38)
+      placement: {   // réglé par Dari le 12 nov. 2026 (page « Placer le studio », 18 h 13)
         'ampli-bas': { dx: -0.117, dy: 0.1, dz: 1.345, r: 20 },
         'ampli-basse': { dx: 0.135, dz: 0.073, k: 1.75, r: -30 },
         'ampli-haut': { dx: -0.082, dy: 0.06, dz: 1.331, k: 0.9, r: -70 },
@@ -65,8 +65,8 @@ LT.studio = {
         etagere: { dx: -0.097, dz: -0.484, kx: 2.05, ky: 1.1, kz: 1.45 },
         fauteuil: { dx: 0.115, dz: 0.049, r: 130 },
         'guitare-mur': { dx: 0.04, dz: -0.576 },
-        'guitare-mur2': { dx: -1.791, dy: -0.21, dz: -3.493, k: 1.05, main: 'guitare', r: 7, rx: 66, rz: -64 },
-        'guitare-mur3': { dx: 2.264, dy: -0.96, dz: 0.318, r: -128, rx: -4, rz: 30 },
+        'guitare-mur2': { dx: -0.661, dy: -1.15, dz: -2.557, k: 1.05, r: -15 },
+        'guitare-mur3': { dx: 2.324, dy: -0.96, dz: 0.215, r: -128, rx: -4, rz: 30 },
         'lampe-ampli': { dx: 0.423, dy: 0.17, dz: -0.217 },
         'lampe-bureau': { dx: -0.222, dy: 0.32, dz: -1.653, r: 5 },
         'meuble-ampli': { dx: 0.071, dz: 0.125, r: -30 },

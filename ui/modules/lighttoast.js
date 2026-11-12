@@ -15,7 +15,7 @@ const fenetre = (html, brancher) => new Promise(res => {
   const fin = r => { fond.remove(); res(r); }; fond.addEventListener('click', e => { if (e.target === fond) fin(null); }); brancher(s => fond.querySelector(s), fin, fond);
 });
 const tampon = o => o.buffer.slice(o.byteOffset, o.byteOffset + o.byteLength);   // Uint8Array → ArrayBuffer
-const SCRIPTS = ['moteur/base.js', 'moteur/materiel.js', 'moteur/effets.js', 'moteur/decompte.js', 'moteur/projet.js', 'moteur/moteur.js', 'moteur/analyse.js', 'moteur/declencheurs.js',
+const SCRIPTS = ['moteur/base.js', 'moteur/materiel.js', 'moteur/effets.js', 'moteur/decompte.js', 'moteur/projet.js', 'moteur/moteur.js', 'moteur/analyse.js', 'moteur/declencheurs.js', 'moteur/ancien.js',
   'ecran/son.js', 'ecran/roue.js', 'ecran/inspecteur.js', 'vendor/three.min.js', 'vendor/chargeurs-3d.js', 'ecran/studio.js', 'ecran/vue3d.js', 'ecran/timeline.js', 'ecran/montage.js'];
 const charger = src => new Promise((ok, ko) => { const s = document.createElement('script'); s.src = 'lighttoast2/' + src; s.onload = ok; s.onerror = () => ko(new Error(src)); document.head.appendChild(s); });
 
@@ -57,6 +57,7 @@ BK.toast = {
   },
 };
 
+const lireMedia = async x => x.fichier ? x.fichier.arrayBuffer() : x.dc ? (await (await BK.discord.fetch(x.dc.url)).blob()).arrayBuffer() : tampon(await BK.drive.telecharger(x.id));
 // ---------- petite fenêtre « choisir la musique » : Bibliothèque, Médias ou PC ----------
 const fichierPC = multiple => new Promise(res => {
   const i = Object.assign(document.createElement('input'), { type: 'file', accept: 'audio/*', multiple });
@@ -88,7 +89,7 @@ function fenetreMusique() {
     $f('[data-medias]').onclick = async () => {
       try {
         const l = await BK.choisirDansMedias({ titre: 'Musique pour TOAST2', bouton: 'Charger', type: 'audio' }); const x = l && l[0]; if (!x) return;
-        const octets = x.fichier ? await x.fichier.arrayBuffer() : x.dc ? await (await (await BK.discord.fetch(x.dc.url)).blob()).arrayBuffer() : tampon(await BK.drive.telecharger(x.id));
+        const octets = await lireMedia(x);
         fin({ nom: (x.nom || 'Musique').replace(/\.[^.]+$/, ''), octets, version: x.id && !x.fichier ? 'drive:' + x.id : null });
       } catch (e) { err('Médias : ' + (e.message || e)); }
     };
@@ -101,7 +102,12 @@ function fenetreMusique() {
 function brancher() {
   LT.sources = Object.assign(LT.sources || {}, {
     choisirMusique: fenetreMusique,
-    async choisirStems() { return fichierPC(true); },
+    // les stems : choisis dans Médias (Drive, Discord ou ce PC)
+    async choisirStems() {
+      const l = await BK.choisirDansMedias({ titre: 'Stems pour TOAST2', bouton: 'Ajouter', type: 'audio' }) || [], r = [];
+      for (const x of l) r.push({ nom: (x.nom || 'Stem').replace(/\.[^.]+$/, ''), octets: await lireMedia(x) });
+      return r;
+    },
     async passages(id) {
       const ms = await BK.toast.morceaux(), m = ms.find(x => x.id === id); if (!m) return [];
       return (await BK.passagesDuMorceau(m, ms, { reels: true })).map(p => ({ debut: p.debut, fin: p.fin, nom: p.nom || p.titre || 'Passage' })).filter(p => p.fin > p.debut);
@@ -137,6 +143,16 @@ BK.module('lighttoast', function (page) {
     const mu = M.projet.musique; if (!mu || !mu.version) return;
     try { etat('Musique…'); await M.poserMusique(await BK.toast.lireVersion(mu.version)); etat(''); } catch (e) { etat('Musique à recharger (' + (e.message || e) + ')'); }
   };
+  // un projet de l'ancien Light Toast : converti, et sa musique (rangée dans le fichier) mise dans le Drive pour la retrouver ensuite
+  const ouvrirAncien = async o => {
+    etat('Conversion de l\'ancien projet…'); const octets = LT.ancien.musique(o); let buf = null;
+    if (octets) try { buf = await M.son.decoder(octets); } catch (e) { }
+    const r = LT.ancien.convertir(o, buf && buf.duration);
+    M.remplacer(JSON.stringify(r.projet)); fichierId = null; majNom();
+    if (buf) { await M.poserMusique(octets, buf); M.tl.toutVoir(); }
+    if (octets && BK.drive.relie()) try { etat('Musique → Drive…'); M.projet.musique.version = 'drive:' + await BK.toast.ecrire('Musiques', o.audioName || (r.projet.nom + '.wav'), new Blob([octets])); } catch (e) { }
+    secours(); etat(r.notes.length ? 'Converti. À vérifier : ' + r.notes.join(' · ') : 'Ancien projet converti (pense à Enregistrer)');
+  };
   const ouvrirProjet = async (json, id) => { M.remplacer(typeof json === 'string' ? json : JSON.stringify(json)); fichierId = id || null; majNom(); await remettreMusique(); };
 
   const demarrer = async () => {
@@ -148,6 +164,17 @@ BK.module('lighttoast', function (page) {
     M = new LT.Montage(zone, depart && depart.projet ? depart.projet : LT.projet.nouveau());
     fichierId = depart && depart.fichierId || null; majNom(); remettreMusique();
     // à chaque changement : copie de secours sur ce PC (le Drive, c'est « Enregistrer »)
+    // la liste des morceaux dans la Bibliothèque : un clic = un nouveau projet avec sa version principale
+    M.surMorceau = async id => {
+      const m = (M.morceaux || []).find(x => x.id === id); if (!m) return;
+      if (M.projet.musique && !await BK.confirmer('Nouveau projet avec « ' + m.nom + ' » ? Pense à enregistrer celui-ci avant.')) return;
+      try {
+        etat('Recherche de « ' + m.nom + ' »…'); const v = (await BK.toast.versions(id))[0]; if (!v) { etat('Aucun son pour ce morceau'); return; }
+        await ouvrirProjet(LT.projet.nouveau(m.nom)); etat('Téléchargement…');
+        await M.chargerMusique({ nom: m.nom, octets: await BK.toast.lireVersion(v.v), morceau: id, version: v.v }); M.projet.nom = m.nom; majNom(); etat('');
+      } catch (e) { etat('Impossible : ' + (e.message || e)); }
+    };
+    BK.toast.morceaux().then(l => { M.morceaux = l; M.biblio(); }).catch(() => {});
     const change0 = M.change.bind(M); M.change = (...a) => { change0(...a); clearTimeout(minuteur); minuteur = setTimeout(() => { secours(); majNom(); }, 800); etat('Pas enregistré'); };
   };
   $('.hdr .right', page).addEventListener('click', async e => {
@@ -162,11 +189,18 @@ BK.module('lighttoast', function (page) {
     }
     if (a === 'ouvrir') {
       try {
-        etat('Liste…'); const l = (await BK.toast.lister('TOAST2')).filter(f => /\.json$/i.test(f.name)); etat('');
-        if (!l.length) { etat('Aucun projet dans le Drive'); return; }
-        const f = await fenetre(`<b>Ouvrir un projet</b><div class="t2-fen-l">${l.map((x, k) => `<button data-k="${k}">${esc(x.name.replace(/\.json$/i, ''))}<i>${new Date(x.modifiedTime).toLocaleDateString('fr-CA')}</i></button>`).join('')}</div><div class="t2-fen-b"><button data-non>Annuler</button></div>`,
-          ($f, fin, fond) => { fond.querySelectorAll('[data-k]').forEach(b => b.onclick = () => fin(l[+b.dataset.k])); $f('[data-non]').onclick = () => fin(null); });
+        etat('Liste…'); let l = [];
+        if (BK.drive.relie()) { l = (await BK.toast.lister('TOAST2')).filter(f => /\.json$/i.test(f.name)); (await BK.toast.lister('Projets')).filter(f => /\.json$/i.test(f.name)).forEach(f => l.push(Object.assign(f, { ancien: true }))); }
+        etat('');
+        const f = await fenetre(`<b>Ouvrir un projet</b><div class="t2-fen-l">${l.map((x, k) => `<button data-k="${k}">${esc(x.name.replace(/\.json$/i, ''))}${x.ancien ? ' <em>(ancien Light Toast)</em>' : ''}<i>${new Date(x.modifiedTime).toLocaleDateString('fr-CA')}</i></button>`).join('')}</div><div class="t2-fen-b"><button data-pc>Fichier du PC…</button><button data-non>Annuler</button></div>`,
+          ($f, fin, fond) => { fond.querySelectorAll('[data-k]').forEach(b => b.onclick = () => fin(l[+b.dataset.k])); $f('[data-non]').onclick = () => fin(null);
+            $f('[data-pc]').onclick = () => { const i = Object.assign(document.createElement('input'), { type: 'file', accept: '.json' }); i.onchange = () => fin({ fichier: i.files[0] }); i.click(); }; });
         if (!f) return;
+        if (f.fichier || f.ancien) {
+          etat('Lecture…'); const o = JSON.parse(f.fichier ? await f.fichier.text() : await (await BK.drive.api('/files/' + f.id + '?alt=media')).text());
+          if (LT.ancien.est(o)) await ouvrirAncien(o); else { await ouvrirProjet(o); etat(''); }
+          return;
+        }
         etat('Ouverture…'); await ouvrirProjet(await (await BK.drive.api('/files/' + f.id + '?alt=media')).text(), f.id); etat('');
       } catch (err) { etat('Ouverture impossible : ' + (err.message || err)); }
     }

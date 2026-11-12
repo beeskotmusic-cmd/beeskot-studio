@@ -228,8 +228,9 @@ L.monter = function (racine, hote) {
   // ---------- le moniteur (rafraîchi en continu, sans redessiner le reste) ----------
   let dernierM = '';
   function moniteur() {
-    if (!racine.isConnected) return; requestAnimationFrame(moniteur);
-    if (!U.entre || racine.offsetParent === null) return;
+    if (!racine.isConnected) return;
+    if (!U.entre || racine.offsetParent === null) { setTimeout(moniteur, 500); return; }   // onglet caché ou pas entré : on ne regarde que 2 fois par seconde
+    requestAnimationFrame(moniteur);
     const e = E(), c = e.cmd, pa = passage(), pos = P.position(c), d = P.buffer && U.chargee ? P.buffer.duration : 0, tete = q('[data-tete]');
     let titre, gros, temps, qui = '', lampes = 0, total = 0;
     if (pos && pos.avant != null) { total = c.coups || 0; const dans = pos.coup <= total; titre = 'DÉCOMPTE · ' + (pa.nom || '').toUpperCase(); gros = dans ? String(pos.coup) : 'PRÊTS…'; lampes = dans ? total - pos.coup + 1 : 0; temps = tc(c.pos0, 1) + ' / ' + tc(c.fin, 1); qui = 'Lancé par ' + (c.par || '?'); }

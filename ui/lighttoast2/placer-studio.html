@@ -18,6 +18,7 @@ html,body{margin:0;height:100%;background:#0d0b16;color:#ece9e2;font:13px 'Work 
 .ps-g>*{flex-shrink:0}
 .ps-sauve{background:#3fb0a6;color:#0d0b16;border:0;border-radius:5px;padding:8px;font:600 13px 'Work Sans',sans-serif;cursor:pointer}
 .ps-sauve:disabled{opacity:.5;cursor:default}
+.ps-r{display:flex;flex-direction:column;gap:3px;font-size:11px}.ps-r label{display:grid;grid-template-columns:60px 1fr;align-items:center}
 .ps-etat{font-size:11px;color:rgba(236,233,226,.6);min-height:14px}
 .ps-c{display:flex;flex-wrap:wrap;gap:4px}.ps-c button,.ps-g select{font-size:11px;padding:3px 7px;background:#232325;color:#ece9e2;border:1px solid #3a3550;border-radius:4px;cursor:pointer}
 .ps-v{position:relative;min-width:0}.ps-v>.lt2-3d{position:absolute;inset:0}
@@ -30,7 +31,7 @@ html,body{margin:0;height:100%;background:#0d0b16;color:#ece9e2;font:13px 'Work 
     <h2>Vue</h2><div class="ps-c"><button data-cam="camera">Caméra</button><button data-cam="large">Large</button><button data-cam="dessus">Dessus</button><button data-cam="regie">Arrière</button></div>
     <select data-amb><option value="tamise">Tamisé</option><option value="jour" selected>Jour</option><option value="noir">Noir</option></select>
     <h2>Objets</h2><div class="ps-l"></div>
-    <h2>Membres</h2><div class="ps-c"><button data-poses>Charger les poses (.fbx)…</button></div>
+    <h2>Membres</h2><div class="ps-r"></div><div class="ps-c"><button data-poses>Charger les poses (.fbx)…</button></div>
   </div>
   <div class="ps-v"><div class="lt2-3d"></div><div class="lt2-placer"></div>
     <div class="ps-aide">Clic sur un objet = le choisir · glisser = bouger · Maj + glisser = monter · molette dessus = tourner<br>Flèches = pousser de 1 cm (Maj = 10 cm) · Ctrl+Z = annuler · clic dans le vide = tourner la caméra · clic du milieu maintenu = déplacer la caméra</div></div>
@@ -58,6 +59,11 @@ LT.modeReglage = true;
     i.onchange = async () => { const o = {}; for (const f of i.files) o[f.name] = await f.arrayBuffer(); v.ajouterPoses(o); pl.majCadre(); };
     i.click();
   };
+  // qui joue quoi (seulement pour régler : met un membre à la guitare pour caler la guitare dans ses mains)
+  const rolesEl = document.querySelector('.ps-r'), MM = LT.studio.mesures();
+  rolesEl.innerHTML = MM.membres.map(p => `<label>${p.nom}<select data-qui="${p.nom}">${Object.entries(MM.postes).map(([k, o]) => `<option value="${k}"${k === MM.roles[p.nom] ? ' selected' : ''}>${o.nom}</option>`).join('')}</select></label>`).join('');
+  rolesEl.querySelectorAll('[data-qui]').forEach(sel => sel.onchange = () => { (v.roles()[sel.dataset.qui] = v.roles()[sel.dataset.qui] || {}).role = sel.value; v.placerMembres(); v.appliquer(); pl.majCadre(); });
+  v.qualite('mid');
   new ResizeObserver(() => { v.taille(); v.rendre(); }).observe(el); majListe();
   // la sauvegarde : dans la page (Claude la relit), et dans le navigateur en secours
   let db = null;

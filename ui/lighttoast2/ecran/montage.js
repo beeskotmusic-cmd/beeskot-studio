@@ -32,7 +32,7 @@ class Montage {
           <span class="lt2-3dc" hidden><span class="lt2-seg"><button data-cam="camera" title="La place du photographe">Caméra</button><button data-cam="large">Large</button><button data-cam="dessus">Dessus</button><button data-cam="regie" title="Vers le fond du studio">Arrière</button></span>
           <select data-amb title="La lumière de la pièce"><option value="noir">Noir</option><option value="tamise" selected>Tamisé</option><option value="jour">Jour</option></select>
           <label><input type="checkbox" data-membres checked> Membres</label>
-          <label title="Décoche si la 3D rame sur ce PC"><input type="checkbox" data-ombres checked> Ombres</label><button data-lampes title="La couleur et la force des lampes de la pièce, pour ce morceau">Lumières</button>${LT.modeReglage ? '<button data-placer title="Régler la place des objets du studio">Placer les objets</button>' : ''}</span></div>
+          <select data-qualite title="La qualité de la vue 3D sur ce PC (ne change pas la vidéo des tubes)"><option value="low">Low (rapide)</option><option value="mid">Mid</option><option value="high">High (lent)</option></select><button data-lampes title="La couleur et la force des lampes de la pièce, pour ce morceau">Lumières</button>${LT.modeReglage ? '<button data-placer title="Régler la place des objets du studio">Placer les objets</button>' : ''}</span></div>
           <div class="lt2-ecran"><canvas width="1920" height="1080"></canvas><div class="lt2-3d" hidden></div><div class="lt2-roles" hidden></div><div class="lt2-placer" hidden></div><div class="lt2-lampes" hidden></div></div></section>
         <section class="lt2-pan lt2-insp"><h3>Inspecteur</h3><div class="lt2-insp-c"></div></section>
       </div>
@@ -148,6 +148,7 @@ class Montage {
     let avant = performance.now();
     const pas = n => {
       if (this._jeton !== jeton) return;
+      if (this.r.offsetParent === null) return this.lire(0);   // on a quitté l'onglet : on arrête (rien ne tourne en fond)
       const dt = (n - avant) / 1000 * this.vitesse; avant = n;
       let t = this.son.depart ? this.son.temps() : this.temps + dt; const fin = this.sortie ?? this.duree(), deb = this.debutBoucle();
       if (t >= fin && this.vitesse > 0) { if (this.entree != null || this.sortie != null) { t = deb; this.son.jouer(t, this.vitesse, this.planSon()); } else { this.aller(fin, true); return this.lire(0); } }
@@ -166,10 +167,15 @@ class Montage {
   // Tubes (l'image vidéo) ou Studio 3D ; la 3D n'est fabriquée qu'au premier clic
   modeMoniteur(mode) {
     const d3 = mode === '3d', boite = this.r.querySelector('.lt2-3d');
-    if (d3 && !this.vue3d) { if (!window.THREE || !LT.Vue3D) return; boite.hidden = false; try { this.vue3d = new LT.Vue3D(boite, this); this.vue3d.surPoses = () => this.mode3d && this.panneauRoles(); } catch (e) { this.vue3d = null; boite.innerHTML = '<p class="lt2-vide" style="padding:16px">La 3D ne démarre pas sur ce PC : ' + String(e.message || e).replace(/</g, '&lt;') + '</p>'; return; } }
+    if (d3 && !this.vue3d) { if (!window.THREE || !LT.Vue3D) return; boite.hidden = false; try { this.vue3d = new LT.Vue3D(boite, this); this.vue3d.surPoses = () => this.mode3d && this.panneauRoles(); this._q1 = true; } catch (e) { this.vue3d = null; boite.innerHTML = '<p class="lt2-vide" style="padding:16px">La 3D ne démarre pas sur ce PC : ' + String(e.message || e).replace(/</g, '&lt;') + '</p>'; return; } }
     this.mode3d = d3; boite.hidden = !d3; this.r.querySelector('.lt2-roles').hidden = !d3; if (!d3 && this.placer) this.placer.onFin(); if (d3) this.panneauRoles(); this.ecran.hidden = d3; this.r.querySelector('.lt2-3dc').hidden = !d3;
     this.r.querySelectorAll('[data-vue]').forEach(b => b.classList.toggle('on', b.dataset.vue === mode));
     if (d3) this.vue3d.taille(); this.moniteur();
+    if (d3 && this._q1) {   // 1re ouverture : le niveau de qualité (mesuré tout seul si ce PC n'a encore rien choisi)
+      this._q1 = false; const v = this.vue3d, sel = this.r.querySelector('[data-qualite]');
+      if (v.qAuto) setTimeout(() => { const q = v.mesurerQualite(); v.qualite(q); sel.value = q; try { localStorage.setItem('lt2.qualite', q); } catch (x) { } }, 2500);
+      sel.value = v.q;
+    }
   }
 
   // ---------- musique, passages, stems ----------
@@ -185,8 +191,8 @@ class Montage {
     this.majMusique();
   }
   // remettre le son d'un projet rouvert (sans rien changer au projet)
-  async poserMusique(octets) {
-    const buf = await this.son.decoder(octets); this.lire(0);
+  async poserMusique(octets, buf) {
+    buf = buf || await this.son.decoder(octets); this.lire(0);
     this.son.musique = buf; this.sr = buf.sampleRate; this.pics = LT.analyse.pics(this.son.canaux(buf));
     this.majMusique(); await this.majPassages(); this.tl.redessiner();
   }
@@ -256,14 +262,14 @@ class Montage {
     el.innerHTML = M.membres.map(p => { const c = roles[p.nom] || {}, r = c.role || M.roles[p.nom], t = c.temps ?? M.postes[r].temps;
       return `<div class="lt2-role"><b>${p.nom}</b><select data-qui="${p.nom}">${Object.entries(M.postes).map(([k, o]) => `<option value="${k}"${k === r ? ' selected' : ''}>${o.nom}</option>`).join('')}</select>
         <input type="range" min="0" max="1" step="0.01" value="${t}" data-temps="${p.nom}" title="L'instant de la pose (glisse pour en trouver une autre)"${charge ? '' : ' disabled'}></div>`; }).join('') +
-      `<button data-poses>${charge ? charge + ' poses chargées · changer…' : 'Charger les poses (.fbx)…'}</button>`;
+      (LT.modeReglage ? `<button data-poses>${charge ? charge + ' poses chargées · changer…' : 'Charger les poses (.fbx)…'}</button>` : '');
     el.querySelectorAll('[data-qui]').forEach(s => s.onchange = () => { this.modifier(() => { const c = roles[s.dataset.qui] = roles[s.dataset.qui] || {}; c.role = s.value; delete c.temps; }); v.placerMembres(); this.panneauRoles(); });
     el.querySelectorAll('[data-temps]').forEach(s => {
       s.onpointerdown = () => this.memoriser();
       s.oninput = () => { const c = roles[s.dataset.temps] = roles[s.dataset.temps] || {}; c.temps = +s.value; v.placerMembres(); };
       s.onchange = () => this.change(false, true);
     });
-    el.querySelector('[data-poses]').onclick = () => {
+    const bpo = el.querySelector('[data-poses]'); if (bpo) bpo.onclick = () => {
       const i = Object.assign(document.createElement('input'), { type: 'file', accept: '.fbx', multiple: true });
       i.onchange = async () => { const o = {}; for (const f of i.files) o[f.name] = await f.arrayBuffer(); const n = v.ajouterPoses(o); this.panneauRoles(); if (!n) alert('Aucune pose reconnue. Les noms doivent contenir : drum, piano, guitar, bass ou sing.'); };
       i.click();
@@ -276,9 +282,10 @@ class Montage {
   biblio() {
     const l = this.r.querySelector('.lt2-biblio-l'), P = this.projet;
     const liste = sorte => Object.entries(LT.effets).filter(([, f]) => f.sorte === sorte).map(([k, f]) => `<div class="lt2-item s-${sorte}" draggable="true" data-glisse="effet:${k}">${f.nom}</div>`).join('');
-    l.innerHTML = '<h4>Palette</h4><div class="lt2-pal">' + P.palette.map(h => `<span class="lt2-pas" draggable="true" data-glisse="couleur:${h}" style="background:${h}" title="Glisse sur une lumière (piste Couleur) ou sur un clip"></span>`).join('') + '</div>' +
+    l.innerHTML = (this.morceaux && this.morceaux.length ? '<h4>Morceaux</h4><div class="lt2-morceaux">' + this.morceaux.map(m => `<div class="lt2-item lt2-morceau" data-morceau="${m.id}" title="Nouveau projet avec ce morceau">${String(m.nom).replace(/</g, '&lt;')}</div>`).join('') + '</div>' : '') + '<h4>Palette</h4><div class="lt2-pal">' + P.palette.map(h => `<span class="lt2-pas" draggable="true" data-glisse="couleur:${h}" style="background:${h}" title="Glisse sur une lumière (piste Couleur) ou sur un clip"></span>`).join('') + '</div>' +
       '<h4>Overlays · textures</h4>' + liste('overlay') + '<h4>Mouvements</h4>' + liste('mouvement') +
       '<p class="lt2-vide">Glisse sur la timeline : sur une piste d\'effets, ou directement sur une lumière.</p>';
+    l.querySelectorAll('[data-morceau]').forEach(el => el.onclick = () => this.surMorceau && this.surMorceau(el.dataset.morceau));
     l.querySelectorAll('[data-glisse]').forEach(el => el.ondragstart = e => { e.dataTransfer.setData('text/plain', el.dataset.glisse); e.dataTransfer.effectAllowed = 'copy'; this.glisse = el.dataset.glisse; });
   }
   // une piste d'effets où [debut, fin] est libre, à partir de la piste n° i (sinon une nouvelle piste en haut)
@@ -314,7 +321,7 @@ class Montage {
     mh.addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return; if (b.dataset.vue) this.modeMoniteur(b.dataset.vue); if (b.dataset.cam && this.vue3d) { this.vue3d.vue(b.dataset.cam); this.vue3d.rendre(); } });
     mh.querySelector('[data-amb]').onchange = e => this.vue3d && this.vue3d.ambiance(e.target.value);
     mh.querySelector('[data-membres]').onchange = e => this.vue3d && this.vue3d.montrerMembres(e.target.checked);
-    mh.querySelector('[data-ombres]').onchange = e => this.vue3d && this.vue3d.ombres(e.target.checked);
+    mh.querySelector('[data-qualite]').onchange = e => { if (!this.vue3d) return; this.vue3d.qualite(e.target.value); try { localStorage.setItem('lt2.qualite', e.target.value); } catch (x) { } };
     const bl = mh.querySelector('[data-lampes]');
     bl.onclick = () => { const el = this.r.querySelector('.lt2-lampes'); el.hidden = !el.hidden; bl.classList.toggle('on', !el.hidden); if (!el.hidden) this.panneauLampes(); };
     const bp = mh.querySelector('[data-placer]');

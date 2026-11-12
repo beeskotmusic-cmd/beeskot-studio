@@ -3,6 +3,14 @@
 // Pour une nouvelle version : ajouter un bloc EN HAUT de la liste. Une ligne courte par point : « Onglet : ce qui change. »
 // =====================================================================
 BK.NOUVEAUTES = [
+  { v: '0.9.141', titre: 'TOAST2 : anciens projets, morceaux, qualité', l: [
+    ['📂', 'TOAST2 : « Ouvrir… » montre aussi les projets de l\'ancien Light Toast et les convertit (couleurs par tube, fonds, pêches, effets les plus proches, courbes, musique). Les automations ne sont pas reprises.'],
+    ['🎵', 'TOAST2 : la liste des morceaux est dans la Bibliothèque. Un clic = un nouveau projet avec la musique du morceau.'],
+    ['🎚', 'TOAST2 : « ajouter un stem » ouvre Médias.'],
+    ['🖥', 'TOAST2 : qualité de la vue 3D au choix, Low (rapide) / Mid / High (lent), gardée sur chaque PC.'],
+    ['🎸', 'TOAST2 : la guitare et la basse ne sont en main que si quelqu\'un a ce rôle. Les poses viennent du Drive toutes seules (plus de bouton).'],
+    ['⚡', 'Plus léger : Synch bread ne travaille plus en fond quand son onglet est caché, et TOAST2 s\'arrête de lire quand on le quitte.'],
+  ] },
   { v: '0.9.140', titre: 'TOAST2 : le nouveau Light Toast', l: [
     ['🎬', 'Light Toast est remplacé par TOAST2, fait comme un logiciel de montage : Bibliothèque, Moniteur, Inspecteur, et une timeline avec des pistes (une ligne par tube et pour le panneau, des calques d\'effets, les stems).'],
     ['🎨', 'Couleurs avec la roue chromatique et les couleurs qui vont ensemble. Les effets (flamme, strobo, balayage…) suivent le tempo. Les stems peuvent déclencher des flashs, des changements de couleur ou de luminosité.'],
