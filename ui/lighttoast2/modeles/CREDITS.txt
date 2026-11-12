@@ -1,10 +1,8 @@
 Modèles 3D libres de droits (licence CC0, aucune attribution requise) — Poly Haven, https://polyhaven.com
   bar_chair_round_01.glb        ← https://polyhaven.com/a/bar_chair_round_01
-  potted_plant_02.glb           ← https://polyhaven.com/a/potted_plant_02
 
 Modèles sous licence CC BY 4.0 (http://creativecommons.org/licenses/by/4.0/) — attribution obligatoire, allégés pour Light Toast :
   batterie_rouge.glb       « Red_drums » par meshplalette66 — https://sketchfab.com/3d-models/red-drums-3be1c3caa39c4302b95902fc7e7e261c
-  fender_stratocaster.glb  « Fender Stratocaster Guitar » par Ryan_Nein — https://sketchfab.com/3d-models/fender-stratocaster-guitar-15a37147641b4c1b963bb494b234593f
   basse.glb                « Bass Guitar » par CharlotteMeehan — https://sketchfab.com/3d-models/bass-guitar-df76e88db43c4060ad045e481459df6e
   fender_jaguar.glb        « Fender Jaguar Electric Guitar » par dannpastor — https://sketchfab.com/3d-models/fender-jaguar-electric-guitar-h8G3IqzmKOMRsOS2iiuq7Xs3wOV
   guitare_explorer.glb     « Electric Guitar Explorer » par Skabl — https://sketchfab.com/3d-models/electric-guitar-explorer-a7ffc570d3fe41c89b9dde195ab0faea
@@ -20,5 +18,4 @@ Modèles sous licence CC BY 4.0 (http://creativecommons.org/licenses/by/4.0/) �
   tapis.glb                « carpet » par ahmagh2e — https://sketchfab.com/3d-models/carpet-e261ea97a64b48719c4d40009efd9ee1
   chaise_bureau.glb        « Cadeira Luna – Base Ajustável » par CriaMesh — https://sketchfab.com/3d-models/cadeira-luna-base-ajustavel-46e2340bd9504f9e880cbb26e4980fb8
   suspension.glb           « Lampshade » par Sina — https://sketchfab.com/3d-models/lampshade-943fcaf1af3141aebe22ce8b3af5428c
-  micro_pied.glb           « Mics + Mic stand (low poly) » par pizzaguyty — https://sketchfab.com/3d-models/mics-mic-stand-low-poly-fde31ba0b84f4cc494149b9dbb566358
   micro_vintage.glb        « mic stand texture for both characters » par shaylastewart — https://sketchfab.com/3d-models/mic-stand-texture-for-both-characters-c1b2d618c637446886d8c91778a7e6d5

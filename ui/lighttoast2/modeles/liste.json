@@ -6,9 +6,6 @@
  "tabouret": {
   "fichier": "bar_chair_round_01.glb"
  },
- "plante": {
-  "fichier": "potted_plant_02.glb"
- },
  "batterie": {
   "fichier": "batterie_rouge.glb"
  },
@@ -17,8 +14,9 @@
   "rotX": 90
  },
  "guitare-mur": {
-  "fichier": "fender_stratocaster.glb",
-  "rotY": -90
+  "fichier": "fender_jaguar.glb",
+  "rotY": -90,
+  "rotZ": 38
  },
  "guitare-mur2": {
   "fichier": "fender_jaguar.glb",
@@ -83,8 +81,5 @@
  },
  "micro": {
   "fichier": "micro_vintage.glb"
- },
- "micro-2": {
-  "fichier": "micro_pied.glb"
  }
 }

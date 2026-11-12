@@ -56,7 +56,7 @@ LT.modeReglage = true;
   document.querySelector('[data-amb]').onchange = e => v.ambiance(e.target.value);
   document.querySelector('[data-poses]').onclick = () => {
     const i = Object.assign(document.createElement('input'), { type: 'file', accept: '.fbx', multiple: true });
-    i.onchange = async () => { const o = {}; for (const f of i.files) o[f.name] = await f.arrayBuffer(); v.ajouterPoses(o); pl.majCadre(); };
+    i.onchange = async () => { const o = {}; for (const f of i.files) o[f.name] = await f.arrayBuffer(); await v.ajouterPoses(o); pl.majCadre(); };
     i.click();
   };
   // qui joue quoi (seulement pour régler : met un membre à la guitare pour caler la guitare dans ses mains)

@@ -32,8 +32,8 @@ class Montage {
           <span class="lt2-3dc" hidden><span class="lt2-seg"><button data-cam="camera" title="La place du photographe">Caméra</button><button data-cam="large">Large</button><button data-cam="dessus">Dessus</button><button data-cam="regie" title="Vers le fond du studio">Arrière</button></span>
           <select data-amb title="La lumière de la pièce"><option value="noir">Noir</option><option value="tamise" selected>Tamisé</option><option value="jour">Jour</option></select>
           <label><input type="checkbox" data-membres checked> Membres</label>
-          <select data-qualite title="La qualité de la vue 3D sur ce PC (ne change pas la vidéo des tubes)"><option value="low">Low (rapide)</option><option value="mid">Mid</option><option value="high">High (lent)</option></select><button data-lampes title="La couleur et la force des lampes de la pièce, pour ce morceau">Lumières</button>${LT.modeReglage ? '<button data-placer title="Régler la place des objets du studio">Placer les objets</button>' : ''}</span></div>
-          <div class="lt2-ecran"><canvas width="1920" height="1080"></canvas><div class="lt2-3d" hidden></div><div class="lt2-roles" hidden></div><div class="lt2-placer" hidden></div><div class="lt2-lampes" hidden></div></div></section>
+          <button data-plein title="Plein écran (Échap pour sortir)">⛶</button><select data-qualite title="La qualité de la vue 3D sur ce PC (ne change pas la vidéo des tubes)"><option value="low">Low (rapide)</option><option value="mid">Mid</option><option value="high">High (lent)</option></select><button data-lampes title="La couleur et la force des lampes de la pièce, pour ce morceau">Lumières</button>${LT.modeReglage ? '<button data-placer title="Régler la place des objets du studio">Placer les objets</button>' : ''}</span></div>
+          <div class="lt2-ecran"><canvas width="1920" height="1080"></canvas><div class="lt2-3d" hidden></div><div class="lt2-roles" hidden></div><div class="lt2-charge" hidden></div><div class="lt2-placer" hidden></div><div class="lt2-lampes" hidden></div></div></section>
         <section class="lt2-pan lt2-insp"><h3>Inspecteur</h3><div class="lt2-insp-c"></div></section>
       </div>
       <div class="lt2-barre">
@@ -141,6 +141,7 @@ class Montage {
   // vitesse : 0 = arrêt, 1 = normal, 2, 4… ; négatif = en arrière (J)
   lire(v) {
     this.vitesse = v; this.r.querySelector('[data-a="lire"]').textContent = v ? '⏸' : '▶';
+    if (this.vue3d) this.vue3d.lecture(!!v);
     this.son.arreter(); const jeton = this._jeton = {};
     if (!v) return;
     const fin0 = this.sortie ?? this.duree(); if (v > 0 && this.temps >= fin0 - .01) this.temps = this.debutBoucle();   // au bout : on repart du début
@@ -164,16 +165,23 @@ class Montage {
       if (this.vue3d && this.mode3d) this.vue3d.rendre(); else this.moteur.dessiner(this.ctx, this.ecran.width, this.ecran.height, { mur: true });
     });
   }
+  // le moniteur en plein écran (Échap pour sortir)
+  plein(oui = !this.r.querySelector('.lt2-moni').classList.contains('lt2-plein')) {
+    this.r.querySelector('.lt2-moni').classList.toggle('lt2-plein', oui); if (this.vue3d) { this.vue3d.taille(); this.vue3d.rendre(true); }
+  }
   // Tubes (l'image vidéo) ou Studio 3D ; la 3D n'est fabriquée qu'au premier clic
   modeMoniteur(mode) {
     const d3 = mode === '3d', boite = this.r.querySelector('.lt2-3d');
-    if (d3 && !this.vue3d) { if (!window.THREE || !LT.Vue3D) return; boite.hidden = false; try { this.vue3d = new LT.Vue3D(boite, this); this.vue3d.surPoses = () => this.mode3d && this.panneauRoles(); this._q1 = true; } catch (e) { this.vue3d = null; boite.innerHTML = '<p class="lt2-vide" style="padding:16px">La 3D ne démarre pas sur ce PC : ' + String(e.message || e).replace(/</g, '&lt;') + '</p>'; return; } }
+    if (d3 && !this.vue3d) { if (!window.THREE || !LT.Vue3D) return; boite.hidden = false; try {
+      const charge = this.r.querySelector('.lt2-charge');
+      this.vue3d = new LT.Vue3D(boite, this); this.vue3d.surPoses = () => this.mode3d && this.panneauRoles(); this._q1 = true;
+      this.vue3d.surCharge = t => { charge.hidden = !t; charge.textContent = t || ''; };
+    } catch (e) { this.vue3d = null; boite.innerHTML = '<p class="lt2-vide" style="padding:16px">La 3D ne démarre pas sur ce PC : ' + String(e.message || e).replace(/</g, '&lt;') + '</p>'; return; } }
     this.mode3d = d3; boite.hidden = !d3; this.r.querySelector('.lt2-roles').hidden = !d3; if (!d3 && this.placer) this.placer.onFin(); if (d3) this.panneauRoles(); this.ecran.hidden = d3; this.r.querySelector('.lt2-3dc').hidden = !d3;
     this.r.querySelectorAll('[data-vue]').forEach(b => b.classList.toggle('on', b.dataset.vue === mode));
     if (d3) this.vue3d.taille(); this.moniteur();
     if (d3 && this._q1) {   // 1re ouverture : le niveau de qualité (mesuré tout seul si ce PC n'a encore rien choisi)
       this._q1 = false; const v = this.vue3d, sel = this.r.querySelector('[data-qualite]');
-      if (v.qAuto) setTimeout(() => { const q = v.mesurerQualite(); v.qualite(q); sel.value = q; try { localStorage.setItem('lt2.qualite', q); } catch (x) { } }, 2500);
       sel.value = v.q;
     }
   }
@@ -271,7 +279,7 @@ class Montage {
     });
     const bpo = el.querySelector('[data-poses]'); if (bpo) bpo.onclick = () => {
       const i = Object.assign(document.createElement('input'), { type: 'file', accept: '.fbx', multiple: true });
-      i.onchange = async () => { const o = {}; for (const f of i.files) o[f.name] = await f.arrayBuffer(); const n = v.ajouterPoses(o); this.panneauRoles(); if (!n) alert('Aucune pose reconnue. Les noms doivent contenir : drum, piano, guitar, bass ou sing.'); };
+      i.onchange = async () => { const o = {}; for (const f of i.files) o[f.name] = await f.arrayBuffer(); const n = await v.ajouterPoses(o); this.panneauRoles(); if (!n) alert('Aucune pose reconnue. Les noms doivent contenir : drum, piano, guitar, bass ou sing.'); };
       i.click();
     };
   }
@@ -322,6 +330,7 @@ class Montage {
     mh.querySelector('[data-amb]').onchange = e => this.vue3d && this.vue3d.ambiance(e.target.value);
     mh.querySelector('[data-membres]').onchange = e => this.vue3d && this.vue3d.montrerMembres(e.target.checked);
     mh.querySelector('[data-qualite]').onchange = e => { if (!this.vue3d) return; this.vue3d.qualite(e.target.value); try { localStorage.setItem('lt2.qualite', e.target.value); } catch (x) { } };
+    mh.querySelector('[data-plein]').onclick = () => this.plein();
     const bl = mh.querySelector('[data-lampes]');
     bl.onclick = () => { const el = this.r.querySelector('.lt2-lampes'); el.hidden = !el.hidden; bl.classList.toggle('on', !el.hidden); if (!el.hidden) this.panneauLampes(); };
     const bp = mh.querySelector('[data-placer]');
@@ -383,7 +392,7 @@ class Montage {
         case '+': case '=': this.tl.zoomer(1.4); break;
         case '-': this.tl.zoomer(1 / 1.4); break;
         case '\\': this.tl.toutVoir(); break;
-        case 'escape': this.choisir(null); break;
+        case 'escape': if (this.r.querySelector('.lt2-plein')) this.plein(false); else this.choisir(null); break;
       }
     };
     document.addEventListener('keydown', this._clavier);

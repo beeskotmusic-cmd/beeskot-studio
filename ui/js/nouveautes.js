@@ -3,6 +3,13 @@
 // Pour une nouvelle version : ajouter un bloc EN HAUT de la liste. Une ligne courte par point : « Onglet : ce qui change. »
 // =====================================================================
 BK.NOUVEAUTES = [
+  { v: '0.9.142', titre: 'TOAST2 : beaucoup plus léger', l: [
+    ['⚡', 'TOAST2 : le Studio 3D ne fait plus ramer le PC. Chargement petit à petit avec un message, qualité Low par défaut (image de taille fixe, comme l\'ancien Light Toast), modèles trois fois plus légers, moins d\'images par seconde (Low 20, Mid 30, High 60), ombres recalculées seulement quand quelque chose bouge.'],
+    ['📂', 'TOAST2 : « Ouvrir… » cherche les projets Light Toast dans tout le Drive (par exemple le dossier LIGHTSHOW).'],
+    ['⛶', 'TOAST2 : bouton plein écran dans le moniteur (Échap pour sortir).'],
+    ['🕺', 'TOAST2 : en Mid et High, les membres jouent leur animation pendant la lecture. En Low, ils restent sur leur pose.'],
+    ['💾', 'TOAST2 : les poses sont gardées sur le PC après la première fois.'],
+  ] },
   { v: '0.9.141', titre: 'TOAST2 : anciens projets, morceaux, qualité', l: [
     ['📂', 'TOAST2 : « Ouvrir… » montre aussi les projets de l\'ancien Light Toast et les convertit (couleurs par tube, fonds, pêches, effets les plus proches, courbes, musique). Les automations ne sont pas reprises.'],
     ['🎵', 'TOAST2 : la liste des morceaux est dans la Bibliothèque. Un clic = un nouveau projet avec la musique du morceau.'],

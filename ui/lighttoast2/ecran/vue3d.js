@@ -83,13 +83,20 @@ class Vue3D {
     this.appliquer();
     this.ambiance('tamise', true); this.vue('camera'); this.souris();
     let q = null; try { q = localStorage.getItem('lt2.qualite'); } catch (e) { }
-    this.qualite(q || 'mid', true); this.qAuto = !q;
-    this.chargerModeles(); this.poses = {}; this.figurants = {};
-    LT.sources.poses && LT.sources.poses().then(p => p && this.ajouterPoses(p, true)).catch(() => {});
+    this.qualite(q || 'low', true);
+    this.poses = {}; this.brutes = {}; this.figurants = {};
+    this.r.shadowMap.autoUpdate = false;   // les ombres ne sont recalculées que quand quelque chose bouge (ombrer())
+    // tout se charge petit à petit, avec des pauses : plus long, mais le PC reste libre
+    this.pret = (async () => {
+      await this.chargerModeles();
+      try { this.etape('Poses des membres…'); const p = LT.sources.poses && await LT.sources.poses(); if (p) await this.ajouterPoses(p, true); } catch (e) { }
+      this.etape(null); this.qualite(this.q);   // les modèles arrivés entre-temps prennent les matières du niveau choisi
+    })();
     new ResizeObserver(() => { this.taille(); this.rendre(); }).observe(cont);
     this.taille();
   }
-  taille() { const l = this.cont.clientWidth, h = this.cont.clientHeight; if (!l || !h) return; this.r.setSize(l, h, false); this.cam.aspect = l / h; this.cam.updateProjectionMatrix(); }
+  // Low : l'image 3D a une taille fixe (960 de large, comme l'ancien Light Toast), étirée dans le moniteur ou le plein écran
+  taille() { const l = this.cont.clientWidth, h = this.cont.clientHeight; if (!l || !h) return; if (this.q === 'low') this.r.setSize(960, Math.round(960 * h / l), false); else this.r.setSize(l, h, false); this.cam.aspect = l / h; this.cam.updateProjectionMatrix(); }
 
   // ---------- caméra ----------
   vue(nom) { const [p, c] = VUES[nom] || VUES.camera; this.cible = new this.T.Vector3(...c); const d = new this.T.Vector3(...p).sub(this.cible); this.rayon = d.length(); this.phi = Math.acos(d.y / this.rayon); this.theta = Math.atan2(d.x, d.z); this.placer(); }
@@ -127,7 +134,7 @@ class Vue3D {
       L.lumiere.color.set(o.couleur); L.lumiere.intensity = on ? o.force : 0;
       const c = new T.Color(o.couleur); if (!on) c.multiplyScalar(.15);
       L.mats.forEach(m => m.color.copy(c));
-      (L.emis || []).forEach(m => m.emissive.set(o.couleur).multiplyScalar(on ? Math.min(1, o.force) * .7 : 0));   // l'abat-jour s'éclaire
+      (L.emis || []).forEach(m => { m.emissive.set(o.couleur).multiplyScalar(on ? Math.min(1, o.force) * .7 : 0); if (m.userData.simple) m.userData.simple.emissive.copy(m.emissive); });   // l'abat-jour s'éclaire
     }
     if (!sansRendu) this.rendre();
   }
@@ -136,38 +143,52 @@ class Vue3D {
   //   high : image très fine, ombres plus nettes, les lampes de la pièce font aussi des ombres
   qualite(q, sansRendu) {
     q = ['low', 'mid', 'high'].includes(q) ? q : 'mid'; this.q = q;
-    const dpr = devicePixelRatio || 1, low = q === 'low', high = q === 'high', taille = high ? 1024 : 512;
-    this.r.setPixelRatio(low ? Math.min(dpr, 1) * .6 : high ? Math.min(dpr, 2) : Math.min(dpr, 1.25));
+    const T = this.T, dpr = devicePixelRatio || 1, low = q === 'low', high = q === 'high', taille = high ? 1024 : 256;
+    this.r.setPixelRatio(low ? 1 : high ? Math.min(dpr, 2) : Math.min(dpr, 1.25));
     const ombre = (l, oui) => { if (l.castShadow !== oui || (oui && l.shadow.mapSize.x !== taille)) { l.castShadow = oui; l.shadow.mapSize.set(taille, taille); l.shadow.bias = -.003; l.shadow.radius = 4; l.shadow.camera.near = .06; l.shadow.camera.far = 8; if (l.shadow.map) { l.shadow.map.dispose(); l.shadow.map = null; } } };
     this.r.shadowMap.enabled = !low;
-    this.tubes.forEach(t => { if (!t.panneau) ombre(t.lampes[0], !low); if (t.halo) t.halo.visible = !low; t.lueurs.forEach(x => { x.visible = !low; }); });
+    // low : une seule lampe par tube (au milieu) ; mid / high : deux (haut et bas)
+    this.tubes.forEach(t => { if (!t.panneau) ombre(t.lampes[0], !low); if (t.halo) t.halo.visible = !low; t.lueurs.forEach(x => { x.visible = !low; });
+      if (t.lampes[1]) t.lampes[1].visible = !low; if (!t.panneau) { t.y0 = t.y0 ?? t.lampes[0].position.y; t.lampes[0].position.y = low ? (t.y0 + t.lampes[1].position.y) / 2 : t.y0; } });
+    this.pasImage = 1000 / (low ? 20 : high ? 60 : 30);   // images par seconde de la 3D
     for (const L of Object.values(this.S.lampes || {})) if (L.lumiere) ombre(L.lumiere, high);
-    this.scene.traverse(x => { if (x.material) (Array.isArray(x.material) ? x.material : [x.material]).forEach(m => { m.needsUpdate = true; }); });
-    this.taille(); if (!sansRendu) this.rendre();
+    // low : matières simples (beaucoup moins de calcul par lumière) ; mid / high : les vraies matières
+    const simple = m => { if (!m.isMeshStandardMaterial) return m; if (!m.userData.simple) { const l = new T.MeshLambertMaterial({ color: m.color, map: m.map, emissive: m.emissive, emissiveMap: m.emissiveMap, side: m.side, transparent: m.transparent, opacity: m.opacity, alphaTest: m.alphaTest }); l.userData.vrai = m; m.userData.simple = l; } return m.userData.simple; };
+    const vrai = m => m.userData.vrai || m;
+    this.scene.traverse(x => { if (!x.isMesh || !x.material) return; const f = low ? simple : vrai; x.material = Array.isArray(x.material) ? x.material.map(f) : f(x.material);
+      (Array.isArray(x.material) ? x.material : [x.material]).forEach(m => { m.needsUpdate = true; }); });
+    this.taille(); this.ombrer(); if (!sansRendu) this.rendre();
   }
+  ombrer() { this.r.shadowMap.needsUpdate = true; }
+  etape(texte) { this.surCharge && this.surCharge(texte); }
   // au 1er lancement sur un PC : on mesure quelques images et on choisit le niveau tout seul
   mesurerQualite() {
     const gl = this.r.getContext(), px = new Uint8Array(4), t0 = performance.now();
     for (let i = 0; i < 4; i++) { this.r.render(this.scene, this.cam); gl.readPixels(0, 0, 1, 1, gl.RGBA, gl.UNSIGNED_BYTE, px); }
     const ms = (performance.now() - t0) / 4; return ms > 45 ? 'low' : ms > 14 ? 'mid' : 'high';
   }
-  montrerMembres(oui) { this.S.membres.visible = oui; this.rendre(); }
+  montrerMembres(oui) { this.S.membres.visible = oui; this.ombrer(); this.rendre(); }
 
   // ---------- les poses des membres (Mixamo) ----------
   // octets : { batterie: ArrayBuffer, … }  (le nom peut aussi venir d'un nom de fichier : drum, piano, guitar, bass, sing)
-  ajouterPoses(octets, dejaGardees) {
+  async ajouterPoses(octets, dejaGardees) {
     if (!dejaGardees && LT.sources.garderPoses) LT.sources.garderPoses(octets).catch(() => {});   // pour ne pas avoir à les recharger
     const sorte = n => { n = n.toLowerCase(); return /bass|basse/.test(n) ? 'basse' : /drum|batter/.test(n) ? 'batterie' : /piano|orgue/.test(n) ? 'piano' : /guit/.test(n) ? 'guitare' : /sing|chant|voix/.test(n) ? 'chant' : null; };
     let n = 0;
-    for (const [nom, buf] of Object.entries(octets)) {
-      const r = sorte(nom); if (!r) continue;
-      try {
-        const obj = new LT.FBXLoader().parse(buf, ''), clips = (obj.animations || []).slice().sort((a, b) => b.duration - a.duration);
-        obj.traverse(x => { if (x.isMesh) { x.castShadow = x.receiveShadow = true; x.frustumCulled = false; } });
-        this.poses[r] = { obj, clip: clips[0] || null }; n++;
-      } catch (e) { console.warn('Light Toast : pose « ' + nom + ' » illisible (' + (e.message || e) + ')'); }
-    }
+    for (const [nom, buf] of Object.entries(octets)) { const r = sorte(nom); if (!r) continue; this.brutes[r] = buf; delete this.poses[r]; n++; }
+    // on ne lit tout de suite que les poses dont les membres ont besoin, une par une, avec une pause entre chaque
+    const M = LT.studio.mesures(), roles = this.roles();
+    for (const p of M.membres) { const r = (roles[p.nom] || {}).role || M.roles[p.nom]; if (this.brutes[r] && !this.poses[r]) { await new Promise(ok => setTimeout(ok, 60)); this.poseDe(r); } }
     this.placerMembres(); this.surPoses && this.surPoses(); return n;
+  }
+  poseDe(r) {
+    if (this.poses[r] || !this.brutes[r]) return this.poses[r] || null;
+    try {
+      const obj = new LT.FBXLoader().parse(this.brutes[r], ''), clips = (obj.animations || []).slice().sort((a, b) => b.duration - a.duration);
+      obj.traverse(x => { if (x.isMesh) { x.castShadow = x.receiveShadow = true; x.frustumCulled = false; } });
+      this.poses[r] = { obj, clip: clips[0] || null };
+    } catch (e) { console.warn('Light Toast : pose « ' + r + ' » illisible (' + (e.message || e) + ')'); delete this.brutes[r]; }
+    return this.poses[r] || null;
   }
   // place les 3 membres selon leur rôle (projet.studio3d.membres), avec la pose si on l'a, sinon la silhouette simple
   placerMembres() {
@@ -176,7 +197,7 @@ class Vue3D {
       const piece = this.S.pieces['membre:' + p.nom], c = roles[p.nom] || {}, r = c.role || M.roles[p.nom], poste = this.poste(r);
       if (!piece || !poste) continue;
       const d = pris[r] = (pris[r] || 0) + 1, dx = (d - 1) * .7;          // deux membres au même poste : on décale le 2e
-      const pose = this.poses[r];
+      const pose = this.poseDe(r);
       let fig = this.figurants[p.nom];
       if (pose) {
         if (!fig || fig.role !== r) {
@@ -190,7 +211,7 @@ class Vue3D {
         }
         // l'instant de l'animation, puis : à la bonne taille, pieds au sol, centré sur le poste
         const k = .01 * p.taille / 1.76, temps = c.temps ?? poste.temps;
-        if (fig.mixer) fig.mixer.setTime(pose.clip.duration * temps);
+        if (fig.mixer) { fig.t0 = pose.clip.duration * temps; fig.duree = pose.clip.duration; fig.mixer.setTime(fig.t0); }
         fig.copie.position.set(0, 0, 0); fig.groupe.position.set(0, 0, 0); fig.groupe.rotation.set(0, 0, 0); fig.groupe.scale.setScalar(1);
         fig.groupe.updateMatrixWorld(true);   // mesurer sans l'ancienne taille / place
         const b = new T.Box3().setFromObject(fig.copie, true);
@@ -207,7 +228,7 @@ class Vue3D {
       if (et) et.position.set(poste.x + dx, (fig && fig.groupe.visible ? fig.haut : p.taille) + .25, poste.z);
     }
     if (this.cibles) for (const [n, d] of Object.entries(this.placement || {})) if (d.main && this.cibles[n]) this.appliquer(n, true);
-    this.rendre();
+    this.ombrer(); this.rendre();
   }
   // un poste, avec le déplacement réglé à la main
   poste(r) { const p = LT.studio.mesures().postes[r]; if (!p) return p; const d = this.placement['poste:' + r] || {}; return Object.assign({}, p, { x: p.x + (d.dx || 0), z: p.z + (d.dz || 0), rotY: p.rotY + (d.r || 0) }); }
@@ -241,6 +262,7 @@ class Vue3D {
         c.g.rotation.set((d.rx || 0) * rad, (b.r + (d.r || 0)) * rad, (d.rz || 0) * rad, 'YXZ');
       }
     }
+    this.ombrer();
     if (!this.figurants || sansMembres) return;
     if (!nom || nom.startsWith('poste:')) this.placerMembres(); else this.rendre();
   }
@@ -265,21 +287,23 @@ class Vue3D {
   }
   // les choix de rôle, gardés dans le projet
   roles() { const P = this.m.projet; P.studio3d = P.studio3d || {}; return P.studio3d.membres = P.studio3d.membres || {}; }
-  posesChargees() { return Object.keys(this.poses); }
+  posesChargees() { return Object.keys(this.brutes); }
 
   // ---------- les vrais modèles 3D ----------
   async chargerModeles() {
     const src = LT.sources && LT.sources.modeles; if (!src || !LT.GLTFLoader) return;
     let liste = null; try { liste = await src.liste(); } catch (e) { }
     if (!liste) return;
-    for (const [nom, o] of Object.entries(liste)) {
-      const p = this.S.pieces[nom]; if (!p || !o || !o.fichier) continue;
+    const l = Object.entries(liste).filter(([nom, o]) => this.S.pieces[nom] && o && o.fichier && !(this.placement[nom] || {}).cache), lus = {}; let i = 0;
+    for (const [nom, o] of l) {
+      this.etape('Studio 3D… ' + (++i) + ' / ' + l.length);
       try {
-        const octets = await src.fichier(o.fichier), gltf = await new Promise((ok, ko) => new LT.GLTFLoader().parse(octets, '', ok, ko));
-        this.poserModele(p, gltf, o);
+        const octets = lus[o.fichier] || (lus[o.fichier] = await src.fichier(o.fichier)), gltf = await new Promise((ok, ko) => new LT.GLTFLoader().parse(octets, '', ok, ko));
+        this.poserModele(this.S.pieces[nom], gltf, o); this.appliquer(nom, true);
       } catch (e) { console.warn('Light Toast : modèle 3D « ' + nom + ' » non chargé (' + (e.message || e) + '), on garde la forme simple.'); }
+      await new Promise(ok => setTimeout(ok, 40));   // on laisse respirer le PC
     }
-    this.rendre();
+    this.ombrer(); this.rendre();
   }
   // met le modèle à la bonne taille, les pieds au sol, centré sur la place de la pièce
   poserModele(p, gltf, o) {
@@ -287,7 +311,7 @@ class Vue3D {
     if (gltf.animations && gltf.animations.length) { const mx = new T.AnimationMixer(m); mx.clipAction(gltf.animations[o.animation | 0] || gltf.animations[0]).play(); mx.setTime(o.temps || 0); }
     if (o.rotX || o.rotZ) { const q = new T.Group(); q.add(...m.children.slice()); m.add(q); q.rotation.set((o.rotX || 0) * Math.PI / 180, 0, (o.rotZ || 0) * Math.PI / 180); }   // remettre debout un modèle couché
     m.updateMatrixWorld(true);
-    m.traverse(x => { if (x.isMesh) { x.castShadow = x.receiveShadow = true; x.frustumCulled = false; } });
+    m.traverse(x => { if (x.isMesh) { x.castShadow = x.receiveShadow = true; } });
     const b = new T.Box3().setFromObject(m, true), t = b.getSize(new T.Vector3()), k = ((o.largeur || p.l) ? (o.largeur || p.l) / (t.x || 1) : (o.hauteur || p.h) / (t.y || 1)) * (o.echelle || 1);   // objet plat (tapis) : mis à sa largeur
     m.position.x -= (b.min.x + b.max.x) / 2; m.position.z -= (b.min.z + b.max.z) / 2; m.position.y -= o.pendu ? b.max.y : b.min.y;   // pendu : accroché par le haut (suspension au plafond)
     boite.add(m); boite.scale.setScalar(k); boite.rotation.y = (o.rotY || 0) * Math.PI / 180; if (p.socle) boite.position.set(o.dx || 0, o.dy || 0, o.dz || 0); else boite.position.set(p.x + (o.dx || 0), (p.y || 0) + (o.dy || 0), p.z + (o.dz || 0));
@@ -307,8 +331,12 @@ class Vue3D {
     }
   }
   // dessine la pièce avec les couleurs que le moteur vient de calculer
-  rendre() {
+  rendre(force) {
     if (!this.cont.clientWidth) return;
+    const ici = performance.now(), reste = (this.pasImage || 33) - (ici - (this._vu || 0));
+    if (reste > 1 && !force) { if (!this._att) this._att = setTimeout(() => { this._att = 0; this.rendre(true); }, reste); return; }   // trop tôt : on dessinera à la bonne cadence
+    this._vu = ici;
+    if (this.anime && this.q !== 'low') this.animer();
     if (this.zones !== this.m.moteur.zones) this.brancher();
     for (const t of this.tubes) {
       const Z = t.Z; if (!Z) { t.lampes.forEach(l => l.intensity = 0); t.lueurs.forEach(l => l.material.color.set('#000000')); t.mat.color.set('#000000'); if (t.halo) t.halo.color.set('#000000'); continue; }
@@ -321,11 +349,21 @@ class Vue3D {
         l.color.setRGB(c[0], c[1], c[2], this.T.SRGBColorSpace); l.intensity = fort > .004 ? 3.4 : 0; t.lueurs[k] && t.lueurs[k].material.color.setRGB(c[0] * .8, c[1] * .8, c[2] * .8, this.T.SRGBColorSpace);
         tout = tout.map((v, i) => v + c[i] / 2);
       });
+      if (this.q === 'low' && !t.panneau) { const l = t.lampes[0], fort = Math.max(...tout); l.color.setRGB(tout[0], tout[1], tout[2], this.T.SRGBColorSpace); l.intensity = fort > .004 ? 5 : 0; }
       if (t.tex) { t.tex.needsUpdate = true; t.mat.color.set('#ffffff'); } else t.mat.color.setRGB(tout[0], tout[1], tout[2], this.T.SRGBColorSpace);
       if (t.halo) t.halo.color.setRGB(tout[0], tout[1], tout[2], this.T.SRGBColorSpace);
     }
     this.r.render(this.scene, this.cam);
   }
+  // pendant la lecture (Mid / High) : les membres jouent leur animation ; à l'arrêt, placerMembres() les refige sur leur pose
+  animer() {
+    let bouge = false;
+    for (const f of Object.values(this.figurants)) if (f.mixer && f.groupe.visible && f.duree) { f.mixer.setTime((f.t0 + this.m.temps) % f.duree); bouge = true; }
+    if (!bouge) return;
+    for (const [n, d] of Object.entries(this.placement)) if (d.main && this.cibles[n]) this.appliquer(n, true);
+    this._no = (this._no || 0) + 1; if (this._no % (this.q === 'high' ? 2 : 10) === 0) this.ombrer(); else this.r.shadowMap.needsUpdate = false;
+  }
+  lecture(oui) { if (this.anime === oui) return; this.anime = oui; if (!oui && this.q !== 'low') this.placerMembres(); }
 }
 LT.Vue3D = Vue3D;
 })(typeof self !== 'undefined' ? self : this);

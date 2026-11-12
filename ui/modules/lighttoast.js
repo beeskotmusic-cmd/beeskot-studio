@@ -34,6 +34,17 @@ BK.toast = {
     if (id) { await BK.drive.api(`https://www.googleapis.com/upload/drive/v3/files/${id}?uploadType=media`, { method: 'PATCH', headers: { 'Content-Type': blob.type || 'application/octet-stream' }, body: blob }); return id; }
     return (await BK.drive.envoyerBlob(blob, nom, await this.dossier(sous))).id;
   },
+  // tous les projets Light Toast du Drive, où qu'ils soient rangés (ex. « 8) LIGHTSHOW ») : les .json assez gros ou au nom parlant
+  async projetsPartout() {
+    if (!BK.drive.relie()) return [];
+    const ici = new Set((await this.lister('TOAST2')).map(f => f.id)), l = []; let page = '';
+    for (let i = 0; i < 6; i++) {
+      const r = await (await BK.drive.api('/files?' + new URLSearchParams({ q: "name contains '.json' and trashed=false", fields: 'nextPageToken,files(id,name,modifiedTime,size)', orderBy: 'modifiedTime desc', pageSize: '1000', pageToken: page }))).json();
+      for (const f of r.files || []) if (/\.json$/i.test(f.name) && (ici.has(f.id) || +f.size > 300000 || /^(led|projet-)|toast|light/i.test(f.name))) l.push(Object.assign(f, { ancien: !ici.has(f.id) }));
+      page = r.nextPageToken || ''; if (!page) break;
+    }
+    return l.sort((a, b) => (a.ancien - b.ancien) || (b.modifiedTime || '').localeCompare(a.modifiedTime || ''));
+  },
   async morceaux() { return (await BK.db.liste('morceaux')).sort((a, b) => a.nom.localeCompare(b.nom)); },
   // les versions d'un morceau, comme dans Reels Audio : l'export ★ de la fiche, ceux de ce PC, puis les sons du Drive
   async versions(id) {
@@ -98,6 +109,12 @@ function fenetreMusique() {
   });
 }
 
+// une petite cave sur ce PC (IndexedDB) pour ne pas retélécharger les gros fichiers
+const cave = {
+  ouvrir: () => new Promise((ok, ko) => { const r = indexedDB.open('bk-toast2', 1); r.onupgradeneeded = () => r.result.createObjectStore('cave'); r.onsuccess = () => ok(r.result); r.onerror = () => ko(r.error); }),
+  async lire(k) { const db = await this.ouvrir(); return new Promise((ok, ko) => { const q = db.transaction('cave').objectStore('cave').get(k); q.onsuccess = () => { db.close(); ok(q.result || null); }; q.onerror = () => ko(q.error); }); },
+  async ecrire(k, v) { const db = await this.ouvrir(); return new Promise((ok, ko) => { const t = db.transaction('cave', 'readwrite'); t.objectStore('cave').put(v, k); t.oncomplete = () => { db.close(); ok(); }; t.onerror = () => ko(t.error); }); },
+};
 // ---------- les sources de TOAST2 dans BEESKOT Studio ----------
 function brancher() {
   LT.sources = Object.assign(LT.sources || {}, {
@@ -113,10 +130,15 @@ function brancher() {
       return (await BK.passagesDuMorceau(m, ms, { reels: true })).map(p => ({ debut: p.debut, fin: p.fin, nom: p.nom || p.titre || 'Passage' })).filter(p => p.fin > p.debut);
     },
     // les poses Mixamo : dans le Drive (envoyées une fois par « Charger les poses »)
+    // gardées sur ce PC après la 1re fois (on ne retélécharge que si le fichier du Drive a changé)
     async poses() {
-      if (!BK.drive.relie()) return null;
-      const l = (await BK.toast.lister('Poses')).filter(f => /\.fbx$/i.test(f.name)); if (!l.length) return null;
-      const o = {}; for (const f of l) o[f.name] = tampon(await BK.drive.telecharger(f.id)); return o;
+      const garde = await cave.lire('poses').catch(() => null);
+      if (!BK.drive.relie()) return garde ? garde.o : null;
+      let l = []; try { l = (await BK.toast.lister('Poses')).filter(f => /\.fbx$/i.test(f.name)); } catch (e) { return garde ? garde.o : null; }
+      if (!l.length) return null;
+      const cle = l.map(f => f.id + f.modifiedTime).sort().join('|'); if (garde && garde.cle === cle) return garde.o;
+      const o = {}; for (const f of l) o[f.name] = tampon(await BK.drive.telecharger(f.id));
+      cave.ecrire('poses', { cle, o }).catch(() => {}); return o;
     },
     async garderPoses(octets) {
       if (!BK.drive.relie()) return;
@@ -190,15 +212,15 @@ BK.module('lighttoast', function (page) {
     if (a === 'ouvrir') {
       try {
         etat('Liste…'); let l = [];
-        if (BK.drive.relie()) { l = (await BK.toast.lister('TOAST2')).filter(f => /\.json$/i.test(f.name)); (await BK.toast.lister('Projets')).filter(f => /\.json$/i.test(f.name)).forEach(f => l.push(Object.assign(f, { ancien: true }))); }
+        if (BK.drive.relie()) l = await BK.toast.projetsPartout();
         etat('');
-        const f = await fenetre(`<b>Ouvrir un projet</b><div class="t2-fen-l">${l.map((x, k) => `<button data-k="${k}">${esc(x.name.replace(/\.json$/i, ''))}${x.ancien ? ' <em>(ancien Light Toast)</em>' : ''}<i>${new Date(x.modifiedTime).toLocaleDateString('fr-CA')}</i></button>`).join('')}</div><div class="t2-fen-b"><button data-pc>Fichier du PC…</button><button data-non>Annuler</button></div>`,
+        const f = await fenetre(`<b>Ouvrir un projet</b>${l.length ? '' : '<p class="t2-fen-e">' + (BK.drive.relie() ? 'Aucun projet trouvé dans le Drive.' : 'Drive non relié (Réglages).') + '</p>'}<div class="t2-fen-l">${l.map((x, k) => `<button data-k="${k}">${esc(x.name.replace(/\.json$/i, ''))}${x.ancien ? ' <em>(Drive)</em>' : ''}<i>${new Date(x.modifiedTime).toLocaleDateString('fr-CA')}</i></button>`).join('')}</div><div class="t2-fen-b"><button data-pc>Fichier du PC…</button><button data-non>Annuler</button></div>`,
           ($f, fin, fond) => { fond.querySelectorAll('[data-k]').forEach(b => b.onclick = () => fin(l[+b.dataset.k])); $f('[data-non]').onclick = () => fin(null);
             $f('[data-pc]').onclick = () => { const i = Object.assign(document.createElement('input'), { type: 'file', accept: '.json' }); i.onchange = () => fin({ fichier: i.files[0] }); i.click(); }; });
         if (!f) return;
         if (f.fichier || f.ancien) {
           etat('Lecture…'); const o = JSON.parse(f.fichier ? await f.fichier.text() : await (await BK.drive.api('/files/' + f.id + '?alt=media')).text());
-          if (LT.ancien.est(o)) await ouvrirAncien(o); else { await ouvrirProjet(o); etat(''); }
+          if (LT.ancien.est(o)) await ouvrirAncien(o); else if (o && o.format === 'lighttoast') { await ouvrirProjet(o); etat(''); } else etat('Ce fichier n\'est pas un projet Light Toast');
           return;
         }
         etat('Ouverture…'); await ouvrirProjet(await (await BK.drive.api('/files/' + f.id + '?alt=media')).text(), f.id); etat('');
