@@ -188,24 +188,24 @@ async function imageT(fichier, env, ctx) {
   return rep;
 }
 // la page Tournages : le HTML fabriqué par le logiciel (mode lecture, sans boutons), dans les mêmes boîtes, avec les mêmes styles
-function pageTournage(id, l) {
+function pageTournage(id, l, tel) {
   const okC = c => String(c || '').replace(/[^\w -]/g, ''), okT = t => /^(div|section|main|article|aside)$/.test(t) ? t : 'div';
   const chaine = (Array.isArray(l.chaine) ? l.chaine : []).slice(0, 12);
   const ouvre = chaine.map(x => `<${okT(x.t)}${x.id ? ` id="${okC(x.id)}"` : ''} class="tw-ch ${okC(x.c)}">`).join('');
   const ferme = chaine.slice().reverse().map(x => `</${okT(x.t)}>`).join('');
   const css = (Array.isArray(l.css) ? l.css : []).filter(h => /^style\/[\w.-]+\.css$/.test(h)).map(h => `<link rel="stylesheet" href="${APP}${h}">`).join('');
   const corps = String(l.html || '').replace(/<script[\s\S]*?<\/script>/gi, '').split('__IMG__/').join('/t/' + id + '/i/');
-  return `<!doctype html><html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex,nofollow">
+  return `<!doctype html><html lang="fr"${tel ? ' class="tel"' : ''}><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex,nofollow">
 <title>BEESKOT · Tournages${l.nom ? ' · ' + esc(l.nom) : ''}</title>${css}<style>${CSS_T}</style></head>
 <body class="${okC(l.corps)} tw-page" data-section="${okC(l.section || 'orga')}"><div class="tw-haut"><img src="${APP}look/logo-beeskot-flat.png" alt="BEESKOT"><span>Tournages · lecture seule</span></div>
 <div class="tw-cadre">${ouvre}${corps}${ferme}</div><footer class="tw-pied">fait avec Dari Band Studio · mis à jour le ${esc(new Date(l.maj || Date.now()).toLocaleString('fr-CA', { timeZone: 'America/Toronto', dateStyle: 'long', timeStyle: 'short' }))}</footer></body></html>`;
 }
 // pour que la page défile normalement dans un navigateur (dans le logiciel, tout tient dans la fenêtre)
 const CSS_T = `
-html{height:auto!important;overflow:auto!important}
-body.tw-page{height:auto!important;max-height:none!important;min-height:100%;overflow:visible!important;display:block!important;position:static!important}
-.tw-page .tw-ch{display:block!important;width:auto!important;max-width:100%!important;min-width:0!important;height:auto!important;max-height:none!important;min-height:0!important;overflow:visible!important;position:static!important;margin:0!important;flex:none!important;grid-template-columns:none!important;transform:none!important;inset:auto!important}
-.tw-page .tw-ch:not(.pane){padding:0!important;border:0!important;background:none!important;box-shadow:none!important}
+html,html.tel{height:auto!important;overflow:auto!important}
+html body.tw-page{height:auto!important;max-height:none!important;min-height:100%;overflow:visible!important;display:block!important;position:static!important}
+html body.tw-page .tw-ch{display:block!important;width:auto!important;max-width:100%!important;min-width:0!important;height:auto!important;max-height:none!important;min-height:0!important;overflow:visible!important;position:static!important;margin:0!important;flex:none!important;grid-template-columns:none!important;transform:none!important;inset:auto!important}
+html body.tw-page .tw-ch:not(.pane){padding:0!important;border:0!important;background:none!important;box-shadow:none!important}
 .tw-page .tw-cadre{max-width:1180px;margin:0 auto;padding:14px 14px 30px}
 .tw-page .tw-tour{margin-bottom:26px}
 .tw-page .tw-tour .to-affiche{cursor:default;min-height:120px}
@@ -217,9 +217,8 @@ body.tw-page{height:auto!important;max-height:none!important;min-height:100%;ove
 .tw-page .lect-txt{display:block;white-space:pre-wrap;overflow-wrap:break-word;height:auto!important;min-height:0!important;width:auto!important;max-width:100%}
 .tw-page .lect-v{display:block}
 .tw-page .tw-defile{overflow-x:auto;max-width:100%;-webkit-overflow-scrolling:touch}
-@media (max-width:700px){.tw-page .tw-cadre{padding:6px}.tw-page .to-infos,.tw-page .tt-tenues,.tw-page .to-deux,.tw-page [class*="cols"]{grid-template-columns:1fr!important;display:grid!important}
-  .tw-page .deux-box{display:flex!important;flex-direction:column!important}.tw-page .tw-defile .to-plans{min-width:980px}
-  .tw-page .to-infos>label{grid-column:auto!important}.tw-haut span{font-size:10px}.tw-page .box{padding-left:10px!important;padding-right:10px!important}}
+html.tel .tw-page .tw-cadre{padding:8px 8px 24px}
+html.tel .tw-haut{padding:10px 12px}html.tel .tw-haut img{height:34px}html.tel .tw-haut span{font-size:10px}
 `;
 async function pochette(el, env, ctx) {
   if (!el.image || !ID_OK.test(el.image)) return new Response('', { status: 404 });
@@ -332,7 +331,9 @@ async function routeTournage(req, morceaux, env, ctx) {
   const lien = await lireLien(id, env, ctx, estTournage);
   if (!lien || lien.actif === false) return reponseHtml(pageMessage('Ce lien n\'est plus actif.'), 404);
   if (lien.expire && Date.now() > Date.parse(lien.expire)) return reponseHtml(pageMessage('Ce lien a expiré.'), 410);
-  if (morceaux.length === 2) return new Response(pageTournage(id, lien), { headers: { 'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'no-store', 'X-Robots-Tag': 'noindex', 'Referrer-Policy': 'no-referrer',
+  // sur téléphone : la même mise en page que BEESKOT Studio sur téléphone (html.tel → style/telephone.css)
+  const tel = req.headers.get('Sec-CH-UA-Mobile') === '?1' || /Mobi|Android|iPhone|iPod/i.test(req.headers.get('User-Agent') || '');
+  if (morceaux.length === 2) return new Response(pageTournage(id, lien, tel), { headers: { 'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'no-store', 'X-Robots-Tag': 'noindex', 'Referrer-Policy': 'no-referrer',
     'Content-Security-Policy': "default-src 'none'; img-src 'self' https://cdn.jsdelivr.net data:; style-src 'unsafe-inline' https://cdn.jsdelivr.net; font-src https://cdn.jsdelivr.net; base-uri 'none'; form-action 'none'" } });
   if (morceaux[2] === 'i' && /^\d+$/.test(morceaux[3] || '') && morceaux.length === 4) { const el = lien.elements[+morceaux[3]]; return imageT(el && el.image, env, ctx); }
   return new Response('', { status: 404 });
