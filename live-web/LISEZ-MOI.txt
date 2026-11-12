@@ -1,0 +1,48 @@
+BEESKOT · LIVE — le playback synchronisé des tournages
+======================================================
+
+C'est quoi ?
+  Dans BEESKOT Studio › Live, tout le monde entend le même morceau, au même moment, dans ses écouteurs.
+  Chaque appareil joue SA copie du morceau. Une « salle commune » sur Internet donne l'heure exacte
+  et le départ à tout le monde. Les invités (cameraman, chef op) passent par une page web, sans appli :
+     https://beeskotmusic-cmd.github.io/beeskot-studio/live/#s=<code de la salle>
+
+Où est le code
+  ui/js/live-moteur.js   le moteur (heure commune, salle, lecteur, réglage des écouteurs). Ne dépend de rien.
+  ui/js/live-ecran.js    l'écran (le même pour le logiciel et pour les invités).
+  ui/modules/live.js     l'onglet du logiciel (morceaux, passages, exports, lien des invités).
+  ui/live/               la page des invités (index.html + invite.js).
+  ui/style/live.css      le look (sombre, façon Light Toast).
+
+La salle commune = une base Firebase « Realtime Database » (gratuite), dans le projet Firebase BEESKOT
+(le même que les notifications : beeskot-studio-12c09, compte Gmail BEESKOT).
+
+À FAIRE UNE SEULE FOIS (2 minutes)
+  1. console.firebase.google.com › projet « beeskot-studio » › menu de gauche : Créer › Realtime Database.
+  2. « Créer une base de données ». Emplacement : États-Unis (us-central1). Mode « verrouillé ». Activer.
+  3. Onglet « Règles » : tout remplacer par ce qui suit, puis « Publier » :
+
+       { "rules": { "live": { "$salle": { ".read": true, ".write": true } } } }
+
+  4. Vérifie l'adresse affichée en haut de l'onglet « Données ». Elle doit être :
+       https://beeskot-studio-12c09-default-rtdb.firebaseio.com
+     Si elle est différente (autre emplacement choisi) : la mettre dans ui/js/live-moteur.js, ligne « L.BASE ».
+
+Pourquoi ces règles sont sûres
+  On ne peut lire ou écrire que DANS une salle dont on connaît le code (22 caractères au hasard, gardé dans
+  le Drive du groupe : réglage partagé « live.salle »). Impossible de lister les salles. La salle ne contient
+  que : qui est là, quel morceau, quel passage, l'ordre « lancer / stop ». Aucun fichier, aucun mot de passe.
+
+Les invités et le morceau
+  « Inviter » ouvre l'accès en lecture au fichier du morceau en cours (comme les liens d'écoute) et met la
+  clé gratuite Google (Notes et retours › Externe) dans la salle : la page de l'invité télécharge le fichier
+  directement dans le Drive. « Fermer les invitations » referme l'accès. À faire à la fin du tournage.
+
+Le réglage des écouteurs
+  Chaque paire d'écouteurs (surtout Bluetooth) a son propre retard. Un appareil « arbitre » ouvre son micro ;
+  chaque personne colle son écouteur dessus ; son téléphone joue 8 petits sifflements à des heures connues ;
+  l'arbitre mesure le retard et l'envoie au téléphone, qui se corrige. Tout le monde est mesuré par le même
+  micro : tout le monde est calé sur la même référence. Le réglage reste gardé sur chaque appareil.
+  Sur le téléphone, le micro demande l'appli Android « boîte 4 » ou plus (permission micro ajoutée).
+
+Gratuit ? Oui : Firebase Realtime Database, offre gratuite (100 appareils en même temps, bien assez).

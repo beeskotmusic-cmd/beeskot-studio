@@ -57,7 +57,10 @@ BK.externe = {
   // Renvoie la liste des problèmes (vide = tout est bon).
   async synchroAcces(liens) {
     // les liens d'écoute (js/ecoute.js) sont dans la même collection : on les compte toujours, même si l'appelant ne les a pas passés
-    if (!liens.some(l => l.type === 'ecoute')) liens = [...liens, ...(await BK.db.liste('partages')).filter(l => l.type === 'ecoute')];
+    // (pareil pour le lien des invités du Live, type 'live' : modules/live.js)
+    const fixes = l => l.type === 'ecoute' || l.type === 'live';
+    if (!liens.some(fixes)) liens = [...liens, ...(await BK.db.liste('partages')).filter(fixes)];
+    else if (!liens.some(l => l.type === 'ecoute') || !liens.some(l => l.type === 'live')) { const vus = new Set(liens.map(l => l.id)); liens = [...liens, ...(await BK.db.liste('partages')).filter(l => fixes(l) && !vus.has(l.id))]; }
     const besoin = new Set(); for (const l of liens) if (l.actif !== false && !(l.expire && Date.now() > Date.parse(l.expire))) { if (l.type === 'ecoute' && l.doc) besoin.add(l.doc);
       for (const e of l.elements || []) { if (e.fichier) besoin.add(e.fichier); if (e.image) besoin.add(e.image); } }
     const perms = { ...(await BK.partage.lire('externe.perms', {})) }, pb = []; let change = false;
@@ -153,7 +156,7 @@ BK.externe = {
 
     // ---- la liste des liens ----
     async function charger() {
-      const [liens, a, v] = await Promise.all([BK.db.liste('partages').then(l => l.filter(x => x.type !== 'ecoute')).catch(() => []), BK.db.liste('notesmix').catch(() => []), BK.db.liste('notesvid').catch(() => [])]);
+      const [liens, a, v] = await Promise.all([BK.db.liste('partages').then(l => l.filter(x => x.type !== 'ecoute' && x.type !== 'live')).catch(() => []), BK.db.liste('notesmix').catch(() => []), BK.db.liste('notesvid').catch(() => [])]);
       X.liens = liens; X.notes = [...a, ...v].filter(n => n.partage);
       [X.url, X.cle] = await Promise.all([BK.externe.url(), BK.externe.cleApi()]);
       $('#exUrl').value = X.url; $('#exUrlBox').classList.toggle('vide', !X.url); $('#exCle').value = X.cle; $('#exCleBox').classList.toggle('vide', !X.cle);

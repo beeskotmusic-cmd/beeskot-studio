@@ -13,7 +13,7 @@ const SECTIONS = {
   musique:  { titre: 'Musique',      ids: ['biblio', 'ecoute', 'notesvid', 'mixprep'] },
   contenus: { titre: 'Contenus',     ids: ['suivi', 'reels', 'reelvis', 'postvis', 'medias'] },
   orga:     { titre: 'Organisation', ids: ['agenda', 'tournage', 'taches', 'budget'] },
-  show:     { titre: 'Show',         ids: ['lighttoast'] },
+  show:     { titre: 'Show',         ids: ['live', 'lighttoast'] },
   reglages: { titre: '',             ids: ['reglages'] },
 };
 const PAS_PRETS = ['lumieres', 'repete', 'concert'];                  // cachés dans le nouveau look tant qu'ils ne sont pas prêts

@@ -1,0 +1,124 @@
+/* =====================================================================
+   LIVE — le look de l'onglet Live et de la page des invités (sombre, façon Light Toast).
+   Tout est sous .lv : rien ici ne touche le reste du logiciel.
+   Couleurs : les variables en haut. Téléphone / fenêtre étroite : la classe .etroit (posée toute seule), tout en bas.
+   ===================================================================== */
+.lv{--fd:#130d09;--pn:#1d1510;--p2:#120c08;--noir:#0a0604;--bd:#4a3524;--bd2:#3a2a1d;--tx:#efe6d2;--mu:#b39f84;--amb:#ffb23e;--vert:#3F6B3A;--rouge:#8D182F;--org:#C65D2A;--mou:#E0A43C;
+  position:relative;display:flex;flex-direction:column;min-height:560px;height:100%;background:var(--fd);color:var(--tx);font:400 14px/1.35 "Work Sans",system-ui,sans-serif;border-radius:10px;overflow:hidden;grid-column:1/-1}
+.lv *{box-sizing:border-box}
+.lv .hidden{display:none!important}
+.lv b{font-weight:600}.lv em{font-style:normal}
+.lv-vide{flex:1}
+
+/* ---- les boutons et les champs ---- */
+.lv-b{min-height:40px;padding:0 14px;border-radius:6px;border:1px solid var(--bd);background:var(--p2);color:var(--tx);font:600 14px/1.1 "Work Sans",sans-serif;cursor:pointer;touch-action:manipulation}
+.lv-b:disabled{opacity:.45;cursor:default}
+.lv-b:focus-visible,.lv-champ:focus-visible,.lv-inter:focus-visible,.lv-pass:focus-visible,.lv-ong:focus-visible{outline:2px solid var(--amb);outline-offset:2px}
+.lv-b.vert{background:var(--vert);border-color:var(--vert);color:#f6eedb}
+.lv-b.rouge{background:var(--rouge);border-color:var(--rouge);color:#f6eedb}
+.lv-b.ambre{background:#2a1c10;border-color:var(--amb);color:var(--amb)}
+.lv-b.moutarde{background:var(--mou);border-color:var(--mou);color:#2a1a0e}
+.lv-b.pointille{border-style:dashed;border-color:var(--mu);background:transparent}
+.lv-b.gros{min-height:54px;padding:0 24px;border-radius:8px;font:700 21px/1 "Barlow Condensed","Work Sans",sans-serif;letter-spacing:.04em}
+.lv-champ{min-height:40px;padding:0 10px;border-radius:6px;border:1px solid var(--bd);background:var(--p2);color:var(--tx);font:500 14px "Work Sans",sans-serif;max-width:100%}
+.lv-champ:disabled{opacity:.6}
+.lv-lb{display:block;font-size:12px;color:var(--mu);margin:8px 0 4px}
+.lv-petit{font-size:12px;color:var(--mu);margin:6px 0}
+.lv-inter{position:relative;width:52px;height:28px;border-radius:14px;border:0;background:#4a3a2c;padding:0;cursor:pointer;flex:none}
+.lv-inter i{position:absolute;left:3px;top:3px;width:22px;height:22px;border-radius:50%;background:var(--tx);transition:transform .15s ease-out}
+.lv-inter.on{background:var(--vert)}.lv-inter.on i{transform:translateX(24px)}
+.lv-inter:disabled{opacity:.5}
+
+/* ---- le haut ---- */
+.lv-haut{display:flex;align-items:center;gap:12px;flex-wrap:wrap;padding:10px 16px;background:var(--pn);border-bottom:1px solid var(--noir)}
+.lv-morceau{min-width:220px}
+.lv-nompiste{font:700 20px/1 "Barlow Condensed",sans-serif;letter-spacing:.03em}
+.lv-etatreseau{font:400 12px "Share Tech Mono",monospace;color:var(--mu)}
+.lv-etatreseau.ok{color:#8fd97f}.lv-etatreseau.ko{color:var(--mou)}
+.lv-chef{color:var(--mu)}.lv-chef b{color:var(--amb)}
+.lv-sync{display:flex;align-items:center;gap:8px}
+
+/* ---- le corps : 3 colonnes ---- */
+.lv-corps{flex:1;display:flex;min-height:0}
+.lv-g,.lv-d{width:290px;flex:none;background:var(--pn);padding:14px;display:flex;flex-direction:column;gap:8px;overflow:auto}
+.lv-g{border-right:1px solid var(--noir)}.lv-d{border-left:1px solid var(--noir)}
+.lv-c{flex:1;min-width:0;display:flex;flex-direction:column;gap:12px;padding:14px}
+.lv-onglets{display:flex;gap:6px}
+.lv-ong{flex:1;min-height:36px;border-radius:6px;border:1px solid var(--bd);background:var(--p2);color:var(--tx);font:600 13px "Work Sans",sans-serif;cursor:pointer}
+.lv-ong.on{background:var(--org);border-color:var(--org);color:#fff3df}
+.lv-ong.que-etroit{display:none}
+.lv-liste{display:flex;flex-direction:column;gap:8px}
+.lv-ligne{display:flex;gap:6px}
+.lv-pass{flex:1;min-width:0;text-align:left;padding:9px 12px;border-radius:6px;border:1px solid var(--bd);background:var(--p2);color:var(--tx);font:500 14px "Work Sans",sans-serif;cursor:pointer}
+.lv-pass em{display:block;font:400 12px "Share Tech Mono",monospace;color:var(--mu);margin-top:2px}
+.lv-pass:disabled{cursor:default}
+.lv-ligne.on .lv-pass{border:2px solid var(--amb);background:#2a1c10;padding:8px 11px}.lv-ligne.on .lv-pass em{color:var(--amb)}
+.lv-x{width:40px;border-radius:6px;border:1px solid var(--bd);background:var(--p2);color:var(--mu);cursor:pointer;font-size:12px}
+.lv-edit{padding:10px;border:1px dashed var(--mu);border-radius:6px}
+.lv-duo{display:flex;gap:8px;margin-top:8px}.lv-duo>*{flex:1;min-width:0}.lv-duo .lv-champ{width:100%}
+.lv-edit .lv-champ{width:100%}
+.lv-tt{font:700 17px/1 "Barlow Condensed",sans-serif;letter-spacing:.06em}
+.lv-pers{display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:6px;background:var(--p2);border:1px solid var(--bd2)}
+.lv-pers>div{flex:1;min-width:0}
+.lv-pers em{display:block;font-size:12px;color:var(--mu)}
+.lv-pers.chef{border-color:var(--amb);background:#2a1c10}
+.lv-tagchef{color:var(--amb)}.lv-tag{color:var(--mu);font-weight:400}
+.lv-voyant{width:12px;height:12px;border-radius:50%;flex:none;background:#5a4a3c}
+.lv-voyant.vert{background:#8fd97f}.lv-voyant.jaune{background:var(--mou)}.lv-voyant.orange{background:var(--org)}
+
+/* ---- le moniteur ---- */
+.lv-moniteur{flex:1;min-height:210px;background:var(--noir);border:1px solid var(--bd2);border-radius:10px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;padding:12px;text-align:center}
+.lv-m1{font:400 13px "Share Tech Mono",monospace;letter-spacing:.14em;color:var(--mu)}
+.lv-m2{font:700 clamp(72px,16vh,190px)/.9 "Barlow Condensed",sans-serif;color:var(--amb);font-variant-numeric:tabular-nums}
+.lv-m2.texte{font-size:clamp(30px,6vh,56px);color:var(--tx);line-height:1}
+.lv-lampes{display:flex;gap:12px;min-height:20px}
+.lv-lampes span{width:20px;height:20px;border-radius:50%;background:var(--bd2)}.lv-lampes span.on{background:var(--amb)}
+.lv-m3{font:400 20px "Share Tech Mono",monospace}
+.lv-m4{color:var(--mu);min-height:18px}
+.lv-transport{display:flex;gap:10px;flex-wrap:wrap}
+.lv-options{display:flex;gap:14px;flex-wrap:wrap;align-items:center}
+.lv-options label{display:flex;align-items:center;gap:8px;color:var(--mu)}
+.lv-opt{min-height:36px}
+.lv-onde{background:var(--pn);border:1px solid var(--bd2);border-radius:10px;padding:10px 14px}
+.lv-regle{display:flex;justify-content:space-between;font:400 12px "Share Tech Mono",monospace;color:var(--mu);min-height:16px}
+.lv-bande{position:relative;height:96px;margin:6px 0;background:var(--noir);border-radius:6px;overflow:hidden;touch-action:none}
+.lv-bande canvas{position:absolute;inset:0;width:100%;height:100%}
+.lv-zone{position:absolute;top:0;bottom:0;background:rgba(255,178,62,.2);border-left:3px solid var(--amb);border-right:3px solid var(--amb)}
+.lv-poignee{position:absolute;top:0;bottom:0;width:28px;display:none;cursor:ew-resize}
+.lv-zone.edite .lv-poignee{display:block}.lv-poignee.g{left:-14px}.lv-poignee.d{right:-14px}
+.lv-tete{position:absolute;top:0;bottom:0;width:2px;background:var(--tx);display:none}
+.lv-note{font-size:12px;color:var(--mu);min-height:16px}
+
+/* ---- les fenêtres (entrée, réglage, invitation) ---- */
+.lv-voile,.lv-entree{position:absolute;inset:0;z-index:5;background:rgba(10,6,4,.88);display:flex;align-items:flex-start;justify-content:center;padding:24px 14px;overflow:auto}
+.lv-entree{background:var(--fd);align-items:center}
+.lv-carte{width:100%;max-width:380px;background:var(--pn);border:1px solid var(--bd);border-radius:10px;padding:20px;display:flex;flex-direction:column;gap:10px}
+.lv-carte.large{max-width:520px}
+.lv-carte p{margin:0}
+.lv-t{font:700 26px/1 "Barlow Condensed",sans-serif;letter-spacing:.08em;color:var(--amb)}
+.lv-bloc{border:1px solid var(--bd2);border-radius:8px;padding:12px;display:flex;flex-direction:column;gap:8px}
+.lv-qr{align-self:center;width:230px;max-width:100%;background:#efe4cc;border-radius:8px;padding:8px}.lv-qr svg{display:block;width:100%;height:auto}
+.lv input[type=range]{width:100%;accent-color:var(--amb);min-height:32px}
+
+/* ---- téléphone / fenêtre étroite : tout en une colonne ---- */
+.lv.etroit .lv-corps{flex-direction:column;overflow:auto}
+.lv.etroit .lv-c{order:1;flex:none;padding:10px;gap:10px}
+.lv.etroit .lv-g{order:2;width:auto;border:0;border-top:1px solid var(--noir);overflow:visible;padding:10px}
+.lv.etroit .lv-d{display:none}
+.lv.etroit .lv-ong.que-etroit{display:block}
+.lv.etroit .lv-ong{min-height:44px}
+.lv.etroit .lv-haut{padding:8px 10px;gap:8px}
+.lv.etroit .lv-morceau{min-width:0;flex:1 1 150px}
+.lv.etroit .lv-moniteur{min-height:200px;flex:none}
+.lv.etroit .lv-m2{font-size:104px}.lv.etroit .lv-m2.texte{font-size:32px}
+.lv.etroit .lv-transport .lv-b{flex:1 1 30%;padding:0 8px;font-size:18px;min-height:52px}
+.lv.etroit .lv-options{gap:8px}.lv.etroit .lv-options label{flex:1 1 44%;justify-content:space-between}
+.lv.etroit .lv-opt,.lv.etroit .lv-b,.lv.etroit .lv-champ{min-height:44px}
+.lv.etroit .lv-bande{height:60px}
+.lv.etroit .lv-pass{min-height:44px}
+@media (prefers-reduced-motion:reduce){.lv-inter i{transition:none}}
+
+/* dans le logiciel : l'onglet Live prend toute la place de la page */
+#p-live .grid{display:block;padding:0}
+#p-live .lv{min-height:calc(100vh - 190px)}
+html.tel #p-live .lv{min-height:calc(100vh - 60px);border-radius:0}

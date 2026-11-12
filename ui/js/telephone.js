@@ -523,7 +523,7 @@
   // Le logiciel dedans se met à jour tout seul ; la « boîte » Android, elle, se réinstalle par-dessus : on propose un bouton.
   // Chaque nouvelle boîte porte un numéro dans son « user agent » (apk/capacitor.config.json › appendUserAgent).
   // Pour proposer une nouvelle boîte à tout le monde : augmenter les DEUX numéros ensemble.
-  const BOITE_VOULUE = 3;
+  const BOITE_VOULUE = 4;
   const numBoite = () => { const m = /BeeskotBoite\/(\d+)/.exec(navigator.userAgent); return m ? +m[1] : 1; };
   const boiteAncienne = () => enAppli && numBoite() < BOITE_VOULUE;
   function bandeauMaj() {

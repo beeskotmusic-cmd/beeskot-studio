@@ -3,6 +3,14 @@
 // Pour une nouvelle version : ajouter un bloc EN HAUT de la liste. Une ligne courte par point : « Onglet : ce qui change. »
 // =====================================================================
 BK.NOUVEAUTES = [
+  { v: '0.9.136', titre: 'Live : le playback des tournages', l: [
+    ['🎧', 'Nouvel onglet Live (Show) : tout le monde entend le même morceau, au même moment, dans ses écouteurs. Sur PC et sur téléphone.'],
+    ['🎬', 'Live : le chef lance, arrête, reprend. Tout le monde peut prendre la main.'],
+    ['✂', 'Live : choisis un passage, crée-en un nouveau, ou joue un export de Reels Audio. Décompte, élan, vitesse, boucle.'],
+    ['📱', 'Live : « Inviter » affiche un QR code pour le cameraman ou le chef op. Rien à installer, iPhone ou Android.'],
+    ['🎚', 'Live : « Réglage des écouteurs » en début de tournage. Un appareil écoute les autres et les cale tout seul ; sinon, à l\'oreille.'],
+    ['⬇', 'Téléphone : nouvelle appli Android (bouton « Mettre à jour ») pour que le téléphone puisse servir d\'arbitre avec son micro.'],
+  ] },
   { v: '0.9.135', titre: 'Téléphone : le petit lecteur', l: [
     ['🎧', 'Téléphone : quand un morceau joue, un petit lecteur apparaît sur l\'écran verrouillé et en haut de l\'écran (pause, suivant, barre pour avancer). La musique continue même quand l\'appli est fermée. Il faut la nouvelle appli Android : le bouton « Mettre à jour » apparaît tout seul.'],
     ['🖼', 'Téléphone : la fenêtre « Photo de… » prend tout l\'écran. Les images s\'affichent en grand, le bouton « Choisir » reste en bas, et « Du téléphone… » ouvre ta galerie.'],
@@ -763,6 +771,20 @@ BK.TUTO = [
       ['Lancer le Light Show', '▶ Ouvrir dans TouchDesigner, ou ▶ Autre programme LED (ce PC).'],
       ['Piloter les lampes Globe', 'Enregistrer et chercher les lampes (une fois) → Allumer / Éteindre chaque lampe.'] ],
     astuces: [ 'À afficher seulement sur les PC qui en ont besoin (Réglages › Onglets).' ] },
+  { o: 'Live', ic: '🎧', quoi: 'Le playback des tournages sans enceinte : chacun met ses écouteurs, et tout le monde entend le même morceau au même moment. Chaque appareil joue sa propre copie du morceau ; une « salle commune » sur Internet donne le départ à tout le monde.',
+    comment: [
+      ['Entrer', 'Ouvre l\'onglet Live → « Entrer dans le Live ». Mets tes écouteurs. Garde l\'onglet ouvert : l\'écran reste allumé tout seul.'],
+      ['Choisir le morceau', 'Le chef choisit le morceau en haut à gauche. Chaque appareil le télécharge : dans « Connectés », attends que tout le monde soit « prêt ».'],
+      ['Le chef', 'Un seul chef à la fois : c\'est lui qui lance. « Prendre la main » pour devenir chef, « Passer la main à… » pour la donner. Tout le monde peut appuyer sur STOP.'],
+      ['Lancer une prise', 'LANCER : un décompte (4 coups), puis la musique part chez tout le monde. STOP arrête tout. REPRENDRE relance le même passage. Sur PC : la barre d\'espace.'],
+      ['Les passages', 'À gauche : le morceau entier, les passages gardés dans Reels Audio, et ceux créés ici. « + Nouveau passage » : donne un nom, glisse les deux bords orange sur la forme d\'onde → Garder. Tout le groupe le voit.'],
+      ['Les exports', 'Onglet « Exports » : les fichiers déjà exportés par Reels Audio (tournage ralenti ou accéléré, en gardant la note). Ils sont joués tels quels.'],
+      ['Décompte, élan, vitesse, boucle', 'Sous les boutons. Élan = la musique démarre quelques secondes avant le passage. Vitesse : la musique change de hauteur, comme un disque (pour garder la note : un export). Boucle = le passage se rejoue tout seul.'],
+      ['Inviter le cameraman', '« Inviter (QR code) » → il scanne avec son téléphone (iPhone ou Android), écrit son prénom, et entre. Il peut prendre la main et lancer. « Fermer les invitations » à la fin du tournage.'],
+      ['Régler les écouteurs (début de tournage)', '« Réglage des écouteurs ». Automatique : un appareil devient l\'arbitre (son micro écoute) ; chacun colle son écouteur contre ce micro, on touche « Mesurer », 5 secondes par personne. À l\'oreille : « Lancer les clics », un écouteur de chaque téléphone aux oreilles, et on glisse le curseur jusqu\'à entendre un seul clic.'],
+      ['Couper la synchro sur un appareil', 'L\'interrupteur « Synchro » en haut à droite : cet appareil ne suit plus la musique. Les autres le voient « synchro coupée ».'],
+      ['Si ça coince', 'Voyant orange = le morceau n\'est pas encore chargé. « Salle injoignable » = pas de réseau. Dernier recours : le même fichier sur chaque téléphone et un « 3, 2, 1, play ».'],
+    ] },
   { o: 'Light Toast', ic: '💡', quoi: 'TOAST by Beeskot : tu charges un morceau, tu poses des pêches (éclairs, flashs) et des effets sur la frise, tu vois le résultat sur les tubes LED et sur la vue 3D, puis tu exportes la vidéo (.mp4) pour les lumières.',
     comment: [
       ['Faire un light show', '1) Choisis le morceau (section 1 : Bibliothèque, Médias ou Ce PC). 2) Choisis les couleurs (palette). 3) Pose des pêches et des effets sur la frise (touche +, pavé numérique), ou « Suggérer une vidéo ». 4) ▶ sous les vidéos pour voir, puis Exporter (.mp4).'],
