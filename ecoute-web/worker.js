@@ -276,9 +276,10 @@ const VOIR_JS = `(() => {
 })();`;
 // pour que la page défile normalement dans un navigateur (dans le logiciel, tout tient dans la fenêtre)
 const CSS_T = `
-html,html.tel{height:auto!important;overflow:auto!important}
+html,html.tel{height:auto!important;overflow:auto!important;background:#1a1208!important}  /* le fond reste sur le body (toute sa hauteur) : plus de bande */
 html body.tw-page{height:auto!important;max-height:none!important;min-height:100vh!important;min-height:100dvh!important;overflow:visible!important;display:block!important;position:static!important}
 html body.tw-page .tw-ch{display:block!important;width:auto!important;max-width:100%!important;min-width:0!important;height:auto!important;max-height:none!important;min-height:0!important;overflow:visible!important;position:static!important;margin:0!important;flex:none!important;grid-template-columns:none!important;transform:none!important;inset:auto!important}
+html body.tw-page .tw-ch::before,html body.tw-page .tw-ch::after{position:fixed!important;inset:0!important;height:auto!important;width:auto!important}  /* les voiles du logiciel couvrent l'écran (sinon : bande à 1 écran de haut) */
 html body.tw-page .tw-ch:not(.pane){padding:0!important;border:0!important;background:none!important;box-shadow:none!important}
 .tw-page .tw-cadre{max-width:1180px;margin:0 auto;padding:14px 14px 30px}
 .tw-page .tw-tour{margin-bottom:26px}
