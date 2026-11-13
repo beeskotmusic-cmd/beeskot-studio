@@ -198,8 +198,51 @@ function pageTournage(id, l, tel) {
   return `<!doctype html><html lang="fr"${tel ? ' class="tel"' : ''}><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex,nofollow">
 <title>BEESKOT · Tournages${l.nom ? ' · ' + esc(l.nom) : ''}</title>${css}<style>${CSS_T}</style></head>
 <body class="${okC(l.corps)} tw-page" data-section="${okC(l.section || 'orga')}"><div class="tw-haut"><img src="${APP}look/logo-beeskot-flat.png" alt="BEESKOT"><span>Tournages · lecture seule</span></div>
-<div class="tw-cadre">${ouvre}${corps}${ferme}</div><footer class="tw-pied">fait avec Dari Band Studio · mis à jour le ${esc(new Date(l.maj || Date.now()).toLocaleString('fr-CA', { timeZone: 'America/Toronto', dateStyle: 'long', timeStyle: 'short' }))}</footer></body></html>`;
+<div class="tw-cadre">${ouvre}${corps}${ferme}</div><script src="/t/voir.js" defer></script><footer class="tw-pied">fait avec Dari Band Studio · mis à jour le ${esc(new Date(l.maj || Date.now()).toLocaleString('fr-CA', { timeZone: 'America/Toronto', dateStyle: 'long', timeStyle: 'short' }))}</footer></body></html>`;
 }
+// la visionneuse de la page Tournages (comme dans le logiciel) : clic sur une image → en grand.
+// PC : molette = zoom vers la souris · glisser = déplacer · double-clic = taille normale · ← → · Échap / clic à côté = fermer.
+// Téléphone : pincer = zoom · glisser = déplacer (zoomé) ou image d'à côté (pas zoomé) · toucher à côté = fermer.
+const VOIR_JS = `(() => {
+  const urlDe = e => { if (e.tagName === 'IMG') return e.getAttribute('src') || '';
+    const m = /url\\(["']?([^"')]+)["']?\\)/.exec(e.style.backgroundImage || ''); return m ? m[1] : ''; };
+  const estImg = u => /\\/t\\/[^/]+\\/i\\/\\d+$/.test(u);
+  const toutes = () => { const vus = []; document.querySelectorAll('img[src*="/i/"], [style*="/i/"]').forEach(e => { const u = urlDe(e); if (estImg(u) && !vus.includes(u)) vus.push(u); }); return vus; };
+  document.querySelectorAll('img[src*="/i/"], [style*="/i/"]').forEach(e => { if (estImg(urlDe(e))) e.style.cursor = 'zoom-in'; });
+  document.addEventListener('click', ev => { const e = ev.target.closest('img[src*="/i/"], [style*="/i/"]'); if (!e) return; const u = urlDe(e); if (!estImg(u)) return;
+    ev.preventDefault(); const l = toutes(); voir(l, Math.max(0, l.indexOf(u))); });
+  function voir(liste, k) {
+    const v = document.createElement('div'); v.className = 'tw-voir';
+    v.innerHTML = '<img class="voir-img" draggable="false" alt=""><button class="voir-x" aria-label="Fermer">✕</button><button class="voir-p" aria-label="Précédente">‹</button><button class="voir-s" aria-label="Suivante">›</button><span class="voir-n"></span>';
+    document.body.appendChild(v); document.documentElement.style.overflow = 'hidden';
+    const im = v.querySelector('img'), n = v.querySelector('.voir-n'); let z = 1, x = 0, y = 0;
+    const pose = () => { im.style.transform = 'translate(' + x + 'px,' + y + 'px) scale(' + z + ')'; im.style.cursor = z > 1 ? 'grab' : 'zoom-in'; };
+    const montre = () => { z = 1; x = y = 0; im.src = liste[k]; n.textContent = liste.length > 1 ? (k + 1) + ' / ' + liste.length : ''; v.querySelector('.voir-p').hidden = v.querySelector('.voir-s').hidden = liste.length < 2; pose(); };
+    const ferme = () => { document.removeEventListener('keydown', touche, true); document.documentElement.style.overflow = ''; v.remove(); };
+    const va = d => { k = (k + d + liste.length) % liste.length; montre(); };
+    const zoomVers = (cx, cy, z2) => { z2 = Math.min(8, Math.max(1, z2)); const r = im.getBoundingClientRect(), dx = cx - (r.left + r.width / 2), dy = cy - (r.top + r.height / 2), q = z2 / z;
+      x = z2 === 1 ? 0 : x - dx * (q - 1); y = z2 === 1 ? 0 : y - dy * (q - 1); z = z2; pose(); };
+    const touche = e => { if (e.key === 'Escape') { e.preventDefault(); ferme(); } else if (e.key === 'ArrowLeft' && liste.length > 1) { e.preventDefault(); va(-1); } else if (e.key === 'ArrowRight' && liste.length > 1) { e.preventDefault(); va(1); } };
+    document.addEventListener('keydown', touche, true);
+    v.querySelector('.voir-x').onclick = ferme; v.querySelector('.voir-p').onclick = e => { e.stopPropagation(); va(-1); }; v.querySelector('.voir-s').onclick = e => { e.stopPropagation(); va(1); };
+    v.addEventListener('click', e => { if (e.target === v) ferme(); });
+    v.addEventListener('wheel', e => { e.preventDefault(); zoomVers(e.clientX, e.clientY, z * (e.deltaY < 0 ? 1.15 : 1 / 1.15)); }, { passive: false });
+    im.addEventListener('dblclick', () => { if (z > 1) { z = 1; x = y = 0; pose(); } else zoomVers(innerWidth / 2, innerHeight / 2, 2.5); });
+    // doigts / souris : 1 = déplacer (ou changer d'image si pas zoomé), 2 = pincer
+    const pts = new Map(); let dep = null, pince = null;
+    im.addEventListener('pointerdown', e => { im.setPointerCapture(e.pointerId); pts.set(e.pointerId, { x: e.clientX, y: e.clientY });
+      if (pts.size === 2) { const [a, b] = [...pts.values()]; pince = { d: Math.hypot(a.x - b.x, a.y - b.y), z }; dep = null; }
+      else dep = { x: e.clientX, y: e.clientY, ox: x, oy: y, t: Date.now() }; });
+    im.addEventListener('pointermove', e => { if (!pts.has(e.pointerId)) return; pts.set(e.pointerId, { x: e.clientX, y: e.clientY });
+      if (pince && pts.size === 2) { const [a, b] = [...pts.values()]; zoomVers((a.x + b.x) / 2, (a.y + b.y) / 2, pince.z * Math.hypot(a.x - b.x, a.y - b.y) / pince.d); return; }
+      if (dep && z > 1) { x = dep.ox + e.clientX - dep.x; y = dep.oy + e.clientY - dep.y; pose(); } });
+    const fin = e => { if (!pts.has(e.pointerId)) return; pts.delete(e.pointerId);
+      if (dep && z === 1 && !pince && liste.length > 1) { const dx = e.clientX - dep.x; if (Math.abs(dx) > 60 && Date.now() - dep.t < 600) va(dx < 0 ? 1 : -1); }
+      if (pts.size < 2) pince = null; if (!pts.size) dep = null; };
+    im.addEventListener('pointerup', fin); im.addEventListener('pointercancel', fin);
+    montre();
+  }
+})();`;
 // pour que la page défile normalement dans un navigateur (dans le logiciel, tout tient dans la fenêtre)
 const CSS_T = `
 html,html.tel{height:auto!important;overflow:auto!important}
@@ -213,6 +256,11 @@ html body.tw-page .tw-ch:not(.pane){padding:0!important;border:0!important;backg
 .tw-page .tt-reel-corps{display:block!important}
 .tw-haut{display:flex;align-items:center;gap:14px;padding:12px 18px;background:rgba(0,0,0,.35);box-shadow:0 3px 10px rgba(0,0,0,.4)}
 .tw-haut img{height:40px}.tw-haut span{font:700 12px Jost,system-ui,sans-serif;letter-spacing:.14em;text-transform:uppercase;color:#e7c796}
+.tw-voir{position:fixed;inset:0;z-index:300;background:rgba(6,3,1,.9);display:flex;align-items:center;justify-content:center;overflow:hidden;touch-action:none}
+.tw-voir .voir-img{max-width:92vw;max-height:90vh;border-radius:4px;box-shadow:0 8px 30px #000;user-select:none;-webkit-user-select:none;touch-action:none;transform-origin:center}
+.tw-voir button{position:absolute;border:0;border-radius:50%;width:44px;height:44px;font-size:24px;line-height:1;cursor:pointer;color:#f3ece0;background:rgba(0,0,0,.55);box-shadow:0 0 0 1px rgba(255,255,255,.25)}
+.tw-voir .voir-x{top:14px;right:14px}.tw-voir .voir-p{left:12px;top:50%}.tw-voir .voir-s{right:12px;top:50%}.tw-voir button[hidden]{display:none}
+.tw-voir .voir-n{position:absolute;bottom:16px;left:50%;transform:translateX(-50%);color:#f3ece0;font:600 12px Jost,system-ui,sans-serif;background:rgba(0,0,0,.55);padding:3px 10px;border-radius:10px}
 .tw-pied{text-align:center;font:600 11px Jost,system-ui,sans-serif;color:rgba(239,230,210,.5);padding:0 0 24px}
 .tw-page .lect-txt{display:block;white-space:pre-wrap;overflow-wrap:break-word;height:auto!important;min-height:0!important;width:auto!important;max-width:100%}
 .tw-page .lect-v{display:block}
@@ -327,6 +375,7 @@ function pageMessage(texte) {
 async function routeTournage(req, morceaux, env, ctx) {
   if (req.method !== 'GET' && req.method !== 'HEAD') return new Response('', { status: 405 });
   const id = morceaux[1] || '';
+  if (id === 'voir.js' && morceaux.length === 2) return new Response(VOIR_JS, { headers: { 'Content-Type': 'text/javascript; charset=utf-8', 'Cache-Control': 'public, max-age=3600' } });
   if (!ID_OK.test(id)) return reponseHtml(pageMessage('Ce lien n\'est pas valide.'), 404);
   const lien = await lireLien(id, env, ctx, estTournage);
   if (!lien || lien.actif === false) return reponseHtml(pageMessage('Ce lien n\'est plus actif.'), 404);
@@ -334,7 +383,7 @@ async function routeTournage(req, morceaux, env, ctx) {
   // sur téléphone : la même mise en page que BEESKOT Studio sur téléphone (html.tel → style/telephone.css)
   const tel = req.headers.get('Sec-CH-UA-Mobile') === '?1' || /Mobi|Android|iPhone|iPod/i.test(req.headers.get('User-Agent') || '');
   if (morceaux.length === 2) return new Response(pageTournage(id, lien, tel), { headers: { 'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'no-store', 'X-Robots-Tag': 'noindex', 'Referrer-Policy': 'no-referrer',
-    'Content-Security-Policy': "default-src 'none'; img-src 'self' https://cdn.jsdelivr.net data:; style-src 'unsafe-inline' https://cdn.jsdelivr.net; font-src https://cdn.jsdelivr.net; base-uri 'none'; form-action 'none'" } });
+    'Content-Security-Policy': "default-src 'none'; script-src 'self'; img-src 'self' https://cdn.jsdelivr.net data:; style-src 'unsafe-inline' https://cdn.jsdelivr.net; font-src https://cdn.jsdelivr.net; base-uri 'none'; form-action 'none'" } });
   if (morceaux[2] === 'i' && /^\d+$/.test(morceaux[3] || '') && morceaux.length === 4) { const el = lien.elements[+morceaux[3]]; return imageT(el && el.image, env, ctx); }
   return new Response('', { status: 404 });
 }
