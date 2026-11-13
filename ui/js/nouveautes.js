@@ -3,6 +3,15 @@
 // Pour une nouvelle version : ajouter un bloc EN HAUT de la liste. Une ligne courte par point : « Onglet : ce qui change. »
 // =====================================================================
 BK.NOUVEAUTES = [
+  { v: '0.9.144', titre: 'TOAST2 : export vidéo, calques de couleur', l: [
+    ['🎞', 'TOAST2 : bouton « Exporter ». Il fabrique la vidéo .mp4 pour les lumières (1920 × 1080), pour le morceau entier ou le passage choisi, avec la musique et le clic du décompte si on veut. Ça se fait en fond, on peut continuer à travailler. Le fichier va sur le PC, et dans le Drive (Light Toast / Vidéos) si la case est cochée.'],
+    ['💡', 'TOAST2 : les lumières sont numérotées comme au studio. 1 et 2 à gauche, 3 = le panneau du plafond, 4 et 5 à droite. Dans la vidéo, le panneau est la 3e bande. Les projets déjà faits et les anciens projets Light Toast suivent tout seuls.'],
+    ['🎨', 'TOAST2 : nouveau bloc « Calque de couleur » dans la Bibliothèque. On le glisse sur une lumière, puis on coche dans l\'Inspecteur les lumières qu\'il allume (elles n\'ont pas besoin de se toucher). Un nouveau projet démarre vide (lumières éteintes) : il n\'y a que les calques qu\'on pose, rien derrière.'],
+    ['↔', 'TOAST2 : tout ce qu\'on glisse dure au moins 1 seconde. Un clip choisi montre deux poignées : on les tire pour changer sa durée.'],
+    ['🔆', 'TOAST2 : intensité par calque de couleur (Inspecteur du calque) et par lumière pour tout le morceau (Inspecteur › Projet › Intensité des lumières).'],
+    ['⎵', 'TOAST2 : la barre Espace ne lance plus aussi le petit lecteur de BEESKOT Studio.'],
+    ['✎', 'Synch bread : un passage créé ici peut être modifié (nom, entrée, sortie) avec le petit crayon, ou supprimé avec la croix.'],
+  ] },
   { v: '0.9.143', titre: '', l: [
     ['🎵', 'Lien cameraman : le passage du morceau de chaque reel s\'écoute (▶ joue du début à la fin du passage, avec le son ★ du morceau).'],
     ['▾', 'Lien cameraman : on replie / déplie comme dans le logiciel (les reels, chaque encadré, le tournage), et les images s\'ouvrent en grand avec zoom.'],

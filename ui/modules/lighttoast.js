@@ -16,7 +16,7 @@ const fenetre = (html, brancher) => new Promise(res => {
 });
 const tampon = o => o.buffer.slice(o.byteOffset, o.byteOffset + o.byteLength);   // Uint8Array → ArrayBuffer
 const SCRIPTS = ['moteur/base.js', 'moteur/materiel.js', 'moteur/effets.js', 'moteur/decompte.js', 'moteur/projet.js', 'moteur/moteur.js', 'moteur/analyse.js', 'moteur/declencheurs.js', 'moteur/ancien.js',
-  'ecran/son.js', 'ecran/roue.js', 'ecran/inspecteur.js', 'vendor/three.min.js', 'vendor/chargeurs-3d.js', 'ecran/studio.js', 'ecran/vue3d.js', 'ecran/timeline.js', 'ecran/montage.js'];
+  'ecran/son.js', 'ecran/roue.js', 'ecran/inspecteur.js', 'vendor/three.min.js', 'vendor/chargeurs-3d.js', 'ecran/studio.js', 'ecran/vue3d.js', 'ecran/timeline.js', 'ecran/montage.js', 'ecran/export.js'];
 const charger = src => new Promise((ok, ko) => { const s = document.createElement('script'); s.src = 'lighttoast2/' + src; s.onload = ok; s.onerror = () => ko(new Error(src)); document.head.appendChild(s); });
 
 // ---------- le Drive ----------
@@ -153,9 +153,9 @@ function brancher() {
 BK.module('lighttoast', function (page) {
   $('.sub', page).textContent = 'Musique → vidéo pour les tubes LED : pistes, effets, vue 3D du studio';
   $('.hdr .right', page).innerHTML = `<div class="t2-barre"><span class="t2-nom">Nouveau projet</span>
-    <button class="btn xs" data-t2="nouveau">Nouveau</button><button class="btn xs" data-t2="ouvrir">Ouvrir…</button><button class="btn xs" data-t2="enregistrer">Enregistrer</button><span class="t2-etat"></span></div>`;
+    <button class="btn xs" data-t2="nouveau">Nouveau</button><button class="btn xs" data-t2="ouvrir">Ouvrir…</button><button class="btn xs" data-t2="enregistrer">Enregistrer</button><button class="btn xs" data-t2="exporter" title="Fabriquer la vidéo .mp4 pour les lumières">Exporter</button><span class="t2-etat"></span></div>`;
   const g = $('.grid', page); g.classList.add('lt-grid'); g.innerHTML = '<div class="t2-zone"><p class="lt2-vide" style="padding:16px">Chargement de TOAST2…</p></div>';
-  let M = null, fichierId = null, pret = null, minuteur = null;
+  let M = null, fichierId = null, pret = null, minuteur = null, exportEnCours = null;
   const etat = t => { $('.t2-etat', page).textContent = t || ''; }; BK.toast.msg = etat;
   const nomProjet = () => (M && M.projet.nom) || (M && M.projet.musique && M.projet.musique.nom) || 'Projet';
   const majNom = () => { $('.t2-nom', page).textContent = nomProjet(); };
@@ -208,6 +208,33 @@ BK.module('lighttoast', function (page) {
       if (!nom) return; M.projet.nom = nom; majNom();
       try { etat('Enregistrement…'); fichierId = await BK.toast.ecrire('TOAST2', nom.replace(/[\\/:*?"<>|]/g, '-') + '.json', new Blob([JSON.stringify(M.projet)], { type: 'application/json' }), fichierId); secours(); etat('Enregistré dans le Drive'); }
       catch (err) { etat('Pas enregistré : ' + (err.message || err)); }
+    }
+    if (a === 'exporter') {
+      if (exportEnCours) { exportEnCours.stop = true; return; }   // pendant un export, le bouton sert à l'annuler
+      const passage = M.entree != null || M.sortie != null, mmss = t => Math.floor(Math.max(0, t) / 60) + ':' + String(Math.floor(Math.max(0, t) % 60)).padStart(2, '0');
+      const choix = await fenetre(`<b>Exporter la vidéo des lumières</b>
+        <label>Quoi <select data-quoi><option value="tout">Le morceau entier (${mmss(M.duree())})</option>${passage ? `<option value="passage" selected>Le passage choisi (${mmss(M.entree ?? 0)} → ${mmss(M.sortie ?? M.duree())})</option>` : ''}</select></label>
+        <label><span><input type="checkbox" data-son checked> Avec la musique${M.projet.decompte && M.projet.decompte.actif ? ' et le clic du décompte' : ''}</span></label>
+        <label><span><input type="checkbox" data-drive${BK.drive.relie() ? ' checked' : ' disabled'}> Mettre aussi dans le Drive (Light Toast / Vidéos)</span></label>
+        <p class="t2-fen-e" style="color:inherit;opacity:.7">Fichier .mp4 en 1920 × 1080, 30 images par seconde. L'export se fait en fond : tu peux continuer à travailler.</p>
+        <div class="t2-fen-b"><button class="lt2-pri" data-ok>Exporter</button><button data-non>Annuler</button></div>`,
+        ($f, fin) => { $f('[data-ok]').onclick = () => fin({ quoi: $f('[data-quoi]').value, son: $f('[data-son]').checked, drive: $f('[data-drive]').checked }); $f('[data-non]').onclick = () => fin(null); });
+      if (!choix) return;
+      const fe = LT.decompte.fenetre(M.projet), debut = choix.quoi === 'passage' ? (fe && Math.abs((M.entree ?? 0) - fe.fin) < .01 ? fe.debut : M.entree ?? M.debutMin()) : M.debutMin(), fin = choix.quoi === 'passage' ? M.sortie ?? M.duree() : M.duree();
+      const nom = (nomProjet() + (choix.quoi === 'passage' ? '_' + mmss(Math.max(0, debut)).replace(':', 'm') + 's' : '')).replace(/[\\/:*?"<>|]/g, '-') + '_LED.mp4';
+      exportEnCours = { stop: false }; b.textContent = 'Annuler l\'export';
+      try {
+        const r = await LT.exporter(M, { debut, fin, son: choix.son, arret: () => exportEnCours.stop, progression: q => etat('Export… ' + Math.round(q * 100) + ' %') });
+        if (!r) etat('Export annulé');
+        else {
+          const mp4 = r.mp4;
+          const chemin = await BK.enregistrerFichier('Light Toast', nom, mp4, 'video/mp4'); let fait = chemin ? 'Vidéo prête : ' + chemin : 'Export annulé';
+          if (chemin && choix.drive) try { etat('Envoi dans le Drive…'); await BK.toast.ecrire('Vidéos', nom, new Blob([mp4], { type: 'video/mp4' })); fait += ' · aussi dans le Drive'; } catch (err) { fait += ' · Drive : échec (' + (err.message || err) + ')'; }
+          if (chemin && choix.son && !r.son) fait += ' · SANS le son (cet ordinateur ne sait pas l\'encoder, ou il n\'y a pas de musique)';
+          etat(fait);
+        }
+      } catch (err) { etat('Export impossible : ' + (err.message || err)); console.error(err); }
+      exportEnCours = null; b.textContent = 'Exporter'; return;
     }
     if (a === 'ouvrir') {
       try {

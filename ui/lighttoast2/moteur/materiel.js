@@ -8,12 +8,15 @@
 const LT = G.LT;
 LT.materiel = {
   defaut() {
-    // les 4 tubes LED (positions dans la vidéo reprises de l'ancien masque Light Toast)
-    const X = [.0316, .2430, .4617, .6801], Y = [.0145, .0167, .0130, .0100];
-    const zones = X.map((x, i) => ({ id: 't' + (i + 1), nom: 'Tube ' + (i + 1), forme: 'tube', x, y: Y[i], l: .0806, h: .972, cols: 4, rangs: 96 }));
-    // le panneau LED au plafond (n° 5 sur le plan) : place dans la vidéo reprise de l'ancien masque
-    zones.push({ id: 'p1', nom: 'Panneau', forme: 'rect', x: .8934, y: .0011, l: .0806, h: .972, cols: 16, rangs: 96 });
-    return { largeur: 1920, hauteur: 1080, zones };
+    // 5 bandes dans la vidéo, de gauche à droite (places reprises de l'ancien masque Light Toast) :
+    //   1 et 2 = tubes de gauche · 3 = le panneau LED du plafond · 4 et 5 = tubes de droite (numéros de Pierre, 12 nov. 2026)
+    // Les identifiants (t1…t4, p1) ne changent pas : les projets déjà faits restent bons.
+    const X = [.0316, .2430, .4617, .6801, .8934], Y = [.0145, .0167, .0130, .0100, .0011];
+    const B = [['t1', 'Tube 1', 'tube'], ['t2', 'Tube 2', 'tube'], ['p1', 'Panneau (3)', 'rect'], ['t3', 'Tube 4', 'tube'], ['t4', 'Tube 5', 'tube']];
+    const zones = B.map(([id, nom, forme], i) => ({ id, nom, forme, x: X[i], y: Y[i], l: .0806, h: .972, cols: forme === 'rect' ? 16 : 4, rangs: 96 }));
+    return { v: 2, largeur: 1920, hauteur: 1080, zones };
   },
+  // un projet fait avant le changement d'ordre (panneau en 5e) prend le nouveau matériel
+  aJour(P) { if (P && (!P.materiel || (P.materiel.v || 1) < 2)) P.materiel = this.defaut(); return P; },
 };
 })(typeof self !== 'undefined' ? self : this);

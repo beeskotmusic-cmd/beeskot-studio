@@ -136,3 +136,4 @@
 .lt2-charge{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);background:rgba(10,8,18,.85);padding:10px 16px;border-radius:6px;font:600 12px 'Barlow Condensed',sans-serif;letter-spacing:.15em;text-transform:uppercase;pointer-events:none}
 .lt2-charge[hidden]{display:none}
 .lt2-moni.lt2-plein{position:fixed;inset:0;z-index:9000;border-radius:0;margin:0}
+.lt2-item.s-couleur{border:1px dashed rgba(255,255,255,.3);color:var(--lt-txt);margin-bottom:2px}

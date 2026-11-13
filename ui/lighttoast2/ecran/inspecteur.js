@@ -79,9 +79,10 @@ class Inspecteur {
     c.querySelectorAll('[data-k]').forEach(el => this.lier(el, k, el.dataset.k, el.hasAttribute('data-num') ? Number : x => x));
     c.querySelectorAll('[data-r]').forEach(el => this.lier(el, k.reglages, el.dataset.r, el.hasAttribute('data-num') ? Number : x => x));
     c.querySelectorAll('[data-z]').forEach(el => el.onchange = () => {
-      this.debut();
+      this.debut(); const avant = k[cleZones] || [];
       if (el.dataset.z === '*') k[cleZones] = el.checked ? (toujours ? tous() : null) : [tous()[0]];
       else { const l = [...c.querySelectorAll('[data-z]:not([data-z="*"])')].filter(x => x.checked).map(x => x.dataset.z); k[cleZones] = l.length ? l : [el.dataset.z]; }
+      if (toujours) { const plus = k[cleZones].filter(z => !avant.includes(z)); if (plus.length) this.m.faireDeLaPlace(k, plus); }   // calque de couleur : il prend la place sur ses nouvelles lumières
       this.fin(); this.rendre();
     });
   }
@@ -102,7 +103,8 @@ class Inspecteur {
     c.innerHTML = `<div class="lt2-titre">Couleur</div>${this.temps(k)}
       <div class="lt2-slots"><button class="lt2-slot on" data-slot="0" style="background:${k.couleur}"></button></div><div class="lt2-roue-ici"></div>
       ${this.zones(k, 'zones', 'Lumières couvertes')}
-      <p class="lt2-vide">Plusieurs lumières = un groupe. Pour une texture (flamme, plasma…), glisse un overlay sur la lumière.</p>
+      <p class="lt2-vide">Coche les lumières que ce calque allume (elles n'ont pas besoin de se toucher). Il passe par-dessus les autres calques.</p>
+      ${this.glisseur('force', k.force ?? 1, 0, 1, .01, 'Intensité')}
       <h4>Apparition</h4>${this.glisseur('entree', k.entree || 0, 0, 4, .05, 'Fondu d\'entrée')}${this.glisseur('sortie', k.sortie || 0, 0, 4, .05, 'Fondu de sortie')}`;
     this.couleursSlots = () => [k.couleur];
     this.roue(c.querySelector('.lt2-roue-ici'), k.couleur, col => { k.couleur = col; });
@@ -204,6 +206,9 @@ class Inspecteur {
       <label class="lt2-reg">Premier temps à (s)<input type="number" step="0.01" min="0" data-k="grille" value="${P.grille || 0}" title="Cale la grille des temps sur le 1er temps du morceau"></label>
       <h4>Palette du morceau</h4><div class="lt2-slots">${P.palette.map((h, i) => `<button class="lt2-slot${this.slot === i ? ' on' : ''}" data-slot="${i}" style="background:${h}"></button>`).join('')}<button class="lt2-tb" data-pal="+" title="Ajouter une couleur">+</button>${P.palette.length > 1 ? '<button class="lt2-tb" data-pal="-" title="Retirer la couleur choisie">−</button>' : ''}</div>
       <div class="lt2-roue-ici"></div>
+      <h4>Intensité des lumières</h4>
+      ${P.materiel.zones.map(z => `<label class="lt2-reg">${esc(z.nom)} <b>${Math.round(((P.intensites || {})[z.id] ?? 1) * 100)} %</b><input type="range" min="0" max="1" step="0.01" data-int="${z.id}" value="${(P.intensites || {})[z.id] ?? 1}"></label>`).join('')}
+      <p class="lt2-vide">Pour tout le morceau : baisse une lumière trop forte par rapport aux autres.</p>
       <h4>Décompte avant le début</h4>
       <label class="lt2-reg lt2-coche"><input type="checkbox" data-d="actif"${d.actif ? ' checked' : ''}> Ajouter un décompte</label>
       <div class="lt2-dc${d.actif ? '' : ' lt2-off'}">
@@ -218,6 +223,7 @@ class Inspecteur {
     c.querySelectorAll('[data-slot]').forEach(b => b.onclick = () => { this.slot = +b.dataset.slot; this.rendre(); });
     c.querySelectorAll('[data-pal]').forEach(b => b.onclick = () => { this.debut(); if (b.dataset.pal === '+') { P.palette.push(P.palette[this.slot] || '#ffffff'); this.slot = P.palette.length - 1; } else { P.palette.splice(this.slot, 1); this.slot = 0; } this.fin(); this.rendre(); this.m.biblio(); });
     c.querySelectorAll('[data-k]').forEach(el => this.lier(el, P, el.dataset.k));
+    c.querySelectorAll('[data-int]').forEach(el => { P.intensites = P.intensites || {}; this.lier(el, P.intensites, el.dataset.int); el.addEventListener('input', () => { el.parentElement.querySelector('b').textContent = Math.round(el.value * 100) + ' %'; }); });
     c.querySelectorAll('[data-d]').forEach(el => { this.lier(el, d, el.dataset.d); if (el.dataset.d === 'actif') el.addEventListener('change', () => { this.m.tl.toutVoir(); this.rendre(); }); });
     const coups = c.querySelector('input[data-d="coups"]'); coups.addEventListener('input', () => { coups.parentElement.querySelector('b').textContent = coups.value; });
     // taper le tempo

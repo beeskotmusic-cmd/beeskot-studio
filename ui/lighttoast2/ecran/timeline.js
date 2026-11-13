@@ -18,7 +18,7 @@
 // =====================================================================
 (function (G) {
 const LT = G.LT;
-const EN_TETE = 150, REGLE = 26, BORD = 6, AIMANT = 8;
+const EN_TETE = 150, REGLE = 26, BORD = 9, AIMANT = 8;
 const COUL = { peche: '#ff5fa2', effet: '#8a6be0', overlay: '#2f8f86', sel: '#a6f0e6', curseur: '#ffb23e', courbe: { lum: '#7be0ff', elum: '#ff9ad5', plum: '#c58bff', vitesse: '#9ad14b' } };
 const NOM_COURBE = { lum: 'Lum. générale', elum: 'Force effets', plum: 'Lum. pêches', vitesse: 'Vitesse' };
 const fmt = (t, fin) => { const sg = t < -1e-6 ? '-' : ''; t = Math.abs(t); const m = Math.floor(t / 60 + 1e-6), s = Math.max(0, t - m * 60); return sg + m + ':' + (s < 10 ? '0' : '') + s.toFixed(fin ? 1 : 0); };
@@ -143,6 +143,11 @@ class Timeline {
     if (m.entree != null || m.sortie != null) { c.fillStyle = 'rgba(255,178,62,.55)'; const a = this.x(m.entree ?? 0), b = this.x(m.sortie ?? d); c.fillRect(a, REGLE - 5, b - a, 5); }
     const xc = this.x(m.temps); c.fillStyle = COUL.curseur; c.beginPath(); c.moveTo(xc - 6, 0); c.lineTo(xc + 6, 0); c.lineTo(xc + 6, 8); c.lineTo(xc, 14); c.lineTo(xc - 6, 8); c.fill();
   }
+  // les deux poignées d'un clip choisi : on les tire pour changer sa durée
+  poignees(c, x1, x2, y, h) {
+    if (x2 - x1 < 12) return;
+    for (const x of [x1 + 2, x2 - 6]) { c.fillStyle = COUL.sel; c.beginPath(); c.roundRect(x, y + 2, 4, h - 4, 2); c.fill(); c.fillStyle = 'rgba(0,0,0,.55)'; c.fillRect(x + 1.5, y + h / 2 - 3, 1, 6); }
+  }
   dessinerClip(c, p, k, choisi, W) {
     const y = p.y + 2, h = p.h - 4;
     if (p.sorte === 'peches') {
@@ -170,7 +175,7 @@ class Timeline {
     }
     c.restore();
     c.strokeStyle = choisi ? COUL.sel : 'rgba(255,255,255,.18)'; c.lineWidth = choisi ? 2 : 1;
-    c.beginPath(); c.roundRect(x1 + .5, y + .5, w - 1, h - 1, 4); c.stroke();
+    c.beginPath(); c.roundRect(x1 + .5, y + .5, w - 1, h - 1, 4); c.stroke();    if (choisi) this.poignees(c, x1, x2, y, h);
   }
   // les calques de couleur : un bloc par groupe de lumières voisines
   dessinerCouleurs(c, lignes, W) {
@@ -181,15 +186,16 @@ class Timeline {
       const is = k.zones.map(z => idx[z]).filter(i => i != null).sort((a, b) => a - b), blocs = [];
       for (const i of is) { const b = blocs.at(-1); if (b && b[1] === i - 1) b[1] = i; else blocs.push([i, i]); }
       for (const [a, b] of blocs) {
-        const y = lignes[a].y + 2, h = lignes[b].y + lignes[b].h - 2 - y, w = Math.max(2, x2 - x1);
-        c.save(); c.beginPath(); c.roundRect(x1, y, w, h, 4); c.clip();
+        const y = lignes[a].y + 1, h = lignes[b].y + lignes[b].h - 1 - y, w = Math.max(2, x2 - x1);
+        c.save(); c.beginPath(); c.rect(x1, y, w, h); c.clip();
         c.fillStyle = k.couleur; c.fillRect(x1, y, w, h);
         c.fillStyle = 'rgba(0,0,0,.4)';
         if (k.entree > 0) { c.beginPath(); c.moveTo(x1, y); c.lineTo(x1 + k.entree * this.pps, y); c.lineTo(x1, y + h); c.fill(); }
         if (k.sortie > 0) { c.beginPath(); c.moveTo(x2, y); c.lineTo(x2 - k.sortie * this.pps, y); c.lineTo(x2, y + h); c.fill(); }
         c.restore();
-        const ch = sel.has(k.id); c.strokeStyle = ch ? COUL.sel : 'rgba(0,0,0,.45)'; c.lineWidth = ch ? 2 : 1;
-        c.beginPath(); c.roundRect(x1 + .5, y + .5, w - 1, h - 1, 4); c.stroke();
+        const ch = sel.has(k.id); c.strokeStyle = ch ? COUL.sel : 'rgba(0,0,0,.16)'; c.lineWidth = ch ? 2 : 1;   // bord discret : deux morceaux de la même couleur se lisent comme un seul
+        c.beginPath(); c.roundRect(x1 + .5, y + .5, w - 1, h - 1, ch ? 4 : 0); c.stroke();
+        if (ch) this.poignees(c, x1, x2, y, h);
       }
     }
   }
@@ -240,7 +246,7 @@ class Timeline {
     if (p && p.liste) {
       const l = this.clipsDe(p);
       if (p.sorte === 'peches') k = [...l].reverse().find(q => Math.abs(this.x(q.t) - x) <= 5);
-      else for (let i = l.length - 1; i >= 0; i--) { const q = l[i], a = this.x(q.debut), b = this.x(q.fin); if (x >= a - 2 && x <= b + 2) { k = q; zone = x - a < BORD && b - a > 14 ? 'gauche' : b - x < BORD && b - a > 14 ? 'droite' : 'corps'; break; } }
+      else for (let i = l.length - 1; i >= 0; i--) { const q = l[i], a = this.x(q.debut), b = this.x(q.fin); if (x >= a - 4 && x <= b + 4) { k = q; const bord = Math.min(BORD, (b - a) / 3); zone = x - a < bord ? 'gauche' : b - x < bord ? 'droite' : 'corps'; break; } }   // les bords (pour changer la durée) : 9 px, ou un tiers d'un petit clip
     }
     return { x, y, p, k, zone, t: this.t(x) };
   }
@@ -371,7 +377,9 @@ class Timeline {
         }
         m.change(true);
       };
-      cv.onpointerup = () => { cv.onpointermove = null; const b = this.glisse.bouge; this.glisse = null; if (b) m.change(); else if (!e.shiftKey && !e.ctrlKey && !e.metaKey) { m.choisir(o.k); m.aller(Math.max(0, o.t)); } };
+      cv.onpointerup = () => { cv.onpointermove = null; const b = this.glisse.bouge; this.glisse = null;
+        if (b && o.p.sorte === 'couleur') choisis.forEach(q => m.projet.couleur.clips.includes(q.k) && m.faireDeLaPlace(q.k));   // un calque de couleur déplacé ou étiré passe par-dessus les autres
+        if (b) m.change(); else if (!e.shiftKey && !e.ctrlKey && !e.metaKey) { m.choisir(o.k); m.aller(Math.max(0, o.t)); } };
     });
     // clic droit sur un losange : sa forme (droite → arrondie → palier)
     cv.addEventListener('contextmenu', e => {

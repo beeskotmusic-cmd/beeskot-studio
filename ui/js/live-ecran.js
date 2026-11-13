@@ -158,7 +158,7 @@ L.monter = function (racine, hote) {
       const liste = [{ nom: nomEntier(), debut: 0, fin: 0, entier: true }, ...passagesTous()];
       const lignes = liste.map((x, i) => { const on = x.entier ? pa.entier : (!pa.entier && Math.abs(pa.debut - x.debut) < .05 && Math.abs(pa.fin - x.fin) < .05);
         return `<div class="lv-ligne${on ? ' on' : ''}"><button type="button" class="lv-pass" data-a="passage" data-i="${i}" ${ch ? '' : 'disabled'}><b>${esc(x.nom || 'Passage')}</b><em>${x.entier ? 'du début à la fin' : tc(x.debut) + ' → ' + tc(x.fin) + (x.v && x.v !== 1 ? ' · vitesse ' + pc(x.v) : '')}</em></button>
-          ${hote.membre && x.source === 'live' ? `<button type="button" class="lv-x" data-a="oublier" data-i="${i}" aria-label="Supprimer ce passage">✕</button>` : ''}</div>`; }).join('');
+          ${hote.membre && x.source === 'live' ? `<button type="button" class="lv-x" data-a="modifier" data-i="${i}" aria-label="Modifier ce passage" title="Modifier (nom, entrée, sortie)">✎</button><button type="button" class="lv-x" data-a="oublier" data-i="${i}" aria-label="Supprimer ce passage" title="Supprimer">✕</button>` : ''}</div>`; }).join('');
       const edition = (hote.membre && hote.garderPassage ? (U.edite && p
           ? `<div class="lv-edit"><label class="lv-lb" for="lvPn">Nom du passage</label><input class="lv-champ" id="lvPn" maxlength="30" value="${esc(U.edite.nom)}" data-e="nom">
               <div class="lv-duo"><div><label class="lv-lb" for="lvPd">Entrée</label><input id="lvPd" inputmode="decimal" value="${tc(U.edite.debut, 1)}" data-e="debut" class="lv-champ lv-num"></div><div><label class="lv-lb" for="lvPf">Sortie</label><input id="lvPf" inputmode="decimal" value="${tc(U.edite.fin, 1)}" data-e="fin" class="lv-champ lv-num"></div></div>
@@ -309,12 +309,14 @@ L.monter = function (racine, hote) {
     passage(b) { if (!chef()) return; const x = [{ entier: true }, ...passagesTous()][+b.dataset.i]; choisirPassage(x.entier ? null : x); },
     nouveau() { const d = P.buffer && U.chargee === (piste() || {}).fichier ? P.buffer.duration : 0, p = passage();       // sans morceau chargé : on tape les temps à la main
       U.curseur = null; U.edite = { nom: 'Passage ' + (passagesTous().length + 1), debut: p.entier ? (d ? Math.min(d * 0.25, d - 1) : 0) : p.debut, fin: p.entier ? (d ? Math.min(d * 0.25 + 20, d) : 20) : p.fin }; },
+    // modifier un passage créé ici : le même éditeur, déjà rempli ; « Garder » remplace l'ancien
+    modifier(b) { const x = passagesTous()[+b.dataset.i - 1]; if (!x || x.source !== 'live') return; ecStop(); U.curseur = null; U.edite = { nom: x.nom || 'Passage', debut: x.debut, fin: x.fin, v: x.v || 1, ancien: x }; },
     annuler() { ecStop(); U.edite = null; U.curseur = null; },
     ecouter() { if (U.ecoute && !U.ecoute.boucle) ecStop(); else ecJouer(U.curseur != null ? U.curseur : (U.edite || {}).debut || 0, false); },
     ecpass() { if (U.ecoute && U.ecoute.boucle) ecStop(); else ecJouer(0, true); },
     marqueI() { ecMarque('debut'); }, marqueO() { ecMarque('fin'); },
-    async garder() { ecStop(); U.curseur = null; const x = U.edite, p = piste(); if (!x || !p) return; const np = { nom: (x.nom || 'Passage').trim().slice(0, 30), debut: Math.round(x.debut * 10) / 10, fin: Math.round(x.fin * 10) / 10, v: 1, source: 'live' };
-      U.edite = null; try { await hote.garderPassage(p, np); const ps = await hote.passages(p); U.loc = { cle: clePiste(), liste: ps }; await S.maj('etat', { passages: ps }); if (chef()) choisirPassage(np); } catch (e) { dire('Passage non gardé : ' + (e.message || e)); } },
+    async garder() { ecStop(); U.curseur = null; const x = U.edite, p = piste(); if (!x || !p) return; const np = { nom: (x.nom || 'Passage').trim().slice(0, 30), debut: Math.round(x.debut * 10) / 10, fin: Math.round(x.fin * 10) / 10, v: x.v || 1, source: 'live' };
+      U.edite = null; try { if (x.ancien) await hote.oublierPassage(p, x.ancien); await hote.garderPassage(p, np); const ps = await hote.passages(p); U.loc = { cle: clePiste(), liste: ps }; await S.maj('etat', { passages: ps }); if (chef()) choisirPassage(np); } catch (e) { dire('Passage non gardé : ' + (e.message || e)); } },
     async oublier(b) { const x = passagesTous()[+b.dataset.i - 1], p = piste(); if (!x || !p) return; if (b.dataset.sur !== '1') { b.dataset.sur = '1'; b.textContent = 'Sûr ?'; return; }
       try { await hote.oublierPassage(p, x); const ps = await hote.passages(p); U.loc = { cle: clePiste(), liste: ps }; await S.maj('etat', { passages: ps }); } catch (e) { dire(String(e.message || e)); } },
     export(b) { if (!chef()) return; const x = U.exports[+b.dataset.i], p = piste(); choisirPiste({ id: p.id, nom: (p.origine || p).nom + ' · export', fichier: x.fichier, nomFichier: x.nom, export: true, bpm: 0, origine: p.origine || { ...p, cle: '' } }).then(() => { U.onglet = 'exports'; hote.exports(piste()).then(l => { U.exports = l; dessiner(); }); }); },

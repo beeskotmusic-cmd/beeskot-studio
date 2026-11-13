@@ -80,7 +80,7 @@ class Moteur {
       const eff = S.effets.filter(e => e.zs.includes(z.id)).map(e => ({ e, zi: e.zs.indexOf(z.id), nz: e.zs.length, tb: (t - e.c.debut) * S.bps, p: (t - e.c.debut) / ((e.c.fin - e.c.debut) || 1), a: e.a * S.elum }));
       const pec = S.peches.filter(p => !p.y.zones || p.y.zones.includes(z.id));
       const dec = S.decl.filter(d => d.zs.includes(z.id)).map(d => Object.assign({ zi: d.zs.indexOf(z.id), nz: d.zs.length }, d));
-      const mod = this.modulation ? this.modulation(t, z.id) : null, mlum = mod ? mod.lum ?? 1 : 1;
+      const mod = this.modulation ? this.modulation(t, z.id) : null, mlum = (mod ? mod.lum ?? 1 : 1) * ((P.intensites || {})[z.id] ?? 1);   // × l'intensité de cette lumière (réglage du projet)
       px.zr = zr;
       for (let r = 0, i = 0, j = 0; r < z.rangs; r++) {
         const v = (r + .5) / z.rangs;
@@ -137,7 +137,7 @@ class Moteur {
   // ---- pendant le décompte : seulement les lampes ----
   rendreDecompte(forces) {
     const c = LT.couleur.rgb(this.projet.decompte.couleur);
-    this.zones.forEach((Z, i) => { const d = Z.img.data, a = forces[i] || 0; for (let j = 0; j < d.length; j += 4) { d[j] = c[0] * a * 255; d[j + 1] = c[1] * a * 255; d[j + 2] = c[2] * a * 255; d[j + 3] = 255; } Z.cx.putImageData(Z.img, 0, 0); });
+    const I = this.projet.intensites || {}; this.zones.forEach((Z, i) => { const d = Z.img.data, a = (forces[i] || 0) * (I[Z.z.id] ?? 1); for (let j = 0; j < d.length; j += 4) { d[j] = c[0] * a * 255; d[j + 1] = c[1] * a * 255; d[j + 2] = c[2] * a * 255; d[j + 3] = 255; } Z.cx.putImageData(Z.img, 0, 0); });
     return this;
   }
 

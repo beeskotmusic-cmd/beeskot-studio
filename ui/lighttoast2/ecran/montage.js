@@ -19,7 +19,7 @@ class Montage {
     this.projet = projet; this.temps = 0; this.vitesse = 0; this.outil = 'selection'; this.aimant = true;
     this.entree = null; this.sortie = null; this.selection = new Set();
     this.avant = []; this.apres = []; this.pressePapiers = null; this.ecouteurs = [];
-    this.moteur = new LT.Moteur(projet); this.son = new LT.Son(); this.pics = null; this.sr = 44100; this.stemChoisi = null; this._coups = new Map(); this.listePassages = [];
+    LT.materiel.aJour(projet); this.moteur = new LT.Moteur(projet); this.son = new LT.Son(); this.pics = null; this.sr = 44100; this.stemChoisi = null; this._coups = new Map(); this.listePassages = [];
     racine.classList.add('lt2');
     racine.innerHTML = `
       <div class="lt2-haut">
@@ -58,7 +58,7 @@ class Montage {
   // ---------- modifications / annuler ----------
   memoriser() { this.avant.push(JSON.stringify(this.projet)); if (this.avant.length > 150) this.avant.shift(); this.apres = []; }
   modifier(fn) { this.memoriser(); fn(); this.change(); }
-  remplacer(json) { this.projet = JSON.parse(json); this.moteur.charger(this.projet); this.change(); this.biblio(); this.majMusique(); if (this.vue3d) { this.vue3d.placerMembres(); this.vue3d.lumieres(); if (this.mode3d) { this.panneauRoles(); this.panneauLampes(); } } }
+  remplacer(json) { this.projet = LT.materiel.aJour(JSON.parse(json)); this.moteur.charger(this.projet); this.change(); this.biblio(); this.majMusique(); if (this.vue3d) { this.vue3d.placerMembres(); this.vue3d.lumieres(); if (this.mode3d) { this.panneauRoles(); this.panneauLampes(); } } }
   annuler() { if (!this.avant.length) return; this.apres.push(JSON.stringify(this.projet)); this.remplacer(this.avant.pop()); }
   retablir() { if (!this.apres.length) return; this.avant.push(JSON.stringify(this.projet)); this.remplacer(this.apres.pop()); }
   // enCours = pendant un glisser (on redessine, sans prévenir le reste)
@@ -88,7 +88,7 @@ class Montage {
 
   // ---------- gestes de montage ----------
   nouveauClip(piste, t) {
-    const P = this.projet, pal = P.palette, d = 60 / (P.bpm || 120) * 4;   // une mesure
+    const P = this.projet, pal = P.palette, d = Math.max(1, 60 / (P.bpm || 120) * 4);   // une mesure, au moins 1 seconde
     let k;
     if (piste.sorte === 'peches') k = { id: LT.id(), t, type: P.peches.types[0].id };
     else if (piste.sorte === 'effets') k = LT.projet.nouvelEffet('strobo', t, t + d, P);
@@ -290,9 +290,9 @@ class Montage {
   biblio() {
     const l = this.r.querySelector('.lt2-biblio-l'), P = this.projet;
     const liste = sorte => Object.entries(LT.effets).filter(([, f]) => f.sorte === sorte).map(([k, f]) => `<div class="lt2-item s-${sorte}" draggable="true" data-glisse="effet:${k}">${f.nom}</div>`).join('');
-    l.innerHTML = (this.morceaux && this.morceaux.length ? '<h4>Morceaux</h4><div class="lt2-morceaux">' + this.morceaux.map(m => `<div class="lt2-item lt2-morceau" data-morceau="${m.id}" title="Nouveau projet avec ce morceau">${String(m.nom).replace(/</g, '&lt;')}</div>`).join('') + '</div>' : '') + '<h4>Palette</h4><div class="lt2-pal">' + P.palette.map(h => `<span class="lt2-pas" draggable="true" data-glisse="couleur:${h}" style="background:${h}" title="Glisse sur une lumière (piste Couleur) ou sur un clip"></span>`).join('') + '</div>' +
+    l.innerHTML = (this.morceaux && this.morceaux.length ? '<h4>Morceaux</h4><div class="lt2-morceaux">' + this.morceaux.map(m => `<div class="lt2-item lt2-morceau" data-morceau="${m.id}" title="Nouveau projet avec ce morceau">${String(m.nom).replace(/</g, '&lt;')}</div>`).join('') + '</div>' : '') + '<h4>Couleur</h4><div class="lt2-item s-couleur" draggable="true" data-glisse="calque:" title="Glisse-le sur une lumière : un nouveau calque de couleur, par-dessus ce qu\'il y a déjà">Calque de couleur</div><h4>Palette</h4><div class="lt2-pal">' + P.palette.map(h => `<span class="lt2-pas" draggable="true" data-glisse="couleur:${h}" style="background:${h}" title="Glisse sur une lumière (piste Couleur) ou sur un clip"></span>`).join('') + '</div>' +
       '<h4>Overlays · textures</h4>' + liste('overlay') + '<h4>Mouvements</h4>' + liste('mouvement') +
-      '<p class="lt2-vide">Glisse sur la timeline : sur une piste d\'effets, ou directement sur une lumière.</p>';
+      '<p class="lt2-vide">Glisse sur la timeline. Calque de couleur : sur une lumière, puis coche ses lumières dans l\'Inspecteur. Pastille : sur un calque pour changer sa couleur. Effet : sur une piste d\'effets ou sur une lumière.</p>';
     l.querySelectorAll('[data-morceau]').forEach(el => el.onclick = () => this.surMorceau && this.surMorceau(el.dataset.morceau));
     l.querySelectorAll('[data-glisse]').forEach(el => el.ondragstart = e => { e.dataTransfer.setData('text/plain', el.dataset.glisse); e.dataTransfer.effectAllowed = 'copy'; this.glisse = el.dataset.glisse; });
   }
@@ -302,19 +302,56 @@ class Montage {
     for (let j = Math.max(0, i); j < E.length; j++) if (!E[j].clips.some(c => c.debut < fin - 1e-6 && c.fin > debut + 1e-6)) return E[j];
     const n = { id: LT.id(), nom: 'Effets ' + (E.length + 1), clips: [] }; E.push(n); return n;
   }
+  // un calque de couleur passe PAR-DESSUS les autres, comme dans un logiciel de montage : sur ses lumières (ou seulement
+  // celles de « zones ») et pendant sa durée, les calques déjà là sont coupés. Le reste des anciens calques est gardé.
+  // À appeler dans modifier() (ou après memoriser()).
+  faireDeLaPlace(k, zones = k.zones) {
+    const L = this.projet.couleur.clips, out = [], e = 1e-6;
+    let A = k.debut + (k.entree || 0), B = k.fin - (k.sortie || 0); if (A >= B) { A = k.debut; B = k.fin; }   // pendant ses fondus, le dessous reste (il se mélange)
+    for (const c of L) {
+      const commun = c !== k && c.zones.some(z => zones.includes(z));
+      if (!commun || c.fin <= A + e || c.debut >= B - e) { out.push(c); continue; }
+      const reste = c.zones.filter(z => !zones.includes(z)), bouts = [];
+      if (c.debut < A - e) bouts.push(Object.assign(clone(c), { fin: A, sortie: 0 }));
+      if (reste.length) bouts.push(Object.assign(clone(c), { zones: reste, debut: Math.max(c.debut, A), fin: Math.min(c.fin, B), entree: c.debut >= A - e ? c.entree : 0, sortie: c.fin <= B + e ? c.sortie : 0 }));
+      if (c.fin > B + e) bouts.push(Object.assign(clone(c), { debut: B, entree: 0 }));
+      bouts.forEach((b, i) => { if (i) b.id = LT.id(); out.push(b); });   // le premier bout garde l'identité de l'ancien
+    }
+    L.splice(0, L.length, ...out); this.recoller(k);
+  }
+  // recolle les morceaux de calques identiques qui se touchent (même couleur, même intensité), pour ne pas hacher la timeline :
+  //   l'un après l'autre sur les mêmes lumières → un seul plus long ; au même moment sur des lumières différentes → un seul groupe.
+  // « sauf » et les clips choisis ne sont jamais fondus dans un autre.
+  recoller(sauf) {
+    const L = this.projet.couleur.clips, e = 1e-6, fixe = c => c === sauf || this.selection.has(c.id);
+    const pareil = (a, b) => a.couleur === b.couleur && (a.force ?? 1) === (b.force ?? 1), memes = (a, b) => a.zones.length === b.zones.length && a.zones.every(z => b.zones.includes(z));
+    const ordre = this.projet.materiel.zones.map(z => z.id);
+    for (let encore = true; encore;) {
+      encore = false;
+      boucle: for (const a of L) for (const b of L) {
+        if (a === b || fixe(a) || fixe(b) || !pareil(a, b)) continue;
+        if (memes(a, b) && Math.abs(a.fin - b.debut) < e && !(a.sortie > 0) && !(b.entree > 0)) { a.fin = b.fin; a.sortie = b.sortie || 0; }
+        else if (Math.abs(a.debut - b.debut) < e && Math.abs(a.fin - b.fin) < e && (a.entree || 0) === (b.entree || 0) && (a.sortie || 0) === (b.sortie || 0) && !a.zones.some(z => b.zones.includes(z))) a.zones = ordre.filter(z => a.zones.includes(z) || b.zones.includes(z));
+        else continue;
+        L.splice(L.indexOf(b), 1); encore = true; break boucle;
+      }
+    }
+  }
   // ce qui arrive d'un glisser (appelé par la timeline) ; o = l'endroit (piste, clip, temps)
   deposer(quoi, o) {
-    const [sorte, val] = quoi.split(':'), P = this.projet, d = 60 / (P.bpm || 120) * 4, t = Math.max(0, o.t), p = o.p; if (!p) return;
+    const [sorte, val] = quoi.split(':'), P = this.projet, d = Math.max(1, 60 / (P.bpm || 120) * 4), t = Math.max(0, o.t), p = o.p; if (!p) return;   // au moins 1 seconde
     let k = null;
+    const calque = couleur => { k = { id: LT.id(), debut: t, fin: t + d, couleur, zones: [p.zone.id], entree: 0, sortie: 0 }; this.modifier(() => { this.faireDeLaPlace(k); P.couleur.clips.push(k); }); };
+    if (sorte === 'calque' && p.sorte === 'couleur') calque(o.k ? o.k.couleur === P.palette[0] ? P.palette[1] || '#ffffff' : P.palette[0] : P.palette[0]);   // un NOUVEAU calque, même par-dessus un autre
     if (sorte === 'couleur') {
       if (o.k && (p.sorte === 'couleur' || p.sorte === 'effets')) return this.modifier(() => { o.k.couleur = val; if (p.sorte === 'effets') o.k.mode = 'lumiere'; });
-      if (p.sorte === 'couleur') { k = { id: LT.id(), debut: t, fin: t + d, couleur: val, zones: [p.zone.id], entree: 0, sortie: 0 }; this.modifier(() => P.couleur.clips.push(k)); }
+      if (p.sorte === 'couleur') calque(val);
     }
     if (sorte === 'effet') {
       if (o.k && p.sorte === 'effets') return this.modifier(() => { o.k.effet = val; o.k.reglages = {}; });
       if (p.sorte === 'effets') { k = LT.projet.nouvelEffet(val, t, t + d, P); this.modifier(() => this.pisteLibre(k.debut, k.fin, P.effets.indexOf(p.piste)).clips.push(k)); }
       if (p.sorte === 'couleur') {   // sur une lumière : l'effet ne touche que celle-ci, et dure comme le calque de couleur visé
-        k = LT.projet.nouvelEffet(val, o.k ? o.k.debut : t, o.k ? o.k.fin : t + d, P); k.zones = [p.zone.id];
+        k = LT.projet.nouvelEffet(val, o.k ? o.k.debut : t, o.k ? Math.max(o.k.fin, o.k.debut + 1) : t + d, P); k.zones = [p.zone.id];
         this.modifier(() => this.pisteLibre(k.debut, k.fin).clips.push(k));
       }
     }
@@ -395,7 +432,7 @@ class Montage {
         case 'escape': if (this.r.querySelector('.lt2-plein')) this.plein(false); else this.choisir(null); break;
       }
     };
-    document.addEventListener('keydown', this._clavier);
+    document.addEventListener('keydown', this._clavier, true);   // en premier : Espace ne lance pas aussi le petit lecteur de BS
   }
   detruire() { document.removeEventListener('keydown', this._clavier); this.lire(0); }
 }

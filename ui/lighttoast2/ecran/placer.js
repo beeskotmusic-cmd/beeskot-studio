@@ -17,7 +17,7 @@
 const LT = G.LT, CLE = 'lt2-placement';
 LT.placementEssai = () => { try { return LT.modeReglage ? JSON.parse(localStorage.getItem(CLE) || 'null') : null; } catch (e) { return null; } };
 
-const NOMS = { t1: 'Tube 1', t2: 'Tube 2', t3: 'Tube 3', t4: 'Tube 4', p1: 'Panneau (5)', batterie: 'Batterie', bongos: 'Bongos', conga: 'Conga',
+const NOMS = { t1: 'Tube 1', t2: 'Tube 2', t3: 'Tube 4', t4: 'Tube 5', p1: 'Panneau (3)', batterie: 'Batterie', bongos: 'Bongos', conga: 'Conga',
   'ampli-basse': 'Ampli de basse', 'ampli-bas': 'Ampli (bas)', 'ampli-haut': 'Ampli (haut)', basse: 'Basse', micro: 'Micro', 'micro-2': 'Micro 2', orgue: 'Orgue',
   fauteuil: 'Canapé', 'meuble-ampli': 'Petit meuble', 'meuble-amplis': 'Meuble des amplis', 'rideau-g': 'Rideau gauche', 'tapis-batterie': 'Tapis de la batterie', tapis: 'Tapis', 'chaise-bureau': 'Chaise du bureau', 'lampe-globe': 'Lampe Globe', 'bois-fenetres': 'Bois (mur des fenêtres)', 'bois-gauche': 'Bois (retour à gauche)', 'mousse-g': 'Mousse beige (gauche)', 'mousse-d1': 'Mousse beige (droite 1)', 'mousse-d2': 'Mousse beige (droite 2)', 'mousse-noire-1': 'Mousse noire (fond)', 'mousse-noire-2': 'Mousse noire (droite)', etagere: 'Étagère rouge', bureau: 'Bureau', veilleuse: 'Petite lampe (canapé)', 'suspension-1': 'Suspension 1', 'suspension-2': 'Suspension 2', 'lampe-bureau': 'Lampe du bureau', 'lampe-ampli': 'Lampe à côté de l\'ampli', 'rideau-d': 'Rideau droit', tabouret: 'Tabouret', plante: 'Plante', 'guitare-mur': 'Jaguar (mur)', 'guitare-mur2': 'Jaguar', 'guitare-mur3': 'Explorer' };
 const nomDe = n => n.includes('~') ? nomDe(n.split('~')[0]) + ' (copie ' + n.split('~')[1] + ')' : n.startsWith('poste:') ? 'Place : ' + ((LT.studio.mesures().postes[n.slice(6)] || {}).nom || n) : (NOMS[n] || n);

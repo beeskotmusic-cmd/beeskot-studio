@@ -11,10 +11,10 @@
 //   audio (la musique, dans le fichier)  →  LT.ancien.musique(o) rend ses octets
 //
 // Pas repris : les automations (autos), la dynamique (dpts), « ce tube suit la courbe » (lm), les réglages fins des effets.
-// Tubes de l'ancien : 1 à 4 = t1…t4, le 5e = le panneau (p1).
+// Bandes de l'ancien, de gauche à droite : tube 1, tube 2, le panneau (3), tube 4, tube 5 → t1, t2, p1, t3, t4.
 // =====================================================================
 (function (G) {
-const LT = G.LT, Z = ['t1', 't2', 't3', 't4', 'p1'];
+const LT = G.LT, Z = ['t1', 't2', 'p1', 't3', 't4'];   // les 5 bandes de l'ancien, de gauche à droite
 // l'effet le plus proche dans TOAST2 : [effet, réglages]
 const EFFETS = {
   sunrise: et => ['sunrise', { sens: et.top ? 'bas' : 'haut' }], flicker: () => ['scintille', { div: 4 }], sweep: () => ['balayage', {}], wrap: () => ['balayage', {}],

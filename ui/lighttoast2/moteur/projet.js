@@ -26,8 +26,8 @@ LT.projet = {
     return {
       format: 'lighttoast', version: this.VERSION, nom, duree: 0, bpm: 120, grille: 0,
       materiel: m, palette: pal,
-      // au départ : toutes les lumières ont une couleur, sur tout le morceau (allongée quand on charge la musique)
-      couleur: { clips: [{ id: LT.id(), debut: 0, fin: 60, couleur: pal[0], zones: m.zones.map(z => z.id), entree: 0, sortie: 0 }] },
+      // au départ : rien (lumières éteintes). On pose soi-même ses calques de couleur ; pas de grand calque derrière.
+      couleur: { clips: [] },
       effets: [{ id: LT.id(), nom: 'Effets 1', clips: [] }],
       peches: {
         types: [
