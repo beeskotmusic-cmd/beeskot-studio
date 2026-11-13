@@ -7,7 +7,7 @@
 //   hote = ce que l'endroit sait faire :
 //     nom, type ('pc' | 'tel' | 'invite'), membre (true = membre du groupe), salle (le code de la salle)
 //     octets(piste)                 → le fichier son (obligatoire)
-//     morceaux(), piste(id), passages(piste), garderPassage(piste, p), oublierPassage(piste, p), exports(piste)   (membres)
+//     morceaux(), piste(id), passages(piste), garderPassage(piste, p), oublierPassage(piste, p), cacherPassage(piste, p, oui), exports(piste)   (membres)
 //     inviter(piste, on) → { lien, cle }, qr(texte) → dessin du QR code                                         (membres)
 //
 // Pour changer une étiquette ou une option : les listes en haut (COUPS, ELANS, VITESSES).
@@ -155,10 +155,12 @@ L.monter = function (racine, hote) {
     const ong = [['passages', 'Passages'], ...(hote.membre && hote.exports ? [['exports', 'Exports']] : []), ['gens', `Connectés (${gens.length})`]];
     let corps = '';
     if (U.onglet === 'passages') {
-      const liste = [{ nom: nomEntier(), debut: 0, fin: 0, entier: true }, ...passagesTous()];
-      const lignes = liste.map((x, i) => { const on = x.entier ? pa.entier : (!pa.entier && Math.abs(pa.debut - x.debut) < .05 && Math.abs(pa.fin - x.fin) < .05);
-        return `<div class="lv-ligne${on ? ' on' : ''}"><button type="button" class="lv-pass" data-a="passage" data-i="${i}" ${ch ? '' : 'disabled'}><b>${esc(x.nom || 'Passage')}</b><em>${x.entier ? 'du début à la fin' : tc(x.debut) + ' → ' + tc(x.fin) + (x.v && x.v !== 1 ? ' · vitesse ' + pc(x.v) : '')}</em></button>
-          ${hote.membre && x.source === 'live' ? `<button type="button" class="lv-x" data-a="modifier" data-i="${i}" aria-label="Modifier ce passage" title="Modifier (nom, entrée, sortie)">✎</button><button type="button" class="lv-x" data-a="oublier" data-i="${i}" aria-label="Supprimer ce passage" title="Supprimer">✕</button>` : ''}</div>`; }).join('');
+      const liste = [{ nom: nomEntier(), debut: 0, fin: 0, entier: true }, ...passagesTous()], nCaches = liste.filter(x => x.cache).length;
+      const lignes = liste.map((x, i) => { if (x.cache && !U.voirCaches) return ''; const on = x.entier ? pa.entier : (!pa.entier && Math.abs(pa.debut - x.debut) < .05 && Math.abs(pa.fin - x.fin) < .05);
+        return `<div class="lv-ligne${on ? ' on' : ''}${x.cache ? ' cache' : ''}"><button type="button" class="lv-pass" data-a="passage" data-i="${i}" ${ch ? '' : 'disabled'}><b>${esc(x.nom || 'Passage')}</b><em>${x.entier ? 'du début à la fin' : tc(x.debut) + ' → ' + tc(x.fin) + (x.v && x.v !== 1 ? ' · vitesse ' + pc(x.v) : '')}</em></button>
+          ${hote.membre && x.source === 'live' ? `<button type="button" class="lv-x" data-a="modifier" data-i="${i}" aria-label="Modifier ce passage" title="Modifier (nom, entrée, sortie)">✎</button><button type="button" class="lv-x" data-a="oublier" data-i="${i}" aria-label="Supprimer ce passage" title="Supprimer">✕</button>`
+            : hote.membre && hote.cacherPassage && !x.entier ? (x.cache ? `<button type="button" class="lv-x" data-a="montrer" data-i="${i}" aria-label="Remettre ce passage" title="Remettre dans la liste">↺</button>` : `<button type="button" class="lv-x" data-a="oublier" data-i="${i}" aria-label="Enlever ce passage" title="Enlever de la liste (il reste dans le PLAN / Tournages / Discord)">✕</button>`) : ''}</div>`; }).join('')
+        + (nCaches && hote.membre ? `<button type="button" class="lv-lien" data-a="voircaches">${U.voirCaches ? 'Cacher les passages enlevés' : 'Montrer les passages enlevés (' + nCaches + ')'}</button>` : '');
       const edition = (hote.membre && hote.garderPassage ? (U.edite && p
           ? `<div class="lv-edit"><label class="lv-lb" for="lvPn">Nom du passage</label><input class="lv-champ" id="lvPn" maxlength="30" value="${esc(U.edite.nom)}" data-e="nom">
               <div class="lv-duo"><div><label class="lv-lb" for="lvPd">Entrée</label><input id="lvPd" inputmode="decimal" value="${tc(U.edite.debut, 1)}" data-e="debut" class="lv-champ lv-num"></div><div><label class="lv-lb" for="lvPf">Sortie</label><input id="lvPf" inputmode="decimal" value="${tc(U.edite.fin, 1)}" data-e="fin" class="lv-champ lv-num"></div></div>
@@ -317,8 +319,11 @@ L.monter = function (racine, hote) {
     marqueI() { ecMarque('debut'); }, marqueO() { ecMarque('fin'); },
     async garder() { ecStop(); U.curseur = null; const x = U.edite, p = piste(); if (!x || !p) return; const np = { nom: (x.nom || 'Passage').trim().slice(0, 30), debut: Math.round(x.debut * 10) / 10, fin: Math.round(x.fin * 10) / 10, v: x.v || 1, source: 'live' };
       U.edite = null; try { if (x.ancien) await hote.oublierPassage(p, x.ancien); await hote.garderPassage(p, np); const ps = await hote.passages(p); U.loc = { cle: clePiste(), liste: ps }; await S.maj('etat', { passages: ps }); if (chef()) choisirPassage(np); } catch (e) { dire('Passage non gardé : ' + (e.message || e)); } },
+    async montrer(b) { const x = passagesTous()[+b.dataset.i - 1], p = piste(); if (!x || !p) return;
+      try { await hote.cacherPassage(p, x, false); const ps = await hote.passages(p); U.loc = { cle: clePiste(), liste: ps }; await S.maj('etat', { passages: ps }); } catch (e) { dire(String(e.message || e)); } },
+    voircaches() { U.voirCaches = !U.voirCaches; dessiner(); },
     async oublier(b) { const x = passagesTous()[+b.dataset.i - 1], p = piste(); if (!x || !p) return; if (b.dataset.sur !== '1') { b.dataset.sur = '1'; b.textContent = 'Sûr ?'; return; }
-      try { await hote.oublierPassage(p, x); const ps = await hote.passages(p); U.loc = { cle: clePiste(), liste: ps }; await S.maj('etat', { passages: ps }); } catch (e) { dire(String(e.message || e)); } },
+      try { if (x.source === 'live') await hote.oublierPassage(p, x); else await hote.cacherPassage(p, x, true); const ps = await hote.passages(p); U.loc = { cle: clePiste(), liste: ps }; await S.maj('etat', { passages: ps }); } catch (e) { dire(String(e.message || e)); } },
     export(b) { if (!chef()) return; const x = U.exports[+b.dataset.i], p = piste(); choisirPiste({ id: p.id, nom: (p.origine || p).nom + ' · export', fichier: x.fichier, nomFichier: x.nom, export: true, bpm: 0, origine: p.origine || { ...p, cle: '' } }).then(() => { U.onglet = 'exports'; hote.exports(piste()).then(l => { U.exports = l; dessiner(); }); }); },
     retour() { const p = piste(); if (chef() && p && p.origine) choisirPiste(p.origine); },
     reglage() { U.voile = 'reglage'; }, fermer() { U.voile = ''; if (!U.enSync) L.cal.fermer(); },

@@ -36,7 +36,7 @@ LT.studio = {
       postes: {
         batterie: { nom: 'Batterie', x: -.55, z: .72, rotY: 0, temps: .35 },
         piano: { nom: 'Piano', x: -.78, z: 2.2, rotY: -90, temps: .3 },
-        chant: { nom: 'Chant', x: .1, z: .98, rotY: 0, temps: .2 },
+        chant: { nom: 'Chant', x: .1, z: .98, rotY: 0, temps: .2, surPlace: true },   // surPlace : il ne se promène pas (vue3d.surPlace)
         basse: { nom: 'Basse', x: .85, z: 1.45, rotY: -15, temps: .4 },
         guitare: { nom: 'Guitare', x: -.25, z: 1.85, rotY: 15, temps: .4 },
       },
@@ -140,7 +140,7 @@ LT.studio = {
     mur(L, H, blanc, W / 2, H / 2, L / 2, -Math.PI / 2);      // mur droit
     mur(W, H, blanc, 0, H / 2, L, Math.PI);                   // mur du fond (régie)
     // habillage bois du mur des fenêtres + retour sur le mur gauche
-    d0 = g.children.length; mur(W - .5, H - .25, mat('#ffffff', { map: bois }), 0, (H - .25) / 2, .012, 0); piece('bois-fenetres', d0, { x: 0, z: .012, h: H - .25 });
+    d0 = g.children.length; mur(W - .004, H - .004, mat('#ffffff', { map: bois }), 0, H / 2, .012, 0); piece('bois-fenetres', d0, { x: 0, z: .012, h: H });   // le bois couvre tout le mur des fenêtres
     d0 = g.children.length; mur(.5, 1.7, mat('#ffffff', { map: bois }), -W / 2 + .012, 1.15, .45, Math.PI / 2); piece('bois-gauche', d0, { x: -W / 2 + .012, y: .3, z: .45, h: 1.7 });
     // les 2 fenêtres : cadre rouge + rideau rayé fermé
     for (const x of [-.72, .72]) {
@@ -255,8 +255,10 @@ LT.studio = {
     piece('etagere', d0, { x: -W / 2 + .26, y: 1.95, z: z0 + 1.2, h: .35 });
     d0 = g.children.length; const ch = new T.Group(); ch.position.set(-W / 2 + 1.05, 0, z0 + 1.3); ch.rotation.y = -1.2; g.add(ch); piece('chaise-bureau', d0, { x: -W / 2 + 1.05, z: z0 + 1.3, h: .84 });                        // la chaise blanche
     rond(.28, .03, '#bdbdbd', 0, 0, 0, ch); rond(.025, .4, chrome('#bbbbbb'), 0, .03, 0, ch); rond(.27, .12, '#efece6', 0, .43, 0, ch, .22); boite(.5, .34, .08, '#efece6', 0, .5, -.24, ch);
+    const dP = g.children.length;
     boite(.82, 2.0, .05, '#a5672f', .35, 0, L - .03); boite(.9, 2.06, .03, '#8d3327', .35, 0, L - .012); boite(.6, 1.0, .01, '#eeeeea', .35, .95, L - .06);   // la porte + tableau blanc
     d0 = g.children.length; boite(.55, 1.1, .06, '#0e0e10', -.75, .95, L - .04); piece('mousse-noire-1', d0, { x: -.75, y: .95, z: L - .04, h: 1.1 });   // panneaux noirs
+    g.children.slice(dP).forEach(o => { o.userData.arriere = true; });   // porte, tableau, panneau noir : cachés quand la caméra est derrière le mur du fond (vue3d.rendre)
     d0 = g.children.length; boite(.06, 1.1, .6, '#0e0e10', W / 2 - .04, 1.0, L - 1.2); piece('mousse-noire-2', d0, { x: W / 2 - .04, y: 1.0, z: L - 1.2, h: 1.1 });
     d0 = g.children.length;
     rond(.16, .5, '#3b2418', 1.0, 0, L - .5); rond(.17, .05, '#151515', 1.0, .5, L - .5);                                          // tabouret

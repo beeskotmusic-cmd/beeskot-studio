@@ -4,7 +4,7 @@
    Tout est sous .lt2 : rien ne déborde sur le reste du logiciel.
    ===================================================================== */
 .lt2{--lt-pan:#1c1640;--lt-txt:#ece9e2;--lt-doux:rgba(236,233,226,.55);--lt-ac:#3fb0a6;--lt-ac2:#1d6a6c;--lt-clair:#a6f0e6;--lt-ambre:#ffb84d;--lt-btn:#232325;
-  display:grid;grid-template-rows:minmax(260px,1fr) auto minmax(220px,42%);gap:8px;height:100%;min-height:0;color:var(--lt-txt);font:13px 'Work Sans',sans-serif}
+  display:grid;grid-template-rows:minmax(160px,1fr) auto var(--lt-b,minmax(220px,42%));gap:8px;height:100%;min-height:0;color:var(--lt-txt);font:13px 'Work Sans',sans-serif}
 .lt2 *{box-sizing:border-box}
 .lt2-pan,.lt2-barre,.lt2-tl{background:url(../look/toile-douce-show.png) 0 0/128px 128px repeat,var(--lt-pan);border-radius:8px;box-shadow:inset 0 0 0 1px #8a7fd055,inset 0 1px 0 #ffffff22,inset 0 0 26px #0009,0 4px 10px #000a}
 .lt2 h3{margin:0 0 8px;font:600 12px 'Barlow Condensed',sans-serif;letter-spacing:.22em;text-transform:uppercase;color:var(--lt-txt)}
@@ -61,7 +61,13 @@
 .lt2-tete.s-stem{cursor:pointer}
 .lt2 button[disabled]{opacity:.35;cursor:default}
 /* étape 4 : inspecteur, roue, bibliothèque */
-.lt2-haut{grid-template-columns:190px minmax(0,1fr) 260px}
+.lt2-haut{grid-template-columns:var(--lt-g,190px) minmax(0,1fr) var(--lt-d,260px);position:relative}
+.lt2-sep{position:absolute;top:0;bottom:0;width:8px;z-index:6;cursor:col-resize;border-radius:4px}
+.lt2-sep[data-sep="g"]{left:var(--lt-g,190px)}
+.lt2-sep[data-sep="d"]{right:var(--lt-d,260px)}
+.lt2-barre{position:relative}
+.lt2-sep-b{position:absolute;left:0;right:0;bottom:-8px;height:8px;z-index:6;cursor:row-resize;border-radius:4px}
+.lt2-sep:hover,.lt2-sep.on,.lt2-sep-b:hover,.lt2-sep-b.on{background:rgba(166,240,230,.35)}
 .lt2-roue{margin:6px 0 4px}
 .lt2-roue-h{display:flex;gap:10px;align-items:stretch}
 .lt2-roue canvas{width:140px;height:140px;border-radius:50%;cursor:crosshair;touch-action:none;box-shadow:0 2px 8px #0008}
@@ -107,7 +113,7 @@
 /* la vue 3D : qui joue quoi */
 .lt2-roles{position:absolute;left:8px;bottom:8px;background:rgba(10,8,18,.78);border-radius:6px;padding:8px 10px;display:flex;flex-direction:column;gap:5px;font-size:11px;backdrop-filter:blur(2px)}
 .lt2-roles[hidden]{display:none}
-.lt2-role{display:grid;grid-template-columns:64px 88px 90px;align-items:center;gap:6px}
+.lt2-role{display:grid;grid-template-columns:64px 88px 34px;align-items:center;gap:6px}
 .lt2-role b{font-weight:600;color:var(--lt-txt)}
 .lt2-roles select{width:auto;padding:2px 4px;font-size:11px}
 .lt2-roles input[type=range]{accent-color:var(--lt-ac);width:90px}
@@ -137,3 +143,32 @@
 .lt2-charge[hidden]{display:none}
 .lt2-moni.lt2-plein{position:fixed;inset:0;z-index:9000;border-radius:0;margin:0}
 .lt2-item.s-couleur{border:1px dashed rgba(255,255,255,.3);color:var(--lt-txt);margin-bottom:2px}
+
+/* clic droit sur la timeline */
+.lt2-menu{position:fixed;z-index:9999;min-width:180px;padding:6px;background:#1c1640;border-radius:8px;box-shadow:0 8px 28px #0009,inset 0 0 0 1px #8a7fd066;color:#ece9e2;font:13px 'Work Sans',sans-serif}
+.lt2-menu h5{margin:4px 6px 4px;font:600 10px 'Work Sans',sans-serif;letter-spacing:.12em;text-transform:uppercase;color:#a6f0e6}
+.lt2-menu button{display:block;width:100%;text-align:left;padding:5px 8px;border:0;border-radius:5px;background:none;color:inherit;font:inherit;cursor:pointer}
+.lt2-menu button:hover,.lt2-menu label:hover{background:rgba(63,176,166,.25)}
+.lt2-menu label{display:flex;align-items:center;gap:8px;padding:4px 8px;border-radius:5px;cursor:pointer}
+.lt2-menu hr{border:0;border-top:1px solid #8a7fd044;margin:5px 2px}
+.lt2-menu-sous{position:relative}
+.lt2-menu-l{display:none;position:absolute;left:100%;top:-6px;min-width:180px;max-height:70vh;overflow:auto;padding:6px;background:#1c1640;border-radius:8px;box-shadow:0 8px 28px #0009,inset 0 0 0 1px #8a7fd066}
+.lt2-menu.gauche .lt2-menu-l{left:auto;right:100%}
+.lt2-menu-sous:hover .lt2-menu-l{display:block}
+
+.lt2-joue{height:24px;border:0;border-radius:5px;background:var(--lt-btn);color:var(--lt-doux);cursor:pointer}
+.lt2-joue.on{background:var(--lt-ac);color:#10241f}
+
+/* le lecteur du plein écran */
+.lt2-pleinlec{display:none}
+.lt2-plein .lt2-pleinlec{display:flex;position:absolute;left:16px;right:16px;bottom:16px;z-index:5;align-items:center;gap:10px;padding:8px 14px;background:rgba(10,8,18,.82);border-radius:8px;backdrop-filter:blur(3px);opacity:0;transition:opacity .3s}
+.lt2-plein .lt2-pleinlec.vu,.lt2-plein .lt2-pleinlec:hover{opacity:1}
+.lt2-pleinlec button{width:34px;height:30px;border:0;border-radius:6px;background:var(--lt-btn);color:var(--lt-txt);font-size:14px;cursor:pointer}
+.lt2-pleinlec button[data-pl="lire"]{background:var(--lt-ac);color:#10241f}
+.lt2-pl-t,.lt2-pl-d{font:600 13px ui-monospace,monospace;color:var(--lt-ambre);min-width:64px}
+.lt2-pl-d{min-width:40px;text-align:right;color:var(--lt-doux)}
+.lt2-pl-barre{flex:1;height:14px;display:flex;align-items:center;cursor:pointer;position:relative}
+.lt2-pl-barre::before{content:'';position:absolute;left:0;right:0;height:4px;border-radius:2px;background:rgba(236,233,226,.2)}
+.lt2-pl-barre i{position:relative;height:4px;border-radius:2px;background:var(--lt-ac);max-width:100%}
+.lt2-pl-barre i::after{content:'';position:absolute;right:-6px;top:-4px;width:12px;height:12px;border-radius:50%;background:var(--lt-clair)}
+.lt2-plein .lt2-roles{bottom:80px}

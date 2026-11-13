@@ -3,6 +3,19 @@
 // Pour une nouvelle version : ajouter un bloc EN HAUT de la liste. Une ligne courte par point : « Onglet : ce qui change. »
 // =====================================================================
 BK.NOUVEAUTES = [
+  { v: '0.9.145', titre: 'TOAST2 : bi-color, dégradé, clic droit, modules à la taille voulue', l: [
+    ['🌈', 'TOAST2 : deux nouveaux blocs sous « Calque de couleur ». Bi-color : la lumière coupée en parts égales, une couleur par part (bouton + pour en ajouter). Dégradé : une couleur en haut qui passe doucement à l\'autre en bas.'],
+    ['🔲', 'TOAST2 : quand on glisse un bloc, la surbrillance montre juste la place qu\'il va prendre.'],
+    ['🖱', 'TOAST2 : clic droit sur un calque, un effet ou un déclencheur : cocher ses lumières (une ou plusieurs), couper, dupliquer, supprimer. Clic droit dans le vide : ajouter un calque ici (couleur, bi-color, dégradé, effet).'],
+    ['🖱', 'TOAST2 : molette avant = zoom, molette arrière = dézoom dans la timeline. Ctrl + molette pour avancer dans le temps.'],
+    ['↔', 'TOAST2 : on glisse les séparations pour agrandir ou réduire la Bibliothèque, le Moniteur, l\'Inspecteur et la timeline (double-clic = taille de départ).'],
+    ['🎤', 'TOAST2 › Studio 3D : le chanteur reste sur place (il garde seulement le moment de son animation où il ne se promène pas).'],
+    ['⏯', 'TOAST2 › Studio 3D : à côté de chaque membre, ▶ = il joue pendant la lecture, ⏸ = il reste figé (gardé par morceau). Remplace le petit curseur.'],
+    ['⛶', 'TOAST2 : en plein écran, une barre de lecture en bas (⏮ ▶ ⏭, le temps, une ligne pour aller ailleurs). Elle s\'efface quand la souris ne bouge plus.'],
+    ['🚪', 'TOAST2 › Studio 3D : la porte et le panneau noir du fond disparaissent quand la caméra est derrière le mur. Le bois couvre tout le mur des fenêtres.'],
+    ['🛠', 'TOAST2 : bouton provisoire « Éditer 3D » pour déplacer les objets et les membres, et caler les instruments. « Copier le placement » puis le coller à Claude.'],
+    ['🍞', 'Synch bread : la croix enlève aussi les passages venus du PLAN, des Tournages, de Reels ou de Discord (ils restent là-bas). Enlevés pour tout le groupe ; « Montrer les passages enlevés » permet de les remettre.'],
+  ] },
   { v: '0.9.144', titre: 'TOAST2 : export vidéo, calques de couleur', l: [
     ['🎞', 'TOAST2 : bouton « Exporter ». Il fabrique la vidéo .mp4 pour les lumières (1920 × 1080), pour le morceau entier ou le passage choisi, avec la musique et le clic du décompte si on veut. Ça se fait en fond, on peut continuer à travailler. Le fichier va sur le PC, et dans le Drive (Light Toast / Vidéos) si la case est cochée.'],
     ['💡', 'TOAST2 : les lumières sont numérotées comme au studio. 1 et 2 à gauche, 3 = le panneau du plafond, 4 et 5 à droite. Dans la vidéo, le panneau est la 3e bande. Les projets déjà faits et les anciens projets Light Toast suivent tout seuls.'],

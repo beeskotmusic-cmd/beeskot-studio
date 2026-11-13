@@ -187,9 +187,23 @@ class Vue3D {
       const obj = new LT.FBXLoader().parse(this.brutes[r], ''), clips = (obj.animations || []).slice().sort((a, b) => b.duration - a.duration);
       obj.traverse(x => { if (x.isMesh) { x.castShadow = x.receiveShadow = true; x.frustumCulled = false; } });
       this.poses[r] = { obj, clip: clips[0] || null };
+      if (clips[0] && (LT.studio.mesures().postes[r] || {}).surPlace) this.surPlace(this.poses[r]);
     } catch (e) { console.warn('Light Toast : pose « ' + r + ' » illisible (' + (e.message || e) + ')'); delete this.brutes[r]; }
     return this.poses[r] || null;
   }
+  // un membre qui ne doit pas se promener (le chant) : on garde seulement le passage de l'animation où il reste près
+  // de sa place de départ (il boucle dessus), et on bloque le bassin en avant / arrière / côtés (le haut-bas reste)
+  surPlace(pose) {
+    const tr = pose.clip.tracks.find(t => /hips\.position$/i.test(t.name)); if (!tr) return;
+    const v = tr.values, T = tr.times, n = T.length, x0 = v[0], z0 = v[2], pres = i => Math.hypot(v[i * 3] - x0, v[i * 3 + 2] - z0) < 12;   // 12 cm (Mixamo compte en cm)
+    let e = 0; while (e < n - 1 && pres(e + 1)) e++;
+    let s = n - 1; while (s > e && pres(s)) s--; s = s < n - 1 ? s + 1 : 0;
+    const D = pose.clip.duration, a = s ? T[s] : 0, b = T[e], long = (b - a + D) % D;
+    if (e < n - 1 && long > 1) pose.fen = [a, long];   // [début, durée] ; peut passer par la fin de l'animation et reprendre au début
+    for (let i = 0; i < n; i++) { v[i * 3] = x0; v[i * 3 + 2] = z0; }
+  }
+  // l'instant de l'animation d'un membre (tps = temps du morceau)
+  instant(f, tps) { return f.fen ? (f.fen[0] + tps % f.fen[1]) % f.duree : (f.t0 + tps) % f.duree; }
   // place les 3 membres selon leur rôle (projet.studio3d.membres), avec la pose si on l'a, sinon la silhouette simple
   placerMembres() {
     const T = this.T, M = LT.studio.mesures(), P = this.m.projet, roles = this.roles(), pris = {};
@@ -210,8 +224,8 @@ class Vue3D {
           this.S.membres.add(groupe);
         }
         // l'instant de l'animation, puis : à la bonne taille, pieds au sol, centré sur le poste
-        const k = .01 * p.taille / 1.76, temps = c.temps ?? poste.temps;
-        if (fig.mixer) { fig.t0 = pose.clip.duration * temps; fig.duree = pose.clip.duration; fig.mixer.setTime(fig.t0); }
+        const k = .01 * p.taille / 1.76;
+        if (fig.mixer) { fig.fen = pose.fen; fig.fige = !!c.fige; fig.t0 = fig.fen ? fig.fen[0] : pose.clip.duration * poste.temps; fig.duree = pose.clip.duration; fig.mixer.setTime(fig.t0); }
         fig.copie.position.set(0, 0, 0); fig.groupe.position.set(0, 0, 0); fig.groupe.rotation.set(0, 0, 0); fig.groupe.scale.setScalar(1);
         fig.groupe.updateMatrixWorld(true);   // mesurer sans l'ancienne taille / place
         const b = new T.Box3().setFromObject(fig.copie, true);
@@ -316,7 +330,7 @@ class Vue3D {
     m.position.x -= (b.min.x + b.max.x) / 2; m.position.z -= (b.min.z + b.max.z) / 2; m.position.y -= o.pendu ? b.max.y : b.min.y;   // pendu : accroché par le haut (suspension au plafond)
     boite.add(m); boite.scale.setScalar(k); boite.rotation.y = (o.rotY || 0) * Math.PI / 180; if (p.socle) boite.position.set(o.dx || 0, o.dy || 0, o.dz || 0); else boite.position.set(p.x + (o.dx || 0), (p.y || 0) + (o.dy || 0), p.z + (o.dz || 0));
     if (p.modele) p.modele.removeFromParent();
-    (p.socle || p.parent || this.S.groupe).add(boite); p.objets.forEach(x => { if (!x.isLight && !x.userData.garder) x.visible = false; }); p.modele = boite;   // la lumière et l'ampoule restent
+    (p.socle || p.parent || this.S.groupe).add(boite); p.objets.forEach(x => { if (!x.isLight && !x.userData.garder) { x.visible = false; x.userData.remplace = true; } }); p.modele = boite;   // la lumière et l'ampoule restent
     for (const [n, src] of Object.entries(this.copies || {})) if (this.S.pieces[src] === p) { this.remplirCopie(n); this.appliquer(n, true); }
   }
 
@@ -337,6 +351,10 @@ class Vue3D {
     if (reste > 1 && !force) { if (!this._att) this._att = setTimeout(() => { this._att = 0; this.rendre(true); }, reste); return; }   // trop tôt : on dessinera à la bonne cadence
     this._vu = ici;
     if (this.anime && this.q !== 'low') this.animer();
+    // la caméra derrière le mur du fond : on ne voit pas la porte (ni le panneau noir) de dos, ils cacheraient la pièce
+    if (!this._arr) { this._arr = []; this.S.groupe.traverse(o => { if (o.userData.arriere) this._arr.push(o); }); }
+    const devant = this.cam.position.z < (this._fond = this._fond || LT.studio.mesures().longueur) - .08;
+    for (const o of this._arr) if (!o.userData.remplace) o.visible = devant;
     if (this.zones !== this.m.moteur.zones) this.brancher();
     for (const t of this.tubes) {
       const Z = t.Z; if (!Z) { t.lampes.forEach(l => l.intensity = 0); t.lueurs.forEach(l => l.material.color.set('#000000')); t.mat.color.set('#000000'); if (t.halo) t.halo.color.set('#000000'); continue; }
@@ -358,7 +376,7 @@ class Vue3D {
   // pendant la lecture (Mid / High) : les membres jouent leur animation ; à l'arrêt, placerMembres() les refige sur leur pose
   animer() {
     let bouge = false;
-    for (const f of Object.values(this.figurants)) if (f.mixer && f.groupe.visible && f.duree) { f.mixer.setTime((f.t0 + this.m.temps) % f.duree); bouge = true; }
+    for (const f of Object.values(this.figurants)) if (f.mixer && f.groupe.visible && f.duree && !f.fige) { f.mixer.setTime(this.instant(f, this.m.temps)); bouge = true; }   // ⏸ dans le panneau = figé
     if (!bouge) return;
     for (const [n, d] of Object.entries(this.placement)) if (d.main && this.cibles[n]) this.appliquer(n, true);
     this._no = (this._no || 0) + 1; if (this._no % (this.q === 'high' ? 2 : 10) === 0) this.ombrer(); else this.r.shadowMap.needsUpdate = false;

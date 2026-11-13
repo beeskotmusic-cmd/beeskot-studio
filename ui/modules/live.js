@@ -44,9 +44,14 @@ BK.live = {
         for (const r of await BK.partage.lire('plan.lignes', [])) if (deCeMorceau(r.reel)) { const ps = enSec(r.audio); if (ps) ajout(ps, 'PLAN · ' + (r.jour || '') + (r.plans ? ' · ' + r.plans : '')); }
         ((await BK.partage.lire('passages.reels', {}))[m.id] || []).forEach((x, n) => ajout(x, 'Reels Audio ' + (n + 1)));
         for (const x of ((await BK.partage.lire('passages.discord', {}))[m.id] || [])) ajout(x, x.nom || 'Discord');
+        const caches = new Set((await BK.partage.lire('passages.caches', {}))[clePass(p)] || []);   // cachés dans Synch bread (pour tout le groupe)
+        l.forEach(x => { if (x.source !== 'live' && caches.has(x.debut + '-' + x.fin)) x.cache = true; });
         return l.sort((a, b) => a.debut - b.debut);
       },
       async garderPassage(p, x) { const tout = { ...(await BK.partage.lire('passages.live', {})) }, k = clePass(p); tout[k] = [...(tout[k] || []).filter(y => y.nom !== x.nom), { nom: x.nom, debut: x.debut, fin: x.fin, v: x.v || 1 }]; await BK.partage.ecrire('passages.live', tout); },
+      // un passage venu d'ailleurs (PLAN, Tournages, Reels, Discord) n'est pas effacé là-bas : il est seulement caché ici
+      async cacherPassage(p, x, oui) { const tout = { ...(await BK.partage.lire('passages.caches', {})) }, k = clePass(p), c = x.debut + '-' + x.fin, s = new Set(tout[k] || []);
+        if (oui) s.add(c); else s.delete(c); tout[k] = [...s]; await BK.partage.ecrire('passages.caches', tout); },
       async oublierPassage(p, x) { const tout = { ...(await BK.partage.lire('passages.live', {})) }, k = clePass(p); tout[k] = (tout[k] || []).filter(y => !(y.nom === x.nom && Math.abs(y.debut - x.debut) < .05)); await BK.partage.ecrire('passages.live', tout); },
       // les passages déjà exportés par Reels Audio (fichiers « tournage » / « montage » du morceau dans le Drive)
       async exports(p) { const { ms, m } = await morceau(p.id); if (!m || !BK.drive.relie()) return [];

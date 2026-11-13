@@ -14,7 +14,7 @@
 // Tout est dessiné dans un canvas (rapide), les en-têtes sont de vrais boutons.
 // Souris : clic = curseur / sélection ; glisser un clip = le déplacer (même sur une
 // autre piste du même genre) ; glisser un bord = durée ; double-clic dans le vide = nouveau clip.
-// Molette = avancer dans le temps, Maj + molette = monter / descendre, Ctrl ou Alt + molette = zoom.
+// Molette avant = zoom, arrière = dézoom ; Maj + molette = monter / descendre ; Ctrl ou Alt + molette = avancer dans le temps.
 // =====================================================================
 (function (G) {
 const LT = G.LT;
@@ -115,7 +115,16 @@ class Timeline {
     const { entree: e, sortie: s } = m;
     if (e != null || s != null) { c.fillStyle = 'rgba(255,178,62,.07)'; const a = this.x(e ?? 0), b = this.x(s ?? m.duree()); c.fillRect(a, 0, b - a, H); }
     // là où on va déposer
-    if (this.survolDepot && this.survolDepot.p) { const p = this.survolDepot.p; c.strokeStyle = '#a6f0e6'; c.lineWidth = 2; c.strokeRect(1, p.y + 1, W - 2, p.h - 1); c.fillStyle = '#a6f0e6'; c.fillRect(Math.round(this.x(this.survolDepot.t)), p.y, 2, p.h); }
+    if (this.survolDepot && this.survolDepot.p) {   // juste la place que prendra ce qu'on dépose
+      const o = this.survolDepot, p = o.p, q = m.glisse || '', d = Math.max(1, 60 / (m.projet.bpm || 120) * 4);
+      let a = Math.max(0, o.t), b = a + d;
+      const rien = (q.startsWith('calque:') && p.sorte !== 'couleur') || (q.startsWith('couleur:') && !o.k && p.sorte !== 'couleur') || (q.startsWith('effet:') && p.sorte !== 'couleur' && p.sorte !== 'effets');   // là, le dépôt ne ferait rien
+      if (!rien) {
+      if (o.k && o.k.fin != null && (q.startsWith('couleur:') || (q.startsWith('effet:') && (p.sorte === 'couleur' || p.sorte === 'effets')))) { a = o.k.debut; b = p.sorte === 'couleur' && q.startsWith('effet:') ? Math.max(o.k.fin, a + 1) : o.k.fin; }
+      const xa = this.x(a), xb = this.x(b);
+      c.fillStyle = 'rgba(166,240,230,.18)'; c.fillRect(xa, p.y + 1, xb - xa, p.h - 1);
+      c.strokeStyle = '#a6f0e6'; c.lineWidth = 2; c.strokeRect(xa + 1, p.y + 1, Math.max(2, xb - xa - 2), p.h - 1);
+    } }
     // aperçu du rasoir
     if (m.outil === 'rasoir' && this.survol != null) { c.fillStyle = '#ff5050'; c.fillRect(Math.round(this.survol), 0, 1, H); }
     // curseur de lecture
@@ -177,6 +186,72 @@ class Timeline {
     c.strokeStyle = choisi ? COUL.sel : 'rgba(255,255,255,.18)'; c.lineWidth = choisi ? 2 : 1;
     c.beginPath(); c.roundRect(x1 + .5, y + .5, w - 1, h - 1, 4); c.stroke();    if (choisi) this.poignees(c, x1, x2, y, h);
   }
+  // ---------- clic droit : un petit menu ----------
+  //   sur un calque / effet / déclencheur : ses lumières à cocher (une ou plusieurs), couper, dupliquer, supprimer
+  //   sur du vide : ajouter un calque ici (couleur, bi-color, dégradé, effet…)
+  menu(e, o) {
+    const m = this.m, P = m.projet, p = o.p, k = o.k, Z = P.materiel.zones, ids = Z.map(z => z.id);
+    this.fermerMenu();
+    const el = document.createElement('div'); el.className = 'lt2-menu'; document.body.appendChild(el); this._menu = el;
+    const t = Math.max(0, this.aimanter(o.t));
+    const effets = sorte => Object.entries(LT.effets).filter(([, f]) => f.sorte === sorte).map(([x, f]) => `<button data-ajout="effet:${x}">${f.nom}</button>`).join('');
+    const sousEffets = `<div class="lt2-menu-sous"><button class="lt2-menu-f">Effet ▸</button><div class="lt2-menu-l"><h5>Overlays</h5>${effets('overlay')}<h5>Mouvements</h5>${effets('mouvement')}</div></div>`;
+    const aZones = k && (p.sorte === 'couleur' || p.sorte === 'effets' || p.sorte === 'stem');
+    const zonesDe = () => k.zones && k.zones.length ? k.zones : ids;   // null = toutes (effets, déclencheurs)
+    const dessiner = () => {
+      if (k) {
+        const z = zonesDe(), toutes = ids.every(i => z.includes(i));
+        el.innerHTML = (aZones ? `<h5>Lumières</h5>${Z.map(q => `<label><input type="checkbox" data-mz="${q.id}"${z.includes(q.id) ? ' checked' : ''}> ${q.nom}</label>`).join('')}<label><input type="checkbox" data-mz="*"${toutes ? ' checked' : ''}> Toutes</label><hr>` : '')
+          + (k.debut != null ? `<button data-mc="couper">Couper ici</button><button data-mc="dupliquer">Dupliquer</button>` : '') + `<button data-mc="supprimer">Supprimer</button>`;
+      } else {
+        el.innerHTML = '<h5>Ajouter ici</h5>' + (p.sorte === 'couleur' ? '<button data-ajout="calque:">Calque de couleur</button><button data-ajout="calque:bi">Bi-color</button><button data-ajout="calque:degrade">Dégradé</button>' + sousEffets
+          : p.sorte === 'effets' ? sousEffets : p.sorte === 'peches' ? '<button data-nouveau>Une pêche</button>' : p.sorte === 'stem' ? '<button data-nouveau>Un déclencheur</button>' : '');
+      }
+      el.querySelectorAll('[data-mz]').forEach(c => c.onchange = () => {
+        const id = c.dataset.mz, avant = zonesDe();
+        let l = id === '*' ? (c.checked ? ids.slice() : [avant[0]]) : c.checked ? ids.filter(i => avant.includes(i) || i === id) : avant.filter(i => i !== id);
+        if (!l.length) l = [id === '*' ? ids[0] : id];   // toujours au moins une lumière
+        const plus = l.filter(i => !avant.includes(i));
+        m.modifier(() => {
+          if (p.sorte === 'couleur') { k.zones = l; if (plus.length) m.faireDeLaPlace(k, plus); }
+          else k.zones = l.length === ids.length ? null : l;
+        });
+        m.choisir(k); dessiner();
+      });
+      el.querySelectorAll('[data-mc]').forEach(b => b.onclick = () => {
+        const a = b.dataset.mc; this.fermerMenu();
+        if (a === 'couper') return m.couper(k, p.liste, t);
+        if (a === 'supprimer') { m.choisir(k); return m.supprimer(); }
+        if (a === 'dupliquer') {   // juste après lui
+          const n = JSON.parse(JSON.stringify(k)); n.id = LT.id(); const d = k.fin - k.debut; n.debut = k.fin; n.fin = k.fin + d;
+          m.modifier(() => {
+            if (p.sorte === 'couleur') { m.faireDeLaPlace(n); P.couleur.clips.push(n); }
+            else if (p.sorte === 'effets') m.pisteLibre(n.debut, n.fin, P.effets.indexOf(p.piste)).clips.push(n);
+            else p.liste.push(n);
+          });
+          m.choisir(n);
+        }
+      });
+      el.querySelectorAll('[data-ajout]').forEach(b => b.onclick = () => { this.fermerMenu(); m.deposer(b.dataset.ajout, { t, p, k: null }); });
+      const nv = el.querySelector('[data-nouveau]'); if (nv) nv.onclick = () => { this.fermerMenu(); m.nouveauClip(p, t); };
+    };
+    if (k) m.choisir(k);
+    dessiner();
+    if (!el.innerHTML.trim() || el.innerHTML === '<h5>Ajouter ici</h5>') return this.fermerMenu();
+    const L = innerWidth, H = innerHeight, r = el.getBoundingClientRect();
+    el.style.left = Math.min(e.clientX, L - r.width - 6) + 'px'; el.style.top = Math.min(e.clientY, H - r.height - 6) + 'px';
+    if (e.clientX + r.width + 200 > L) el.classList.add('gauche');   // le sous-menu s'ouvre à gauche s'il n'y a pas la place
+    const loin = ev => { if (!el.contains(ev.target)) this.fermerMenu(); }, touche = ev => { if (ev.key === 'Escape') this.fermerMenu(); };
+    setTimeout(() => { document.addEventListener('pointerdown', loin, true); document.addEventListener('keydown', touche, true); });
+    this._fermer = () => { document.removeEventListener('pointerdown', loin, true); document.removeEventListener('keydown', touche, true); };
+  }
+  fermerMenu() { if (this._menu) { this._menu.remove(); this._menu = null; } if (this._fermer) { this._fermer(); this._fermer = null; } }
+  // le dessin d'un calque à plusieurs couleurs, dans une lumière
+  motif(c, k, x, y, w, h, W) {
+    const cs = k.couleurs, n = cs.length;
+    if (k.sorte === 'degrade') { const g = c.createLinearGradient(0, y, 0, y + h); cs.forEach((q, i) => g.addColorStop(i / (n - 1), q)); c.fillStyle = g; c.fillRect(x, y, w, h); return; }
+    cs.forEach((q, i) => { c.fillStyle = q; c.fillRect(x, y + h * i / n, w, h / n + .5); });
+  }
   // les calques de couleur : un bloc par groupe de lumières voisines
   dessinerCouleurs(c, lignes, W) {
     if (!lignes.length) return;
@@ -189,6 +264,7 @@ class Timeline {
         const y = lignes[a].y + 1, h = lignes[b].y + lignes[b].h - 1 - y, w = Math.max(2, x2 - x1);
         c.save(); c.beginPath(); c.rect(x1, y, w, h); c.clip();
         c.fillStyle = k.couleur; c.fillRect(x1, y, w, h);
+        if (k.sorte && k.couleurs && k.couleurs.length > 1) for (let i = a; i <= b; i++) this.motif(c, k, x1, lignes[i].y + 1, w, lignes[i].h - 2, W);   // bi-color / dégradé, dans chaque lumière
         c.fillStyle = 'rgba(0,0,0,.4)';
         if (k.entree > 0) { c.beginPath(); c.moveTo(x1, y); c.lineTo(x1 + k.entree * this.pps, y); c.lineTo(x1, y + h); c.fill(); }
         if (k.sortie > 0) { c.beginPath(); c.moveTo(x2, y); c.lineTo(x2 - k.sortie * this.pps, y); c.lineTo(x2, y + h); c.fill(); }
@@ -383,7 +459,8 @@ class Timeline {
     });
     // clic droit sur un losange : sa forme (droite → arrondie → palier)
     cv.addEventListener('contextmenu', e => {
-      const o = this.ou(e); if (!o.p || o.p.sorte !== 'courbe') return; e.preventDefault();
+      const o = this.ou(e); if (o.p && o.p.sorte !== 'courbe') { e.preventDefault(); this.menu(e, o); return; }
+      if (!o.p || o.p.sorte !== 'courbe') return; e.preventDefault();
       const q = this.pointSous(o); if (!q) return;
       m.modifier(() => { q.forme = { lin: 'lisse', lisse: 'palier', palier: 'lin' }[q.forme || 'lin']; });
     });
@@ -399,7 +476,8 @@ class Timeline {
     this.corps.addEventListener('wheel', e => {
       if (e.shiftKey) return;   // Maj + molette : on laisse défiler les pistes
       e.preventDefault();
-      if (e.ctrlKey || e.altKey) this.zoomer(e.deltaY < 0 ? 1.2 : 1 / 1.2, e.clientX - this.cv.getBoundingClientRect().left);
+      const temps = e.ctrlKey || e.altKey || Math.abs(e.deltaX) > Math.abs(e.deltaY);   // Ctrl / Alt + molette (ou glisser de côté sur le pavé) = avancer dans le temps
+      if (!temps) this.zoomer(e.deltaY < 0 ? 1.2 : 1 / 1.2, e.clientX - this.cv.getBoundingClientRect().left);   // molette avant = zoom, arrière = dézoom, autour de la souris
       else { this.debut = Math.max(this.min(), this.debut + (e.deltaY + e.deltaX) / this.pps * .8); this.redessiner(); }
     }, { passive: false });
     // glisser depuis la bibliothèque

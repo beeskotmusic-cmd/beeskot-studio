@@ -22,7 +22,7 @@ class Montage {
     LT.materiel.aJour(projet); this.moteur = new LT.Moteur(projet); this.son = new LT.Son(); this.pics = null; this.sr = 44100; this.stemChoisi = null; this._coups = new Map(); this.listePassages = [];
     racine.classList.add('lt2');
     racine.innerHTML = `
-      <div class="lt2-haut">
+      <div class="lt2-haut"><div class="lt2-sep" data-sep="g" title="Glisse pour élargir ou réduire (double-clic : taille de départ)"></div><div class="lt2-sep" data-sep="d" title="Glisse pour élargir ou réduire (double-clic : taille de départ)"></div>
         <section class="lt2-pan lt2-biblio"><h3>Bibliothèque</h3>
           <h4>Musique</h4><div class="lt2-musique"><div class="lt2-mnom">Aucune musique</div><button data-a="musique" class="lt2-pri">Choisir la musique…</button>
           <select class="lt2-passage" hidden title="Les passages choisis pour les reels (Reels Audio, Tournages, Discord)"></select></div>
@@ -33,10 +33,10 @@ class Montage {
           <select data-amb title="La lumière de la pièce"><option value="noir">Noir</option><option value="tamise" selected>Tamisé</option><option value="jour">Jour</option></select>
           <label><input type="checkbox" data-membres checked> Membres</label>
           <button data-plein title="Plein écran (Échap pour sortir)">⛶</button><select data-qualite title="La qualité de la vue 3D sur ce PC (ne change pas la vidéo des tubes)"><option value="low">Low (rapide)</option><option value="mid">Mid</option><option value="high">High (lent)</option></select><button data-lampes title="La couleur et la force des lampes de la pièce, pour ce morceau">Lumières</button>${LT.modeReglage ? '<button data-placer title="Régler la place des objets du studio">Placer les objets</button>' : ''}</span></div>
-          <div class="lt2-ecran"><canvas width="1920" height="1080"></canvas><div class="lt2-3d" hidden></div><div class="lt2-roles" hidden></div><div class="lt2-charge" hidden></div><div class="lt2-placer" hidden></div><div class="lt2-lampes" hidden></div></div></section>
+          <div class="lt2-ecran"><canvas width="1920" height="1080"></canvas><div class="lt2-3d" hidden></div><div class="lt2-roles" hidden></div><div class="lt2-charge" hidden></div><div class="lt2-placer" hidden></div><div class="lt2-lampes" hidden></div></div><div class="lt2-pleinlec"><button data-pl="debut" title="Début">⏮</button><button data-pl="lire" title="Lecture / pause (Espace)">▶</button><button data-pl="fin" title="Fin">⏭</button><span class="lt2-pl-t">0:00:00</span><div class="lt2-pl-barre"><i></i></div><span class="lt2-pl-d">0:00</span></div></section>
         <section class="lt2-pan lt2-insp"><h3>Inspecteur</h3><div class="lt2-insp-c"></div></section>
       </div>
-      <div class="lt2-barre">
+      <div class="lt2-barre"><div class="lt2-sep-b" data-sep="b" title="Glisse pour agrandir ou réduire la timeline (double-clic : taille de départ)"></div>
         <span class="lt2-grp"><button data-o="selection" title="Sélection (V)">V</button><button data-o="rasoir" title="Rasoir (C)">✂</button><button data-a="aimant" title="Magnétisme (S)">⊓</button></span>
         <span class="lt2-grp"><button data-a="annuler" title="Annuler (Ctrl+Z)">↶</button><button data-a="retablir" title="Rétablir (Ctrl+Maj+Z)">↷</button></span>
         <span class="lt2-grp lt2-lect"><button data-a="debut" title="Début (Origine)">⏮</button><button data-a="lire" class="lt2-pri" title="Lecture / pause (Espace)">▶</button><button data-a="fin" title="Fin (Fin)">⏭</button></span>
@@ -48,6 +48,7 @@ class Montage {
     this.r = racine; this.ecran = racine.querySelector('.lt2-ecran canvas'); this.ctx = this.ecran.getContext('2d');
     this.lcd = racine.querySelector('.lt2-lcd');
     this.tl = new LT.Timeline(this, racine.querySelector('.lt2-tl'));
+    this.tailles(); this.pleinLecteur();
     this.insp = new LT.Inspecteur(this, racine.querySelector('.lt2-insp-c'));
     this.biblio(); this.boutons(); this.clavier();
     this.change(); requestAnimationFrame(() => this.tl.toutVoir());
@@ -132,7 +133,7 @@ class Montage {
   debutMin() { const f = LT.decompte.fenetre(this.projet); return f ? Math.min(0, f.debut) : 0; }
   planSon() { const f = LT.decompte.fenetre(this.projet); return f && Object.assign({ clic: true }, f); }
   aller(t, parLecture) {
-    this.temps = Math.max(this.debutMin(), t); this.lcd.textContent = fmt(this.temps); this.tl.redessiner(); this.moniteur();
+    this.temps = Math.max(this.debutMin(), t); this.lcd.textContent = fmt(this.temps); this.tl.redessiner(); this.moniteur(); this.majPleinLec();
     if (!parLecture && this.vitesse > 0 && this.son.depart) this.son.jouer(this.temps, this.vitesse, this.planSon());   // on a cliqué ailleurs pendant la lecture
   }
   // la boucle I/O repart au début du décompte quand l'entrée est le début du passage
@@ -140,7 +141,7 @@ class Montage {
   relancer() { if (this.vitesse) this.lire(this.vitesse); }
   // vitesse : 0 = arrêt, 1 = normal, 2, 4… ; négatif = en arrière (J)
   lire(v) {
-    this.vitesse = v; this.r.querySelector('[data-a="lire"]').textContent = v ? '⏸' : '▶';
+    this.vitesse = v; this.r.querySelector('[data-a="lire"]').textContent = v ? '⏸' : '▶'; this.majPleinLec();
     if (this.vue3d) this.vue3d.lecture(!!v);
     this.son.arreter(); const jeton = this._jeton = {};
     if (!v) return;
@@ -168,6 +169,27 @@ class Montage {
   // le moniteur en plein écran (Échap pour sortir)
   plein(oui = !this.r.querySelector('.lt2-moni').classList.contains('lt2-plein')) {
     this.r.querySelector('.lt2-moni').classList.toggle('lt2-plein', oui); if (this.vue3d) { this.vue3d.taille(); this.vue3d.rendre(true); }
+    if (oui) this.montrerPleinLec(); this.majPleinLec();
+  }
+  // le lecteur du plein écran : ⏮ ▶ ⏭, le temps, une ligne pour aller ailleurs ; il s'efface quand la souris ne bouge plus
+  pleinLecteur() {
+    const moni = this.r.querySelector('.lt2-moni'), L = moni.querySelector('.lt2-pleinlec'), barre = L.querySelector('.lt2-pl-barre');
+    L.querySelectorAll('[data-pl]').forEach(b => b.onclick = () => { const a = b.dataset.pl; if (a === 'lire') this.lire(this.vitesse ? 0 : 1); if (a === 'debut') this.aller(this.debutMin()); if (a === 'fin') this.aller(this.duree()); });
+    const viser = e => { const r = barre.getBoundingClientRect(), d = this.duree() || 1; this.aller(Math.min(Math.max(0, (e.clientX - r.left) / r.width), 1) * d); };
+    barre.onpointerdown = e => { barre.setPointerCapture(e.pointerId); viser(e); barre.onpointermove = viser; };
+    barre.onpointerup = () => { barre.onpointermove = null; };
+    moni.addEventListener('pointermove', () => { if (moni.classList.contains('lt2-plein')) this.montrerPleinLec(); });
+  }
+  montrerPleinLec() {
+    const L = this.r.querySelector('.lt2-pleinlec'); L.classList.add('vu'); clearTimeout(this._plT);
+    this._plT = setTimeout(() => { if (!L.matches(':hover')) L.classList.remove('vu'); else this.montrerPleinLec(); }, 2000);
+  }
+  majPleinLec() {
+    const L = this.r && this.r.querySelector('.lt2-pleinlec'); if (!L || !this.r.querySelector('.lt2-moni.lt2-plein')) return;
+    const d = this.duree() || 1, mn = s => Math.floor(s / 60) + ':' + String(Math.floor(s % 60)).padStart(2, '0');
+    L.querySelector('[data-pl="lire"]').textContent = this.vitesse ? '⏸' : '▶';
+    L.querySelector('.lt2-pl-t').textContent = this.lcd.textContent; L.querySelector('.lt2-pl-d').textContent = mn(d);
+    L.querySelector('.lt2-pl-barre i').style.width = Math.min(100, Math.max(0, this.temps / d * 100)) + '%';
   }
   // Tubes (l'image vidéo) ou Studio 3D ; la 3D n'est fabriquée qu'au premier clic
   modeMoniteur(mode) {
@@ -267,15 +289,13 @@ class Montage {
   panneauRoles() {
     const el = this.r.querySelector('.lt2-roles'), v = this.vue3d; if (!v) return;
     const M = LT.studio.mesures(), roles = v.roles(), charge = v.posesChargees().length;
-    el.innerHTML = M.membres.map(p => { const c = roles[p.nom] || {}, r = c.role || M.roles[p.nom], t = c.temps ?? M.postes[r].temps;
+    el.innerHTML = M.membres.map(p => { const c = roles[p.nom] || {}, r = c.role || M.roles[p.nom];
       return `<div class="lt2-role"><b>${p.nom}</b><select data-qui="${p.nom}">${Object.entries(M.postes).map(([k, o]) => `<option value="${k}"${k === r ? ' selected' : ''}>${o.nom}</option>`).join('')}</select>
-        <input type="range" min="0" max="1" step="0.01" value="${t}" data-temps="${p.nom}" title="L'instant de la pose (glisse pour en trouver une autre)"${charge ? '' : ' disabled'}></div>`; }).join('') +
+        <button class="lt2-joue${c.fige ? '' : ' on'}" data-joue="${p.nom}" title="${c.fige ? 'En pause (figé) : clique pour qu\'il joue pendant la lecture' : 'Joue pendant la lecture : clique pour le mettre en pause'}"${charge ? '' : ' disabled'}>${c.fige ? '<svg viewBox="0 0 10 10" width="10" height="10"><rect x="1.5" y="1" width="2.5" height="8" fill="currentColor"/><rect x="6" y="1" width="2.5" height="8" fill="currentColor"/></svg>' : '<svg viewBox="0 0 10 10" width="10" height="10"><path d="M2 1 9 5 2 9z" fill="currentColor"/></svg>'}</button></div>`; }).join('') +
       (LT.modeReglage ? `<button data-poses>${charge ? charge + ' poses chargées · changer…' : 'Charger les poses (.fbx)…'}</button>` : '');
     el.querySelectorAll('[data-qui]').forEach(s => s.onchange = () => { this.modifier(() => { const c = roles[s.dataset.qui] = roles[s.dataset.qui] || {}; c.role = s.value; delete c.temps; }); v.placerMembres(); this.panneauRoles(); });
-    el.querySelectorAll('[data-temps]').forEach(s => {
-      s.onpointerdown = () => this.memoriser();
-      s.oninput = () => { const c = roles[s.dataset.temps] = roles[s.dataset.temps] || {}; c.temps = +s.value; v.placerMembres(); };
-      s.onchange = () => this.change(false, true);
+    el.querySelectorAll('[data-joue]').forEach(b => b.onclick = () => {   // ▶ / ⏸ : ce membre joue (ou reste figé) pendant la lecture
+      this.modifier(() => { const c = roles[b.dataset.joue] = roles[b.dataset.joue] || {}; c.fige = !c.fige; delete c.temps; }); v.placerMembres(); this.panneauRoles();
     });
     const bpo = el.querySelector('[data-poses]'); if (bpo) bpo.onclick = () => {
       const i = Object.assign(document.createElement('input'), { type: 'file', accept: '.fbx', multiple: true });
@@ -284,13 +304,37 @@ class Montage {
     };
   }
 
+  // agrandir / réduire les modules : on glisse les séparations (Bibliothèque | Moniteur | Inspecteur, et le haut de la timeline)
+  tailles() {
+    const R = this.r, cle = 'lt2.tailles', T = (() => { try { return JSON.parse(localStorage.getItem(cle)) || {}; } catch (e) { return {}; } })();
+    const poser = () => { ['g', 'd', 'b'].forEach(k => T[k] ? R.style.setProperty('--lt-' + k, T[k] + 'px') : R.style.removeProperty('--lt-' + k)); };
+    const garder = () => { try { localStorage.setItem(cle, JSON.stringify(T)); } catch (e) {} };
+    poser();
+    R.querySelectorAll('[data-sep]').forEach(h => {
+      const k = h.dataset.sep;
+      h.ondblclick = () => { delete T[k]; poser(); garder(); };
+      h.onpointerdown = e => {
+        e.preventDefault(); h.setPointerCapture(e.pointerId); h.classList.add('on');
+        const x0 = e.clientX, y0 = e.clientY, haut = R.querySelector('.lt2-haut'), tl = R.querySelector('.lt2-tl');
+        const v0 = k === 'g' ? haut.children[2].getBoundingClientRect().width : k === 'd' ? R.querySelector('.lt2-insp').getBoundingClientRect().width : tl.getBoundingClientRect().height;
+        const H = R.getBoundingClientRect().height, Lh = haut.getBoundingClientRect().width;
+        h.onpointermove = ev => {
+          if (k === 'g') T.g = Math.round(Math.min(Math.max(120, v0 + ev.clientX - x0), Lh * .35));
+          if (k === 'd') T.d = Math.round(Math.min(Math.max(200, v0 - (ev.clientX - x0)), Lh * .45));
+          if (k === 'b') T.b = Math.round(Math.min(Math.max(140, v0 - (ev.clientY - y0)), H - 230));
+          poser();
+        };
+        h.onpointerup = () => { h.onpointermove = h.onpointerup = null; h.classList.remove('on'); garder(); };
+      };
+    });
+  }
   // la bibliothèque : on GLISSE une couleur ou un effet sur la timeline
   //   couleur → sur une lumière (piste Couleur) = un calque de cette couleur ; sur un clip = sa couleur change
   //   effet   → sur une piste d'effets ; ou directement sur une lumière = un effet sur cette lumière seulement
   biblio() {
     const l = this.r.querySelector('.lt2-biblio-l'), P = this.projet;
     const liste = sorte => Object.entries(LT.effets).filter(([, f]) => f.sorte === sorte).map(([k, f]) => `<div class="lt2-item s-${sorte}" draggable="true" data-glisse="effet:${k}">${f.nom}</div>`).join('');
-    l.innerHTML = (this.morceaux && this.morceaux.length ? '<h4>Morceaux</h4><div class="lt2-morceaux">' + this.morceaux.map(m => `<div class="lt2-item lt2-morceau" data-morceau="${m.id}" title="Nouveau projet avec ce morceau">${String(m.nom).replace(/</g, '&lt;')}</div>`).join('') + '</div>' : '') + '<h4>Couleur</h4><div class="lt2-item s-couleur" draggable="true" data-glisse="calque:" title="Glisse-le sur une lumière : un nouveau calque de couleur, par-dessus ce qu\'il y a déjà">Calque de couleur</div><h4>Palette</h4><div class="lt2-pal">' + P.palette.map(h => `<span class="lt2-pas" draggable="true" data-glisse="couleur:${h}" style="background:${h}" title="Glisse sur une lumière (piste Couleur) ou sur un clip"></span>`).join('') + '</div>' +
+    l.innerHTML = (this.morceaux && this.morceaux.length ? '<h4>Morceaux</h4><div class="lt2-morceaux">' + this.morceaux.map(m => `<div class="lt2-item lt2-morceau" data-morceau="${m.id}" title="Nouveau projet avec ce morceau">${String(m.nom).replace(/</g, '&lt;')}</div>`).join('') + '</div>' : '') + '<h4>Couleur</h4><div class="lt2-item s-couleur" draggable="true" data-glisse="calque:" title="Glisse-le sur une lumière : un nouveau calque de couleur, par-dessus ce qu\'il y a déjà">Calque de couleur</div><div class="lt2-item s-couleur" draggable="true" data-glisse="calque:bi" title="Plusieurs couleurs : la lumière coupée en parts égales (bouton + pour en ajouter)">Bi-color</div><div class="lt2-item s-couleur" draggable="true" data-glisse="calque:degrade" title="Une couleur en haut qui passe doucement à une autre en bas">Dégradé</div><h4>Palette</h4><div class="lt2-pal">' + P.palette.map(h => `<span class="lt2-pas" draggable="true" data-glisse="couleur:${h}" style="background:${h}" title="Glisse sur une lumière (piste Couleur) ou sur un clip"></span>`).join('') + '</div>' +
       '<h4>Overlays · textures</h4>' + liste('overlay') + '<h4>Mouvements</h4>' + liste('mouvement') +
       '<p class="lt2-vide">Glisse sur la timeline. Calque de couleur : sur une lumière, puis coche ses lumières dans l\'Inspecteur. Pastille : sur un calque pour changer sa couleur. Effet : sur une piste d\'effets ou sur une lumière.</p>';
     l.querySelectorAll('[data-morceau]').forEach(el => el.onclick = () => this.surMorceau && this.surMorceau(el.dataset.morceau));
@@ -324,7 +368,7 @@ class Montage {
   // « sauf » et les clips choisis ne sont jamais fondus dans un autre.
   recoller(sauf) {
     const L = this.projet.couleur.clips, e = 1e-6, fixe = c => c === sauf || this.selection.has(c.id);
-    const pareil = (a, b) => a.couleur === b.couleur && (a.force ?? 1) === (b.force ?? 1), memes = (a, b) => a.zones.length === b.zones.length && a.zones.every(z => b.zones.includes(z));
+    const pareil = (a, b) => a.couleur === b.couleur && (a.force ?? 1) === (b.force ?? 1) && (a.sorte || '') === (b.sorte || '') && (!a.sorte || String(a.couleurs) === String(b.couleurs)), memes = (a, b) => a.zones.length === b.zones.length && a.zones.every(z => b.zones.includes(z));
     const ordre = this.projet.materiel.zones.map(z => z.id);
     for (let encore = true; encore;) {
       encore = false;
@@ -341,10 +385,14 @@ class Montage {
   deposer(quoi, o) {
     const [sorte, val] = quoi.split(':'), P = this.projet, d = Math.max(1, 60 / (P.bpm || 120) * 4), t = Math.max(0, o.t), p = o.p; if (!p) return;   // au moins 1 seconde
     let k = null;
-    const calque = couleur => { k = { id: LT.id(), debut: t, fin: t + d, couleur, zones: [p.zone.id], entree: 0, sortie: 0 }; this.modifier(() => { this.faireDeLaPlace(k); P.couleur.clips.push(k); }); };
-    if (sorte === 'calque' && p.sorte === 'couleur') calque(o.k ? o.k.couleur === P.palette[0] ? P.palette[1] || '#ffffff' : P.palette[0] : P.palette[0]);   // un NOUVEAU calque, même par-dessus un autre
+    const calque = (couleur, x = {}) => { k = Object.assign({ id: LT.id(), debut: t, fin: t + d, couleur, zones: [p.zone.id], entree: 0, sortie: 0 }, x); this.modifier(() => { this.faireDeLaPlace(k); P.couleur.clips.push(k); }); };
+    if (sorte === 'calque' && p.sorte === 'couleur') {   // un NOUVEAU calque, même par-dessus un autre
+      const c0 = o.k ? o.k.couleur === P.palette[0] ? P.palette[1] || '#ffffff' : P.palette[0] : P.palette[0];
+      if (val === 'bi' || val === 'degrade') { const c1 = P.palette.find(c => c !== c0) || '#ffffff'; calque(c0, { sorte: val, couleurs: [c0, c1] }); }
+      else calque(c0);
+    }
     if (sorte === 'couleur') {
-      if (o.k && (p.sorte === 'couleur' || p.sorte === 'effets')) return this.modifier(() => { o.k.couleur = val; if (p.sorte === 'effets') o.k.mode = 'lumiere'; });
+      if (o.k && (p.sorte === 'couleur' || p.sorte === 'effets')) return this.modifier(() => { o.k.couleur = val; if (o.k.couleurs && o.k.couleurs.length) o.k.couleurs[0] = val; if (p.sorte === 'effets') o.k.mode = 'lumiere'; });
       if (p.sorte === 'couleur') calque(val);
     }
     if (sorte === 'effet') {
@@ -434,7 +482,7 @@ class Montage {
     };
     document.addEventListener('keydown', this._clavier, true);   // en premier : Espace ne lance pas aussi le petit lecteur de BS
   }
-  detruire() { document.removeEventListener('keydown', this._clavier); this.lire(0); }
+  detruire() { this.tl.fermerMenu(); document.removeEventListener('keydown', this._clavier); this.lire(0); }
 }
 LT.Montage = Montage;
 })(typeof self !== 'undefined' ? self : this);

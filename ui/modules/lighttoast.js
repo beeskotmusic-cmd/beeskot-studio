@@ -16,7 +16,7 @@ const fenetre = (html, brancher) => new Promise(res => {
 });
 const tampon = o => o.buffer.slice(o.byteOffset, o.byteOffset + o.byteLength);   // Uint8Array → ArrayBuffer
 const SCRIPTS = ['moteur/base.js', 'moteur/materiel.js', 'moteur/effets.js', 'moteur/decompte.js', 'moteur/projet.js', 'moteur/moteur.js', 'moteur/analyse.js', 'moteur/declencheurs.js', 'moteur/ancien.js',
-  'ecran/son.js', 'ecran/roue.js', 'ecran/inspecteur.js', 'vendor/three.min.js', 'vendor/chargeurs-3d.js', 'ecran/studio.js', 'ecran/vue3d.js', 'ecran/timeline.js', 'ecran/montage.js', 'ecran/export.js'];
+  'ecran/son.js', 'ecran/roue.js', 'ecran/inspecteur.js', 'vendor/three.min.js', 'vendor/chargeurs-3d.js', 'ecran/studio.js', 'ecran/vue3d.js', 'ecran/timeline.js', 'ecran/montage.js', 'ecran/export.js', 'ecran/placer.js'];
 const charger = src => new Promise((ok, ko) => { const s = document.createElement('script'); s.src = 'lighttoast2/' + src; s.onload = ok; s.onerror = () => ko(new Error(src)); document.head.appendChild(s); });
 
 // ---------- le Drive ----------
@@ -153,7 +153,7 @@ function brancher() {
 BK.module('lighttoast', function (page) {
   $('.sub', page).textContent = 'Musique → vidéo pour les tubes LED : pistes, effets, vue 3D du studio';
   $('.hdr .right', page).innerHTML = `<div class="t2-barre"><span class="t2-nom">Nouveau projet</span>
-    <button class="btn xs" data-t2="nouveau">Nouveau</button><button class="btn xs" data-t2="ouvrir">Ouvrir…</button><button class="btn xs" data-t2="enregistrer">Enregistrer</button><button class="btn xs" data-t2="exporter" title="Fabriquer la vidéo .mp4 pour les lumières">Exporter</button><span class="t2-etat"></span></div>`;
+    <button class="btn xs" data-t2="nouveau">Nouveau</button><button class="btn xs" data-t2="ouvrir">Ouvrir…</button><button class="btn xs" data-t2="enregistrer">Enregistrer</button><button class="btn xs" data-t2="exporter" title="Fabriquer la vidéo .mp4 pour les lumières">Exporter</button><button class="btn xs" data-t2="editer3d" title="Provisoire : déplacer les objets et les membres du Studio 3D, caler les instruments. « Copier le placement » puis colle-le à Claude.">Éditer 3D</button><span class="t2-etat"></span></div>`;
   const g = $('.grid', page); g.classList.add('lt-grid'); g.innerHTML = '<div class="t2-zone"><p class="lt2-vide" style="padding:16px">Chargement de TOAST2…</p></div>';
   let M = null, fichierId = null, pret = null, minuteur = null, exportEnCours = null;
   const etat = t => { $('.t2-etat', page).textContent = t || ''; }; BK.toast.msg = etat;
@@ -201,6 +201,12 @@ BK.module('lighttoast', function (page) {
   };
   $('.hdr .right', page).addEventListener('click', async e => {
     const b = e.target.closest('[data-t2]'); if (!b || !M) return; const a = b.dataset.t2;
+    if (a === 'editer3d') {   // PROVISOIRE : l'outil de placement de la page « Placer le studio », dans TOAST2
+      LT.modeReglage = true; M.modeMoniteur('3d'); const v = M.vue3d; if (!v || !LT.Placer) return; await v.pret;
+      if (!M._essai3d) { M._essai3d = true; const e = LT.placementEssai(); if (e) { v.placement = Object.assign({}, LT.studio.mesures().placement, e); v.appliquer(); } M.panneauRoles(); }
+      if (!M.placer) { M.placer = new LT.Placer(v, M.r.querySelector('.lt2-placer')); M.placer.onFin = () => { M.placer.activer(false); b.classList.remove('on'); }; }
+      const oui = !M.placer.actif; M.placer.activer(oui); b.classList.toggle('on', oui); return;
+    }
     if (a === 'nouveau') { if (!await BK.confirmer('Nouveau projet ? Pense à enregistrer celui-ci avant.')) return; await ouvrirProjet(LT.projet.nouveau()); etat(''); }
     if (a === 'enregistrer') {
       const nom = await fenetre(`<b>Enregistrer dans le Drive</b><label>Nom du projet <input type="text" data-nom value="${esc(nomProjet())}"></label><div class="t2-fen-b"><button class="lt2-pri" data-ok>Enregistrer</button><button data-non>Annuler</button></div>`,

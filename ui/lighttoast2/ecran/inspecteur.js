@@ -99,15 +99,23 @@ class Inspecteur {
 
   // ---------- un calque de couleur ----------
   couleur(k) {
-    const c = this.c;
-    c.innerHTML = `<div class="lt2-titre">Couleur</div>${this.temps(k)}
-      <div class="lt2-slots"><button class="lt2-slot on" data-slot="0" style="background:${k.couleur}"></button></div><div class="lt2-roue-ici"></div>
+    const c = this.c, P = this.m.projet, multi = !!(k.sorte && k.couleurs), cs = multi ? k.couleurs : [k.couleur];
+    if (!multi || this.slot >= cs.length) this.slot = multi ? Math.min(this.slot || 0, cs.length - 1) : 0;
+    const titre = k.sorte === 'degrade' ? 'Dégradé' : k.sorte === 'bi' ? 'Bi-color' : 'Couleur';
+    const aide = k.sorte === 'degrade' ? 'La 1re couleur en haut, la dernière en bas, en passant doucement de l\'une à l\'autre.' : 'La lumière coupée en parts égales : la 1re couleur en haut, la dernière en bas.';
+    c.innerHTML = `<div class="lt2-titre">${titre}</div>${this.temps(k)}
+      ${multi ? `<p class="lt2-vide">${aide}</p>` : ''}
+      <div class="lt2-slots">${cs.map((h, i) => `<button class="lt2-slot${this.slot === i ? ' on' : ''}" data-slot="${i}" style="background:${h}"></button>`).join('')}${multi ? `<button class="lt2-tb" data-c="+" title="Ajouter une couleur">+</button>${cs.length > 2 ? '<button class="lt2-tb" data-c="-" title="Enlever la couleur choisie">−</button>' : ''}` : ''}</div><div class="lt2-roue-ici"></div>
       ${this.zones(k, 'zones', 'Lumières couvertes')}
       <p class="lt2-vide">Coche les lumières que ce calque allume (elles n'ont pas besoin de se toucher). Il passe par-dessus les autres calques.</p>
       ${this.glisseur('force', k.force ?? 1, 0, 1, .01, 'Intensité')}
       <h4>Apparition</h4>${this.glisseur('entree', k.entree || 0, 0, 4, .05, 'Fondu d\'entrée')}${this.glisseur('sortie', k.sortie || 0, 0, 4, .05, 'Fondu de sortie')}`;
-    this.couleursSlots = () => [k.couleur];
-    this.roue(c.querySelector('.lt2-roue-ici'), k.couleur, col => { k.couleur = col; });
+    this.couleursSlots = () => multi ? k.couleurs : [k.couleur];
+    this.roue(c.querySelector('.lt2-roue-ici'), cs[this.slot], col => { if (multi) { k.couleurs[this.slot] = col; k.couleur = k.couleurs[0]; } else k.couleur = col; });
+    if (multi) {
+      c.querySelectorAll('[data-slot]').forEach(b => b.onclick = () => { this.slot = +b.dataset.slot; this.rendre(); });
+      c.querySelectorAll('[data-c]').forEach(b => b.onclick = () => { this.debut(); if (b.dataset.c === '+') { k.couleurs.push(P.palette.find(x => !k.couleurs.includes(x)) || '#ffffff'); this.slot = k.couleurs.length - 1; } else { k.couleurs.splice(this.slot, 1); this.slot = 0; } k.couleur = k.couleurs[0]; this.fin(); this.rendre(); });
+    }
     this.brancher(k, 'zones', true);
   }
 

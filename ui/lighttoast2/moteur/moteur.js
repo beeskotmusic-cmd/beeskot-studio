@@ -24,6 +24,9 @@ const enveloppe = (c, t) => {
   if (c.sortie > 0 && rt < c.sortie) a *= rt / c.sortie;
   return a * (c.force ?? 1);
 };
+// calques à plusieurs couleurs (v = hauteur dans la lumière, 0 en haut, 1 en bas)
+const bandes = (cs, v) => cs[Math.min(cs.length - 1, Math.floor(v * cs.length))];
+const degrade = (cs, v) => { const x = v * (cs.length - 1), i = Math.min(cs.length - 2, Math.floor(x)), f = x - i, a = cs[i], b = cs[i + 1]; return [a[0] + (b[0] - a[0]) * f, a[1] + (b[1] - a[1]) * f, a[2] + (b[2] - a[2]) * f]; };
 const ecran = (o, i, r, g, b) => { o[i] = 1 - (1 - o[i]) * (1 - r); o[i + 1] = 1 - (1 - o[i + 1]) * (1 - g); o[i + 2] = 1 - (1 - o[i + 2]) * (1 - b); };
 
 class Moteur {
@@ -39,7 +42,14 @@ class Moteur {
   // ---- ce qui joue à l'instant t (préparé une fois par image, pas par point) ----
   preparer(t) {
     const P = this.projet, ids = P.materiel.zones.map(z => z.id);
-    const couleurs = P.couleur.clips.filter(c => actif(c, t)).sort((a, b) => a.debut - b.debut).map(c => ({ c, col: rgb(c.couleur), a: enveloppe(c, t) }));
+    const couleurs = P.couleur.clips.filter(c => actif(c, t)).sort((a, b) => a.debut - b.debut).map(c => {
+      const o = { c, col: rgb(c.couleur), a: enveloppe(c, t) }, cs = c.sorte && c.couleurs && c.couleurs.length > 1 ? c.couleurs.map(rgb) : null;
+      if (cs) {
+        if (c.sorte === 'degrade') o.f = v => degrade(cs, v);   // dégradé dans la hauteur
+        else o.f = v => bandes(cs, v);                          // la lumière coupée en parts égales
+      }
+      return o;
+    });
     const effets = [];   // du bas vers le haut
     P.effets.forEach(piste => !piste.muet && piste.clips.forEach(c => {
       if (!actif(c, t)) return; const def = LT.effets[c.effet]; if (!def) return;
@@ -89,7 +99,7 @@ class Moteur {
           px.u = u; px.v = v; px.gx = z.x + u * z.l; px.gy = z.y + v * z.h;
           // 1. la couleur
           let R = 0, V = 0, B = 0;
-          for (const k of cols) { R += (k.col[0] - R) * k.a; V += (k.col[1] - V) * k.a; B += (k.col[2] - B) * k.a; }
+          for (const k of cols) { const q = k.f ? k.f(v) : k.col; R += (q[0] - R) * k.a; V += (q[1] - V) * k.a; B += (q[2] - B) * k.a; }
           R *= S.lum; V *= S.lum; B *= S.lum;
           // 2. les effets, du bas vers le haut
           for (const f of eff) {
