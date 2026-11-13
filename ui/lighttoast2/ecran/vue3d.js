@@ -100,7 +100,7 @@ class Vue3D {
 
   // ---------- caméra ----------
   vue(nom) { const [p, c] = VUES[nom] || VUES.camera; this.cible = new this.T.Vector3(...c); const d = new this.T.Vector3(...p).sub(this.cible); this.rayon = d.length(); this.phi = Math.acos(d.y / this.rayon); this.theta = Math.atan2(d.x, d.z); this.placer(); }
-  placer() { const s = Math.sin(this.phi); this.cam.position.set(this.cible.x + this.rayon * s * Math.sin(this.theta), this.cible.y + this.rayon * Math.cos(this.phi), this.cible.z + this.rayon * s * Math.cos(this.theta)); this.cam.lookAt(this.cible); }
+  placer() { const s = Math.sin(this.phi); this.cam.position.set(this.cible.x + this.rayon * s * Math.sin(this.theta), this.cible.y + this.rayon * Math.cos(this.phi), this.cible.z + this.rayon * s * Math.cos(this.theta)); if (this.cam.position.y < .12) this.cam.position.y = .12; this.cam.lookAt(this.cible); }   // contre-plongée permise, mais jamais sous le sol
   souris() {
     const el = this.r.domElement; el.style.touchAction = 'none'; el.style.cursor = 'grab';
     el.addEventListener('mousedown', e => { if (e.button === 1) e.preventDefault(); });   // pas de défilement auto du clic du milieu
@@ -114,7 +114,7 @@ class Vue3D {
         };
         el.onpointerup = () => { el.onpointermove = null; }; return;
       }
-      el.onpointermove = ev => { this.theta -= (ev.clientX - x) * .006; this.phi = Math.max(.05, Math.min(1.55, this.phi - (ev.clientY - y) * .006)); x = ev.clientX; y = ev.clientY; this.placer(); this.rendre(); };
+      el.onpointermove = ev => { this.theta -= (ev.clientX - x) * .006; this.phi = Math.max(.05, Math.min(2.6, this.phi - (ev.clientY - y) * .006)); x = ev.clientX; y = ev.clientY; this.placer(); this.rendre(); };
       el.onpointerup = () => { el.onpointermove = null; };
     });
     el.addEventListener('wheel', e => { e.preventDefault(); this.rayon = Math.max(.6, Math.min(12, this.rayon * (e.deltaY > 0 ? 1.1 : .9))); this.placer(); this.rendre(); }, { passive: false });

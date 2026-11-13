@@ -3,6 +3,9 @@
 // Pour une nouvelle version : ajouter un bloc EN HAUT de la liste. Une ligne courte par point : « Onglet : ce qui change. »
 // =====================================================================
 BK.NOUVEAUTES = [
+  { v: '0.9.150', titre: 'TOAST2 : caméra en contre-plongée', l: [
+    ['🎥', 'TOAST2 › Studio 3D : la caméra peut maintenant passer en contre-plongée (regarder d\'en bas), sans jamais descendre sous le sol.'],
+  ] },
   { v: '0.9.149', titre: 'TOAST2 : palette façon Adobe Color, menus pliables, montage comme Premiere', l: [
     ['🎨', 'TOAST2 › Inspecteur : la palette du morceau remplace l\'ancienne roue. La 1re couleur (plus grosse) est la principale. Clic = choisir. Double-clic = une roue façon Adobe Color : un point par couleur, et les règles Analogue, Monochrome, Triade, Complémentaire, Composée, Carré ou Libre.'],
     ['📂', 'TOAST2 : tous les menus de l\'Inspecteur et de la Bibliothèque se plient / déplient. Tout est plié à l\'ouverture de TOAST2.'],
