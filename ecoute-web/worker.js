@@ -240,7 +240,7 @@ const VOIR_JS = `(() => {
   const estImg = u => /\\/t\\/[^/]+\\/i\\/\\d+$/.test(u);
   const toutes = () => { const vus = []; document.querySelectorAll('img[src*="/i/"], [style*="/i/"]').forEach(e => { const u = urlDe(e); if (estImg(u) && !vus.includes(u)) vus.push(u); }); return vus; };
   document.querySelectorAll('img[src*="/i/"], [style*="/i/"]').forEach(e => { if (estImg(urlDe(e))) e.style.cursor = 'zoom-in'; });
-  document.addEventListener('click', ev => { const e = ev.target.closest('img[src*="/i/"], [style*="/i/"]'); if (!e) return; const u = urlDe(e); if (!estImg(u)) return;
+  document.addEventListener('click', ev => { const e = ev.target.closest('img[src*="/i/"], [style*="/i/"]'); if (!e || e.closest('.to-affiche')) return; const u = urlDe(e); if (!estImg(u)) return;
     ev.preventDefault(); const l = toutes(); voir(l, Math.max(0, l.indexOf(u))); });
   function voir(liste, k) {
     const v = document.createElement('div'); v.className = 'tw-voir';
@@ -277,7 +277,7 @@ const VOIR_JS = `(() => {
 // pour que la page défile normalement dans un navigateur (dans le logiciel, tout tient dans la fenêtre)
 const CSS_T = `
 html,html.tel{height:auto!important;overflow:auto!important}
-html body.tw-page{height:auto!important;max-height:none!important;min-height:100%;overflow:visible!important;display:block!important;position:static!important}
+html body.tw-page{height:auto!important;max-height:none!important;min-height:100vh!important;min-height:100dvh!important;overflow:visible!important;display:block!important;position:static!important}
 html body.tw-page .tw-ch{display:block!important;width:auto!important;max-width:100%!important;min-width:0!important;height:auto!important;max-height:none!important;min-height:0!important;overflow:visible!important;position:static!important;margin:0!important;flex:none!important;grid-template-columns:none!important;transform:none!important;inset:auto!important}
 html body.tw-page .tw-ch:not(.pane){padding:0!important;border:0!important;background:none!important;box-shadow:none!important}
 .tw-page .tw-cadre{max-width:1180px;margin:0 auto;padding:14px 14px 30px}
