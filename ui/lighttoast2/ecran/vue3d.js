@@ -153,7 +153,7 @@ class Vue3D {
     this.pasImage = 1000 / (low ? 20 : high ? 60 : 30);   // images par seconde de la 3D
     for (const L of Object.values(this.S.lampes || {})) if (L.lumiere) ombre(L.lumiere, high);
     // low : matières simples (beaucoup moins de calcul par lumière) ; mid / high : les vraies matières
-    const simple = m => { if (!m.isMeshStandardMaterial) return m; if (!m.userData.simple) { const l = new T.MeshLambertMaterial({ color: m.color, map: m.map, emissive: m.emissive, emissiveMap: m.emissiveMap, side: m.side, transparent: m.transparent, opacity: m.opacity, alphaTest: m.alphaTest }); l.userData.vrai = m; m.userData.simple = l; } return m.userData.simple; };
+    const simple = m => { if (!m.isMeshStandardMaterial) return m; if (!m.userData.simple) { const l = new T.MeshLambertMaterial({ color: m.color, map: m.map, vertexColors: m.vertexColors, emissive: m.emissive, emissiveMap: m.emissiveMap, side: m.side, transparent: m.transparent, opacity: m.opacity, alphaTest: m.alphaTest }); l.userData.vrai = m; m.userData.simple = l; } return m.userData.simple; };
     const vrai = m => m.userData.vrai || m;
     this.scene.traverse(x => { if (!x.isMesh || !x.material) return; const f = low ? simple : vrai; x.material = Array.isArray(x.material) ? x.material.map(f) : f(x.material);
       (Array.isArray(x.material) ? x.material : [x.material]).forEach(m => { m.needsUpdate = true; }); });
@@ -325,12 +325,34 @@ class Vue3D {
     this.ombrer(); this.rendre();
   }
   // met le modèle à la bonne taille, les pieds au sol, centré sur la place de la pièce
+  // recolorer un modèle : « matieres » { nom de matière: couleur } ; « sombre » = les parties noires de sa texture prennent cette couleur
+  teindre(m, o) {
+    if (!o.matieres && !o.sombre) return; const T = this.T, fait = new Set();
+    m.traverse(x => { if (!x.isMesh) return; (Array.isArray(x.material) ? x.material : [x.material]).forEach(mat => {
+      if (!mat || fait.has(mat)) return; fait.add(mat);
+      const mm = o.matieres && o.matieres[mat.name];
+      if (mm && mat.color) {
+        if (typeof mm === 'string') mat.color.set(mm);
+        else {   // { couleur, sousY } : seulement la partie basse de la pièce (le corps de la guitare, pas la tête), par couleur de sommet
+          const g = x.geometry, pos = g.attributes.position, c = new T.Color(mm.couleur), b0 = mat.color.clone(), col = new Float32Array(pos.count * 3);
+          for (let i = 0; i < pos.count; i++) { const q = pos.getY(i) < mm.sousY ? c : b0; col[i * 3] = q.r; col[i * 3 + 1] = q.g; col[i * 3 + 2] = q.b; }
+          g.setAttribute('color', new T.BufferAttribute(col, 3)); mat.vertexColors = true; mat.color.set('#ffffff'); mat.needsUpdate = true;
+        }
+      }
+      const img = o.sombre && mat.map && mat.map.image; if (!img || !img.width) return;
+      const cv = document.createElement('canvas'); cv.width = img.width; cv.height = img.height; const cx = cv.getContext('2d'); cx.drawImage(img, 0, 0);
+      const d = cx.getImageData(0, 0, cv.width, cv.height), p = d.data, c = new T.Color(o.sombre), R = c.r * 255, G = c.g * 255, B = c.b * 255;
+      for (let i = 0; i < p.length; i += 4) { const l = (p[i] * .3 + p[i + 1] * .59 + p[i + 2] * .11) / 255; if (l < .16) { const k = Math.min(1.15, .95 + l * 1.5); p[i] = R * k; p[i + 1] = G * k; p[i + 2] = B * k; } }   // le noir devient la couleur (en gardant un peu de relief)
+      cx.putImageData(d, 0, 0); const t = new T.CanvasTexture(cv); t.flipY = mat.map.flipY; t.colorSpace = mat.map.colorSpace; t.wrapS = mat.map.wrapS; t.wrapT = mat.map.wrapT; mat.map = t; if ('metalness' in mat) { mat.metalnessMap = null; mat.metalness = .05; mat.roughness = Math.min(mat.roughness ?? .5, .45); } mat.needsUpdate = true;   // sans reflets du métal (sinon, sans environnement, la couleur reste noire)
+    }); });
+  }
   poserModele(p, gltf, o) {
     const T = this.T, m = gltf.scene, boite = new T.Group();
     if (gltf.animations && gltf.animations.length) { const mx = new T.AnimationMixer(m); mx.clipAction(gltf.animations[o.animation | 0] || gltf.animations[0]).play(); mx.setTime(o.temps || 0); }
     if (o.rotX || o.rotZ) { const q = new T.Group(); q.add(...m.children.slice()); m.add(q); q.rotation.set((o.rotX || 0) * Math.PI / 180, 0, (o.rotZ || 0) * Math.PI / 180); }   // remettre debout un modèle couché
     m.updateMatrixWorld(true);
     m.traverse(x => { if (x.isMesh) { x.castShadow = x.receiveShadow = true; } });
+    this.teindre(m, o);
     const b = new T.Box3().setFromObject(m, true), t = b.getSize(new T.Vector3()), k = ((o.largeur || p.l) ? (o.largeur || p.l) / (t.x || 1) : (o.hauteur || p.h) / (t.y || 1)) * (o.echelle || 1);   // objet plat (tapis) : mis à sa largeur
     m.position.x -= (b.min.x + b.max.x) / 2; m.position.z -= (b.min.z + b.max.z) / 2; m.position.y -= o.pendu ? b.max.y : b.min.y;   // pendu : accroché par le haut (suspension au plafond)
     boite.add(m); boite.scale.setScalar(k); boite.rotation.y = (o.rotY || 0) * Math.PI / 180; if (p.socle) boite.position.set(o.dx || 0, o.dy || 0, o.dz || 0); else boite.position.set(p.x + (o.dx || 0), (p.y || 0) + (o.dy || 0), p.z + (o.dz || 0));

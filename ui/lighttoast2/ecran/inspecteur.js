@@ -35,7 +35,16 @@ class Inspecteur {
   valTexte(k, v) { return ['ed', 'fd', 'ecart'].includes(k) ? v + ' ms' : BORNES[k] ? v : k === 'entree' || k === 'sortie' ? v.toFixed(2) + ' s' : Math.round(v * 100) + ' %'; }
   glisseur(k, v, min = 0, max = 1, pas = .01, nom) { return `<label class="lt2-reg">${nom || NOM[k] || k} <b>${this.valTexte(k, v)}</b><input type="range" min="${min}" max="${max}" step="${pas}" data-k="${k}" value="${v}"></label>`; }
 
-  rendre() {
+  // chaque partie (titre en h4) devient un menu pliable ; tout est plié à l'ouverture de TOAST2 (on se souvient pendant la séance)
+  rendre() { this._rendre(); this.plier(); }
+  plier() {
+    const c = this.c, ouv = this.ouv = this.ouv || {}; let d = null;
+    for (const el of [...c.children]) {
+      if (el.tagName === 'H4') { const t = el.textContent.trim(); d = document.createElement('details'); d.className = 'lt2-ip'; d.open = !!ouv[t]; d.innerHTML = `<summary>${t.replace(/</g, '&lt;')}</summary>`; el.replaceWith(d); d.ontoggle = () => { ouv[t] = d.open; }; continue; }
+      if (d) d.appendChild(el);
+    }
+  }
+  _rendre() {
     const m = this.m, ch = m.clipsChoisis(), c = this.c; this.ed = false;
     if (ch.length) m.stemChoisi = null;
     const st = !ch.length && m.projet.stems.find(x => x.id === m.stemChoisi);
@@ -88,14 +97,13 @@ class Inspecteur {
     });
   }
   // la roue, branchée sur une couleur
-  roue(place, hex, poser) {
-    const P = this.m.projet;
-    return LT.roue(place, hex, {
-      palette: P.palette,
-      quand: (c, fini) => { this.pendant(() => poser(c)); if (fini) { this.fin(); this.majPastilles(); } },
-      ajouterPalette: c => { if (!P.palette.includes(c)) { this.debut(); P.palette.push(c); this.fin(); this.rendre(); this.m.biblio(); } },
-    });
+  roue(place, hex, poser) {   // la palette du morceau : clic = choisir ; double-clic = la roue façon Adobe Color (modifie la palette)
+    const m = this.m;
+    return LT.choixPalette(place, hex, { palette: m.projet.palette,
+      choisir: poser ? c => { this.debut(); poser(c); this.fin(); this.majPastilles(); } : null,
+      modifier: fini => { if (!this._edPal) { m.memoriser(); this._edPal = true; } m.rafraichir(); this.majPastilles(); if (fini) { this._edPal = false; m.change(false, true); m.biblio(); } } });
   }
+
   majPastilles() { this.c.querySelectorAll('[data-slot]').forEach(b => { const k = this.couleursSlots; if (k) b.style.background = k()[+b.dataset.slot]; }); }
 
   // ---------- un calque de couleur ----------
@@ -106,7 +114,7 @@ class Inspecteur {
     const aide = k.sorte === 'degrade' ? 'La 1re couleur en haut, la dernière en bas, en passant doucement de l\'une à l\'autre.' : 'La lumière coupée en parts égales : la 1re couleur en haut, la dernière en bas.';
     c.innerHTML = `<div class="lt2-titre">${titre}</div>${this.temps(k)}
       ${multi ? `<p class="lt2-vide">${aide}</p>` : ''}
-      <div class="lt2-slots">${cs.map((h, i) => `<button class="lt2-slot${this.slot === i ? ' on' : ''}" data-slot="${i}" style="background:${h}"></button>`).join('')}${multi ? `<button class="lt2-tb" data-c="+" title="Ajouter une couleur">+</button>${cs.length > 2 ? '<button class="lt2-tb" data-c="-" title="Enlever la couleur choisie">−</button>' : ''}` : ''}</div><div class="lt2-roue-ici"></div>
+      ${multi ? `<div class="lt2-slots">${cs.map((h, i) => `<button class="lt2-slot${this.slot === i ? ' on' : ''}" data-slot="${i}" style="background:${h}"></button>`).join('')}${multi ? `<button class="lt2-tb" data-c="+" title="Ajouter une couleur">+</button>${cs.length > 2 ? '<button class="lt2-tb" data-c="-" title="Enlever la couleur choisie">−</button>' : ''}` : ''}</div>` : ''}<div class="lt2-roue-ici"></div>
       ${this.zones(k, 'zones', 'Lumières couvertes')}
       <p class="lt2-vide">Coche les lumières que ce calque allume (elles n'ont pas besoin de se toucher). Il passe par-dessus les autres calques.</p>
       ${this.reagirHTML(k, 'volume')}
@@ -255,8 +263,7 @@ class Inspecteur {
       <label class="lt2-reg">Nom<input type="text" data-k="nom" value="${esc(P.nom)}"></label>
       <div class="lt2-reg">Tempo (BPM)<div class="lt2-rang"><input type="number" min="30" max="300" step="0.1" data-k="bpm" value="${P.bpm}"><button class="lt2-tb" data-tap title="Tape en rythme (4 fois ou plus)">Taper</button></div></div>
       <label class="lt2-reg">Premier temps à (s)<input type="number" step="0.01" min="0" data-k="grille" value="${P.grille || 0}" title="Cale la grille des temps sur le 1er temps du morceau"></label>
-      <h4>Palette du morceau</h4><div class="lt2-slots">${P.palette.map((h, i) => `<button class="lt2-slot${this.slot === i ? ' on' : ''}" data-slot="${i}" style="background:${h}"></button>`).join('')}<button class="lt2-tb" data-pal="+" title="Ajouter une couleur">+</button>${P.palette.length > 1 ? '<button class="lt2-tb" data-pal="-" title="Retirer la couleur choisie">−</button>' : ''}</div>
-      <div class="lt2-roue-ici"></div>
+      <h4>Palette du morceau</h4><p class="lt2-vide">Double-clic sur une couleur (ou ◐) : la roue pour changer la palette. La 1re est la principale.</p><div class="lt2-roue-ici"></div>
       <h4>Décompte avant le début</h4>
       <label class="lt2-reg lt2-coche"><input type="checkbox" data-d="actif"${d.actif ? ' checked' : ''}> Ajouter un décompte</label>
       <div class="lt2-dc${d.actif ? '' : ' lt2-off'}">
@@ -266,10 +273,8 @@ class Inspecteur {
         <label class="lt2-reg lt2-coche"><input type="checkbox" data-d="son"${d.son ? ' checked' : ''}> Le clic dans la vidéo exportée</label>
         <p class="lt2-vide">Juste avant le début (du morceau, ou du passage choisi). Le dernier coup est noir : c'est le signal.</p>
       </div>`;
-    this.couleursSlots = () => P.palette;
-    this.roue(c.querySelector('.lt2-roue-ici'), P.palette[this.slot], col => { P.palette[this.slot] = col; });
-    c.querySelectorAll('[data-slot]').forEach(b => b.onclick = () => { this.slot = +b.dataset.slot; this.rendre(); });
-    c.querySelectorAll('[data-pal]').forEach(b => b.onclick = () => { this.debut(); if (b.dataset.pal === '+') { P.palette.push(P.palette[this.slot] || '#ffffff'); this.slot = P.palette.length - 1; } else { P.palette.splice(this.slot, 1); this.slot = 0; } this.fin(); this.rendre(); this.m.biblio(); });
+    this.couleursSlots = null;
+    this.roue(c.querySelector('.lt2-roue-ici'), null, null);
     c.querySelectorAll('[data-k]').forEach(el => this.lier(el, P, el.dataset.k));
     c.querySelectorAll('[data-d]').forEach(el => { this.lier(el, d, el.dataset.d); if (el.dataset.d === 'actif') el.addEventListener('change', () => { this.m.tl.toutVoir(); this.rendre(); }); });
     const coups = c.querySelector('input[data-d="coups"]'); coups.addEventListener('input', () => { coups.parentElement.querySelector('b').textContent = coups.value; });

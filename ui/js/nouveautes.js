@@ -3,6 +3,16 @@
 // Pour une nouvelle version : ajouter un bloc EN HAUT de la liste. Une ligne courte par point : « Onglet : ce qui change. »
 // =====================================================================
 BK.NOUVEAUTES = [
+  { v: '0.9.149', titre: 'TOAST2 : palette façon Adobe Color, menus pliables, montage comme Premiere', l: [
+    ['🎨', 'TOAST2 › Inspecteur : la palette du morceau remplace l\'ancienne roue. La 1re couleur (plus grosse) est la principale. Clic = choisir. Double-clic = une roue façon Adobe Color : un point par couleur, et les règles Analogue, Monochrome, Triade, Complémentaire, Composée, Carré ou Libre.'],
+    ['📂', 'TOAST2 : tous les menus de l\'Inspecteur et de la Bibliothèque se plient / déplient. Tout est plié à l\'ouverture de TOAST2.'],
+    ['✂', 'TOAST2 : un seul tube choisi se bouge ou se raccourcit sans toucher les autres tubes de la même couleur. Plusieurs clips choisis : tirer un bord les allonge tous d\'autant, comme Premiere.'],
+    ['🌗', 'TOAST2 : transitions sur les effets et fonds = leur fondu d\'entrée / de sortie (glisser « Fondu » sur le bord, ou clic droit). On tire le petit bloc pour changer sa durée.'],
+    ['⌫', 'TOAST2 : Suppr / Retour arrière efface le point clé choisi. Clic droit sur la règle (la tête de lecture) = ajouter un marqueur. La tête de lecture et sa ligne sont de nouveau alignées.'],
+    ['💾', 'TOAST2 : un projet n\'est gardé que si on appuie sur « Enregistrer ». En rouvrant TOAST2, on retrouve le dernier projet enregistré (ou ouvert). Avant de quitter un projet modifié, TOAST2 demande.'],
+    ['🎵', 'TOAST2 : changer la musique pour un AUTRE morceau crée un nouveau projet (au lieu d\'écraser le projet en cours). Pour le même morceau (nouveau mix), elle est remplacée et calée ; si TOAST2 ne sait pas, il demande. Le message « calée de … s » s\'affiche maintenant.'],
+    ['🎸', 'TOAST2 › Studio 3D : l\'Explorer (jaune) est dans les mains du guitariste. « Lumières » s\'appelle « Globe light » et se ferme quand on clique ailleurs. Le plein écran est en haut à droite ; « Éditer 3D » n\'apparaît qu\'en plein écran.'],
+  ] },
   { v: '0.9.148', titre: '', l: [
     ['🔗', 'Lien cameraman : se remet à jour aussi quand on ouvre Tournages et quand un morceau change (son ★), pas seulement quand on modifie un tournage. La page web : titre centré, tout replié au départ.'],
   ] },

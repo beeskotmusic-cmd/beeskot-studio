@@ -157,7 +157,7 @@ function brancher() {
 BK.module('lighttoast', function (page) {
   $('.sub', page).textContent = 'Musique → vidéo pour les tubes LED : pistes, effets, vue 3D du studio';
   $('.hdr .right', page).innerHTML = `<div class="t2-barre"><span class="t2-nom">Nouveau projet</span>
-    <button class="btn xs" data-t2="nouveau">Nouveau</button><button class="btn xs" data-t2="ouvrir">Ouvrir…</button><button class="btn xs" data-t2="enregistrer">Enregistrer</button><button class="btn xs" data-t2="exporter" title="Fabriquer la vidéo .mp4 pour les lumières">Exporter</button><button class="btn xs" data-t2="editer3d" title="Provisoire : déplacer les objets et les membres du Studio 3D, caler les instruments. « Copier le placement » puis colle-le à Claude.">Éditer 3D</button><span class="t2-etat"></span></div>`;
+    <button class="btn xs" data-t2="nouveau">Nouveau</button><button class="btn xs" data-t2="ouvrir">Ouvrir…</button><button class="btn xs" data-t2="enregistrer">Enregistrer</button><button class="btn xs" data-t2="exporter" title="Fabriquer la vidéo .mp4 pour les lumières">Exporter</button><span class="t2-etat"></span></div>`;
   const g = $('.grid', page); g.classList.add('lt-grid'); g.innerHTML = '<div class="t2-zone"><p class="lt2-vide" style="padding:16px">Chargement de TOAST2…</p></div>';
   let M = null, fichierId = null, pret = null, minuteur = null, exportEnCours = null;
   const etat = t => { $('.t2-etat', page).textContent = t || ''; }; BK.toast.msg = etat;
@@ -177,9 +177,11 @@ BK.module('lighttoast', function (page) {
     M.remplacer(JSON.stringify(r.projet)); fichierId = null; majNom();
     if (buf) { await M.poserMusique(octets, buf); M.tl.toutVoir(); }
     if (octets && BK.drive.relie()) try { etat('Musique → Drive…'); M.projet.musique.version = 'drive:' + await BK.toast.ecrire('Musiques', o.audioName || (r.projet.nom + '.wav'), new Blob([octets])); } catch (e) { }
-    secours(); etat(r.notes.length ? 'Converti. À vérifier : ' + r.notes.join(' · ') : 'Ancien projet converti (pense à Enregistrer)');
+    secours(); M.modifie = true; etat(r.notes.length ? 'Converti. À vérifier : ' + r.notes.join(' · ') : 'Ancien projet converti (pense à Enregistrer)');
   };
-  const ouvrirProjet = async (json, id) => { M.remplacer(typeof json === 'string' ? json : JSON.stringify(json)); fichierId = id || null; majNom(); await remettreMusique(); };
+  const ouvrirProjet = async (json, id) => { M.remplacer(typeof json === 'string' ? json : JSON.stringify(json)); fichierId = id || null; majNom(); await remettreMusique(); secours(); M.modifie = false; etat(''); };
+  // avant de quitter le projet en cours : s'il a des changements pas enregistrés, on demande
+  const quitterOk = async () => !M.modifie || await BK.confirmer('Le projet « ' + nomProjet() + ' » a des changements pas enregistrés. Les perdre ?');
 
   const demarrer = async () => {
     if (!document.querySelector('link[href="lighttoast2/lt2.css"]')) { const l = document.createElement('link'); l.rel = 'stylesheet'; l.href = 'lighttoast2/lt2.css'; document.head.appendChild(l); }
@@ -193,30 +195,37 @@ BK.module('lighttoast', function (page) {
     // la liste des morceaux dans la Bibliothèque : un clic = un nouveau projet avec sa version principale
     M.surMorceau = async id => {
       const m = (M.morceaux || []).find(x => x.id === id); if (!m) return;
-      if (M.projet.musique && !await BK.confirmer('Nouveau projet avec « ' + m.nom + ' » ? Pense à enregistrer celui-ci avant.')) return;
+      if (!await quitterOk()) return;
       try {
         etat('Recherche de « ' + m.nom + ' »…'); const v = (await BK.toast.versions(id))[0]; if (!v) { etat('Aucun son pour ce morceau'); return; }
         await ouvrirProjet(LT.projet.nouveau(m.nom)); etat('Téléchargement…');
-        await M.chargerMusique({ nom: m.nom, octets: await BK.toast.lireVersion(v.v), morceau: id, version: v.v }); M.projet.nom = m.nom; majNom(); etat('');
+        await M.chargerMusique({ nom: m.nom, octets: await BK.toast.lireVersion(v.v), morceau: id, version: v.v }); M.projet.nom = m.nom; majNom(); M.modifie = false; secours(); etat('');
       } catch (e) { etat('Impossible : ' + (e.message || e)); }
     };
     BK.toast.morceaux().then(l => { M.morceaux = l; M.biblio(); }).catch(() => {});
-    const change0 = M.change.bind(M); M.change = (...a) => { change0(...a); clearTimeout(minuteur); minuteur = setTimeout(() => { secours(); majNom(); }, 800); etat('Pas enregistré'); };
+    // rien n'est gardé tant qu'on n'appuie pas sur « Enregistrer » (à la réouverture : le dernier projet enregistré / ouvert)
+    const change0 = M.change.bind(M); M.change = (...a) => { change0(...a); clearTimeout(minuteur); minuteur = setTimeout(majNom, 300); M.modifie = true; etat('Pas enregistré'); };
+    // changer la musique : le même morceau (nouveau mix) = on la remplace et on la cale ; un AUTRE morceau = un nouveau projet
+    const idDe = (mu, ms) => mu && (mu.morceau || ((mu.nom && BK.inv && BK.inv.trouverMorceau ? BK.inv.trouverMorceau(String(mu.nom).replace(/^\d+[_\s.-]*/, '').replace(/_/g, ' '), ms) : null) || {}).id);
+    M.avantMusique = async choix => {
+      const mu = M.projet.musique; if (!mu) { if (!M.projet.nom || /^(sans titre|projet)$/i.test(M.projet.nom)) { M.projet.nom = String(choix.nom || 'Projet').replace(/\.[^.]+$/, ''); majNom(); } return true; }   // pas encore de musique : on la pose (le projet prend son nom)
+      const ms = M.morceaux || [], a = idDe(mu, ms), b = idDe(choix, ms);
+      let autre = a && b ? a !== b : null;
+      if (autre == null) autre = !(await fenetre(`<b>Changer la musique</b><p>« ${esc(choix.nom)} » est-il une nouvelle version de « ${esc(mu.nom)} » ?</p><div class="t2-fen-b"><button class="lt2-pri" data-o>Oui : remplacer et caler</button><button data-n>Non : un nouveau projet</button></div>`,
+        ($f, fin) => { $f('[data-o]').onclick = () => fin(true); $f('[data-n]').onclick = () => fin(false); }));
+      if (!autre) return true;
+      if (!await quitterOk()) return false;
+      await ouvrirProjet(LT.projet.nouveau(String(choix.nom || 'Projet').replace(/\.[^.]+$/, ''))); return true;   // nouveau projet, puis la musique s'y pose
+    };
   };
   $('.hdr .right', page).addEventListener('click', async e => {
     const b = e.target.closest('[data-t2]'); if (!b || !M) return; const a = b.dataset.t2;
-    if (a === 'editer3d') {   // PROVISOIRE : l'outil de placement de la page « Placer le studio », dans TOAST2
-      LT.modeReglage = true; M.modeMoniteur('3d'); const v = M.vue3d; if (!v || !LT.Placer) return; await v.pret;
-      if (!M._essai3d) { M._essai3d = true; const e = LT.placementEssai(); if (e) { v.placement = Object.assign({}, LT.studio.mesures().placement, e); v.appliquer(); } M.panneauRoles(); }
-      if (!M.placer) { M.placer = new LT.Placer(v, M.r.querySelector('.lt2-placer')); M.placer.onFin = () => { M.placer.activer(false); b.classList.remove('on'); }; }
-      const oui = !M.placer.actif; M.placer.activer(oui); b.classList.toggle('on', oui); return;
-    }
-    if (a === 'nouveau') { if (!await BK.confirmer('Nouveau projet ? Pense à enregistrer celui-ci avant.')) return; await ouvrirProjet(LT.projet.nouveau()); etat(''); }
+    if (a === 'nouveau') { if (!await quitterOk()) return; await ouvrirProjet(LT.projet.nouveau()); etat(''); }
     if (a === 'enregistrer') {
       const nom = await fenetre(`<b>Enregistrer dans le Drive</b><label>Nom du projet <input type="text" data-nom value="${esc(nomProjet())}"></label><div class="t2-fen-b"><button class="lt2-pri" data-ok>Enregistrer</button><button data-non>Annuler</button></div>`,
         ($f, fin) => { const i = $f('[data-nom]'); i.focus(); i.select(); $f('[data-ok]').onclick = () => fin(i.value.trim() || null); $f('[data-non]').onclick = () => fin(null); i.onkeydown = e => { e.stopPropagation(); if (e.key === 'Enter') fin(i.value.trim() || null); }; });
       if (!nom) return; M.projet.nom = nom; majNom();
-      try { etat('Enregistrement…'); fichierId = await BK.toast.ecrire('TOAST2', nom.replace(/[\\/:*?"<>|]/g, '-') + '.json', new Blob([JSON.stringify(M.projet)], { type: 'application/json' }), fichierId); secours(); etat('Enregistré dans le Drive'); }
+      try { etat('Enregistrement…'); fichierId = await BK.toast.ecrire('TOAST2', nom.replace(/[\\/:*?"<>|]/g, '-') + '.json', new Blob([JSON.stringify(M.projet)], { type: 'application/json' }), fichierId); secours(); M.modifie = false; etat('Enregistré dans le Drive'); }
       catch (err) { etat('Pas enregistré : ' + (err.message || err)); }
     }
     if (a === 'exporter') {

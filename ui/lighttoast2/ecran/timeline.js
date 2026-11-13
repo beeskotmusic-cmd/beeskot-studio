@@ -118,6 +118,7 @@ class Timeline {
     for (const [cv, h] of [[this.cv, H], [this.cvR, REGLE]]) {
       if (cv.width !== Math.round(W * dpr) || cv.height !== Math.round(h * dpr)) { cv.width = Math.round(W * dpr); cv.height = Math.round(h * dpr); cv.style.height = h + 'px'; }
     }
+    if (this.cvR.style.width !== W + 'px') this.cvR.style.width = W + 'px';   // la règle exactement aussi large que les pistes (sinon, avec la barre de défilement, la tête et sa ligne se décalent)
     const m = this.m, sel = m.selection, c = this.cv.getContext('2d');
     c.setTransform(dpr, 0, 0, dpr, 0, 0); c.clearRect(0, 0, W, H);
     // grille : les temps (battements si le tempo est connu)
@@ -233,9 +234,10 @@ class Timeline {
     c.fillStyle = def.sorte === 'overlay' ? COUL.overlay : COUL.effet; c.fillRect(x1, y, w, h);
     if (k.mode === 'lumiere' && def.sorte !== 'overlay') { c.fillStyle = k.couleur || '#fff'; c.fillRect(x1, y + h - 4, w, 4); }
     // fondus d'entrée / sortie
-    c.fillStyle = 'rgba(0,0,0,.45)';
-    if (k.entree > 0) { c.beginPath(); c.moveTo(x1, y); c.lineTo(x1 + k.entree * this.pps, y); c.lineTo(x1, y + h); c.fill(); }
-    if (k.sortie > 0) { c.beginPath(); c.moveTo(x2, y); c.lineTo(x2 - k.sortie * this.pps, y); c.lineTo(x2, y + h); c.fill(); }
+    // les fondus = des petites « transitions » posées sur les bords (on les tire pour changer leur durée)
+    const fondu = (a, b, monte) => { const fw = b - a; if (fw < 2) return; c.fillStyle = 'rgba(16,12,34,.7)'; c.fillRect(a, y, fw, h); c.strokeStyle = 'rgba(166,240,230,.6)'; c.lineWidth = 1.5; c.beginPath(); monte ? (c.moveTo(a, y + h), c.lineTo(b, y)) : (c.moveTo(a, y), c.lineTo(b, y + h)); c.stroke(); c.strokeStyle = 'rgba(166,240,230,.45)'; c.lineWidth = 1; c.strokeRect(a + .5, y + .5, fw - 1, h - 1); };
+    if (k.entree > 0) fondu(x1, x1 + k.entree * this.pps, true);
+    if (k.sortie > 0) fondu(x2 - k.sortie * this.pps, x2, false);
     if (w > 30 && h > 14) {
       const Z = this.m.projet.materiel.zones, qui = !k.zones ? 'tout' : k.zones.map(i => { const n = Z.findIndex(z => z.id === i); return Z[n] && Z[n].forme === 'rect' ? 'R' : n + 1; }).join('·');
       c.fillStyle = '#f4f1ea'; c.font = '600 11px "Work Sans"'; c.fillText(def.nom || '?', Math.max(x1, 0) + 6, y + h / 2 + 4);
@@ -264,6 +266,7 @@ class Timeline {
       if (k) {
         const z = zonesDe(), toutes = ids.every(i => z.includes(i));
         el.innerHTML = transMenu + (aZones ? `<h5>Lumières</h5>${Z.map(q => `<label><input type="checkbox" data-mz="${q.id}"${z.includes(q.id) ? ' checked' : ''}> ${q.nom}</label>`).join('')}<label><input type="checkbox" data-mz="*"${toutes ? ' checked' : ''}> Toutes</label><hr>` : '')
+          + (p.sorte === 'effets' ? `<button data-fondu="in">${k.entree > 0 ? 'Enlever le fondu d\'entrée' : 'Ajouter un fondu d\'entrée'}</button><button data-fondu="out">${k.sortie > 0 ? 'Enlever le fondu de sortie' : 'Ajouter un fondu de sortie'}</button><hr>` : '')
           + (k.debut != null ? `${k.trans ? '' : '<button data-mc="couper">Couper ici</button>'}<button data-mc="dupliquer">Dupliquer</button>` : '') + `<button data-mc="supprimer">Supprimer</button>`;
       } else {
         el.innerHTML = transMenu + '<h5>Ajouter ici</h5>' + (p.sorte === 'couleur' ? '<button data-ajout="calque:">Calque de couleur</button><button data-ajout="calque:bi">Bi-color</button><button data-ajout="calque:degrade">Dégradé</button>' + sousEffets
@@ -296,6 +299,7 @@ class Timeline {
           m.choisir(n);
         }
       });
+      el.querySelectorAll('[data-fondu]').forEach(b => b.onclick = () => { this.fermerMenu(); const cle = b.dataset.fondu === 'in' ? 'entree' : 'sortie', d = Math.min((k.fin - k.debut) / 2, Math.max(.5, 60 / (P.bpm || 120))); m.modifier(() => { k[cle] = k[cle] > 0 ? 0 : d; }); });
       el.querySelectorAll('[data-trans]').forEach(b => b.onclick = () => { this.fermerMenu(); m.ajouterTransition(b.dataset.trans, tc, p.zone.id); });
       el.querySelectorAll('[data-ajout]').forEach(b => b.onclick = () => { this.fermerMenu(); m.deposer(b.dataset.ajout, { t, p, k: null }); });
       const nv = el.querySelector('[data-nouveau]'); if (nv) nv.onclick = () => { this.fermerMenu(); m.nouveauClip(p, t); };
@@ -408,6 +412,8 @@ class Timeline {
       if (p.sorte === 'peches') k = [...l].reverse().find(q => Math.abs(this.x(q.t) - x) <= 5);
       else for (let i = l.length - 1; i >= 0; i--) { const q = l[i], a = this.x(q.debut), b = this.x(q.fin); if (x >= a - 4 && x <= b + 4) { k = q; const bord = Math.min(BORD, (b - a) / 3); zone = x - a < bord ? 'gauche' : b - x < bord ? 'droite' : 'corps'; break; } }   // les bords (pour changer la durée) : 9 px, ou un tiers d'un petit clip
     }
+    // un effet / fond : ses fondus (« transitions ») d'entrée et de sortie se prennent à la main pour changer leur durée
+    if (k && p.sorte === 'effets' && zone === 'corps') { const a = this.x(k.debut), b = this.x(k.fin); if (k.entree > 0 && x < a + k.entree * this.pps) zone = 'fondIn'; else if (k.sortie > 0 && x > b - k.sortie * this.pps) zone = 'fondOut'; }
     return { x, y, p, k, zone, t: this.t(x) };
   }
   // magnétisme : colle au curseur, aux bords des clips, aux pêches, à l'entrée / sortie
@@ -513,7 +519,16 @@ class Timeline {
       if (b.dataset.a === 'plus') m.modifier(() => m.projet.effets.push({ id: LT.id(), nom: 'Effets ' + (m.projet.effets.length + 1), clips: [] }));
     });
     // la règle : cliquer / glisser = déplacer le curseur
-    this.cvR.addEventListener('contextmenu', e => { const r = this.cvR.getBoundingClientRect(), q = this.marqueurSous(e.clientX - r.left); if (q) { e.preventDefault(); this.menuMarqueur(e, q); } });
+    this.cvR.addEventListener('contextmenu', e => {
+      e.preventDefault(); const r = this.cvR.getBoundingClientRect(), x = e.clientX - r.left, q = this.marqueurSous(x);
+      if (q) return this.menuMarqueur(e, q);
+      // clic droit sur la règle (la tête de lecture) : ajouter un marqueur, comme Premiere
+      this.fermerMenu(); const el = document.createElement('div'); el.className = 'lt2-menu'; document.body.appendChild(el); this._menu = el;
+      const t = Math.abs(x - this.x(m.temps)) <= 10 ? m.temps : Math.max(0, this.aimanter(this.t(x)));
+      el.innerHTML = `<button data-mk class="lt2-menu-pri">Ajouter un marqueur</button>`; el.style.left = e.clientX + 'px'; el.style.top = e.clientY + 'px';
+      el.querySelector('[data-mk]').onclick = () => { this.fermerMenu(); m.ajouterMarqueur(t); };
+      const loin = ev => { if (!el.contains(ev.target)) this.fermerMenu(); }; setTimeout(() => document.addEventListener('pointerdown', loin, true)); this._fermer = () => document.removeEventListener('pointerdown', loin, true);
+    });
     this.cvR.addEventListener('dblclick', e => { const r = this.cvR.getBoundingClientRect(), q = this.marqueurSous(e.clientX - r.left); if (q) this.nommerMarqueur(q); });
     this.cvR.addEventListener('pointerdown', e => {
       if (e.button !== 0) return;
@@ -537,7 +552,7 @@ class Timeline {
     cv.addEventListener('pointermove', e => {
       if (this.glisse) return;
       const o = this.ou(e);
-      cv.style.cursor = m.outil === 'main' ? 'grab' : m.outil === 'rasoir' ? 'crosshair' : o.k && o.zone !== 'corps' ? 'ew-resize' : o.k ? 'grab' : 'default';
+      cv.style.cursor = m.outil === 'main' ? 'grab' : m.outil === 'rasoir' ? 'crosshair' : o.k && o.zone !== 'corps' ? (o.zone === 'fondIn' || o.zone === 'fondOut' ? 'col-resize' : 'ew-resize') : o.k ? 'grab' : 'default';
       if (m.outil === 'rasoir') { this.survol = this.x(this.aimanter(o.t)); this.redessiner(); }
     });
     cv.addEventListener('pointerleave', () => { if (this.survol != null) { this.survol = null; this.redessiner(); } });
@@ -551,6 +566,7 @@ class Timeline {
       if (e.button !== 0) return;
       const o = this.ou(e);
       if (o.p && o.p.sorte === 'courbe' && this.courbeClic(e, o)) return;
+      if (this.pointChoisi) { this.pointChoisi = null; this.redessiner(); }   // on a cliqué ailleurs : plus de point clé choisi
       if (o.p && o.p.sorte === 'stem') m.choisirStem(o.p.stem.id);
       if (m.outil === 'rasoir') { if (o.k && o.p.sorte !== 'peches' && !o.k.trans) m.couper(o.k, o.p.liste, this.aimanter(o.t)); return; }
       if (!o.k) return this.selectionCadre(e, o);   // dans le vide : curseur, ou rectangle de sélection si on glisse
@@ -559,17 +575,25 @@ class Timeline {
       else if (!m.selection.has(o.k.id)) m.choisir(o.k);
       // préparer le glisser (la modification n'est enregistrée qu'au premier vrai mouvement)
       const choisis = m.clipsChoisis(), x0 = e.clientX, t0 = o.t;
-      const orig = choisis.map(c => ({ c, debut: c.k.debut, fin: c.k.fin, t: c.k.t, zones: c.k.zones && c.k.zones.slice() }));
+      const orig = choisis.map(c => ({ c, debut: c.k.debut, fin: c.k.fin, t: c.k.t, zones: c.k.zones && c.k.zones.slice(), entree: c.k.entree || 0, sortie: c.k.sortie || 0 }));
       this.glisse = { o, bouge: false };
       cv.setPointerCapture(e.pointerId);
       cv.onpointermove = ev => {
         if (!this.glisse.bouge) { if (Math.abs(ev.clientX - x0) < 3 && Math.abs(ev.clientY - e.clientY) < 3) return; this.glisse.bouge = true; m.memoriser();
           // Alt : on glisse une COPIE, l'original reste à sa place (comme dans Premiere)
           if ((e.altKey || ev.altKey) && o.zone === 'corps') choisis.forEach(c => { const n = JSON.parse(JSON.stringify(c.k)); n.id = LT.id(); c.liste.push(n); });
+          // un seul calque choisi qui couvre plusieurs lumières : on ne touche que la lumière prise en main (les autres restent)
+          if (choisis.length === 1 && o.p.sorte === 'couleur' && !o.k.trans && o.k.zones && o.k.zones.length > 1 && o.p.zone && !(e.altKey || ev.altKey)) {
+            const reste = JSON.parse(JSON.stringify(o.k)); reste.id = LT.id(); reste.zones = o.k.zones.filter(z => z !== o.p.zone.id);
+            m.projet.couleur.clips.push(reste); o.k.zones = [o.p.zone.id]; orig[0].zones = o.k.zones.slice();
+          }
         }
         if (!this._dansDefile) this.bordDefile(ev, x => cv.onpointermove && cv.onpointermove(x));
         const o2 = this.ou(ev); let dt = o2.t - t0;
-        if (o.zone === 'corps') {
+        if (o.zone === 'fondIn' || o.zone === 'fondOut') {   // la durée du fondu d'entrée / de sortie
+          const q = orig.find(r => r.c.k === o.k), k = o.k, L = k.fin - k.debut;
+          if (o.zone === 'fondIn') k.entree = Math.max(0, Math.min(L - (k.sortie || 0), q.entree + dt)); else k.sortie = Math.max(0, Math.min(L - (k.entree || 0), q.sortie - dt));
+        } else if (o.zone === 'corps') {
           // on aimante le bord le plus proche du clip pris en main
           const ref = orig.find(q => q.c.k === o.k), sauf = new Set(choisis.map(c => c.k.id));
           if (o.p.sorte === 'peches') dt = this.aimanter(ref.t + dt, sauf) - ref.t;
@@ -588,9 +612,11 @@ class Timeline {
             const c = choisis[0]; c.liste.splice(c.liste.indexOf(c.k), 1); o2.p.liste.push(c.k); c.liste = o2.p.liste;
           }
         } else {
-          const q = orig.find(r => r.c.k === o.k), k = o.k, mini = .05;
-          if (o.zone === 'gauche') k.debut = Math.min(q.fin - mini, Math.max(0, this.aimanter(q.debut + dt, new Set([k.id]))));
-          else k.fin = Math.max(q.debut + mini, this.aimanter(q.fin + dt, new Set([k.id])));
+          // tirer un bord : tous les clips choisis bougent ce même bord d'autant (comme Premiere), le pris en main colle au magnétisme
+          const q = orig.find(r => r.c.k === o.k), k = o.k, mini = .05, sauf = new Set(choisis.map(c => c.k.id));
+          const d = o.zone === 'gauche' ? Math.min(q.fin - mini, Math.max(0, this.aimanter(q.debut + dt, sauf))) - q.debut : Math.max(q.debut + mini, this.aimanter(q.fin + dt, sauf)) - q.fin;
+          for (const r of orig) { if (r.debut == null) continue; const c = r.c.k;
+            if (o.zone === 'gauche') c.debut = Math.min(r.fin - mini, Math.max(0, r.debut + d)); else c.fin = Math.max(r.debut + mini, r.fin + d); }
         }
         m.change(true);
       };

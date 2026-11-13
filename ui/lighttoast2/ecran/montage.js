@@ -32,7 +32,8 @@ class Montage {
           <span class="lt2-3dc" hidden><span class="lt2-seg"><button data-cam="camera" title="La place du photographe">Caméra</button><button data-cam="large">Large</button><button data-cam="dessus">Dessus</button><button data-cam="regie" title="Vers le fond du studio">Arrière</button></span>
           <select data-amb title="La lumière de la pièce"><option value="noir">Noir</option><option value="tamise" selected>Tamisé</option><option value="jour">Jour</option></select>
           <label><input type="checkbox" data-membres checked> Membres</label>
-          <button data-plein title="Plein écran (Échap pour sortir)">⛶</button><select data-qualite title="La qualité de la vue 3D sur ce PC (ne change pas la vidéo des tubes)"><option value="low">Low (rapide)</option><option value="mid">Mid</option><option value="high">High (lent)</option></select><button data-lampes title="La couleur et la force des lampes de la pièce, pour ce morceau">Lumières</button>${LT.modeReglage ? '<button data-placer title="Régler la place des objets du studio">Placer les objets</button>' : ''}</span></div>
+          <select data-qualite title="La qualité de la vue 3D sur ce PC (ne change pas la vidéo des tubes)"><option value="low">Low (rapide)</option><option value="mid">Mid</option><option value="high">High (lent)</option></select><button data-lampes title="La couleur et la force des lampes de la pièce, pour ce morceau">Globe light</button></span>
+          <span class="lt2-moni-d"><button data-placer title="Régler la place des objets et des membres du studio (provisoire)">Éditer 3D</button><button data-plein title="Plein écran (Échap pour sortir)">⛶</button></span></div>
           <div class="lt2-ecran"><canvas width="1920" height="1080"></canvas><div class="lt2-3d" hidden></div><div class="lt2-roles" hidden></div><div class="lt2-charge" hidden></div><div class="lt2-placer" hidden></div><div class="lt2-lampes" hidden></div></div><div class="lt2-pleinlec"><button data-pl="debut" title="Début">⏮</button><button data-pl="lire" title="Lecture / pause (Espace)">▶</button><button data-pl="fin" title="Fin">⏭</button><span class="lt2-pl-t">0:00:00</span><div class="lt2-pl-barre"><i></i></div><span class="lt2-pl-d">0:00</span></div></section>
         <section class="lt2-pan lt2-insp"><h3>Inspecteur</h3><div class="lt2-insp-c"></div></section>
       </div>
@@ -218,14 +219,15 @@ class Montage {
   }
   async chargerMusique(choix) {
     choix = choix || await LT.sources.choisirMusique(); if (!choix) return;
-    const nom = this.r.querySelector('.lt2-mnom'); nom.textContent = 'Chargement…';
+    if (this.avantMusique && !(await this.avantMusique(choix))) return;   // un autre morceau → nouveau projet (géré par BEESKOT Studio)
+    const nom = this.r.querySelector('.lt2-mnom'); nom.textContent = 'Chargement…'; let cal = null, bon = false;
     try {
       const buf = await this.son.decoder(choix.octets); this.lire(0);
       // une musique était déjà là (ancien mix) : on cale la nouvelle dessus, puis on décale tout le projet d'autant
-      let cal = null; const avant = this.son.musique;
-      if (avant) { nom.textContent = 'Calage sur l\'ancienne musique…'; await new Promise(r => setTimeout(r, 30)); try { cal = LT.analyse.caler(avant, buf); } catch (e) { cal = null; } }
+      const avant = this.son.musique;
+      if (avant && this.projet.musique) { nom.textContent = 'Calage sur l\'ancienne musique…'; await new Promise(r => setTimeout(r, 30)); try { cal = LT.analyse.caler(avant, buf); } catch (e) { cal = null; } }
       this.son.musique = buf; this.sr = buf.sampleRate; this.pics = LT.analyse.pics(this.son.canaux(buf));
-      const bon = cal && cal.net > 6 && cal.sur > .15;   // assez sûr pour décaler
+      bon = !!(cal && cal.net > 6 && cal.sur > .15);   // assez sûr pour décaler
       this.modifier(() => { if (bon && Math.abs(cal.d) > .002) LT.projet.decaler(this.projet, cal.d); const P = this.projet, ancien = P.duree || 60; P.couleur.clips.forEach(c => { if (Math.abs(c.fin - ancien) < .01) c.fin = buf.duration; }); P.duree = buf.duration; this.projet.musique = { nom: choix.nom, morceau: choix.morceau || null, version: choix.version || null, passage: null }; });
       this.tl.toutVoir(); await this.majPassages();
     } catch (e) { nom.textContent = 'Son illisible : ' + (e.message || e); return; }
@@ -256,6 +258,7 @@ class Montage {
     if (!v) this.ralenti = null;
     b.hidden = !v; b.classList.toggle('on', !!this.ralenti); if (v) b.textContent = 'Vitesse tournage ×' + String(Math.round(v * 100) / 100).replace('.', ',');
   }
+  ajouterMarqueur(t) { const P = this.projet; if ((P.marqueurs || []).some(q => Math.abs(q.t - t) < .01)) return; this.modifier(() => { (P.marqueurs = P.marqueurs || []).push({ id: LT.id(), t, nom: '', couleur: '#7be0ff' }); P.marqueurs.sort((a, b) => a.t - b.t); }); }
   vitLecture() { return this.ralenti || 1; }
   choisirPassage(i) {
     const p = this.listePassages[i]; this.ralenti = null;
@@ -356,7 +359,7 @@ class Montage {
     const l = this.r.querySelector('.lt2-biblio-l'), P = this.projet, esc = x => String(x).replace(/</g, '&lt;');
     const liste = sorte => Object.entries(LT.effets).filter(([, f]) => f.sorte === sorte).map(([k, f]) => `<div class="lt2-item s-${sorte}" draggable="true" data-glisse="effet:${k}">${f.nom}</div>`).join('');
     // chaque partie est un menu déroulant (ouvert / fermé gardé sur ce PC)
-    let ouv; try { ouv = JSON.parse(localStorage.getItem('lt2.biblio')) || { couleur: true }; } catch (e) { ouv = { couleur: true }; }
+    const ouv = this._ouvBiblio = this._ouvBiblio || {};   // tout est plié à l'ouverture de TOAST2 (on se souvient pendant la séance)
     const part = (cle, titre, html) => `<details class="lt2-part" data-part="${cle}"${ouv[cle] ? ' open' : ''}><summary>${titre}</summary><div class="lt2-part-c">${html}</div></details>`;
     l.innerHTML = (this.morceaux && this.morceaux.length ? part('morceaux', 'Morceaux', '<div class="lt2-morceaux">' + this.morceaux.map(m => `<div class="lt2-item lt2-morceau" data-morceau="${m.id}" title="Nouveau projet avec ce morceau">${esc(m.nom)}</div>`).join('') + '</div>') : '')
       + part('couleur', 'Couleur', '<div class="lt2-item s-couleur" draggable="true" data-glisse="calque:" title="Glisse-le sur une lumière : un nouveau calque de couleur, par-dessus ce qu\'il y a déjà">Calque de couleur</div><div class="lt2-item s-couleur" draggable="true" data-glisse="calque:bi" title="Plusieurs couleurs : la lumière coupée en parts égales (bouton + pour en ajouter)">Bi-color</div><div class="lt2-item s-couleur" draggable="true" data-glisse="calque:degrade" title="Une couleur en haut qui passe doucement à une autre en bas">Dégradé</div>')
@@ -364,7 +367,7 @@ class Montage {
       + part('transitions', 'Transitions', Object.entries(LT.TRANSITIONS).map(([k, x]) => `<div class="lt2-item s-trans" draggable="true" data-glisse="transition:${k}" title="${x.aide} — glisse-la sur la coupure entre deux calques">${x.nom}</div>`).join(''))
       + part('overlay', 'Overlays · textures', liste('overlay'))
       + part('mouvement', 'Mouvements', liste('mouvement'));
-    l.querySelectorAll('details[data-part]').forEach(d => d.ontoggle = () => { ouv[d.dataset.part] = d.open; try { localStorage.setItem('lt2.biblio', JSON.stringify(ouv)); } catch (e) { } });
+    l.querySelectorAll('details[data-part]').forEach(d => d.ontoggle = () => { ouv[d.dataset.part] = d.open; });
     l.querySelectorAll('[data-morceau]').forEach(el => el.onclick = () => this.surMorceau && this.surMorceau(el.dataset.morceau));
     l.querySelectorAll('[data-glisse]').forEach(el => el.ondragstart = e => { e.dataTransfer.setData('text/plain', el.dataset.glisse); e.dataTransfer.effectAllowed = 'copy'; this.glisse = el.dataset.glisse; });
   }
@@ -404,7 +407,6 @@ class Montage {
       boucle: for (const a of L) for (const b of L) {
         if (a === b || fixe(a) || fixe(b) || !pareil(a, b)) continue;
         if (memes(a, b) && Math.abs(a.fin - b.debut) < e && !(a.sortie > 0) && !(b.entree > 0)) { a.fin = b.fin; a.sortie = b.sortie || 0; }
-        else if (Math.abs(a.debut - b.debut) < e && Math.abs(a.fin - b.fin) < e && (a.entree || 0) === (b.entree || 0) && (a.sortie || 0) === (b.sortie || 0) && !a.zones.some(z => b.zones.includes(z))) a.zones = ordre.filter(z => a.zones.includes(z) || b.zones.includes(z));
         else continue;
         L.splice(L.indexOf(b), 1); encore = true; break boucle;
       }
@@ -440,6 +442,10 @@ class Montage {
       if (p.sorte === 'couleur') calque(val);
     }
     if (sorte === 'transition' && p.sorte === 'couleur') k = this.ajouterTransition(val, t, p.zone.id);
+    if (sorte === 'transition' && p.sorte === 'effets' && o.k) {   // sur un effet / fond : un fondu d'entrée ou de sortie (le bord le plus proche)
+      const e = o.k, d = Math.min((e.fin - e.debut) / 2, Math.max(.5, 60 / (P.bpm || 120))), cle = t - e.debut < e.fin - t ? 'entree' : 'sortie';
+      return this.modifier(() => { e[cle] = d; });
+    }
     if (sorte === 'effet') {
       if (o.k && p.sorte === 'effets') return this.modifier(() => { o.k.effet = val; o.k.reglages = {}; });
       if (p.sorte === 'effets') { k = LT.projet.nouvelEffet(val, t, t + d, P); this.modifier(() => this.pisteLibre(k.debut, k.fin, P.effets.indexOf(p.piste)).clips.push(k)); }
@@ -462,10 +468,13 @@ class Montage {
     mh.querySelector('[data-qualite]').onchange = e => { if (!this.vue3d) return; this.vue3d.qualite(e.target.value); try { localStorage.setItem('lt2.qualite', e.target.value); } catch (x) { } };
     mh.querySelector('[data-plein]').onclick = () => this.plein();
     const bl = mh.querySelector('[data-lampes]');
-    bl.onclick = () => { const el = this.r.querySelector('.lt2-lampes'); el.hidden = !el.hidden; bl.classList.toggle('on', !el.hidden); if (!el.hidden) this.panneauLampes(); };
+    const lampes = this.r.querySelector('.lt2-lampes'), fermerLampes = () => { lampes.hidden = true; bl.classList.remove('on'); };
+    bl.onclick = () => { lampes.hidden = !lampes.hidden; bl.classList.toggle('on', !lampes.hidden); if (!lampes.hidden) this.panneauLampes(); };
+    document.addEventListener('pointerdown', e => { if (!lampes.hidden && !lampes.contains(e.target) && e.target !== bl) fermerLampes(); }, true);   // Globe light : se ferme quand on clique ailleurs
     const bp = mh.querySelector('[data-placer]');
     if (bp) bp.onclick = () => {
       const v = this.vue3d; if (!v || !LT.Placer) return;
+      if (!LT.modeReglage) { LT.modeReglage = true; const e = LT.placementEssai && LT.placementEssai(); if (e) { v.placement = Object.assign({}, LT.studio.mesures().placement, e); v.appliquer(); } this.panneauRoles(); }   // le réglage en cours (gardé sur ce PC) revient
       if (!this.placer) { this.placer = new LT.Placer(v, this.r.querySelector('.lt2-placer')); this.placer.onFin = () => { this.placer.activer(false); bp.classList.remove('on'); }; }
       const oui = !this.placer.actif; this.placer.activer(oui); bp.classList.toggle('on', oui);
     };
@@ -512,10 +521,12 @@ class Montage {
         case 'x': this.entree = this.sortie = null; this.tl.redessiner(); break;
         case 'v': this.choisirOutil('selection'); break;
         case 'c': this.choisirOutil('rasoir'); break;
-        case 'm': { const P = this.projet, t = this.temps; if ((P.marqueurs || []).some(q => Math.abs(q.t - t) < .01)) break; this.modifier(() => { (P.marqueurs = P.marqueurs || []).push({ id: LT.id(), t, nom: '', couleur: '#7be0ff' }); P.marqueurs.sort((a, b) => a.t - b.t); }); break; }   // M : un marqueur ici
+        case 'm': this.ajouterMarqueur(this.temps); break;   // M : un marqueur ici
         case 'h': if (!e.repeat && this.outil !== 'main') { this._avantMain = this.outil; this._hT = performance.now(); this.choisirOutil('main'); } break;   // H : la main (gardé appuyé = provisoire)
         case 's': this.aimant = !this.aimant; this.etatBoutons(); break;
-        case 'delete': case 'backspace': fait(); this.supprimer(); break;
+        case 'delete': case 'backspace': fait(); {   // un point clé choisi (losange blanc) : on l'efface ; sinon les clips choisis
+          const q = this.tl.pointChoisi, p = q && this.tl.L.find(x => x.pts && x.pts.includes(q));
+          if (p) { this.modifier(() => p.pts.splice(p.pts.indexOf(q), 1)); this.tl.pointChoisi = null; this.tl.redessiner(); } else this.supprimer(); } break;
         case 'arrowleft': fait(); this.aller(this.temps - (e.shiftKey ? 1 : img)); break;
         case 'arrowright': fait(); this.aller(this.temps + (e.shiftKey ? 1 : img)); break;
         case 'arrowup': fait(); { const p = this.points().filter(x => x < this.temps - 1e-4); if (p.length) this.aller(p.at(-1)); } break;

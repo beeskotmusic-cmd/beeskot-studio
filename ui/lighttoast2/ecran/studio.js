@@ -66,7 +66,7 @@ LT.studio = {
         fauteuil: { dx: 0.115, dz: 0.049, r: 130 },
         'guitare-mur': { dx: 0.156, dz: -0.706, r: -22, rz: 16 },
         'guitare-mur2': { dx: -0.661, dy: -1.15, dz: -2.557, k: 1.05, r: -15 },
-        'guitare-mur3': { dx: 2.324, dy: -0.96, dz: 0.215, r: -128, rx: -4, rz: 30 },
+        'guitare-mur3': { main: 'guitare', dy: -0.36, dz: 0.206, r: -99, rx: -62, dx: -0.159 },   // l'Explorer : dans les mains du guitariste (13 nov.)
         'lampe-ampli': { dx: 0.423, dy: 0.17, dz: -0.217 },
         'lampe-bureau': { dx: -0.222, dy: 0.32, dz: -1.653, r: 5 },
         'meuble-ampli': { dx: 0.071, dz: 0.125, r: -30 },
