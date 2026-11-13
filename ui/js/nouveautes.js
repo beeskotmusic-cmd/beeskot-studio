@@ -3,6 +3,10 @@
 // Pour une nouvelle version : ajouter un bloc EN HAUT de la liste. Une ligne courte par point : « Onglet : ce qui change. »
 // =====================================================================
 BK.NOUVEAUTES = [
+  { v: '0.9.143', titre: '', l: [
+    ['🎵', 'Lien cameraman : le passage du morceau de chaque reel s\'écoute (▶ joue du début à la fin du passage, avec le son ★ du morceau).'],
+    ['▾', 'Lien cameraman : on replie / déplie comme dans le logiciel (les reels, chaque encadré, le tournage), et les images s\'ouvrent en grand avec zoom.'],
+  ] },
   { v: '0.9.142', titre: 'TOAST2 : beaucoup plus léger', l: [
     ['⚡', 'TOAST2 : le Studio 3D ne fait plus ramer le PC. Chargement petit à petit avec un message, qualité Low par défaut (image de taille fixe, comme l\'ancien Light Toast), modèles trois fois plus légers, moins d\'images par seconde (Low 20, Mid 30, High 60), ombres recalculées seulement quand quelque chose bouge.'],
     ['📂', 'TOAST2 : « Ouvrir… » cherche les projets Light Toast dans tout le Drive (par exemple le dossier LIGHTSHOW).'],

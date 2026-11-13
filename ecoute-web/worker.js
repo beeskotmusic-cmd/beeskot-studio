@@ -194,16 +194,47 @@ function pageTournage(id, l, tel) {
   const ouvre = chaine.map(x => `<${okT(x.t)}${x.id ? ` id="${okC(x.id)}"` : ''} class="tw-ch ${okC(x.c)}">`).join('');
   const ferme = chaine.slice().reverse().map(x => `</${okT(x.t)}>`).join('');
   const css = (Array.isArray(l.css) ? l.css : []).filter(h => /^style\/[\w.-]+\.css$/.test(h)).map(h => `<link rel="stylesheet" href="${APP}${h}">`).join('');
-  const corps = String(l.html || '').replace(/<script[\s\S]*?<\/script>/gi, '').split('__IMG__/').join('/t/' + id + '/i/');
+  const corps = String(l.html || '').replace(/<script[\s\S]*?<\/script>/gi, '').split('__IMG__/').join('/t/' + id + '/i/').split('__SON__/').join('/t/' + id + '/s/');
   return `<!doctype html><html lang="fr"${tel ? ' class="tel"' : ''}><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex,nofollow">
 <title>BEESKOT · Tournages${l.nom ? ' · ' + esc(l.nom) : ''}</title>${css}<style>${CSS_T}</style></head>
 <body class="${okC(l.corps)} tw-page" data-section="${okC(l.section || 'orga')}"><div class="tw-haut"><img src="${APP}look/logo-beeskot-flat.png" alt="BEESKOT"><span>Tournages · lecture seule</span></div>
-<div class="tw-cadre">${ouvre}${corps}${ferme}</div><script src="/t/voir.js" defer></script><footer class="tw-pied">fait avec Dari Band Studio · mis à jour le ${esc(new Date(l.maj || Date.now()).toLocaleString('fr-CA', { timeZone: 'America/Toronto', dateStyle: 'long', timeStyle: 'short' }))}</footer></body></html>`;
+<div class="tw-cadre">${ouvre}${corps}${ferme}</div><script src="/t/page.js" defer></script><footer class="tw-pied">fait avec Dari Band Studio · mis à jour le ${esc(new Date(l.maj || Date.now()).toLocaleString('fr-CA', { timeZone: 'America/Toronto', dateStyle: 'long', timeStyle: 'short' }))}</footer></body></html>`;
 }
 // la visionneuse de la page Tournages (comme dans le logiciel) : clic sur une image → en grand.
 // PC : molette = zoom vers la souris · glisser = déplacer · double-clic = taille normale · ← → · Échap / clic à côté = fermer.
 // Téléphone : pincer = zoom · glisser = déplacer (zoomé) ou image d'à côté (pas zoomé) · toucher à côté = fermer.
 const VOIR_JS = `(() => {
+  // --- déplier / replier, comme dans le logiciel : les encadrés (clic sur leur titre), les reels (clic sur leur carte), le tournage (clic sur l'affiche) ---
+  const memo = (() => { try { return JSON.parse(localStorage.getItem('tw.plis') || '{}'); } catch (e) { return {}; } })();
+  const garde = () => { try { localStorage.setItem('tw.plis', JSON.stringify(memo)); } catch (e) {} };
+  document.querySelectorAll('.tw-cadre .box').forEach(box => {
+    const lb = box.querySelector(':scope > .lb, :scope > .ligne-titre > .lb'); if (!lb) return;
+    const cle = 'b:' + lb.textContent.trim().replace(/[^a-zà-ÿ]/gi, '').toLowerCase();
+    const tete = lb.parentElement.classList.contains('ligne-titre') ? lb.parentElement : lb; tete.classList.add('box-tete');
+    lb.classList.add('pliable'); lb.insertAdjacentHTML('afterbegin', '<span class="pli-fleche"></span>');
+    const pose = () => { box.classList.toggle('replie', !!memo[cle]); lb.querySelector('.pli-fleche').textContent = memo[cle] ? '▸' : '▾'; };
+    lb.addEventListener('click', e => { e.stopPropagation(); memo[cle] = !memo[cle]; garde(); pose(); }); pose(); });
+  document.querySelectorAll('.tw-cadre .tt-reel').forEach(re => {
+    const t = re.querySelector('.tt-reel-t'), c = re.querySelector(':scope > .tt-reel-corps'); if (!t || !c) return;
+    const cle = 'r:' + (re.dataset.rid || ''); if (!(cle in memo)) memo[cle] = true;
+    t.insertAdjacentHTML('beforeend', '<span class="tw-fl"></span>');
+    const pose = () => { c.hidden = !!memo[cle]; re.classList.toggle('ouvert', !memo[cle]); t.querySelector('.tw-fl').textContent = memo[cle] ? '▸ Déplier' : '▾ Replier'; };
+    t.addEventListener('click', e => { if (e.target.closest('.tw-play, [style*="/i/"], img')) return; memo[cle] = !memo[cle]; garde(); pose(); }); pose(); });
+  document.querySelectorAll('.tw-cadre .tw-tour').forEach((tr, i) => {
+    const a = tr.querySelector(':scope > .to-affiche'), d = tr.querySelector(':scope > .to-deplie'); if (!a || !d) return;
+    const cle = 't:' + i; a.insertAdjacentHTML('beforeend', '<span class="tw-fl tw-fl-a"></span>');
+    const pose = () => { d.hidden = !!memo[cle]; a.querySelector('.tw-fl').textContent = memo[cle] ? '▸ Déplier' : '▾ Replier'; };
+    a.addEventListener('click', () => { memo[cle] = !memo[cle]; garde(); pose(); }); a.style.cursor = 'pointer'; pose(); });
+  // --- les passages du morceau : ▶ joue de début à fin (un seul son à la fois) ---
+  const au = new Audio(); au.preload = 'none'; let btn = null, fin = 0;
+  const arrete = () => { au.pause(); if (btn) btn.textContent = '▶'; btn = null; };
+  au.addEventListener('timeupdate', () => { if (btn && au.currentTime >= fin) arrete(); });
+  au.addEventListener('ended', arrete); au.addEventListener('error', () => { if (btn) { btn.textContent = '!'; btn.title = 'Son indisponible'; } btn = null; });
+  document.addEventListener('click', ev => { const b = ev.target.closest('.tw-play'); if (!b) return; ev.preventDefault(); ev.stopPropagation();
+    if (btn === b) return arrete(); arrete(); btn = b; fin = +b.dataset.fin; const deb = +b.dataset.debut; b.textContent = '…';
+    const go = () => { au.currentTime = deb; au.play().then(() => { if (btn === b) b.textContent = '❚❚'; }).catch(() => { if (btn === b) b.textContent = '▶'; btn = null; }); };
+    if (au.getAttribute('src') !== b.dataset.son) { au.src = b.dataset.son; au.addEventListener('loadedmetadata', go, { once: true }); au.load(); } else go(); }, true);
+
   const urlDe = e => { if (e.tagName === 'IMG') return e.getAttribute('src') || '';
     const m = /url\\(["']?([^"')]+)["']?\\)/.exec(e.style.backgroundImage || ''); return m ? m[1] : ''; };
   const estImg = u => /\\/t\\/[^/]+\\/i\\/\\d+$/.test(u);
@@ -261,6 +292,11 @@ html body.tw-page .tw-ch:not(.pane){padding:0!important;border:0!important;backg
 .tw-voir button{position:absolute;border:0;border-radius:50%;width:44px;height:44px;font-size:24px;line-height:1;cursor:pointer;color:#f3ece0;background:rgba(0,0,0,.55);box-shadow:0 0 0 1px rgba(255,255,255,.25)}
 .tw-voir .voir-x{top:14px;right:14px}.tw-voir .voir-p{left:12px;top:50%}.tw-voir .voir-s{right:12px;top:50%}.tw-voir button[hidden]{display:none}
 .tw-voir .voir-n{position:absolute;bottom:16px;left:50%;transform:translateX(-50%);color:#f3ece0;font:600 12px Jost,system-ui,sans-serif;background:rgba(0,0,0,.55);padding:3px 10px;border-radius:10px}
+.tw-fl{margin-left:auto;font:700 11px Jost,system-ui,sans-serif;letter-spacing:.08em;text-transform:uppercase;color:#ffb23e;white-space:nowrap;padding:0 6px}
+.tw-fl-a{position:absolute;right:12px;bottom:10px;z-index:2;background:rgba(0,0,0,.55);border-radius:6px;padding:4px 8px}
+.tw-page .tt-reel-t{display:flex;align-items:center}
+.tw-pas .to-pas-l{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.tw-play{min-width:44px;min-height:36px;font-size:15px!important;cursor:pointer}
 .tw-pied{text-align:center;font:600 11px Jost,system-ui,sans-serif;color:rgba(239,230,210,.5);padding:0 0 24px}
 .tw-page .lect-txt{display:block;white-space:pre-wrap;overflow-wrap:break-word;height:auto!important;min-height:0!important;width:auto!important;max-width:100%}
 .tw-page .lect-v{display:block}
@@ -375,7 +411,7 @@ function pageMessage(texte) {
 async function routeTournage(req, morceaux, env, ctx) {
   if (req.method !== 'GET' && req.method !== 'HEAD') return new Response('', { status: 405 });
   const id = morceaux[1] || '';
-  if (id === 'voir.js' && morceaux.length === 2) return new Response(VOIR_JS, { headers: { 'Content-Type': 'text/javascript; charset=utf-8', 'Cache-Control': 'public, max-age=3600' } });
+  if (id === 'page.js' && morceaux.length === 2) return new Response(VOIR_JS, { headers: { 'Content-Type': 'text/javascript; charset=utf-8', 'Cache-Control': 'public, max-age=3600' } });
   if (!ID_OK.test(id)) return reponseHtml(pageMessage('Ce lien n\'est pas valide.'), 404);
   const lien = await lireLien(id, env, ctx, estTournage);
   if (!lien || lien.actif === false) return reponseHtml(pageMessage('Ce lien n\'est plus actif.'), 404);
@@ -383,8 +419,10 @@ async function routeTournage(req, morceaux, env, ctx) {
   // sur téléphone : la même mise en page que BEESKOT Studio sur téléphone (html.tel → style/telephone.css)
   const tel = req.headers.get('Sec-CH-UA-Mobile') === '?1' || /Mobi|Android|iPhone|iPod/i.test(req.headers.get('User-Agent') || '');
   if (morceaux.length === 2) return new Response(pageTournage(id, lien, tel), { headers: { 'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'no-store', 'X-Robots-Tag': 'noindex', 'Referrer-Policy': 'no-referrer',
-    'Content-Security-Policy': "default-src 'none'; script-src 'self'; img-src 'self' https://cdn.jsdelivr.net data:; style-src 'unsafe-inline' https://cdn.jsdelivr.net; font-src https://cdn.jsdelivr.net; base-uri 'none'; form-action 'none'" } });
+    'Content-Security-Policy': "default-src 'none'; script-src 'self'; media-src 'self'; img-src 'self' https://cdn.jsdelivr.net data:; style-src 'unsafe-inline' https://cdn.jsdelivr.net; font-src https://cdn.jsdelivr.net; base-uri 'none'; form-action 'none'" } });
   if (morceaux[2] === 'i' && /^\d+$/.test(morceaux[3] || '') && morceaux.length === 4) { const el = lien.elements[+morceaux[3]]; return imageT(el && el.image, env, ctx); }
+  if (morceaux[2] === 's' && /^\d+$/.test(morceaux[3] || '') && morceaux.length === 4) { const el = lien.elements[+morceaux[3]];   // le son ★ d'un morceau (passage du reel)
+    if (!el || !el.fichier || !ID_OK.test(el.fichier)) return new Response('', { status: 404 }); return son(req, el, env, {}, ctx); }
   return new Response('', { status: 404 });
 }
 

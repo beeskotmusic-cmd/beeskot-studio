@@ -1056,7 +1056,7 @@ BK.module('tournage', function (page) {
   function lectureWeb(z) {
     z.querySelectorAll('.to-vrac, .to-fiche-barre, [data-sans], .mi-prop, input[type=file]').forEach(e => e.remove());
     z.querySelectorAll('button[data-itiurl]').forEach(b => { const a = document.createElement('a'); a.className = b.className; a.href = b.dataset.itiurl; a.target = '_blank'; a.rel = 'noopener'; a.textContent = b.textContent; b.replaceWith(a); });
-    z.querySelectorAll('button').forEach(b => b.remove());
+    z.querySelectorAll('button:not([data-tw])').forEach(b => b.remove());
     z.querySelectorAll('[draggable]').forEach(e => e.removeAttribute('draggable'));
     z.querySelectorAll('.box').forEach(b => { b.classList.add('lecture'); b.classList.remove('a-edit'); });
     // ce qui est vide ne s'affiche pas (passage pas choisi, pas de références, modules sans rien dedans)
@@ -1075,15 +1075,23 @@ BK.module('tournage', function (page) {
     });
   }
   // la « photo » HTML des tournages choisis : { html, images: [ids Drive] }
-  function htmlWeb(ids) {
+  async function htmlWeb(ids) {
     const trs = (ids || []).map(id => T.liste.find(x => x.id === id && estTour(x))).filter(Boolean).sort((a, b) => (a.date || '9').localeCompare(b.date || '9'));
-    const tmp = document.createElement('div');
+    const tmp = document.createElement('div'), sons = [];
     tmp.innerHTML = trs.map(tr => { const img = tr.couverture || '';
       return `<div class="tw-tour"><div class="to-affiche tt-aff on${img ? '' : ' sans'}${tr.fini ? ' fini' : ''}"${BK.img.bg(img)}><span class="to-af-voile"></span><span class="to-af-txt"><span class="eng">${esc(nomJ(tr))}${tr.fini ? ' · ✓ fait' : ''}</span><b class="dymo">${esc(tr.titre || 'Tournage')}</b>
         <span class="nt">${esc(jourFr(tr.date))}${tr.heure ? ' · ' + esc(tr.heure) : ''}${tr.lieu ? ' · ' + esc(tr.lieu) : ''}</span></span></div>
         <div class="to-deplie">${corpsTournage(tr, reelsDe(tr), '')}</div></div>`; }).join('');
     for (const el of tmp.querySelectorAll('.tt-reel[data-rid]')) { const r = T.liste.find(x => x.id === el.dataset.rid); if (!r) continue;
-      el.classList.add('ouvert'); const c = document.createElement('div'); c.className = 'tt-reel-corps'; c.innerHTML = corpsFiche(r, true); el.appendChild(c); }
+      el.classList.add('ouvert'); const c = document.createElement('div'); c.className = 'tt-reel-corps'; c.innerHTML = corpsFiche(r, true); el.appendChild(c);
+      // le passage du morceau : un vrai petit lecteur (le son ★ du morceau, de début à fin), lu par Cloudflare
+      const pe = c.querySelector('.to-pas'), p = pasDe(r); if (!pe) continue; if (!p) { pe.remove(); continue; }
+      const m = (T.fiches || []).find(x => x.nom === r.morceau); let src = null; try { src = m ? await BK.sonDuMorceau(m, T.fiches) : null; } catch (e) {}
+      const k = src && src.drive ? (sons.includes(src.drive) ? sons.indexOf(src.drive) : sons.push(src.drive) - 1) : -1;
+      pe.className = 'large to-pas tw-pas';
+      pe.innerHTML = `<span class="eng">🎵 Passage du morceau${r.morceau ? ' · ' + esc(r.morceau) : ''}</span><div class="to-pas-l">`
+        + (k >= 0 ? `<button class="btn to-pas-play tw-play" data-tw data-son="__SON__/${k}" data-debut="${p.debut}" data-fin="${p.fin}" title="Écouter le passage">▶</button>` : '')
+        + `<span class="vfd tw-pas-t">${esc(tpsC(p.debut))} → ${esc(tpsC(p.fin))}</span><span class="nt">${Math.round(p.fin - p.debut)} s${k < 0 ? ' · le son n\'est pas dans le Drive' : ''}</span></div>`; }
     lectureWeb(tmp);
     const images = [];
     for (const el of tmp.querySelectorAll('[data-ref]')) { const id = BK.img.estDrive(el.dataset.ref) ? BK.img.id(el.dataset.ref) : ''; el.removeAttribute('data-ref'); if (!id) continue;
@@ -1091,7 +1099,9 @@ BK.module('tournage', function (page) {
       if (el.tagName === 'IMG') el.setAttribute('src', '__IMG__/' + n); else el.style.backgroundImage = `url('__IMG__/${n}')`; }
     tmp.querySelectorAll('img[src^="blob:"]').forEach(i => i.removeAttribute('src'));
     tmp.querySelectorAll('[style*="blob:"]').forEach(e => { e.style.backgroundImage = ''; });
-    return { html: tmp.innerHTML, images, n: trs.length };
+    // les sons passent après les images dans la liste des fichiers du lien (Cloudflare : /i/n pour une image, /s/n pour un son)
+    const html = tmp.innerHTML.replace(/__SON__\/(\d+)"/g, (x, k) => '__SON__/' + (images.length + +k) + '"');
+    return { html, images, sons, n: trs.length };
   }
   // l'habillage autour (les mêmes boîtes que dans le logiciel, pour que les styles s'appliquent pareil)
   function habillageWeb() {
@@ -1103,9 +1113,9 @@ BK.module('tournage', function (page) {
   const liensT = async () => (await BK.db.liste('partages')).filter(l => l.type === 'tournage');
   // refait la photo et l'enregistre (seulement si elle a changé) ; ouvre / ferme les accès du lien et de ses images
   async function garderT(l, forcer) {
-    const w = htmlWeb(l.tournages), h = habillageWeb();
-    const neuf = { html: w.html, images: w.images, elements: w.images.map(id => ({ image: id })), section: 'orga', ...h };
-    const change = forcer || ['html', 'images', 'css', 'corps'].some(k => JSON.stringify(neuf[k]) !== JSON.stringify(l[k])) || JSON.stringify(neuf.chaine) !== JSON.stringify(l.chaine);
+    const w = await htmlWeb(l.tournages), h = habillageWeb();
+    const neuf = { html: w.html, images: w.images, sons: w.sons, elements: [...w.images.map(id => ({ image: id })), ...w.sons.map(id => ({ fichier: id }))], section: 'orga', ...h };
+    const change = forcer || ['html', 'images', 'sons', 'css', 'corps'].some(k => JSON.stringify(neuf[k]) !== JSON.stringify(l[k])) || JSON.stringify(neuf.chaine) !== JSON.stringify(l.chaine);
     if (!change) return false;
     Object.assign(l, neuf); l.type = 'tournage'; l.maj = new Date().toISOString();
     await BK.db.ecrire('partages', l, { sansAnnuler: true });
