@@ -3,6 +3,9 @@
 // Pour une nouvelle version : ajouter un bloc EN HAUT de la liste. Une ligne courte par point : « Onglet : ce qui change. »
 // =====================================================================
 BK.NOUVEAUTES = [
+  { v: '0.9.152', titre: 'Tournages : cadrer la photo de couverture', l: [
+    ['✥', 'Tournages : passe la souris sur un tournage › « ✥ Cadrer », glisse la photo pour choisir la partie qu\'on voit, puis « ✓ OK ». Le lien cameraman garde le même cadrage.'],
+  ] },
   { v: '0.9.151', titre: 'Tournages : changer l\'ordre des reels', l: [
     ['↕', 'Tournages › Les reels de ce tournage : attrape un reel et glisse-le au-dessus ou en dessous d\'un autre pour changer l\'ordre. Un trait jaune montre où il va tomber.'],
   ] },
