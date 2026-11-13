@@ -197,7 +197,7 @@ function pageTournage(id, l, tel) {
   const corps = String(l.html || '').replace(/<script[\s\S]*?<\/script>/gi, '').split('__IMG__/').join('/t/' + id + '/i/').split('__SON__/').join('/t/' + id + '/s/');
   return `<!doctype html><html lang="fr"${tel ? ' class="tel"' : ''}><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex,nofollow">
 <title>BEESKOT · Tournages${l.nom ? ' · ' + esc(l.nom) : ''}</title>${css}<style>${CSS_T}</style></head>
-<body class="${okC(l.corps)} tw-page" data-section="${okC(l.section || 'orga')}"><div class="tw-haut"><img src="${APP}look/logo-beeskot-flat.png" alt="BEESKOT"><span>Tournages · lecture seule</span></div>
+<body class="${okC(l.corps)} tw-page" data-section="${okC(l.section || 'orga')}"><div class="tw-haut"><img src="${APP}look/logo-beeskot-flat.png" alt="BEESKOT"><span>Tournages</span></div>
 <div class="tw-cadre">${ouvre}${corps}${ferme}</div><script src="/t/page.js" defer></script><footer class="tw-pied">fait avec Dari Band Studio · mis à jour le ${esc(new Date(l.maj || Date.now()).toLocaleString('fr-CA', { timeZone: 'America/Toronto', dateStyle: 'long', timeStyle: 'short' }))}</footer></body></html>`;
 }
 // la visionneuse de la page Tournages (comme dans le logiciel) : clic sur une image → en grand.
@@ -205,8 +205,8 @@ function pageTournage(id, l, tel) {
 // Téléphone : pincer = zoom · glisser = déplacer (zoomé) ou image d'à côté (pas zoomé) · toucher à côté = fermer.
 const VOIR_JS = `(() => {
   // --- déplier / replier, comme dans le logiciel : les encadrés (clic sur leur titre), les reels (clic sur leur carte), le tournage (clic sur l'affiche) ---
-  const memo = (() => { try { return JSON.parse(localStorage.getItem('tw.plis') || '{}'); } catch (e) { return {}; } })();
-  const garde = () => { try { localStorage.setItem('tw.plis', JSON.stringify(memo)); } catch (e) {} };
+  const memo = (() => { try { return JSON.parse(localStorage.getItem('tw.plis2') || '{}'); } catch (e) { return {}; } })();
+  const garde = () => { try { localStorage.setItem('tw.plis2', JSON.stringify(memo)); } catch (e) {} };
   document.querySelectorAll('.tw-cadre .box').forEach(box => {
     const lb = box.querySelector(':scope > .lb, :scope > .ligne-titre > .lb'); if (!lb) return;
     const cle = 'b:' + lb.textContent.trim().replace(/[^a-zà-ÿ]/gi, '').toLowerCase();
@@ -222,7 +222,8 @@ const VOIR_JS = `(() => {
     t.addEventListener('click', e => { if (e.target.closest('.tw-play, [style*="/i/"], img')) return; memo[cle] = !memo[cle]; garde(); pose(); }); pose(); });
   document.querySelectorAll('.tw-cadre .tw-tour').forEach((tr, i) => {
     const a = tr.querySelector(':scope > .to-affiche'), d = tr.querySelector(':scope > .to-deplie'); if (!a || !d) return;
-    const cle = 't:' + i; a.insertAdjacentHTML('beforeend', '<span class="tw-fl tw-fl-a"></span>');
+    const cle = 't:' + i; if (!(cle in memo)) memo[cle] = true;   // repliés au départ, comme les reels
+    a.insertAdjacentHTML('beforeend', '<span class="tw-fl tw-fl-a"></span>');
     const pose = () => { d.classList.toggle('tw-cache', !!memo[cle]); a.querySelector('.tw-fl').textContent = memo[cle] ? '▸ Déplier' : '▾ Replier'; };
     a.addEventListener('click', () => { memo[cle] = !memo[cle]; garde(); pose(); }); a.style.cursor = 'pointer'; pose(); });
   // --- les passages du morceau : ▶ joue de début à fin (un seul son à la fois) ---
@@ -286,7 +287,7 @@ html body.tw-page .tw-ch:not(.pane){padding:0!important;border:0!important;backg
 .tw-page .tw-tour .to-affiche{cursor:default;min-height:120px}
 .tw-page .tw-tour .to-deplie{margin-top:10px}
 .tw-page .tw-cache{display:none!important}
-.tw-haut{display:flex;align-items:center;gap:14px;padding:12px 18px;background:rgba(0,0,0,.35);box-shadow:0 3px 10px rgba(0,0,0,.4)}
+.tw-haut{display:flex;align-items:center;justify-content:center;gap:14px;padding:12px 18px;background:rgba(0,0,0,.35);box-shadow:0 3px 10px rgba(0,0,0,.4)}
 .tw-haut img{height:40px}.tw-haut span{font:700 12px Jost,system-ui,sans-serif;letter-spacing:.14em;text-transform:uppercase;color:#e7c796}
 .tw-voir{position:fixed;inset:0;z-index:300;background:rgba(6,3,1,.9);display:flex;align-items:center;justify-content:center;overflow:hidden;touch-action:none}
 .tw-voir .voir-img{max-width:92vw;max-height:90vh;border-radius:4px;box-shadow:0 8px 30px #000;user-select:none;-webkit-user-select:none;touch-action:none;transform-origin:center}

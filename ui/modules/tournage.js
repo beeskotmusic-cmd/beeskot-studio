@@ -68,6 +68,7 @@ BK.module('tournage', function (page) {
       BK.etiquettes.tous().then(async tg => { T.tags = tg; T.fichiers = await BK.dossiers.tousFichiers(); rendreFiche(); }).catch(() => { T.fichiersT = 0; }); }
     const cfg = (await BK.db.liste('config')).find(c => c.id === 'membres'); if (cfg && cfg.liste && cfg.liste.length) T.membres = cfg.liste.map(m => m === 'Dari' ? 'Yacine' : m);
     T.fiches = (await BK.db.liste('morceaux')).sort((a, b) => a.nom.localeCompare(b.nom));
+    if (BK.tournageWeb) BK.tournageWeb.bientot(5000);   // les liens cameraman se remettent à jour (s'ils ont changé)
     T.morceaux = T.fiches.map(m => m.nom);
     if (T.courant) T.courant = T.liste.find(x => x.id === T.courant.id) || null;
     if (T.tour) T.tour = T.liste.find(x => x.id === T.tour.id) || null;
@@ -1125,7 +1126,9 @@ BK.module('tournage', function (page) {
   }
   // quelqu'un modifie un tournage : les liens qui le montrent se mettent à jour (8 s après la dernière modif)
   let tRafr = 0;
-  window.addEventListener('bk:change', e => { if (!e.detail || e.detail.col !== 'tournages') return; clearTimeout(tRafr); tRafr = setTimeout(rafraichirT, 8000); });
+  // (aussi quand un morceau change — son ★ — et à chaque ouverture de Tournages : la page web suit toujours la dernière version du BS)
+  const rafrBientot = (ms = 8000) => { clearTimeout(tRafr); tRafr = setTimeout(rafraichirT, ms); };
+  window.addEventListener('bk:change', e => { if (e.detail && /^(tournages|morceaux|reels)$/.test(e.detail.col)) rafrBientot(); });
   async function rafraichirT() {
     if (!BK.drive || !BK.drive.relie() || !T.liste.length || T.rafrEnCours) return; T.rafrEnCours = true;
     try { for (const l of (await liensT()).filter(x => x.actif !== false)) await garderT(l).catch(err => console.warn('lien cameraman', err)); }
@@ -1190,7 +1193,7 @@ BK.module('tournage', function (page) {
     dessinerL();
   }
   $('#toLienCam').onclick = fenetreLien;
-  BK.tournageWeb = { htmlWeb, habillageWeb, fenetre: fenetreLien, rafraichir: rafraichirT };
+  BK.tournageWeb = { htmlWeb, habillageWeb, fenetre: fenetreLien, rafraichir: rafraichirT, bientot: rafrBientot };
 
   BK.surOuvrir = BK.surOuvrir || {}; BK.surOuvrir.tournage = charger;
   charger();

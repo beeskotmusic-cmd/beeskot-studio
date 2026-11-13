@@ -3,6 +3,9 @@
 // Pour une nouvelle version : ajouter un bloc EN HAUT de la liste. Une ligne courte par point : « Onglet : ce qui change. »
 // =====================================================================
 BK.NOUVEAUTES = [
+  { v: '0.9.148', titre: '', l: [
+    ['🔗', 'Lien cameraman : se remet à jour aussi quand on ouvre Tournages et quand un morceau change (son ★), pas seulement quand on modifie un tournage. La page web : titre centré, tout replié au départ.'],
+  ] },
   { v: '0.9.147', titre: '', l: [
     ['☰', 'Médias : bouton ☰ (à côté de − +) pour voir les fichiers en liste, comme sur téléphone. ▦ pour revenir aux vignettes. Le choix est gardé.'],
   ] },
