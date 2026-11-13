@@ -218,12 +218,12 @@ const VOIR_JS = `(() => {
     const t = re.querySelector('.tt-reel-t'), c = re.querySelector(':scope > .tt-reel-corps'); if (!t || !c) return;
     const cle = 'r:' + (re.dataset.rid || ''); if (!(cle in memo)) memo[cle] = true;
     t.insertAdjacentHTML('beforeend', '<span class="tw-fl"></span>');
-    const pose = () => { c.hidden = !!memo[cle]; re.classList.toggle('ouvert', !memo[cle]); t.querySelector('.tw-fl').textContent = memo[cle] ? '▸ Déplier' : '▾ Replier'; };
+    const pose = () => { c.classList.toggle('tw-cache', !!memo[cle]); re.classList.toggle('ouvert', !memo[cle]); t.querySelector('.tw-fl').textContent = memo[cle] ? '▸ Déplier' : '▾ Replier'; };
     t.addEventListener('click', e => { if (e.target.closest('.tw-play, [style*="/i/"], img')) return; memo[cle] = !memo[cle]; garde(); pose(); }); pose(); });
   document.querySelectorAll('.tw-cadre .tw-tour').forEach((tr, i) => {
     const a = tr.querySelector(':scope > .to-affiche'), d = tr.querySelector(':scope > .to-deplie'); if (!a || !d) return;
     const cle = 't:' + i; a.insertAdjacentHTML('beforeend', '<span class="tw-fl tw-fl-a"></span>');
-    const pose = () => { d.hidden = !!memo[cle]; a.querySelector('.tw-fl').textContent = memo[cle] ? '▸ Déplier' : '▾ Replier'; };
+    const pose = () => { d.classList.toggle('tw-cache', !!memo[cle]); a.querySelector('.tw-fl').textContent = memo[cle] ? '▸ Déplier' : '▾ Replier'; };
     a.addEventListener('click', () => { memo[cle] = !memo[cle]; garde(); pose(); }); a.style.cursor = 'pointer'; pose(); });
   // --- les passages du morceau : ▶ joue de début à fin (un seul son à la fois) ---
   const au = new Audio(); au.preload = 'none'; let btn = null, fin = 0;
@@ -284,7 +284,7 @@ html body.tw-page .tw-ch:not(.pane){padding:0!important;border:0!important;backg
 .tw-page .tw-tour{margin-bottom:26px}
 .tw-page .tw-tour .to-affiche{cursor:default;min-height:120px}
 .tw-page .tw-tour .to-deplie{margin-top:10px}
-.tw-page .tt-reel-corps{display:block!important}
+.tw-page .tw-cache{display:none!important}
 .tw-haut{display:flex;align-items:center;gap:14px;padding:12px 18px;background:rgba(0,0,0,.35);box-shadow:0 3px 10px rgba(0,0,0,.4)}
 .tw-haut img{height:40px}.tw-haut span{font:700 12px Jost,system-ui,sans-serif;letter-spacing:.14em;text-transform:uppercase;color:#e7c796}
 .tw-voir{position:fixed;inset:0;z-index:300;background:rgba(6,3,1,.9);display:flex;align-items:center;justify-content:center;overflow:hidden;touch-action:none}
