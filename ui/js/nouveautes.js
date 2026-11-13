@@ -3,6 +3,9 @@
 // Pour une nouvelle version : ajouter un bloc EN HAUT de la liste. Une ligne courte par point : « Onglet : ce qui change. »
 // =====================================================================
 BK.NOUVEAUTES = [
+  { v: '0.9.147', titre: '', l: [
+    ['☰', 'Médias : bouton ☰ (à côté de − +) pour voir les fichiers en liste, comme sur téléphone. ▦ pour revenir aux vignettes. Le choix est gardé.'],
+  ] },
   { v: '0.9.146', titre: 'TOAST2 : transitions, courbes par lumière, outil Main, studio 3D placé', l: [
     ['🎸', 'TOAST2 › Studio 3D : la basse, les membres (dont les places du piano et de la guitare) et les objets sont à la place réglée par Dari. Le bouton provisoire « Éditer 3D » reste là pour l\'instant (caler la guitare du guitariste).'],
     ['🎤', 'TOAST2 › Studio 3D : le chanteur ne glisse plus. Son animation (le moment où il reste sur place) est jouée en miroir, à l\'endroit puis à l\'envers, sans saut.'],

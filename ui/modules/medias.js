@@ -12,7 +12,7 @@ const DOSSIERS_CLOUD = [['photovideo', 'Photos / Vidéos'], ['moodboard', 'Moodb
   ['outfits', 'Outfits'], ['scenographie', 'Scénographie'], ['lightshow', 'Light Show']];
 const M = { racine: 'cloud', pile: [], fichiers: [], envoi: false, morceaux: [], tags: {}, filtre: '',
   sel: new Set(), dernier: null, vign: {}, dc: null,
-  taille: Math.min(5, Math.max(0, BK.reglage('medias.taille', BK.reglage('medias.petit', false) ? 1 : 2))), voirCaches: false };
+  taille: Math.min(5, Math.max(0, BK.reglage('medias.taille', BK.reglage('medias.petit', false) ? 1 : 2))), voirCaches: false, liste: !!BK.reglage('medias.liste', false) };
 const TAILLES = [72, 100, 136, 170, 220, 290];        // largeur mini d'une vignette, du plus petit au plus grand
 const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 const DOSSIER = 'application/vnd.google-apps.folder';
@@ -29,7 +29,7 @@ BK.module('medias', function (page) {
           <div class="md-fil" id="mdFil"></div>
           <div class="seg md-types" id="mdTypes"><button data-ty="tout" class="on">Tout</button><button data-ty="image">Images</button><button data-ty="video">Vidéos</button><button data-ty="audio">Musiques</button></div>
           <div class="md-filtre"><span class="eng">Voir tout</span><button class="fld md-voir" id="mdVoirB" title="Tout ce qui porte cette étiquette, dans TOUT Médias (pas seulement le dossier)">Choisir… ▾</button><select class="fld hidden" id="mdFiltre"><option value="">Tout le dossier</option></select></div>
-          <div class="md-outils"><button class="md-ico" id="mdMoins" title="Vignettes plus petites">−</button><button class="md-ico" id="mdPlus2" title="Vignettes plus grandes">+</button><button class="md-ico" id="mdCaches" title="Voir les fichiers masqués">🙈<span id="mdNbC"></span></button></div>
+          <div class="md-outils"><button class="md-ico" id="mdVue" title="Voir en liste / en vignettes">☰</button><button class="md-ico" id="mdMoins" title="Vignettes plus petites">−</button><button class="md-ico" id="mdPlus2" title="Vignettes plus grandes">+</button><button class="md-ico" id="mdCaches" title="Voir les fichiers masqués">🙈<span id="mdNbC"></span></button></div>
         </div>
         <div class="box grow md-zone" id="mdZone"><div class="md-grille" id="mdGrille"></div></div>
       </section>
@@ -399,6 +399,10 @@ BK.module('medias', function (page) {
     $('#mdCaches').classList.toggle('on', M.voirCaches);
     const g = $('#mdGrille'); g.style.setProperty('--tuile', TAILLES[M.taille] + 'px');
     g.classList.toggle('petit', M.taille <= 1); g.classList.toggle('mini', M.taille === 0);
+    // en liste (comme sur téléphone) ou en vignettes : le bouton ☰ / ▦ ; la taille des vignettes ne sert qu'en vignettes
+    g.classList.toggle('md-liste', M.liste); $('#mdVue').textContent = M.liste ? '▦' : '☰'; $('#mdVue').classList.toggle('on', M.liste);
+    $('#mdVue').title = M.liste ? 'Voir en vignettes' : 'Voir en liste';
+    $('#mdMoins').style.display = $('#mdPlus2').style.display = M.liste ? 'none' : '';
     $('#mdMoins').disabled = M.taille === 0; $('#mdPlus2').disabled = M.taille === TAILLES.length - 1;
     const tag = f => {
       const ms = BK.etiquettes.morceauxDe({ ...f, id: idTags(f), dossiers: f.dossiers || M.pile.map(p => p.nom) }, M.morceaux, M.tags), l = BK.etiquettes.liste(M.tags, idTags(f));
@@ -569,6 +573,7 @@ BK.module('medias', function (page) {
     if (M.racine === 'discord' || M.pile.length <= 1) return allerRacine('cloud');     // tout en haut : la liste des dossiers
     M.pile.pop(); charger(); };
   const taille = d => { M.taille = Math.min(TAILLES.length - 1, Math.max(0, M.taille + d)); BK.regler('medias.taille', M.taille); rendre(!!M.filtre); };
+  $('#mdVue').onclick = () => { M.liste = !M.liste; BK.regler('medias.liste', M.liste); rendre(!!M.filtre); };
   $('#mdMoins').onclick = () => taille(-1); $('#mdPlus2').onclick = () => taille(1);
   $('#mdCaches').onclick = () => { M.voirCaches = !M.voirCaches; msg(M.voirCaches ? 'Les fichiers masqués · ✕ pour les remettre' : 'PRÊT'); rendre(!!M.filtre); };
   $('#mdAjout').onclick = () => $('#mdInput').click();

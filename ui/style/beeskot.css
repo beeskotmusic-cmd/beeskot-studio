@@ -2310,3 +2310,15 @@ div.to-as-tete{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
 .t2-fen-l{display:flex;flex-direction:column;gap:3px;max-height:50vh;overflow:auto}
 .t2-fen-l button{text-align:left;display:flex;justify-content:space-between}.t2-fen-l i{opacity:.6;font-style:normal}
 .t2-fen-e{margin:0;color:#ffb84d;font-size:11px;min-height:12px}
+
+/* Médias en LISTE (bouton ☰), comme sur téléphone : une ligne par fichier, petite vignette + nom */
+.md-grille.md-liste{display:flex!important;flex-direction:column;gap:4px!important}
+.md-grille.md-liste .md-tuile{flex-direction:row!important;align-items:center;gap:10px!important;padding:5px 8px!important;width:100%;min-height:48px;box-sizing:border-box}
+.md-grille.md-liste .md-img{flex:none;width:44px;height:44px;aspect-ratio:auto!important}
+.md-grille.md-liste .md-img .md-sur,.md-grille.md-liste .md-img .md-ext{display:none!important}
+.md-grille.md-liste .md-img .md-duree{font-size:8.5px!important;padding:1px 3px!important}
+.md-grille.md-liste .md-nom{display:block!important;flex:1 1 0;min-width:0;font-size:13.5px!important;text-align:left!important;white-space:nowrap!important;overflow:hidden;text-overflow:ellipsis}
+.md-grille.md-liste .md-dos-ic{flex:none;width:44px;text-align:center;font-size:22px!important}
+.md-grille.md-liste .md-dos-badge{position:static!important;flex:none}
+.md-grille.md-liste .md-x{position:static!important;flex:none;min-width:34px;min-height:34px}
+html.tel #mdVue{display:none!important}   /* sur téléphone c'est toujours en liste */
