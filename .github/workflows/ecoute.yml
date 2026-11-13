@@ -1,0 +1,47 @@
+# Met à jour tout seul le Worker Cloudflare « ecoute » (liens d'écoute + lien cameraman)
+# à chaque push qui change ecoute-web/worker.js. Aussi à la main : onglet « Actions » › « Run workflow ».
+# Il faut une seule fois le secret GitHub CLOUDFLARE_API_TOKEN (voir ecoute-web/LISEZ-MOI.txt).
+# Sans ce secret, rien ne se passe (pas d'erreur).
+name: Mettre à jour Cloudflare (ecoute)
+
+on:
+  push:
+    branches: [main]
+    paths: ['ecoute-web/worker.js']
+  workflow_dispatch:
+
+jobs:
+  deployer:
+    runs-on: ubuntu-latest
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: 053310ae3ac2abd522b91d8164dc25b1
+    steps:
+      - uses: actions/checkout@v4
+        if: env.CLOUDFLARE_API_TOKEN != ''
+      - uses: actions/setup-node@v4
+        if: env.CLOUDFLARE_API_TOKEN != ''
+        with:
+          node-version: 22
+      - name: Déployer
+        if: env.CLOUDFLARE_API_TOKEN != ''
+        working-directory: ecoute-web
+        run: |
+          # Retrouve le KV « beeskot-ecoutes » (compteur d'écoutes) pour ne pas le décrocher
+          KV=$(npx -y wrangler@4 kv namespace list | node -e "let s='';process.stdin.on('data',d=>s+=d).on('end',()=>{const l=JSON.parse(s.slice(s.indexOf('[')));const k=l.find(x=>x.title==='beeskot-ecoutes');process.stdout.write(k?k.id:'')})")
+          {
+            echo 'name = "ecoute"'
+            echo 'main = "worker.js"'
+            echo 'compatibility_date = "2025-01-01"'
+            echo 'workers_dev = true'
+            echo 'keep_vars = true'
+            if [ -n "$KV" ]; then
+              echo '[[kv_namespaces]]'
+              echo 'binding = "ECOUTES"'
+              echo "id = \"$KV\""
+            else
+              echo "::error::KV beeskot-ecoutes introuvable : on ne déploie pas (sinon le compteur d'écoutes serait décroché)" >&2; exit 1
+            fi
+          } > wrangler.toml
+          cat wrangler.toml
+          npx -y wrangler@4 deploy

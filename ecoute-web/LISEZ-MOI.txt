@@ -30,6 +30,13 @@ Les écoutes et les extraits (depuis la 0.9.123)
   Sans ce KV, la page marche mais ne compte rien. BEESKOT Studio lit les chiffres à …/<code>/stats.
 
 Modifier la page plus tard
+  Automatique : changer worker.js ici et push. GitHub › Actions › « Mettre à jour Cloudflare (ecoute) » s'en charge.
+  Il faut une seule fois le secret GitHub CLOUDFLARE_API_TOKEN :
+    a. dash.cloudflare.com › en haut à droite (profil) › My Profile › API Tokens › Create Token
+       › modèle « Edit Cloudflare Workers » › Use template › Account Resources : Beeskot › Continue › Create Token › copier.
+    b. github.com/beeskotmusic-cmd/beeskot-studio › Settings › Secrets and variables › Actions
+       › New repository secret › Name : CLOUDFLARE_API_TOKEN › coller › Add secret.
+  À la main (secours) :
   1. Changer worker.js ici.
   2. dash.cloudflare.com › Workers & Pages › ecoute › « Edit code » : tout remplacer par le nouveau worker.js › Deploy.
   Les images et polices viennent du dépôt GitHub (jsDelivr), figées sur un commit : ligne ASSETS en haut de worker.js.
