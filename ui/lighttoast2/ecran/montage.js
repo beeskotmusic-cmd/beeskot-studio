@@ -25,7 +25,7 @@ class Montage {
       <div class="lt2-haut"><div class="lt2-sep" data-sep="g" title="Glisse pour élargir ou réduire (double-clic : taille de départ)"></div><div class="lt2-sep" data-sep="d" title="Glisse pour élargir ou réduire (double-clic : taille de départ)"></div>
         <section class="lt2-pan lt2-biblio"><h3>Bibliothèque</h3>
           <h4>Musique</h4><div class="lt2-musique"><div class="lt2-mnom">Aucune musique</div><button data-a="musique" class="lt2-pri">Choisir la musique…</button>
-          <select class="lt2-passage" hidden title="Les passages choisis pour les reels (Reels Audio, Tournages, Discord)"></select></div>
+</div>
           <div class="lt2-biblio-l"></div></section>
         <section class="lt2-pan lt2-moni"><div class="lt2-moni-h"><h3>Moniteur</h3>
           <span class="lt2-seg lt2-mode"><button data-vue="tubes" class="on" title="L'image envoyée aux tubes">Tubes</button><button data-vue="3d" title="Le studio éclairé par les tubes">Studio 3D</button></span>
@@ -37,11 +37,12 @@ class Montage {
         <section class="lt2-pan lt2-insp"><h3>Inspecteur</h3><div class="lt2-insp-c"></div></section>
       </div>
       <div class="lt2-barre"><div class="lt2-sep-b" data-sep="b" title="Glisse pour agrandir ou réduire la timeline (double-clic : taille de départ)"></div>
-        <span class="lt2-grp"><button data-o="selection" title="Sélection (V)">V</button><button data-o="rasoir" title="Rasoir (C)">✂</button><button data-a="aimant" title="Magnétisme (S)">⊓</button></span>
+        <span class="lt2-grp"><button data-o="selection" title="Sélection (V)">V</button><button data-o="rasoir" title="Rasoir (C)">✂</button><button data-o="main" title="Main (H) : glisser pour aller à gauche / à droite. Garder H appuyé = le temps de l'appui">✋</button><button data-a="aimant" title="Magnétisme (S)">⊓</button></span>
         <span class="lt2-grp"><button data-a="annuler" title="Annuler (Ctrl+Z)">↶</button><button data-a="retablir" title="Rétablir (Ctrl+Maj+Z)">↷</button></span>
         <span class="lt2-grp lt2-lect"><button data-a="debut" title="Début (Origine)">⏮</button><button data-a="lire" class="lt2-pri" title="Lecture / pause (Espace)">▶</button><button data-a="fin" title="Fin (Fin)">⏭</button></span>
         <span class="lt2-lcd" title="minutes : secondes : images">0:00:00</span>
         <span class="lt2-grp"><button data-a="zmoins" title="Zoom − (-)">−</button><button data-a="tout" title="Tout voir (\\)">⟷</button><button data-a="zplus" title="Zoom + (+)">+</button></span>
+        <span class="lt2-grp lt2-pass"><select class="lt2-passage" title="Les passages des Reels du morceau (Reels Audio, Tournages, Discord, Synch bread) : en choisir un pose I / O"><option value="">Passage : morceau entier</option><option disabled>(choisis d'abord la musique)</option></select><button data-a="ralenti" hidden title="Jouer (et exporter) à la vitesse du tournage">Vitesse tournage</button></span>
         <span class="lt2-aide">J K L · I / O · C · V · S · Ctrl+K couper · Suppr</span>
       </div>
       <div class="lt2-tl"></div>`;
@@ -49,6 +50,7 @@ class Montage {
     this.lcd = racine.querySelector('.lt2-lcd');
     this.tl = new LT.Timeline(this, racine.querySelector('.lt2-tl'));
     this.tailles(); this.pleinLecteur();
+    racine.addEventListener('contextmenu', e => { if (!e.target.closest('input,textarea,[contenteditable]')) e.preventDefault(); });   // pas de menu du navigateur (« Enregistrer l'image sous… ») dans TOAST2
     this.insp = new LT.Inspecteur(this, racine.querySelector('.lt2-insp-c'));
     this.biblio(); this.boutons(); this.clavier();
     this.change(); requestAnimationFrame(() => this.tl.toutVoir());
@@ -74,7 +76,7 @@ class Montage {
   // ---------- sélection ----------
   // un clip choisi = { k (le clip), liste (le tableau qui le contient), sorte }
   toutesListes() {
-    const P = this.projet, L = [{ liste: P.peches.clips, sorte: 'peches' }, { liste: P.couleur.clips, sorte: 'couleur' }, { liste: P.declencheurs || (P.declencheurs = []), sorte: 'declencheurs' }];
+    const P = this.projet, L = [{ liste: P.peches.clips, sorte: 'peches' }, ...(P.peches.autres || []).map(x => ({ liste: x.clips, sorte: 'peches' })), { liste: P.couleur.clips, sorte: 'couleur' }, { liste: P.transitions || (P.transitions = []), sorte: 'transitions' }, { liste: P.declencheurs || (P.declencheurs = []), sorte: 'declencheurs' }];
     P.effets.forEach(e => L.push({ liste: e.clips, sorte: 'effets' }));
     return L;
   }
@@ -127,7 +129,7 @@ class Montage {
     this.selection = new Set(neufs); this.change();
   }
   // les points de montage (débuts / fins de clips, pêches) pour sauter de l'un à l'autre
-  points() { const s = new Set([0]); this.toutesListes().forEach(({ liste }) => liste.forEach(k => k.t != null ? s.add(k.t) : (s.add(k.debut), s.add(k.fin)))); return [...s].sort((a, b) => a - b); }
+  points() { const s = new Set([0, ...(this.projet.marqueurs || []).map(q => q.t)]); this.toutesListes().forEach(({ liste }) => liste.forEach(k => k.t != null ? s.add(k.t) : (s.add(k.debut), s.add(k.fin)))); return [...s].sort((a, b) => a - b); }
 
   // ---------- temps et lecture ----------
   debutMin() { const f = LT.decompte.fenetre(this.projet); return f ? Math.min(0, f.debut) : 0; }
@@ -174,7 +176,7 @@ class Montage {
   // le lecteur du plein écran : ⏮ ▶ ⏭, le temps, une ligne pour aller ailleurs ; il s'efface quand la souris ne bouge plus
   pleinLecteur() {
     const moni = this.r.querySelector('.lt2-moni'), L = moni.querySelector('.lt2-pleinlec'), barre = L.querySelector('.lt2-pl-barre');
-    L.querySelectorAll('[data-pl]').forEach(b => b.onclick = () => { const a = b.dataset.pl; if (a === 'lire') this.lire(this.vitesse ? 0 : 1); if (a === 'debut') this.aller(this.debutMin()); if (a === 'fin') this.aller(this.duree()); });
+    L.querySelectorAll('[data-pl]').forEach(b => b.onclick = () => { const a = b.dataset.pl; if (a === 'lire') this.lire(this.vitesse ? 0 : this.vitLecture()); if (a === 'debut') this.aller(this.debutMin()); if (a === 'fin') this.aller(this.duree()); });
     const viser = e => { const r = barre.getBoundingClientRect(), d = this.duree() || 1; this.aller(Math.min(Math.max(0, (e.clientX - r.left) / r.width), 1) * d); };
     barre.onpointerdown = e => { barre.setPointerCapture(e.pointerId); viser(e); barre.onpointermove = viser; };
     barre.onpointerup = () => { barre.onpointermove = null; };
@@ -209,16 +211,26 @@ class Montage {
   }
 
   // ---------- musique, passages, stems ----------
+  // un petit message sous la musique (il s'efface tout seul)
+  dire(t) {
+    let el = this.r.querySelector('.lt2-msg'); if (!el) { el = document.createElement('p'); el.className = 'lt2-msg'; this.r.querySelector('.lt2-musique').appendChild(el); }
+    el.textContent = t; el.hidden = false; clearTimeout(this._msg); this._msg = setTimeout(() => { el.hidden = true; }, 12000);
+  }
   async chargerMusique(choix) {
     choix = choix || await LT.sources.choisirMusique(); if (!choix) return;
     const nom = this.r.querySelector('.lt2-mnom'); nom.textContent = 'Chargement…';
     try {
       const buf = await this.son.decoder(choix.octets); this.lire(0);
+      // une musique était déjà là (ancien mix) : on cale la nouvelle dessus, puis on décale tout le projet d'autant
+      let cal = null; const avant = this.son.musique;
+      if (avant) { nom.textContent = 'Calage sur l\'ancienne musique…'; await new Promise(r => setTimeout(r, 30)); try { cal = LT.analyse.caler(avant, buf); } catch (e) { cal = null; } }
       this.son.musique = buf; this.sr = buf.sampleRate; this.pics = LT.analyse.pics(this.son.canaux(buf));
-      this.modifier(() => { const P = this.projet, ancien = P.duree || 60; P.couleur.clips.forEach(c => { if (Math.abs(c.fin - ancien) < .01) c.fin = buf.duration; }); P.duree = buf.duration; this.projet.musique = { nom: choix.nom, morceau: choix.morceau || null, version: choix.version || null, passage: null }; });
+      const bon = cal && cal.net > 6 && cal.sur > .15;   // assez sûr pour décaler
+      this.modifier(() => { if (bon && Math.abs(cal.d) > .002) LT.projet.decaler(this.projet, cal.d); const P = this.projet, ancien = P.duree || 60; P.couleur.clips.forEach(c => { if (Math.abs(c.fin - ancien) < .01) c.fin = buf.duration; }); P.duree = buf.duration; this.projet.musique = { nom: choix.nom, morceau: choix.morceau || null, version: choix.version || null, passage: null }; });
       this.tl.toutVoir(); await this.majPassages();
     } catch (e) { nom.textContent = 'Son illisible : ' + (e.message || e); return; }
     this.majMusique();
+    if (cal) this.dire(bon ? (Math.abs(cal.d) > .002 ? `Nouvelle musique calée : tout le projet est décalé de ${cal.d > 0 ? '+' : ''}${cal.d.toFixed(3).replace('.', ',')} s (Ctrl+Z pour annuler).` : 'Nouvelle musique : déjà calée, rien à décaler.') : 'Nouvelle musique : je n\'ai pas réussi à la caler sur l\'ancienne (morceau trop différent ?). Rien n\'a été décalé.');
   }
   // remettre le son d'un projet rouvert (sans rien changer au projet)
   async poserMusique(octets, buf) {
@@ -233,21 +245,30 @@ class Montage {
   // les passages des reels (Reels Audio, Tournages, Discord) : en choisir un place l'entrée / la sortie
   async majPassages() {
     const mu = this.projet.musique, sel = this.r.querySelector('.lt2-passage');
-    this.listePassages = mu && mu.morceau ? await LT.sources.passages(mu.morceau).catch(() => []) : [];
-    sel.hidden = !this.listePassages.length;
-    const pa = mu && mu.passage, f = t => Math.floor(t / 60) + ':' + String(Math.floor(t % 60)).padStart(2, '0');
-    sel.innerHTML = `<option value="">Morceau entier</option>` + this.listePassages.map((p, i) => `<option value="${i}"${pa && pa.debut === p.debut && pa.fin === p.fin ? ' selected' : ''}>${f(p.debut)} → ${f(p.fin)} · ${String(p.nom).replace(/</g, '&lt;')}</option>`).join('');
+    this.listePassages = mu && (mu.morceau || mu.nom) ? await LT.sources.passages(mu.morceau, mu.nom || this.projet.nom).catch(() => []) : [];
+    const pa = mu && mu.passage, f = t => Math.floor(t / 60) + ':' + String(Math.floor(t % 60)).padStart(2, '0'), x = v => String(Math.round(v * 100) / 100).replace('.', ',');
+    sel.innerHTML = `<option value="">Passage : morceau entier</option>` + (this.listePassages.length ? this.listePassages.map((p, i) => `<option value="${i}"${pa && pa.debut === p.debut && pa.fin === p.fin ? ' selected' : ''}>${f(p.debut)} → ${f(p.fin)} · ${String(p.nom).replace(/</g, '&lt;')}${p.v && p.v !== 1 ? ' · ×' + x(p.v) : ''}</option>`).join('') : '<option disabled>(aucun passage dans Reels pour ce morceau)</option>');
+    this.majRalenti();
   }
+  // un passage avec une vitesse de tournage (×0,5…) : un bouton pour jouer / exporter à cette vitesse
+  majRalenti() {
+    const b = this.r.querySelector('[data-a="ralenti"]'), pa = this.projet.musique && this.projet.musique.passage, v = pa && pa.v && pa.v !== 1 ? pa.v : null;
+    if (!v) this.ralenti = null;
+    b.hidden = !v; b.classList.toggle('on', !!this.ralenti); if (v) b.textContent = 'Vitesse tournage ×' + String(Math.round(v * 100) / 100).replace('.', ',');
+  }
+  vitLecture() { return this.ralenti || 1; }
   choisirPassage(i) {
-    const p = this.listePassages[i];
-    this.modifier(() => { this.projet.musique.passage = p ? { debut: p.debut, fin: p.fin, nom: p.nom } : null; });
+    const p = this.listePassages[i]; this.ralenti = null;
+    if (this.projet.musique) this.modifier(() => { this.projet.musique.passage = p ? { debut: p.debut, fin: p.fin, nom: p.nom, v: p.v || 1 } : null; });
     this.entree = p ? p.debut : null; this.sortie = p ? p.fin : null;
     if (p) { const a = this.debutBoucle(); this.aller(a); const w = this.tl.cv.clientWidth; this.tl.pps = Math.max(4, (w - 40) / (p.fin - a)); this.tl.debut = Math.max(this.debutMin(), a - 20 / this.tl.pps); }
-    this.tl.redessiner();
+    this.majRalenti(); this.tl.redessiner();
   }
   async ajouterStems() {
     const l = await LT.sources.choisirStems(); if (!l || !l.length) return;
     const COUL = ['#ff5f5f', '#ffb84d', '#7be0ff', '#9ad14b', '#c58bff', '#ff9ad5'];
+    // plusieurs stems du même morceau commencent tous pareil (« OPP_BEESKOT_… ») : on enlève le début commun pour voir la différence
+    if (l.length > 1) { let c = l[0].nom; for (const f of l) while (c && !f.nom.startsWith(c)) c = c.slice(0, -1); c = c.replace(/[^_\-\s.]*$/, ''); if (c.length > 2) l.forEach(f => { const r = f.nom.slice(c.length).trim(); if (r) f.nom = r; }); }
     for (const f of l) {
       try {
         const buf = await this.son.decoder(f.octets), a = await LT.analyse.coups(this.son.canaux(buf), buf.sampleRate);
@@ -332,14 +353,22 @@ class Montage {
   //   couleur → sur une lumière (piste Couleur) = un calque de cette couleur ; sur un clip = sa couleur change
   //   effet   → sur une piste d'effets ; ou directement sur une lumière = un effet sur cette lumière seulement
   biblio() {
-    const l = this.r.querySelector('.lt2-biblio-l'), P = this.projet;
+    const l = this.r.querySelector('.lt2-biblio-l'), P = this.projet, esc = x => String(x).replace(/</g, '&lt;');
     const liste = sorte => Object.entries(LT.effets).filter(([, f]) => f.sorte === sorte).map(([k, f]) => `<div class="lt2-item s-${sorte}" draggable="true" data-glisse="effet:${k}">${f.nom}</div>`).join('');
-    l.innerHTML = (this.morceaux && this.morceaux.length ? '<h4>Morceaux</h4><div class="lt2-morceaux">' + this.morceaux.map(m => `<div class="lt2-item lt2-morceau" data-morceau="${m.id}" title="Nouveau projet avec ce morceau">${String(m.nom).replace(/</g, '&lt;')}</div>`).join('') + '</div>' : '') + '<h4>Couleur</h4><div class="lt2-item s-couleur" draggable="true" data-glisse="calque:" title="Glisse-le sur une lumière : un nouveau calque de couleur, par-dessus ce qu\'il y a déjà">Calque de couleur</div><div class="lt2-item s-couleur" draggable="true" data-glisse="calque:bi" title="Plusieurs couleurs : la lumière coupée en parts égales (bouton + pour en ajouter)">Bi-color</div><div class="lt2-item s-couleur" draggable="true" data-glisse="calque:degrade" title="Une couleur en haut qui passe doucement à une autre en bas">Dégradé</div><h4>Palette</h4><div class="lt2-pal">' + P.palette.map(h => `<span class="lt2-pas" draggable="true" data-glisse="couleur:${h}" style="background:${h}" title="Glisse sur une lumière (piste Couleur) ou sur un clip"></span>`).join('') + '</div>' +
-      '<h4>Overlays · textures</h4>' + liste('overlay') + '<h4>Mouvements</h4>' + liste('mouvement') +
-      '<p class="lt2-vide">Glisse sur la timeline. Calque de couleur : sur une lumière, puis coche ses lumières dans l\'Inspecteur. Pastille : sur un calque pour changer sa couleur. Effet : sur une piste d\'effets ou sur une lumière.</p>';
+    // chaque partie est un menu déroulant (ouvert / fermé gardé sur ce PC)
+    let ouv; try { ouv = JSON.parse(localStorage.getItem('lt2.biblio')) || { couleur: true }; } catch (e) { ouv = { couleur: true }; }
+    const part = (cle, titre, html) => `<details class="lt2-part" data-part="${cle}"${ouv[cle] ? ' open' : ''}><summary>${titre}</summary><div class="lt2-part-c">${html}</div></details>`;
+    l.innerHTML = (this.morceaux && this.morceaux.length ? part('morceaux', 'Morceaux', '<div class="lt2-morceaux">' + this.morceaux.map(m => `<div class="lt2-item lt2-morceau" data-morceau="${m.id}" title="Nouveau projet avec ce morceau">${esc(m.nom)}</div>`).join('') + '</div>') : '')
+      + part('couleur', 'Couleur', '<div class="lt2-item s-couleur" draggable="true" data-glisse="calque:" title="Glisse-le sur une lumière : un nouveau calque de couleur, par-dessus ce qu\'il y a déjà">Calque de couleur</div><div class="lt2-item s-couleur" draggable="true" data-glisse="calque:bi" title="Plusieurs couleurs : la lumière coupée en parts égales (bouton + pour en ajouter)">Bi-color</div><div class="lt2-item s-couleur" draggable="true" data-glisse="calque:degrade" title="Une couleur en haut qui passe doucement à une autre en bas">Dégradé</div>')
+      + part('palette', 'Palette', '<div class="lt2-pal">' + P.palette.map(h => `<span class="lt2-pas" draggable="true" data-glisse="couleur:${h}" style="background:${h}" title="Glisse sur une lumière (piste Couleur) ou sur un clip"></span>`).join('') + '</div>')
+      + part('transitions', 'Transitions', Object.entries(LT.TRANSITIONS).map(([k, x]) => `<div class="lt2-item s-trans" draggable="true" data-glisse="transition:${k}" title="${x.aide} — glisse-la sur la coupure entre deux calques">${x.nom}</div>`).join(''))
+      + part('overlay', 'Overlays · textures', liste('overlay'))
+      + part('mouvement', 'Mouvements', liste('mouvement'));
+    l.querySelectorAll('details[data-part]').forEach(d => d.ontoggle = () => { ouv[d.dataset.part] = d.open; try { localStorage.setItem('lt2.biblio', JSON.stringify(ouv)); } catch (e) { } });
     l.querySelectorAll('[data-morceau]').forEach(el => el.onclick = () => this.surMorceau && this.surMorceau(el.dataset.morceau));
     l.querySelectorAll('[data-glisse]').forEach(el => el.ondragstart = e => { e.dataTransfer.setData('text/plain', el.dataset.glisse); e.dataTransfer.effectAllowed = 'copy'; this.glisse = el.dataset.glisse; });
   }
+
   // une piste d'effets où [debut, fin] est libre, à partir de la piste n° i (sinon une nouvelle piste en haut)
   pisteLibre(debut, fin, i = 0) {
     const E = this.projet.effets;
@@ -381,6 +410,21 @@ class Montage {
       }
     }
   }
+  // ---------- transitions ----------
+  // la coupure la plus proche de t sur cette lumière (fin d'un calque / début d'un autre) ; null si aucune à moins de « pres » secondes
+  coupure(t, zone, pres = 1.5) {
+    let best = null;
+    for (const c of this.projet.couleur.clips) if (c.zones.includes(zone)) for (const x of [c.debut, c.fin]) if (x > 1e-3 && Math.abs(x - t) <= pres && (best == null || Math.abs(x - t) < Math.abs(best - t))) best = x;
+    return best;
+  }
+  // pose une transition à cheval sur la coupure la plus proche, sur toutes les lumières coupées à ce moment-là
+  ajouterTransition(trans, t, zone) {
+    const P = this.projet, tc = this.coupure(t, zone) ?? t, d = Math.max(.5, 60 / (P.bpm || 120)), e = 1e-3;   // 1 temps, au moins ½ s
+    const zones = P.materiel.zones.map(z => z.id).filter(id => P.couleur.clips.some(c => c.zones.includes(id) && (Math.abs(c.debut - tc) < e || Math.abs(c.fin - tc) < e)));
+    if (!zones.includes(zone)) zones.push(zone);
+    const k = { id: LT.id(), trans, debut: Math.max(0, tc - d / 2), fin: tc + d / 2, zones: P.materiel.zones.map(z => z.id).filter(id => zones.includes(id)), forme: 'douce', sens: 'normal', couleur: P.palette[0] };
+    this.modifier(() => { (P.transitions = P.transitions || []).push(k); }); this.choisir(k); return k;
+  }
   // ce qui arrive d'un glisser (appelé par la timeline) ; o = l'endroit (piste, clip, temps)
   deposer(quoi, o) {
     const [sorte, val] = quoi.split(':'), P = this.projet, d = Math.max(1, 60 / (P.bpm || 120) * 4), t = Math.max(0, o.t), p = o.p; if (!p) return;   // au moins 1 seconde
@@ -395,6 +439,7 @@ class Montage {
       if (o.k && (p.sorte === 'couleur' || p.sorte === 'effets')) return this.modifier(() => { o.k.couleur = val; if (o.k.couleurs && o.k.couleurs.length) o.k.couleurs[0] = val; if (p.sorte === 'effets') o.k.mode = 'lumiere'; });
       if (p.sorte === 'couleur') calque(val);
     }
+    if (sorte === 'transition' && p.sorte === 'couleur') k = this.ajouterTransition(val, t, p.zone.id);
     if (sorte === 'effet') {
       if (o.k && p.sorte === 'effets') return this.modifier(() => { o.k.effet = val; o.k.reglages = {}; });
       if (p.sorte === 'effets') { k = LT.projet.nouvelEffet(val, t, t + d, P); this.modifier(() => this.pisteLibre(k.debut, k.fin, P.effets.indexOf(p.piste)).clips.push(k)); }
@@ -429,9 +474,10 @@ class Montage {
       const b = e.target.closest('button'); if (!b) return;
       if (b.dataset.o) this.choisirOutil(b.dataset.o);
       const a = b.dataset.a;
+      if (a === 'ralenti') { this.ralenti = this.ralenti ? null : this.projet.musique.passage.v; this.majRalenti(); if (this.vitesse) this.lire(this.vitLecture()); }
       if (a === 'aimant') { this.aimant = !this.aimant; this.etatBoutons(); }
       if (a === 'annuler') this.annuler(); if (a === 'retablir') this.retablir();
-      if (a === 'lire') this.lire(this.vitesse ? 0 : 1);
+      if (a === 'lire') this.lire(this.vitesse ? 0 : this.vitLecture());
       if (a === 'debut') this.aller(this.debutMin()); if (a === 'fin') this.aller(this.duree());
       if (a === 'zplus') this.tl.zoomer(1.4); if (a === 'zmoins') this.tl.zoomer(1 / 1.4); if (a === 'tout') this.tl.toutVoir();
     });
@@ -457,7 +503,7 @@ class Montage {
       if (ctrl && k === 'a') { fait(); this.toutesListes().forEach(({ liste }) => liste.forEach(c => this.selection.add(c.id))); this.change(); return; }
       if (ctrl) return;
       switch (k) {
-        case ' ': fait(); this.lire(this.vitesse ? 0 : 1); break;
+        case ' ': fait(); this.lire(this.vitesse ? 0 : this.vitLecture()); break;
         case 'l': this.lire(this.vitesse > 0 ? Math.min(8, this.vitesse * 2) : 1); break;
         case 'j': this.lire(this.vitesse < 0 ? Math.max(-8, this.vitesse * 2) : -1); break;
         case 'k': this.lire(0); break;
@@ -466,6 +512,8 @@ class Montage {
         case 'x': this.entree = this.sortie = null; this.tl.redessiner(); break;
         case 'v': this.choisirOutil('selection'); break;
         case 'c': this.choisirOutil('rasoir'); break;
+        case 'm': { const P = this.projet, t = this.temps; if ((P.marqueurs || []).some(q => Math.abs(q.t - t) < .01)) break; this.modifier(() => { (P.marqueurs = P.marqueurs || []).push({ id: LT.id(), t, nom: '', couleur: '#7be0ff' }); P.marqueurs.sort((a, b) => a.t - b.t); }); break; }   // M : un marqueur ici
+        case 'h': if (!e.repeat && this.outil !== 'main') { this._avantMain = this.outil; this._hT = performance.now(); this.choisirOutil('main'); } break;   // H : la main (gardé appuyé = provisoire)
         case 's': this.aimant = !this.aimant; this.etatBoutons(); break;
         case 'delete': case 'backspace': fait(); this.supprimer(); break;
         case 'arrowleft': fait(); this.aller(this.temps - (e.shiftKey ? 1 : img)); break;
@@ -481,8 +529,11 @@ class Montage {
       }
     };
     document.addEventListener('keydown', this._clavier, true);   // en premier : Espace ne lance pas aussi le petit lecteur de BS
+    // H gardé appuyé plus d'un instant : en le lâchant, on revient à l'outil d'avant
+    this._clavierH = e => { if (e.key.toLowerCase() === 'h' && this._hT && performance.now() - this._hT > 300 && this.outil === 'main') this.choisirOutil(this._avantMain || 'selection'); this._hT = 0; };
+    document.addEventListener('keyup', this._clavierH, true);
   }
-  detruire() { this.tl.fermerMenu(); document.removeEventListener('keydown', this._clavier); this.lire(0); }
+  detruire() { this.tl.fermerMenu(); document.removeEventListener('keydown', this._clavier, true); document.removeEventListener('keyup', this._clavierH, true); this.lire(0); }
 }
 LT.Montage = Montage;
 })(typeof self !== 'undefined' ? self : this);

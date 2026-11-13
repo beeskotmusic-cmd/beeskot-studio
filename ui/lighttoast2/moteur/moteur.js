@@ -27,6 +27,26 @@ const enveloppe = (c, t) => {
 // calques à plusieurs couleurs (v = hauteur dans la lumière, 0 en haut, 1 en bas)
 const bandes = (cs, v) => cs[Math.min(cs.length - 1, Math.floor(v * cs.length))];
 const degrade = (cs, v) => { const x = v * (cs.length - 1), i = Math.min(cs.length - 2, Math.floor(x)), f = x - i, a = cs[i], b = cs[i + 1]; return [a[0] + (b[0] - a[0]) * f, a[1] + (b[1] - a[1]) * f, a[2] + (b[2] - a[2]) * f]; };
+// ---- les transitions entre deux calques (A = avant, B = après, p = 0 → 1) ----
+const melange = (l, v) => { let R = 0, V = 0, B = 0; for (const k of l) { const q = k.f ? k.f(v) : k.col; R += (q[0] - R) * k.a; V += (q[1] - V) * k.a; B += (q[2] - B) * k.a; } return [R, V, B]; };
+const lerp = (a, b, f) => [a[0] + (b[0] - a[0]) * f, a[1] + (b[1] - a[1]) * f, a[2] + (b[2] - a[2]) * f];
+const lisse = x => x <= 0 ? 0 : x >= 1 ? 1 : x * x * (3 - 2 * x);
+const NOIR = [0, 0, 0], BLANC = [1, 1, 1];
+function transition(tr, v, bps) {
+  const k = tr.k, A = melange(tr.A, v), Bc = melange(tr.B, v), doux = k.forme !== 'nette';
+  let p = Math.min(1, Math.max(0, tr.p)); const pe = doux ? lisse(p) : p;
+  const par = mil => p < .5 ? lerp(A, mil, doux ? lisse(p * 2) : p * 2) : lerp(mil, Bc, doux ? lisse(p * 2 - 1) : p * 2 - 1);
+  switch (k.trans) {
+    case 'sombre': return par(NOIR);
+    case 'clair': return par(BLANC);
+    case 'couleur': return par(tr.col);
+    case 'flash': { const w = Math.pow(Math.max(0, 1 - Math.abs(p - .5) * 2.5), 2); return lerp(p < .5 ? A : Bc, BLANC, w); }
+    case 'balayage': { const x = k.sens === 'inverse' ? 1 - v : v; return lerp(A, Bc, lisse((p * 1.2 - x) / .2 + .5)); }   // B arrive par le haut (ou par le bas)
+    case 'cascade': { const s = (tr.zi + .5) / tr.nz; return lerp(A, Bc, lisse((p - s) / .18 + .5)); }   // les lumières l'une après l'autre
+    case 'clignote': { if (p > .85) return Bc; return Math.floor(tr.lt * bps * 2) % 2 ? Bc : A; }   // A / B au demi-temps, puis B
+    default: return lerp(A, Bc, pe);   // fondu
+  }
+}
 const ecran = (o, i, r, g, b) => { o[i] = 1 - (1 - o[i]) * (1 - r); o[i + 1] = 1 - (1 - o[i + 1]) * (1 - g); o[i + 2] = 1 - (1 - o[i + 2]) * (1 - b); };
 
 class Moteur {
@@ -42,7 +62,8 @@ class Moteur {
   // ---- ce qui joue à l'instant t (préparé une fois par image, pas par point) ----
   preparer(t) {
     const P = this.projet, ids = P.materiel.zones.map(z => z.id);
-    const couleurs = P.couleur.clips.filter(c => actif(c, t)).sort((a, b) => a.debut - b.debut).map(c => {
+    // la pile des calques de couleur à un instant (aussi demandée juste avant / juste après une transition)
+    const pile = t => P.couleur.clips.filter(c => actif(c, t)).sort((a, b) => a.debut - b.debut).map(c => {
       const o = { c, col: rgb(c.couleur), a: enveloppe(c, t) }, cs = c.sorte && c.couleurs && c.couleurs.length > 1 ? c.couleurs.map(rgb) : null;
       if (cs) {
         if (c.sorte === 'degrade') o.f = v => degrade(cs, v);   // dégradé dans la hauteur
@@ -50,15 +71,26 @@ class Moteur {
       }
       return o;
     });
+    const couleurs = pile(t);
+    // les transitions : on mélange ce qu'il y avait AVANT (à leur début) et ce qu'il y a APRÈS (à leur fin)
+    const trans = (P.transitions || []).filter(k => actif(k, t)).map(k => ({ k, p: (t - k.debut) / ((k.fin - k.debut) || 1), A: pile(k.debut), B: pile(k.fin - 1e-4), col: rgb(k.couleur || '#ffffff'), lt: t - k.debut }));
+    // « Réagir à » un stem : au volume (la force suit le volume) ou aux coups (relancé à chaque coup, puis retombe)
+    const bpsR = (P.bpm || 120) / 60, reagir = c => {
+      const q = c.reagir; if (!q || !q.stem) return null; const st = (P.stems || []).find(s => s.id === q.stem); if (!st || st.muet) return null;
+      return LT.declencheurs.etat({ debut: -1e9, fin: 1e9, mode: q.mode === 'volume' ? 'volume' : 'coup', seuil: q.seuil ?? .1, chute: q.chute ?? .5, suitForce: true }, st, t, bpsR);
+    };
+    couleurs.forEach(o => { const e = reagir(o.c); if (e) o.a *= e.env; });
     const effets = [];   // du bas vers le haut
     P.effets.forEach(piste => !piste.muet && piste.clips.forEach(c => {
       if (!actif(c, t)) return; const def = LT.effets[c.effet]; if (!def) return;
       const zs = c.zones ? ids.filter(i => c.zones.includes(i)) : ids;
-      effets.push({ c, def, zs, r: Object.assign({}, def.reglages, c.reglages), col: rgb(c.couleur || '#ffffff'), a: enveloppe(c, t), eclat: c.eclat ?? .35 });
+      const rx = reagir(c); let a = enveloppe(c, t), pbx = null;
+      if (rx) { a *= rx.env; if (!rx.vol) pbx = Math.min(rx.lt, 60) * bpsR; }   // aux coups : l'effet repart de zéro à chaque coup
+      effets.push({ c, def, zs, r: Object.assign({}, def.reglages, c.reglages), col: rgb(c.couleur || '#ffffff'), a, pbx, eclat: c.eclat ?? def.eclat ?? .35 });
     }));
     const types = {}; P.peches.types.forEach(y => types[y.id] = y);
     const peches = [], img = 1 / this.fps;
-    P.peches.clips.forEach(pc => {
+    LT.toutesPeches(P).forEach(pc => {
       const y = types[pc.type], lt = t - pc.t; if (!y || lt < 0) return;
       const ed = Math.max(y.ed / 1000, img), fd = y.fd / 1000;   // un éclair plus court qu'une image occupe une image
       if (lt < ed) peches.push({ y, col: rgb(y.eclair), a: 1 });
@@ -76,7 +108,7 @@ class Moteur {
       if (k.action === 'effet') { d.def = LT.effets[k.effet]; const dur = (k.duree || 1) / bps; if (!d.def || e.vol || e.lt > dur) return; d.p = e.lt / dur; d.tb = e.lt * bps; }
       decl.push(d);
     });
-    return { couleurs, effets, peches, bps, decl, lum: LT.courbe(C.lum, t, 1), elum: LT.courbe(C.elum, t, 1), plum: LT.courbe(C.plum, t, 1), pb: (LT.phase(C.vitesse, t) - (P.grille || 0)) * bps };
+    return { couleurs, trans, effets, peches, bps, decl, lum: LT.courbe(C.lum, t, 1), elum: LT.courbe(C.elum, t, 1), plum: LT.courbe(C.plum, t, 1), pb: (LT.phase(C.vitesse, t) - (P.grille || 0)) * bps };
   }
 
   // ---- calcule toutes les lumières à l'instant t ----
@@ -87,10 +119,13 @@ class Moteur {
     for (let zr = 0; zr < this.zones.length; zr++) {
       const Z = this.zones[zr], z = Z.z, o = Z.buf, d = Z.img.data;
       const cols = S.couleurs.filter(c => c.c.zones.includes(z.id));
-      const eff = S.effets.filter(e => e.zs.includes(z.id)).map(e => ({ e, zi: e.zs.indexOf(z.id), nz: e.zs.length, tb: (t - e.c.debut) * S.bps, p: (t - e.c.debut) / ((e.c.fin - e.c.debut) || 1), a: e.a * S.elum }));
+      const tr = (() => { const x = S.trans.filter(q => !q.k.zones || q.k.zones.includes(z.id)).at(-1); if (!x) return null;   // une transition sur cette lumière
+        const zs = P.materiel.zones.map(q => q.id).filter(i => !x.k.zones || x.k.zones.includes(i)), zi = zs.indexOf(z.id);
+        return Object.assign({}, x, { A: x.A.filter(c => c.c.zones.includes(z.id)), B: x.B.filter(c => c.c.zones.includes(z.id)), zi: x.k.sens === 'inverse' ? zs.length - 1 - zi : zi, nz: zs.length }); })();
+      const eff = S.effets.filter(e => e.zs.includes(z.id)).map(e => ({ e, zi: e.zs.indexOf(z.id), nz: e.zs.length, tb: e.pbx ?? (t - e.c.debut) * S.bps, pb: e.pbx ?? S.pb, p: (t - e.c.debut) / ((e.c.fin - e.c.debut) || 1), a: e.a * S.elum }));
       const pec = S.peches.filter(p => !p.y.zones || p.y.zones.includes(z.id));
       const dec = S.decl.filter(d => d.zs.includes(z.id)).map(d => Object.assign({ zi: d.zs.indexOf(z.id), nz: d.zs.length }, d));
-      const mod = this.modulation ? this.modulation(t, z.id) : null, mlum = (mod ? mod.lum ?? 1 : 1) * ((P.intensites || {})[z.id] ?? 1);   // × l'intensité de cette lumière (réglage du projet)
+      const mod = this.modulation ? this.modulation(t, z.id) : null, mlum = (mod ? mod.lum ?? 1 : 1) * LT.courbe((P.courbes.zones || {})[z.id], t, 1);   // × l'intensité de cette lumière (réglage du projet)
       px.zr = zr;
       for (let r = 0, i = 0, j = 0; r < z.rangs; r++) {
         const v = (r + .5) / z.rangs;
@@ -99,12 +134,13 @@ class Moteur {
           px.u = u; px.v = v; px.gx = z.x + u * z.l; px.gy = z.y + v * z.h;
           // 1. la couleur
           let R = 0, V = 0, B = 0;
-          for (const k of cols) { const q = k.f ? k.f(v) : k.col; R += (q[0] - R) * k.a; V += (q[1] - V) * k.a; B += (q[2] - B) * k.a; }
+          if (tr) [R, V, B] = transition(tr, v, S.bps);
+          else for (const k of cols) { const q = k.f ? k.f(v) : k.col; R += (q[0] - R) * k.a; V += (q[1] - V) * k.a; B += (q[2] - B) * k.a; }
           R *= S.lum; V *= S.lum; B *= S.lum;
           // 2. les effets, du bas vers le haut
           for (const f of eff) {
             const e = f.e, a = f.a; if (a <= 0) continue;
-            px.zi = f.zi; px.nz = f.nz; px.tb = f.tb; px.p = f.p;
+            px.zi = f.zi; px.nz = f.nz; px.tb = f.tb; px.p = f.p; px.pb = f.pb;
             if (e.def.sorte === 'overlay') {
               px.k = 0; px.b = 1; e.def.rendu(px, e.r);
               const b = px.b, w = px.k * e.eclat;   // ombre → la couleur → vers le blanc
@@ -116,6 +152,7 @@ class Moteur {
               else { const k = 1 - a + a * m; R *= k; V *= k; B *= k; }
             }
           }
+          px.pb = S.pb;
           // 3. les déclencheurs des stems
           for (const d of dec) {
             const f = (d.k.force ?? 1), env = d.e.env, a = d.k.action;
@@ -147,7 +184,7 @@ class Moteur {
   // ---- pendant le décompte : seulement les lampes ----
   rendreDecompte(forces) {
     const c = LT.couleur.rgb(this.projet.decompte.couleur);
-    const I = this.projet.intensites || {}; this.zones.forEach((Z, i) => { const d = Z.img.data, a = (forces[i] || 0) * (I[Z.z.id] ?? 1); for (let j = 0; j < d.length; j += 4) { d[j] = c[0] * a * 255; d[j + 1] = c[1] * a * 255; d[j + 2] = c[2] * a * 255; d[j + 3] = 255; } Z.cx.putImageData(Z.img, 0, 0); });
+    this.zones.forEach((Z, i) => { const d = Z.img.data, a = forces[i] || 0; for (let j = 0; j < d.length; j += 4) { d[j] = c[0] * a * 255; d[j + 1] = c[1] * a * 255; d[j + 2] = c[2] * a * 255; d[j + 3] = 255; } Z.cx.putImageData(Z.img, 0, 0); });
     return this;
   }
 

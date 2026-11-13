@@ -192,18 +192,23 @@ class Vue3D {
     return this.poses[r] || null;
   }
   // un membre qui ne doit pas se promener (le chant) : on garde seulement le passage de l'animation où il reste près
-  // de sa place de départ (il boucle dessus), et on bloque le bassin en avant / arrière / côtés (le haut-bas reste)
+  // de sa place de départ, joué en MIROIR (à l'endroit puis à l'envers) : pas de saut quand ça reprend.
+  // Le bassin n'est PAS bloqué (sinon les pieds glissent sur le sol).
   surPlace(pose) {
     const tr = pose.clip.tracks.find(t => /hips\.position$/i.test(t.name)); if (!tr) return;
     const v = tr.values, T = tr.times, n = T.length, x0 = v[0], z0 = v[2], pres = i => Math.hypot(v[i * 3] - x0, v[i * 3 + 2] - z0) < 12;   // 12 cm (Mixamo compte en cm)
     let e = 0; while (e < n - 1 && pres(e + 1)) e++;
     let s = n - 1; while (s > e && pres(s)) s--; s = s < n - 1 ? s + 1 : 0;
     const D = pose.clip.duration, a = s ? T[s] : 0, b = T[e], long = (b - a + D) % D;
-    if (e < n - 1 && long > 1) pose.fen = [a, long];   // [début, durée] ; peut passer par la fin de l'animation et reprendre au début
-    for (let i = 0; i < n; i++) { v[i * 3] = x0; v[i * 3 + 2] = z0; }
+    pose.fen = e < n - 1 && long > 1 ? [a, long] : [0, D];   // [début, durée] ; peut passer par la fin de l'animation et reprendre au début
+    pose.miroir = true;
   }
   // l'instant de l'animation d'un membre (tps = temps du morceau)
-  instant(f, tps) { return f.fen ? (f.fen[0] + tps % f.fen[1]) % f.duree : (f.t0 + tps) % f.duree; }
+  instant(f, tps) {
+    if (!f.fen) return (f.t0 + tps) % f.duree;
+    const L = f.fen[1], u = f.miroir ? (p => p <= L ? p : 2 * L - p)(tps % (2 * L)) : tps % L;   // miroir : aller puis retour
+    return (f.fen[0] + Math.min(u, L - 1e-3)) % f.duree;
+  }
   // place les 3 membres selon leur rôle (projet.studio3d.membres), avec la pose si on l'a, sinon la silhouette simple
   placerMembres() {
     const T = this.T, M = LT.studio.mesures(), P = this.m.projet, roles = this.roles(), pris = {};
@@ -225,7 +230,7 @@ class Vue3D {
         }
         // l'instant de l'animation, puis : à la bonne taille, pieds au sol, centré sur le poste
         const k = .01 * p.taille / 1.76;
-        if (fig.mixer) { fig.fen = pose.fen; fig.fige = !!c.fige; fig.t0 = fig.fen ? fig.fen[0] : pose.clip.duration * poste.temps; fig.duree = pose.clip.duration; fig.mixer.setTime(fig.t0); }
+        if (fig.mixer) { fig.fen = pose.fen; fig.miroir = pose.miroir; fig.fige = !!c.fige; fig.t0 = fig.fen ? fig.fen[0] : pose.clip.duration * poste.temps; fig.duree = pose.clip.duration; fig.mixer.setTime(fig.t0); }
         fig.copie.position.set(0, 0, 0); fig.groupe.position.set(0, 0, 0); fig.groupe.rotation.set(0, 0, 0); fig.groupe.scale.setScalar(1);
         fig.groupe.updateMatrixWorld(true);   // mesurer sans l'ancienne taille / place
         const b = new T.Box3().setFromObject(fig.copie, true);

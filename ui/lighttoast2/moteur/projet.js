@@ -5,12 +5,13 @@
 //   ├ materiel        les lumières (4 tubes + le rectangle)
 //   ├ palette         les couleurs du morceau
 //   ├ couleur.clips   les calques de COULEUR : { id, debut, fin, couleur, zones:[ids], entree, sortie }
+//   ├ transitions     entre deux calques : { id, debut, fin, trans, zones, forme, sens, couleur }
 //   │                 (un clip peut couvrir plusieurs lumières = un groupe)
 //   ├ effets[]        les pistes d'effets ; effets[0] = juste au-dessus de Couleur, la dernière = tout en haut
 //   │                 clip : { id, debut, fin, effet, zones:[ids] | null (= toutes), reglages,
 //   │                          mode 'masque' | 'lumiere', couleur (mode lumière), eclat (overlays), entree, sortie, force }
 //   ├ peches          les types de pêche + les pêches posées { id, t, type }
-//   ├ courbes         lum (générale), elum (force des effets), plum (pêches), vitesse
+//   ├ courbes         lum (générale), elum (force des effets), plum (pêches), vitesse, zones { t1: [...] } (intensité de chaque lumière)
 //   ├ bpm, grille     le tempo et l'endroit du 1er temps (secondes)
 //   ├ decompte        le décompte avant le début
 //   ├ musique         le morceau choisi (+ le passage de reel choisi)
@@ -28,6 +29,7 @@ LT.projet = {
       materiel: m, palette: pal,
       // au départ : rien (lumières éteintes). On pose soi-même ses calques de couleur ; pas de grand calque derrière.
       couleur: { clips: [] },
+      transitions: [],   // { id, debut, fin, trans (fondu…), zones, forme, sens, couleur } : à cheval sur une coupure
       effets: [{ id: LT.id(), nom: 'Effets 1', clips: [] }],
       peches: {
         types: [
@@ -42,8 +44,19 @@ LT.projet = {
       stems: [], declencheurs: [],
     };
   },
+  // tout décaler de d secondes (calage d'une nouvelle musique) : calques, effets, pêches, transitions, courbes, marqueurs…
+  decaler(P, d) {
+    const k = c => { if (c.t != null) c.t = Math.max(0, c.t + d); if (c.debut != null) { c.debut += d; c.fin += d; } };
+    [P.couleur.clips, P.transitions || [], P.declencheurs || [], P.peches.clips, ...(P.peches.autres || []).map(x => x.clips), ...P.effets.map(e => e.clips)].forEach(l => l.forEach(k));
+    const pts = l => (l || []).forEach(q => { q.t = Math.max(0, q.t + d); });
+    ['lum', 'elum', 'plum', 'vitesse'].forEach(c => pts(P.courbes[c])); Object.values(P.courbes.zones || {}).forEach(pts); pts(P.marqueurs);
+    if (P.grille != null) P.grille = Math.max(0, (P.grille || 0) + d);
+    // ce qui passe avant 0 est raccourci (ou enlevé s'il ne reste rien)
+    const net = l => { for (let i = l.length - 1; i >= 0; i--) { const c = l[i]; if (c.debut != null) { if (c.fin <= 0) l.splice(i, 1); else if (c.debut < 0) c.debut = 0; } } };
+    [P.couleur.clips, P.transitions || [], P.declencheurs || [], ...P.effets.map(e => e.clips)].forEach(net);
+  },
   nouvelEffet(effet, debut, fin, P) {
-    return { id: LT.id(), debut, fin, effet, zones: null, reglages: {}, mode: 'masque', couleur: (P && P.palette[3]) || '#ffffff', eclat: .35, entree: 0, sortie: 0, force: 1 };
+    return { id: LT.id(), debut, fin, effet, zones: null, reglages: {}, mode: 'masque', couleur: (P && P.palette[3]) || '#ffffff', eclat: (LT.effets[effet] && LT.effets[effet].eclat) || .35, entree: 0, sortie: 0, force: 1 };
   },
   // un projet de démonstration (pour les essais)
 demo() {

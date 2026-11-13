@@ -14,40 +14,58 @@
 // Tout est dessiné dans un canvas (rapide), les en-têtes sont de vrais boutons.
 // Souris : clic = curseur / sélection ; glisser un clip = le déplacer (même sur une
 // autre piste du même genre) ; glisser un bord = durée ; double-clic dans le vide = nouveau clip.
-// Molette avant = zoom, arrière = dézoom ; Maj + molette = monter / descendre ; Ctrl ou Alt + molette = avancer dans le temps.
+// Molette = monter / descendre ; Alt + molette = zoom ; Ctrl + molette = avancer dans le temps.
 // =====================================================================
 (function (G) {
 const LT = G.LT;
+const FOND = { couleur: 'rgba(0,0,0,.3)', courbe: 'rgba(0,0,0,.36)', fond: 'rgba(255,255,255,.055)', effet: 'rgba(90,130,255,.11)', stem: 'rgba(255,90,170,.11)', peches: 'rgba(0,0,0,.18)', audio: 'rgba(0,0,0,.2)' };
 const EN_TETE = 150, REGLE = 26, BORD = 9, AIMANT = 8;
-const COUL = { peche: '#ff5fa2', effet: '#8a6be0', overlay: '#2f8f86', sel: '#a6f0e6', curseur: '#ffb23e', courbe: { lum: '#7be0ff', elum: '#ff9ad5', plum: '#c58bff', vitesse: '#9ad14b' } };
+const COUL = { peche: '#ff5fa2', effet: '#8a6be0', overlay: '#2f8f86', sel: '#a6f0e6', curseur: '#ffb23e', courbe: { lum: '#7be0ff', elum: '#ff9ad5', plum: '#c58bff', vitesse: '#9ad14b', zone: '#ffd27a' } };
 const NOM_COURBE = { lum: 'Lum. générale', elum: 'Force effets', plum: 'Lum. pêches', vitesse: 'Vitesse' };
 const fmt = (t, fin) => { const sg = t < -1e-6 ? '-' : ''; t = Math.abs(t); const m = Math.floor(t / 60 + 1e-6), s = Math.max(0, t - m * 60); return sg + m + ':' + (s < 10 ? '0' : '') + s.toFixed(fin ? 1 : 0); };
 
 class Timeline {
   constructor(m, racine) {
+    this.hauteurs = (() => { try { return JSON.parse(localStorage.getItem('lt2.hauteurs')) || {}; } catch (e) { return {}; } })();
+    this.ouverts = new Set((() => { try { return JSON.parse(localStorage.getItem('lt2.ouverts')) || ['lum', 'elum', 'plum', 'vitesse']; } catch (e) { return []; } })());   // lignes dépliées (courbes)
     this.m = m; this.debut = 0; this.pps = 60;            // pixels par seconde (zoom)
     racine.innerHTML = `<div class="lt2-regle"><div class="lt2-coin"></div><canvas></canvas></div>
-      <div class="lt2-corps"><div class="lt2-tetes"></div><canvas class="lt2-pistes"></canvas></div>`;
+      <div class="lt2-corps"><div class="lt2-tetes"></div><canvas class="lt2-pistes"></canvas></div>
+      <div class="lt2-hbar"><div class="lt2-hbar-p"><i></i></div></div>`;
     this.r = racine; this.cvR = racine.querySelector('.lt2-regle canvas'); this.corps = racine.querySelector('.lt2-corps');
     this.tetes = racine.querySelector('.lt2-tetes'); this.cv = racine.querySelector('.lt2-pistes');
-    this.souris();
+    this.souris(); this.barreH();
     new ResizeObserver(() => this.redessiner()).observe(racine);
   }
 
   // ---------- la liste des pistes, calculée depuis le projet ----------
   pistes() {
     const P = this.m.projet, L = [];
-    L.push({ sorte: 'peches', nom: 'Pêches', h: 26, liste: P.peches.clips });
+    // en haut : les stems (forme d'onde + leurs déclencheurs), avec le bouton + pour en ajouter
+    L.push({ sorte: 'stems', nom: 'Stems', h: 20 });
+    (P.stems || []).forEach(st => L.push({ sorte: 'stem', nom: st.nom, h: 40, stem: st, liste: P.declencheurs || (P.declencheurs = []) }));
+    // les pistes Pêches : la 1re (peches.clips) en bas, les ajoutées au-dessus (la plus haute en premier)
+    [...(P.peches.autres || [])].reverse().forEach(x => L.push({ sorte: 'peches', nom: x.nom, h: 26, liste: x.clips, piste: x, pistePeche: true }));
+    L.push({ sorte: 'peches', nom: P.peches.nom || 'Pêches', h: 26, liste: P.peches.clips, piste: P.peches, pistePeche: true });
     [...P.effets].reverse().forEach(e => L.push({ sorte: 'effets', nom: e.nom, h: 30, liste: e.clips, piste: e }));   // la plus haute en premier
     L.push({ sorte: 'titre', nom: 'Couleur', h: 16 });
-    P.materiel.zones.forEach(z => L.push({ sorte: 'couleur', nom: z.nom, h: 22, liste: P.couleur.clips, zone: z }));
-    ['lum', 'elum', 'plum', 'vitesse'].forEach(k => L.push({ sorte: 'courbe', nom: NOM_COURBE[k], h: 34, cle: k, pts: P.courbes[k] }));
+    // chaque lumière peut se déplier : sa courbe d'intensité (losanges) juste dessous
+    const CZ = P.courbes.zones = P.courbes.zones || {}, ouv = this.ouverts;
+    P.materiel.zones.forEach(z => {
+      const cle = 'z:' + z.id; L.push({ sorte: 'couleur', nom: z.nom, h: 22, liste: P.couleur.clips, zone: z, pli: cle });
+      if (ouv.has(cle)) L.push({ sorte: 'courbe', nom: 'Intensité', h: 34, cle, pts: CZ[z.id] = CZ[z.id] || [], sous: true });
+    });
+    // les courbes générales : repliées = une fine ligne
+    ['lum', 'elum', 'plum', 'vitesse'].forEach(k => L.push(ouv.has(k) ? { sorte: 'courbe', nom: NOM_COURBE[k], h: 34, cle: k, pts: P.courbes[k], pli: k } : { sorte: 'pli', nom: NOM_COURBE[k], h: 18, cle: k, pli: k, pts: P.courbes[k] }));
     L.push({ sorte: 'audio', nom: (P.musique && P.musique.nom) || 'Audio', h: 48 });
-    (P.stems || []).forEach(st => L.push({ sorte: 'stem', nom: st.nom, h: 40, stem: st, liste: P.declencheurs || (P.declencheurs = []) }));
+    // la hauteur choisie de chaque piste (Alt + molette sur son nom, comme Premiere)
+    L.forEach(p => { p.cleH = p.sorte + ':' + ((p.zone && p.zone.id) || p.cle || (p.stem && p.stem.id) || (p.piste && p.piste.id) || p.nom); const h = this.hauteurs[p.cleH]; if (h) p.h = h; });
     let y = 0; L.forEach(p => { p.y = y; y += p.h + 1; });
     this.L = L; this.hTotal = y; return L;
   }
   famille(s) { return s; }
+  // la famille d'une piste, pour sa teinte : couleur, courbe, fond, effet, stem, pêche…
+  famille2(p) { return p.sorte === 'courbe' || p.sorte === 'pli' ? 'courbe' : p.sorte === 'effets' ? (/fond/i.test(p.nom) ? 'fond' : 'effet') : p.sorte; }
   // les clips visibles sur une ligne (la couleur : seulement ceux qui touchent cette lumière)
   clipsDe(p) { return p.sorte === 'couleur' ? p.liste.filter(k => k.zones.includes(p.zone.id)) : p.sorte === 'stem' ? p.liste.filter(k => k.stem === p.stem.id) : p.liste || []; }
 
@@ -55,6 +73,18 @@ class Timeline {
   x(t) { return (t - this.debut) * this.pps; }
   t(x) { return this.debut + x / this.pps; }
   min() { return this.m.debutMin(); }
+  // la petite barre en bas : où on est dans le morceau ; on la glisse pour aller à gauche / à droite
+  etendue() { const a = this.min(), W = this.cv.clientWidth || 1, vu = W / this.pps; return { a, b: Math.max((this.m.duree() || 10) + vu * .1, this.debut + vu), vu }; }
+  barreH() {
+    const piste = this.r.querySelector('.lt2-hbar-p'), pouce = piste.querySelector('i');
+    this._majBarre = () => { const { a, b, vu } = this.etendue(), L = b - a || 1; pouce.style.left = ((this.debut - a) / L * 100) + '%'; pouce.style.width = Math.max(2, Math.min(100, vu / L * 100)) + '%'; };
+    pouce.onpointerdown = e => {
+      e.stopPropagation(); pouce.setPointerCapture(e.pointerId); const x0 = e.clientX, d0 = this.debut, { a, b } = this.etendue(), k = (b - a) / piste.clientWidth;
+      pouce.onpointermove = ev => { this.debut = Math.max(this.min(), d0 + (ev.clientX - x0) * k); this.redessiner(); };
+      pouce.onpointerup = () => { pouce.onpointermove = null; };
+    };
+    piste.onpointerdown = e => { if (e.target !== piste) return; const { a, b, vu } = this.etendue(), r = piste.getBoundingClientRect(); this.debut = Math.max(this.min(), a + (e.clientX - r.left) / r.width * (b - a) - vu / 2); this.redessiner(); };   // clic à côté = y aller
+  }
   zoomer(f, xAncre) {
     const ta = this.t(xAncre ?? this.cv.clientWidth / 2);
     this.pps = Math.max(4, Math.min(2000, this.pps * f));
@@ -65,16 +95,17 @@ class Timeline {
 
   // ---------- les en-têtes (vrais boutons) ----------
   tetesHTML() {
-    const cle = this.L.map(p => p.sorte + p.nom).join('|') + this.m.projet.effets.map(e => e.muet).join() + this.m.son.muet + this.m.stemChoisi + [...this.m.son.stems.values()].map(s => s.ecoute).join();
+    const cle = this.L.map(p => p.sorte + p.nom + p.h + (p.pli && this.ouverts.has(p.pli) ? '+' : '')).join('|') + this.m.projet.effets.map(e => e.muet).join() + [this.m.projet.peches, ...(this.m.projet.peches.autres || [])].map(e => !!e.muet).join() + this.m.son.muet + this.m.stemChoisi + [...this.m.son.stems.values()].map(s => s.ecoute).join();
     if (cle === this._cle) return; this._cle = cle;
     this.tetes.innerHTML = this.L.map((p, i) => {
       let b = '';
-      if (p.sorte === 'effets') b = `<button class="lt2-tb${p.piste.muet ? ' off' : ''}" data-a="muet" data-i="${i}" title="Couper / remettre cette piste">${p.piste.muet ? '◌' : '●'}</button>`;
+      if (p.sorte === 'effets' || p.pistePeche) b = `<button class="lt2-tb${p.piste.muet ? ' off' : ''}" data-a="muet" data-i="${i}" title="Couper / remettre cette piste">${p.piste.muet ? '◌' : '●'}</button>`;
       if (p.sorte === 'audio') b = `<button class="lt2-tb${this.m.son.muet ? ' off' : ''}" data-a="sonmuet" title="Couper / remettre le son du morceau">${this.m.son.muet ? '◌' : '●'}</button>`;
       if (p.sorte === 'stem') { const r = this.m.son.stems.get(p.stem.id); b = `<button class="lt2-tb${r && r.ecoute ? ' on' : ''}" data-a="ecoute" data-i="${i}" title="${r ? 'Écouter ce stem pendant la lecture' : 'Le son de ce stem n\'est plus chargé (ses coups sont gardés)'}"${r ? '' : ' disabled'}>🎧</button>`; }
+      if (p.pli) b = `<button class="lt2-tb lt2-pli" data-a="plier" data-k="${p.pli}" title="${this.ouverts.has(p.pli) ? 'Replier' : 'Déplier : la courbe avec ses points'}">${this.ouverts.has(p.pli) ? '▾' : '▸'}</button>`;
       const ch = p.sorte === 'stem' && this.m.stemChoisi === p.stem.id ? ' choisi' : '';
-      const fin = p.sorte === 'audio' ? '<button class="lt2-tb" data-a="stem" title="Ajouter des stems (kick, caisse claire, basse…)">+ stem</button>' : '';
-      return `<div class="lt2-tete s-${p.sorte}${ch}" data-i="${i}" style="top:${p.y}px;height:${p.h}px">${b}<span${p.stem ? ` style="color:${p.stem.couleur}"` : ''}>${p.nom}</span>${fin}${p.sorte === 'effets' && p.piste === this.m.projet.effets.at(-1) ? '<button class="lt2-tb" data-a="plus" title="Ajouter une piste d\'effets">+</button>' : ''}</div>`;
+      const fin = p.sorte === 'stems' ? '<button class="lt2-tb lt2-plus-stem" data-a="stem" title="Ajouter des stems (kick, caisse claire, basse…) : depuis Médias, le Drive ou ce PC. Leurs coups font réagir les lumières (déclencheurs).">+</button>' : '';
+      return `<div class="lt2-tete s-${p.sorte} f-${this.famille2(p)}${ch}${p.sous ? ' sous' : ''}" data-i="${i}" style="top:${p.y}px;height:${p.h}px">${b}<span${p.stem ? ` style="color:${p.stem.couleur}" title="${String(p.nom).replace(/"/g, '&quot;')} (double-clic pour renommer)"` : ''}>${p.nom}</span>${fin}${p.pistePeche && p === this.L.find(q => q.pistePeche) ? '<button class="lt2-tb" data-a="plusPeche" title="Ajouter une piste Pêches">+</button>' : ''}${p.sorte === 'effets' && p.piste === this.m.projet.effets.at(-1) ? '<button class="lt2-tb" data-a="plus" title="Ajouter une piste d\'effets">+</button>' : ''}</div>`;
     }).join('');
     this.tetes.style.height = this.hTotal + 'px';
   }
@@ -82,7 +113,7 @@ class Timeline {
   // ---------- dessin ----------
   redessiner() { if (!this._rq) this._rq = requestAnimationFrame(() => { this._rq = 0; this.dessiner(); }); }
   dessiner() {
-    const dpr = devicePixelRatio || 1, L = this.pistes(); this.tetesHTML();
+    const dpr = devicePixelRatio || 1, L = this.pistes(); this.tetesHTML(); if (this._majBarre) this._majBarre();
     const W = this.cv.clientWidth || this.r.clientWidth - EN_TETE, H = this.hTotal;
     for (const [cv, h] of [[this.cv, H], [this.cvR, REGLE]]) {
       if (cv.width !== Math.round(W * dpr) || cv.height !== Math.round(h * dpr)) { cv.width = Math.round(W * dpr); cv.height = Math.round(h * dpr); cv.style.height = h + 'px'; }
@@ -96,9 +127,10 @@ class Timeline {
       c.fillStyle = surMesure ? 'rgba(255,255,255,.09)' : 'rgba(255,255,255,.035)'; c.fillRect(Math.round(this.x(t)), 0, 1, H);
     }
     for (const p of L) {
-      if (p.sorte === 'titre') { c.fillStyle = 'rgba(255,255,255,.04)'; c.fillRect(0, p.y, W, p.h); continue; }
-      c.fillStyle = p.sorte === 'couleur' ? 'rgba(0,0,0,.3)' : 'rgba(0,0,0,.18)'; c.fillRect(0, p.y, W, p.h);
+      if (p.sorte === 'titre' || p.sorte === 'stems') { c.fillStyle = 'rgba(255,255,255,.04)'; c.fillRect(0, p.y, W, p.h); continue; }
+      c.fillStyle = FOND[this.famille2(p)] || 'rgba(0,0,0,.18)'; c.fillRect(0, p.y, W, p.h);   // une teinte par famille de piste
       if (p.sorte === 'courbe') this.dessinerCourbe(c, p, W);
+      if (p.sorte === 'pli' && p.pts) { c.fillStyle = COUL.courbe[p.cle] || COUL.courbe.zone; for (const q of p.pts) { const x = this.x(q.t); if (x > -4 && x < W + 4) c.fillRect(Math.round(x) - 1, p.y + 6, 3, p.h - 12); } }   // repliée : juste des traits là où il y a des points
       else if (p.sorte === 'audio') this.dessinerOnde(c, p, W);
       else if (p.sorte === 'stem') { this.dessinerStem(c, p, W); for (const k of this.clipsDe(p)) this.dessinerDecl(c, p, k, sel.has(k.id), W); }
       else if (p.liste && p.sorte !== 'couleur') for (const k of p.liste) this.dessinerClip(c, p, k, sel.has(k.id), W);
@@ -127,6 +159,7 @@ class Timeline {
     } }
     // aperçu du rasoir
     if (m.outil === 'rasoir' && this.survol != null) { c.fillStyle = '#ff5050'; c.fillRect(Math.round(this.survol), 0, 1, H); }
+    for (const q of m.projet.marqueurs || []) { const x = Math.round(this.x(q.t)); if (x >= 0 && x <= W) { c.fillStyle = (q.couleur || '#7be0ff') + '55'; c.fillRect(x, 0, 1, H); } }   // les marqueurs, en trait fin
     // curseur de lecture
     const xc = Math.round(this.x(m.temps)); c.fillStyle = COUL.curseur; c.fillRect(xc, 0, 1.5, H);
     this.dessinerRegle(W);
@@ -150,7 +183,33 @@ class Timeline {
     }
     const d = m.duree(); if (d) { c.fillStyle = 'rgba(0,0,0,.45)'; c.fillRect(this.x(d), 0, W, REGLE); }
     if (m.entree != null || m.sortie != null) { c.fillStyle = 'rgba(255,178,62,.55)'; const a = this.x(m.entree ?? 0), b = this.x(m.sortie ?? d); c.fillRect(a, REGLE - 5, b - a, 5); }
+    // les marqueurs (comme Premiere) : un petit drapeau + son nom
+    c.font = '600 10px "Work Sans", sans-serif';
+    for (const q of m.projet.marqueurs || []) {
+      const x = Math.round(this.x(q.t)); if (x < -80 || x > W + 4) continue;
+      c.fillStyle = q.couleur || '#7be0ff'; c.beginPath(); c.moveTo(x - 5, 13); c.lineTo(x + 5, 13); c.lineTo(x + 5, 20); c.lineTo(x, 25); c.lineTo(x - 5, 20); c.fill();
+      if (q.nom) { const w = c.measureText(q.nom).width; c.fillStyle = 'rgba(10,8,18,.7)'; c.fillRect(x + 7, 13, w + 6, 12); c.fillStyle = q.couleur || '#7be0ff'; c.fillText(q.nom, x + 10, 22); }
+    }
     const xc = this.x(m.temps); c.fillStyle = COUL.curseur; c.beginPath(); c.moveTo(xc - 6, 0); c.lineTo(xc + 6, 0); c.lineTo(xc + 6, 8); c.lineTo(xc, 14); c.lineTo(xc - 6, 8); c.fill();
+  }
+  marqueurSous(x) { return (this.m.projet.marqueurs || []).find(q => Math.abs(this.x(q.t) - x) <= 6); }
+  // le nom d'un marqueur : un petit champ posé sur la règle
+  nommerMarqueur(q) {
+    const r = this.cvR.getBoundingClientRect(), i = Object.assign(document.createElement('input'), { value: q.nom || '', className: 'lt2-renom lt2-renom-m', placeholder: 'Nom du marqueur' });
+    i.style.left = (r.left + this.x(q.t) + 8) + 'px'; i.style.top = (r.top + 1) + 'px'; document.body.appendChild(i); i.focus(); i.select(); let fini = false;
+    const fin = ok => { if (fini) return; fini = true; i.remove(); const v = i.value.trim().slice(0, 30); if (ok && v !== (q.nom || '')) this.m.modifier(() => { q.nom = v; }); };
+    i.onkeydown = ev => { ev.stopPropagation(); if (ev.key === 'Enter') fin(true); if (ev.key === 'Escape') fin(false); }; i.onblur = () => fin(true);
+  }
+  menuMarqueur(e, q) {
+    this.fermerMenu(); const m = this.m, el = document.createElement('div'); el.className = 'lt2-menu'; document.body.appendChild(el); this._menu = el;
+    const C = ['#7be0ff', '#9ad14b', '#ffb84d', '#ff5f5f', '#c58bff', '#ff9ad5', '#ffffff'];
+    el.innerHTML = `<h5>Marqueur</h5><button data-mm="nom">Renommer</button><div class="lt2-menu-coul">${C.map(x => `<button data-mc="${x}" style="background:${x}"></button>`).join('')}</div><hr><button data-mm="suppr">Supprimer</button>`;
+    el.style.left = e.clientX + 'px'; el.style.top = e.clientY + 'px';
+    el.querySelectorAll('[data-mc]').forEach(b => b.onclick = () => { this.fermerMenu(); m.modifier(() => { q.couleur = b.dataset.mc; }); });
+    el.querySelector('[data-mm="nom"]').onclick = () => { this.fermerMenu(); this.nommerMarqueur(q); };
+    el.querySelector('[data-mm="suppr"]').onclick = () => { this.fermerMenu(); m.modifier(() => { const l = m.projet.marqueurs; l.splice(l.indexOf(q), 1); }); };
+    const loin = ev => { if (!el.contains(ev.target)) this.fermerMenu(); };
+    setTimeout(() => document.addEventListener('pointerdown', loin, true)); this._fermer = () => document.removeEventListener('pointerdown', loin, true);
   }
   // les deux poignées d'un clip choisi : on les tire pour changer sa durée
   poignees(c, x1, x2, y, h) {
@@ -198,14 +257,17 @@ class Timeline {
     const sousEffets = `<div class="lt2-menu-sous"><button class="lt2-menu-f">Effet ▸</button><div class="lt2-menu-l"><h5>Overlays</h5>${effets('overlay')}<h5>Mouvements</h5>${effets('mouvement')}</div></div>`;
     const aZones = k && (p.sorte === 'couleur' || p.sorte === 'effets' || p.sorte === 'stem');
     const zonesDe = () => k.zones && k.zones.length ? k.zones : ids;   // null = toutes (effets, déclencheurs)
+    // une coupure tout près du clic (comme Premiere : clic droit sur une coupe = transition par défaut)
+    const tc = p.sorte === 'couleur' && !(k && k.trans) ? m.coupure(o.t, p.zone.id, 10 / this.pps) : null;
+    const transMenu = tc != null ? `<button data-trans="fondu" class="lt2-menu-pri">Ajouter une transition (Fondu)</button><div class="lt2-menu-sous"><button class="lt2-menu-f">Autre transition ▸</button><div class="lt2-menu-l">${Object.entries(LT.TRANSITIONS).map(([x, d]) => `<button data-trans="${x}">${d.nom}</button>`).join('')}</div></div><hr>` : '';
     const dessiner = () => {
       if (k) {
         const z = zonesDe(), toutes = ids.every(i => z.includes(i));
-        el.innerHTML = (aZones ? `<h5>Lumières</h5>${Z.map(q => `<label><input type="checkbox" data-mz="${q.id}"${z.includes(q.id) ? ' checked' : ''}> ${q.nom}</label>`).join('')}<label><input type="checkbox" data-mz="*"${toutes ? ' checked' : ''}> Toutes</label><hr>` : '')
-          + (k.debut != null ? `<button data-mc="couper">Couper ici</button><button data-mc="dupliquer">Dupliquer</button>` : '') + `<button data-mc="supprimer">Supprimer</button>`;
+        el.innerHTML = transMenu + (aZones ? `<h5>Lumières</h5>${Z.map(q => `<label><input type="checkbox" data-mz="${q.id}"${z.includes(q.id) ? ' checked' : ''}> ${q.nom}</label>`).join('')}<label><input type="checkbox" data-mz="*"${toutes ? ' checked' : ''}> Toutes</label><hr>` : '')
+          + (k.debut != null ? `${k.trans ? '' : '<button data-mc="couper">Couper ici</button>'}<button data-mc="dupliquer">Dupliquer</button>` : '') + `<button data-mc="supprimer">Supprimer</button>`;
       } else {
-        el.innerHTML = '<h5>Ajouter ici</h5>' + (p.sorte === 'couleur' ? '<button data-ajout="calque:">Calque de couleur</button><button data-ajout="calque:bi">Bi-color</button><button data-ajout="calque:degrade">Dégradé</button>' + sousEffets
-          : p.sorte === 'effets' ? sousEffets : p.sorte === 'peches' ? '<button data-nouveau>Une pêche</button>' : p.sorte === 'stem' ? '<button data-nouveau>Un déclencheur</button>' : '');
+        el.innerHTML = transMenu + '<h5>Ajouter ici</h5>' + (p.sorte === 'couleur' ? '<button data-ajout="calque:">Calque de couleur</button><button data-ajout="calque:bi">Bi-color</button><button data-ajout="calque:degrade">Dégradé</button>' + sousEffets
+          : p.sorte === 'effets' ? sousEffets : p.sorte === 'peches' ? '<button data-nouveau>Une pêche</button>' : '');
       }
       el.querySelectorAll('[data-mz]').forEach(c => c.onchange = () => {
         const id = c.dataset.mz, avant = zonesDe();
@@ -213,7 +275,8 @@ class Timeline {
         if (!l.length) l = [id === '*' ? ids[0] : id];   // toujours au moins une lumière
         const plus = l.filter(i => !avant.includes(i));
         m.modifier(() => {
-          if (p.sorte === 'couleur') { k.zones = l; if (plus.length) m.faireDeLaPlace(k, plus); }
+          if (k.trans) k.zones = l;
+          else if (p.sorte === 'couleur') { k.zones = l; if (plus.length) m.faireDeLaPlace(k, plus); }
           else k.zones = l.length === ids.length ? null : l;
         });
         m.choisir(k); dessiner();
@@ -225,13 +288,15 @@ class Timeline {
         if (a === 'dupliquer') {   // juste après lui
           const n = JSON.parse(JSON.stringify(k)); n.id = LT.id(); const d = k.fin - k.debut; n.debut = k.fin; n.fin = k.fin + d;
           m.modifier(() => {
-            if (p.sorte === 'couleur') { m.faireDeLaPlace(n); P.couleur.clips.push(n); }
+            if (k.trans) P.transitions.push(n);
+            else if (p.sorte === 'couleur') { m.faireDeLaPlace(n); P.couleur.clips.push(n); }
             else if (p.sorte === 'effets') m.pisteLibre(n.debut, n.fin, P.effets.indexOf(p.piste)).clips.push(n);
             else p.liste.push(n);
           });
           m.choisir(n);
         }
       });
+      el.querySelectorAll('[data-trans]').forEach(b => b.onclick = () => { this.fermerMenu(); m.ajouterTransition(b.dataset.trans, tc, p.zone.id); });
       el.querySelectorAll('[data-ajout]').forEach(b => b.onclick = () => { this.fermerMenu(); m.deposer(b.dataset.ajout, { t, p, k: null }); });
       const nv = el.querySelector('[data-nouveau]'); if (nv) nv.onclick = () => { this.fermerMenu(); m.nouveauClip(p, t); };
     };
@@ -259,7 +324,7 @@ class Timeline {
     for (const k of this.m.projet.couleur.clips) {
       const x1 = this.x(k.debut), x2 = this.x(k.fin); if (x2 < 0 || x1 > W) continue;
       const is = k.zones.map(z => idx[z]).filter(i => i != null).sort((a, b) => a - b), blocs = [];
-      for (const i of is) { const b = blocs.at(-1); if (b && b[1] === i - 1) b[1] = i; else blocs.push([i, i]); }
+      for (const i of is) { const b = blocs.at(-1); if (b && b[1] === i - 1 && lignes[i].y === lignes[i - 1].y + lignes[i - 1].h + 1) b[1] = i; else blocs.push([i, i]); }   // une courbe dépliée entre deux lumières coupe le bloc
       for (const [a, b] of blocs) {
         const y = lignes[a].y + 1, h = lignes[b].y + lignes[b].h - 1 - y, w = Math.max(2, x2 - x1);
         c.save(); c.beginPath(); c.rect(x1, y, w, h); c.clip();
@@ -271,6 +336,23 @@ class Timeline {
         c.restore();
         const ch = sel.has(k.id); c.strokeStyle = ch ? COUL.sel : 'rgba(0,0,0,.16)'; c.lineWidth = ch ? 2 : 1;   // bord discret : deux morceaux de la même couleur se lisent comme un seul
         c.beginPath(); c.roundRect(x1 + .5, y + .5, w - 1, h - 1, ch ? 4 : 0); c.stroke();
+        if (ch) this.poignees(c, x1, x2, y, h);
+      }
+    }
+    // les transitions : un bloc rayé à cheval sur la coupure
+    for (const k of this.m.projet.transitions || []) {
+      const x1 = this.x(k.debut), x2 = this.x(k.fin); if (x2 < 0 || x1 > W) continue;
+      const is = (k.zones || Object.keys(idx)).map(z => idx[z]).filter(i => i != null).sort((a, b) => a - b), blocs = [];
+      for (const i of is) { const b = blocs.at(-1); if (b && b[1] === i - 1 && lignes[i].y === lignes[i - 1].y + lignes[i - 1].h + 1) b[1] = i; else blocs.push([i, i]); }
+      const ch = sel.has(k.id), w = Math.max(6, x2 - x1);
+      for (const [a, b] of blocs) {
+        const y = lignes[a].y + 3, h = lignes[b].y + lignes[b].h - 3 - y;
+        c.save(); c.beginPath(); c.roundRect(x1, y, w, h, 4); c.clip();
+        c.fillStyle = 'rgba(16,12,34,.72)'; c.fillRect(x1, y, w, h);
+        c.strokeStyle = 'rgba(166,240,230,.55)'; c.lineWidth = 1.5; c.beginPath(); c.moveTo(x1, y + h); c.lineTo(x1 + w, y); c.stroke();
+        if (w > 60) { c.fillStyle = '#a6f0e6'; c.font = '600 10px "Work Sans"'; c.fillText((LT.TRANSITIONS[k.trans] || {}).nom || 'Transition', x1 + 5, y + 11); }
+        c.restore();
+        c.strokeStyle = ch ? COUL.sel : 'rgba(166,240,230,.6)'; c.lineWidth = ch ? 2 : 1; c.beginPath(); c.roundRect(x1 + .5, y + .5, w - 1, h - 1, 4); c.stroke();
         if (ch) this.poignees(c, x1, x2, y, h);
       }
     }
@@ -306,7 +388,7 @@ class Timeline {
     if (st.muet) { c.fillStyle = 'rgba(0,0,0,.45)'; c.fillRect(0, p.y, W, p.h); }
   }
   dessinerCourbe(c, p, W) {
-    const pts = p.pts, col = COUL.courbe[p.cle], h = p.h - 6, y0 = p.y + 3, Y = v => y0 + h - LT.borne(v) * h;
+    const pts = p.pts, col = COUL.courbe[p.cle] || COUL.courbe.zone, h = p.h - 6, y0 = p.y + 3, Y = v => y0 + h - LT.borne(v) * h;
     const def = p.cle === 'vitesse' ? .5 : 1;
     c.strokeStyle = col; c.lineWidth = 1.5; c.beginPath();
     for (let x = 0; x <= W; x += 3) { const v = LT.courbe(pts, this.t(x), def); x ? c.lineTo(x, Y(v)) : c.moveTo(x, Y(v)); }
@@ -321,6 +403,8 @@ class Timeline {
     let k = null, zone = 'corps';
     if (p && p.liste) {
       const l = this.clipsDe(p);
+      const tr = p.sorte === 'couleur' && (this.m.projet.transitions || []).slice().reverse().find(q => (!q.zones || q.zones.includes(p.zone.id)) && x >= this.x(q.debut) - 4 && x <= this.x(q.fin) + 4);
+      if (tr) { const a = this.x(tr.debut), b = this.x(tr.fin), bord = Math.min(BORD, (b - a) / 3); return { x, y, p, k: tr, zone: x - a < bord ? 'gauche' : b - x < bord ? 'droite' : 'corps', t: this.t(x), trans: true }; }
       if (p.sorte === 'peches') k = [...l].reverse().find(q => Math.abs(this.x(q.t) - x) <= 5);
       else for (let i = l.length - 1; i >= 0; i--) { const q = l[i], a = this.x(q.debut), b = this.x(q.fin); if (x >= a - 4 && x <= b + 4) { k = q; const bord = Math.min(BORD, (b - a) / 3); zone = x - a < bord ? 'gauche' : b - x < bord ? 'droite' : 'corps'; break; } }   // les bords (pour changer la durée) : 9 px, ou un tiers d'un petit clip
     }
@@ -332,6 +416,7 @@ class Timeline {
     let best = t, d = AIMANT / this.pps;
     const essai = v => { if (v != null && Math.abs(v - t) < d) { d = Math.abs(v - t); best = v; } };
     essai(this.m.temps); essai(this.m.entree); essai(this.m.sortie); essai(0);
+    for (const q of this.m.projet.marqueurs || []) essai(q.t);
     const beat = 60 / (this.m.projet.bpm || 120), g0 = this.m.projet.grille || 0;
     if (beat * this.pps > 14) { const pg = this.pas(); essai(g0 + Math.round((t - g0) / pg) * pg); }   // la grille des temps
     else essai(g0 + Math.round((t - g0) / (beat * 4)) * beat * 4);
@@ -339,6 +424,21 @@ class Timeline {
     for (const p of this.L) if (p.liste) for (const k of p.liste) { if (sauf && sauf.has(k.id)) continue; if (p.sorte === 'peches') essai(k.t); else { essai(k.debut); essai(k.fin); } }
     return best;
   }
+  // ---------- glisser contre un bord : la timeline défile dans ce sens (plus on pousse, plus ça va vite) ----------
+  // refaire(ev) rejoue le geste en cours (curseur, clip…) avec la nouvelle vue
+  bordDefile(ev, refaire) {
+    cancelAnimationFrame(this._def); this._def = 0;
+    const r = this.cv.getBoundingClientRect(), B = 24, x = ev.clientX;
+    const v = x < r.left + B ? x - (r.left + B) : x > r.right - B ? x - (r.right - B) : 0;   // en pixels au-delà de la zone
+    if (!v) return;
+    const pas = () => {
+      const px = Math.sign(v) * Math.min(60, 3 + Math.abs(v) * .35);
+      const d = Math.max(this.min(), this.debut + px / this.pps); if (d === this.debut && px < 0) return;
+      this.debut = d; this._dansDefile = true; try { refaire(ev); } finally { this._dansDefile = false; } this.redessiner(); this._def = requestAnimationFrame(pas);
+    };
+    this._def = requestAnimationFrame(pas);
+  }
+  finDefile() { cancelAnimationFrame(this._def); this._def = 0; }
   // ---------- courbes : losanges ----------
   cy(p, v) { const h = p.h - 6; return p.y + 3 + h - LT.borne(v) * h; }
   vDeY(p, y) { const h = p.h - 6; return LT.borne((p.y + 3 + h - y) / h); }
@@ -358,8 +458,11 @@ class Timeline {
     cv.onpointermove = ev => {
       const o2 = this.ou(ev);
       if (!bouge) { bouge = true; if (this._mem === false) { m.memoriser(); this._mem = true; } }
-      q.t = Math.max(0, ev.shiftKey ? q.t : this.aimanter(o2.t)); q.v = +this.vDeY(p, o2.y).toFixed(3);
-      pts.sort((a, b) => a.t - b.t); m.change(true);
+      // comme Premiere : un point ne passe jamais derrière son voisin, il s'arrête juste avant
+      const i = pts.indexOf(q), av = pts[i - 1], ap = pts[i + 1], e = 1 / 120;
+      let t = Math.max(0, ev.shiftKey ? q.t : this.aimanter(o2.t));
+      if (av) t = Math.max(t, av.t + e); if (ap) t = Math.min(t, ap.t - e);
+      q.t = t; q.v = +this.vDeY(p, o2.y).toFixed(3); m.change(true);
     };
     cv.onpointerup = () => { cv.onpointermove = null; if (bouge) m.change(); };
     return true;
@@ -388,34 +491,68 @@ class Timeline {
   }
   souris() {
     const cv = this.cv, m = this.m;
+    // double-clic sur le nom d'un stem, d'une piste d'effets / fonds ou de pêches : le renommer
+    this.tetes.addEventListener('dblclick', e => {
+      let tete = e.target.closest('.lt2-tete'); const p = tete && this.L[+tete.dataset.i], obj = p && (p.stem || ((p.sorte === 'effets' || p.pistePeche) && p.piste)); if (!obj || e.target.closest('button')) return;
+      if (this._rq) { cancelAnimationFrame(this._rq); this._rq = 0; this.dessiner(); tete = this.tetes.querySelector(`.lt2-tete[data-i="${tete.dataset.i}"]`); }   // le 1er clic a demandé un nouveau dessin : on le fait tout de suite
+      const sp = tete.querySelector('span'), i = Object.assign(document.createElement('input'), { value: p.nom, className: 'lt2-renom' });
+      sp.replaceWith(i); i.focus(); i.select(); let fini = false;
+      const fin = ok => { if (fini) return; fini = true; const v = i.value.trim(); if (ok && v && v !== p.nom) m.modifier(() => { obj.nom = v.slice(0, 40); }); this._cle = null; this.redessiner(); m.inspecteur(); };
+      i.onkeydown = ev => { ev.stopPropagation(); if (ev.key === 'Enter') fin(true); if (ev.key === 'Escape') fin(false); };
+      i.onblur = () => fin(true); i.onclick = ev => ev.stopPropagation();
+    });
     this.tetes.addEventListener('click', e => {
       const b = e.target.closest('button'), tete = e.target.closest('.lt2-tete');
-      if (!b) { const p = tete && this.L[+tete.dataset.i]; if (p && p.sorte === 'stem') m.choisirStem(p.stem.id); return; }
+      if (!b) { const p = tete && this.L[+tete.dataset.i]; if (p && p.sorte === 'stem' && m.stemChoisi !== p.stem.id) m.choisirStem(p.stem.id); return; }   // déjà choisi : on ne redessine pas (sinon le double-clic se perd)
+      if (b.dataset.a === 'plier') { const k = b.dataset.k; this.ouverts.has(k) ? this.ouverts.delete(k) : this.ouverts.add(k); try { localStorage.setItem('lt2.ouverts', JSON.stringify([...this.ouverts])); } catch (x) {} this.redessiner(); return; }
       if (b.dataset.a === 'sonmuet') { m.son.muet = !m.son.muet; m.relancer(); this.redessiner(); }
       if (b.dataset.a === 'stem') m.ajouterStems();
       if (b.dataset.a === 'ecoute') { const p = this.L[+b.dataset.i], r = m.son.stems.get(p.stem.id); if (r) { r.ecoute = !r.ecoute; m.relancer(); this.redessiner(); } }
       if (b.dataset.a === 'muet') { const p = this.L[+b.dataset.i]; m.modifier(() => { p.piste.muet = !p.piste.muet; }); }
+      if (b.dataset.a === 'plusPeche') m.modifier(() => { const A = m.projet.peches.autres = m.projet.peches.autres || []; A.push({ id: LT.id(), nom: 'Pêches ' + (A.length + 2), clips: [] }); });
       if (b.dataset.a === 'plus') m.modifier(() => m.projet.effets.push({ id: LT.id(), nom: 'Effets ' + (m.projet.effets.length + 1), clips: [] }));
     });
     // la règle : cliquer / glisser = déplacer le curseur
+    this.cvR.addEventListener('contextmenu', e => { const r = this.cvR.getBoundingClientRect(), q = this.marqueurSous(e.clientX - r.left); if (q) { e.preventDefault(); this.menuMarqueur(e, q); } });
+    this.cvR.addEventListener('dblclick', e => { const r = this.cvR.getBoundingClientRect(), q = this.marqueurSous(e.clientX - r.left); if (q) this.nommerMarqueur(q); });
     this.cvR.addEventListener('pointerdown', e => {
-      const r = this.cvR.getBoundingClientRect(), go = ev => m.aller(this.t(ev.clientX - r.left));
+      if (e.button !== 0) return;
+      const r = this.cvR.getBoundingClientRect(), q = this.marqueurSous(e.clientX - r.left);
+      if (q) {   // un marqueur : clic = y aller ; glisser = le déplacer
+        const x0 = e.clientX, t0 = q.t; let bouge = false; this.cvR.setPointerCapture(e.pointerId); m.aller(q.t);
+        this.cvR.onpointermove = ev => { if (!bouge && Math.abs(ev.clientX - x0) < 3) return; if (!bouge) { bouge = true; m.memoriser(); } q.t = Math.max(0, this.aimanter(t0 + (ev.clientX - x0) / this.pps)); m.aller(q.t); };
+        this.cvR.onpointerup = () => { this.cvR.onpointermove = null; if (bouge) { m.projet.marqueurs.sort((a, b) => a.t - b.t); m.change(); } };
+        return;
+      }
+      const va = ev => m.aller(Math.max(m.debutMin(), this.t(Math.min(Math.max(ev.clientX, r.left), r.right) - r.left))), go = ev => {
+        // glisser vers le bas = zoom, vers le haut = dézoom (comme Premiere), autour de la tête de lecture
+        const dy = ev.clientY - (this._yR ?? ev.clientY); this._yR = ev.clientY;
+        if (dy) { this._dyR = (this._dyR || 0) + dy; if (Math.abs(this._dyR) > 6 || this._zR) { this._zR = true; this.zoomer(Math.exp(dy * .015), this.x(m.temps)); } }
+        if (!this._zR || Math.abs(ev.movementX || 0) > 2) va(ev); this.bordDefile(ev, va);
+      };
+      this._yR = e.clientY; this._dyR = 0; this._zR = false;
       go(e); this.cvR.setPointerCapture(e.pointerId);
-      this.cvR.onpointermove = go; this.cvR.onpointerup = () => { this.cvR.onpointermove = null; };
+      this.cvR.onpointermove = go; this.cvR.onpointerup = () => { this.cvR.onpointermove = null; this.finDefile(); };
     });
     cv.addEventListener('pointermove', e => {
       if (this.glisse) return;
       const o = this.ou(e);
-      cv.style.cursor = m.outil === 'rasoir' ? 'crosshair' : o.k && o.zone !== 'corps' ? 'ew-resize' : o.k ? 'grab' : 'default';
+      cv.style.cursor = m.outil === 'main' ? 'grab' : m.outil === 'rasoir' ? 'crosshair' : o.k && o.zone !== 'corps' ? 'ew-resize' : o.k ? 'grab' : 'default';
       if (m.outil === 'rasoir') { this.survol = this.x(this.aimanter(o.t)); this.redessiner(); }
     });
     cv.addEventListener('pointerleave', () => { if (this.survol != null) { this.survol = null; this.redessiner(); } });
     cv.addEventListener('pointerdown', e => {
+      if (e.button === 1 || (e.button === 0 && m.outil === 'main')) {   // la main (H) ou le clic du milieu : glisser la timeline
+        e.preventDefault(); const x0 = e.clientX, d0 = this.debut; cv.setPointerCapture(e.pointerId); cv.style.cursor = 'grabbing';
+        cv.onpointermove = ev => { this.debut = Math.max(this.min(), d0 - (ev.clientX - x0) / this.pps); this.redessiner(); };
+        cv.onpointerup = () => { cv.onpointermove = null; cv.style.cursor = m.outil === 'main' ? 'grab' : 'default'; };
+        return;
+      }
       if (e.button !== 0) return;
       const o = this.ou(e);
       if (o.p && o.p.sorte === 'courbe' && this.courbeClic(e, o)) return;
       if (o.p && o.p.sorte === 'stem') m.choisirStem(o.p.stem.id);
-      if (m.outil === 'rasoir') { if (o.k && o.p.sorte !== 'peches') m.couper(o.k, o.p.liste, this.aimanter(o.t)); return; }
+      if (m.outil === 'rasoir') { if (o.k && o.p.sorte !== 'peches' && !o.k.trans) m.couper(o.k, o.p.liste, this.aimanter(o.t)); return; }
       if (!o.k) return this.selectionCadre(e, o);   // dans le vide : curseur, ou rectangle de sélection si on glisse
       // sélection : Maj ou Ctrl = ajouter / retirer
       if (e.shiftKey || e.ctrlKey || e.metaKey) m.choisir(o.k, 'basculer');
@@ -426,7 +563,11 @@ class Timeline {
       this.glisse = { o, bouge: false };
       cv.setPointerCapture(e.pointerId);
       cv.onpointermove = ev => {
-        if (!this.glisse.bouge) { if (Math.abs(ev.clientX - x0) < 3 && Math.abs(ev.clientY - e.clientY) < 3) return; this.glisse.bouge = true; m.memoriser(); }
+        if (!this.glisse.bouge) { if (Math.abs(ev.clientX - x0) < 3 && Math.abs(ev.clientY - e.clientY) < 3) return; this.glisse.bouge = true; m.memoriser();
+          // Alt : on glisse une COPIE, l'original reste à sa place (comme dans Premiere)
+          if ((e.altKey || ev.altKey) && o.zone === 'corps') choisis.forEach(c => { const n = JSON.parse(JSON.stringify(c.k)); n.id = LT.id(); c.liste.push(n); });
+        }
+        if (!this._dansDefile) this.bordDefile(ev, x => cv.onpointermove && cv.onpointermove(x));
         const o2 = this.ou(ev); let dt = o2.t - t0;
         if (o.zone === 'corps') {
           // on aimante le bord le plus proche du clip pris en main
@@ -436,14 +577,14 @@ class Timeline {
           const mini = Math.min(...orig.map(q => q.t ?? q.debut)); if (mini + dt < 0) dt = -mini;
           orig.forEach(q => { if (q.t != null) q.c.k.t = q.t + dt; else { q.c.k.debut = q.debut + dt; q.c.k.fin = q.fin + dt; } });
           // un clip de couleur glissé vers le haut / le bas : il passe sur d'autres lumières (le groupe garde sa forme)
-          if (choisis.length === 1 && o.p.sorte === 'couleur' && o2.p && o2.p.sorte === 'couleur') {
+          if (choisis.length === 1 && o.p.sorte === 'couleur' && o.k.zones && o2.p && o2.p.sorte === 'couleur') {
             const ids = m.projet.materiel.zones.map(z => z.id), dz = ids.indexOf(o2.p.zone.id) - ids.indexOf(o.p.zone.id), q = orig[0];
             const nz = q.zones.map(z => ids[ids.indexOf(z) + dz]); if (nz.every(Boolean)) o.k.zones = nz;
           }
           // un déclencheur glissé sur la ligne d'un autre stem : il suit ce stem
           if (choisis.length === 1 && o.p.sorte === 'stem' && o2.p && o2.p.sorte === 'stem') o.k.stem = o2.p.stem.id;
           // un seul clip d'effet : il peut changer de piste d'effets
-          if (choisis.length === 1 && o2.p && o2.p.liste && o2.p.liste !== choisis[0].liste && this.famille(o2.p.sorte) === this.famille(o.p.sorte)) {
+          if (choisis.length === 1 && !o.k.trans && o2.p && o2.p.liste && o2.p.liste !== choisis[0].liste && this.famille(o2.p.sorte) === this.famille(o.p.sorte)) {
             const c = choisis[0]; c.liste.splice(c.liste.indexOf(c.k), 1); o2.p.liste.push(c.k); c.liste = o2.p.liste;
           }
         } else {
@@ -453,7 +594,7 @@ class Timeline {
         }
         m.change(true);
       };
-      cv.onpointerup = () => { cv.onpointermove = null; const b = this.glisse.bouge; this.glisse = null;
+      cv.onpointerup = () => { cv.onpointermove = null; this.finDefile(); const b = this.glisse.bouge; this.glisse = null;
         if (b && o.p.sorte === 'couleur') choisis.forEach(q => m.projet.couleur.clips.includes(q.k) && m.faireDeLaPlace(q.k));   // un calque de couleur déplacé ou étiré passe par-dessus les autres
         if (b) m.change(); else if (!e.shiftKey && !e.ctrlKey && !e.metaKey) { m.choisir(o.k); m.aller(Math.max(0, o.t)); } };
     });
@@ -470,15 +611,21 @@ class Timeline {
       if (o.p && o.p.sorte === 'courbe') { const q = this.pointSous(o); if (q) m.modifier(() => { o.p.pts.splice(o.p.pts.indexOf(q), 1); this.pointChoisi = null; }); return; }
       if (!o.p || !o.p.liste) return;
       if (o.k) { if (o.p.sorte !== 'peches') { m.choisir(o.k); m.aller(o.k.debut); } return; }
-      m.nouveauClip(o.p, this.aimanter(Math.max(0, o.t)));
+      if (o.p.sorte !== 'stem') m.nouveauClip(o.p, this.aimanter(Math.max(0, o.t)));   // plus de déclencheurs à poser : les calques « réagissent à » un stem
     });
     // molette : temps / pistes / zoom
+    // molette : descendre / monter dans les pistes ; Alt + molette = zoom (avant = agrandir, arrière = rétrécir) ;
+    // Ctrl + molette (ou glisser de côté sur le pavé tactile) = avancer / reculer dans le temps
     this.corps.addEventListener('wheel', e => {
-      if (e.shiftKey) return;   // Maj + molette : on laisse défiler les pistes
-      e.preventDefault();
-      const temps = e.ctrlKey || e.altKey || Math.abs(e.deltaX) > Math.abs(e.deltaY);   // Ctrl / Alt + molette (ou glisser de côté sur le pavé) = avancer dans le temps
-      if (!temps) this.zoomer(e.deltaY < 0 ? 1.2 : 1 / 1.2, e.clientX - this.cv.getBoundingClientRect().left);   // molette avant = zoom, arrière = dézoom, autour de la souris
-      else { this.debut = Math.max(this.min(), this.debut + (e.deltaY + e.deltaX) / this.pps * .8); this.redessiner(); }
+      const tete = e.altKey && e.target.closest('.lt2-tete');
+      if (tete) {   // Alt + molette sur le nom d'une piste : plus haute / plus basse
+        e.preventDefault(); const p = this.L[+tete.dataset.i]; if (!p) return;
+        const h = Math.max(12, Math.min(160, Math.round(p.h + (e.deltaY < 0 ? 4 : -4)))); this.hauteurs[p.cleH] = h;
+        try { localStorage.setItem('lt2.hauteurs', JSON.stringify(this.hauteurs)); } catch (x) {} this.redessiner(); return;
+      }
+      if (e.altKey) { e.preventDefault(); const d = e.deltaY || e.deltaX; if (d) this.zoomer(d < 0 ? 1.2 : 1 / 1.2, e.clientX - this.cv.getBoundingClientRect().left); return; }
+      if (e.ctrlKey || (Math.abs(e.deltaX) > Math.abs(e.deltaY) && !e.shiftKey)) { e.preventDefault(); this.debut = Math.max(this.min(), this.debut + (e.deltaY + e.deltaX) / this.pps * .8); this.redessiner(); return; }
+      // sinon : le défilement normal des pistes (haut / bas)
     }, { passive: false });
     // glisser depuis la bibliothèque
     cv.addEventListener('dragover', e => { const o = this.ou(e); if (o.p && (o.p.liste)) { e.preventDefault(); e.dataTransfer.dropEffect = 'copy'; this.survolDepot = o; this.redessiner(); } });

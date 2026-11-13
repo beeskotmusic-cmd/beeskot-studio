@@ -81,4 +81,6 @@ LT.oublierPhase = pts => pts && memo.delete(pts);   // à appeler quand on modif
 
 // petit numéro unique pour les clips
 LT.id = () => Math.random().toString(36).slice(2, 9);
+// toutes les pêches qui jouent : la piste « Pêches » (peches.clips) + les pistes ajoutées (peches.autres), sauf les pistes coupées
+LT.toutesPeches = P => [...(P.peches.muet ? [] : P.peches.clips), ...(P.peches.autres || []).filter(x => !x.muet).flatMap(x => x.clips)];
 })(typeof self !== 'undefined' ? self : this);

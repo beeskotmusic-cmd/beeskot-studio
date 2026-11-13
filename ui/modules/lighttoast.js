@@ -125,9 +125,13 @@ function brancher() {
       for (const x of l) r.push({ nom: (x.nom || 'Stem').replace(/\.[^.]+$/, ''), octets: await lireMedia(x) });
       return r;
     },
-    async passages(id) {
-      const ms = await BK.toast.morceaux(), m = ms.find(x => x.id === id); if (!m) return [];
-      return (await BK.passagesDuMorceau(m, ms, { reels: true })).map(p => ({ debut: p.debut, fin: p.fin, nom: p.nom || p.titre || 'Passage' })).filter(p => p.fin > p.debut);
+    // id du morceau ; sans id (ancien projet de Pierre…), on le retrouve par son nom (« 8_GLAMOROUS SKY » → Glamorous Sky)
+    async passages(id, nom) {
+      const ms = await BK.toast.morceaux(), m = ms.find(x => x.id === id) || (nom && BK.inv && BK.inv.trouverMorceau ? BK.inv.trouverMorceau(String(nom).replace(/^\d+[_\s.-]*/, '').replace(/_/g, ' '), ms) : null); if (!m) return [];
+      const l = (await BK.passagesDuMorceau(m, ms, { reels: true })).map(p => ({ debut: p.debut, fin: p.fin, v: p.v || 1, nom: p.nom || p.titre || 'Passage' }));
+      const vu = new Set(l.map(p => p.debut + '-' + p.fin));
+      for (const p of ((await BK.partage.lire('passages.live', {}))[m.id] || [])) if (!vu.has(p.debut + '-' + p.fin)) l.push({ debut: p.debut, fin: p.fin, v: p.v || 1, nom: '🍞 ' + (p.nom || 'Synch bread') });   // créés dans Synch bread
+      return l.filter(p => p.fin > p.debut).sort((a, b) => a.debut - b.debut);
     },
     // les poses Mixamo : dans le Drive (envoyées une fois par « Charger les poses »)
     // gardées sur ce PC après la 1re fois (on ne retélécharge que si le fichier du Drive a changé)
@@ -219,18 +223,21 @@ BK.module('lighttoast', function (page) {
       if (exportEnCours) { exportEnCours.stop = true; return; }   // pendant un export, le bouton sert à l'annuler
       const passage = M.entree != null || M.sortie != null, mmss = t => Math.floor(Math.max(0, t) / 60) + ':' + String(Math.floor(Math.max(0, t) % 60)).padStart(2, '0');
       const choix = await fenetre(`<b>Exporter la vidéo des lumières</b>
-        <label>Quoi <select data-quoi><option value="tout">Le morceau entier (${mmss(M.duree())})</option>${passage ? `<option value="passage" selected>Le passage choisi (${mmss(M.entree ?? 0)} → ${mmss(M.sortie ?? M.duree())})</option>` : ''}</select></label>
+        <label>Quoi <select data-quoi><option value="tout">Le morceau entier (${mmss(M.duree())})</option>${passage ? `<option value="passage" selected>Le passage choisi (${mmss(M.entree ?? 0)} → ${mmss(M.sortie ?? M.duree())})</option>` : ''}${(M.listePassages || []).map((p, i) => `<option value="p${i}">${esc(p.nom)} (${mmss(p.debut)} → ${mmss(p.fin)})</option>`).join('')}</select></label>
+        ${M.ralenti ? `<p class="t2-fen-e" style="color:inherit">À la <b>vitesse du tournage ×${String(M.ralenti).replace('.', ',')}</b> (bouton « Vitesse tournage » allumé) : la vidéo et la musique sont ${M.ralenti < 1 ? 'ralenties' : 'accélérées'}.</p>` : ''}
         <label><span><input type="checkbox" data-son checked> Avec la musique${M.projet.decompte && M.projet.decompte.actif ? ' et le clic du décompte' : ''}</span></label>
         <label><span><input type="checkbox" data-drive${BK.drive.relie() ? ' checked' : ' disabled'}> Mettre aussi dans le Drive (Light Toast / Vidéos)</span></label>
         <p class="t2-fen-e" style="color:inherit;opacity:.7">Fichier .mp4 en 1920 × 1080, 30 images par seconde. L'export se fait en fond : tu peux continuer à travailler.</p>
         <div class="t2-fen-b"><button class="lt2-pri" data-ok>Exporter</button><button data-non>Annuler</button></div>`,
         ($f, fin) => { $f('[data-ok]').onclick = () => fin({ quoi: $f('[data-quoi]').value, son: $f('[data-son]').checked, drive: $f('[data-drive]').checked }); $f('[data-non]').onclick = () => fin(null); });
       if (!choix) return;
+      const pr = /^p\d+$/.test(choix.quoi) ? (M.listePassages || [])[+choix.quoi.slice(1)] : null;   // un passage des Reels
+      if (pr) { M.entree = pr.debut; M.sortie = pr.fin; choix.quoi = 'passage'; M.tl.redessiner(); }
       const fe = LT.decompte.fenetre(M.projet), debut = choix.quoi === 'passage' ? (fe && Math.abs((M.entree ?? 0) - fe.fin) < .01 ? fe.debut : M.entree ?? M.debutMin()) : M.debutMin(), fin = choix.quoi === 'passage' ? M.sortie ?? M.duree() : M.duree();
-      const nom = (nomProjet() + (choix.quoi === 'passage' ? '_' + mmss(Math.max(0, debut)).replace(':', 'm') + 's' : '')).replace(/[\\/:*?"<>|]/g, '-') + '_LED.mp4';
+      const nom = (nomProjet() + (pr ? '_' + pr.nom : '') + (M.ralenti ? '_x' + String(M.ralenti).replace('.', ',') : '') + (choix.quoi === 'passage' ? '_' + mmss(Math.max(0, debut)).replace(':', 'm') + 's' : '')).replace(/[\\/:*?"<>|]/g, '-') + '_LED.mp4';
       exportEnCours = { stop: false }; b.textContent = 'Annuler l\'export';
       try {
-        const r = await LT.exporter(M, { debut, fin, son: choix.son, arret: () => exportEnCours.stop, progression: q => etat('Export… ' + Math.round(q * 100) + ' %') });
+        const r = await LT.exporter(M, { debut, fin, son: choix.son, vitesse: M.ralenti || 1, arret: () => exportEnCours.stop, progression: q => etat('Export… ' + Math.round(q * 100) + ' %') });
         if (!r) etat('Export annulé');
         else {
           const mp4 = r.mp4;

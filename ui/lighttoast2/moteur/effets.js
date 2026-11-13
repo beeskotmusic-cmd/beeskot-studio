@@ -25,6 +25,17 @@ const bord = (d, doux) => d <= 0 ? 1 : d >= doux ? 0 : 1 - LT.lisse(d / doux);
 const fr = x => x - Math.floor(x);
 
 LT.DIV = DIV; LT.DUREE = DUREE;
+// les transitions entre deux calques de couleur (le calcul est dans moteur.js → transition())
+LT.TRANSITIONS = {
+  fondu: { nom: 'Fondu', aide: 'Une couleur devient l\'autre en douceur' },
+  sombre: { nom: 'Passage au sombre', aide: 'Avant → noir → après' },
+  clair: { nom: 'Passage au clair', aide: 'Avant → blanc → après' },
+  couleur: { nom: 'Passage par une couleur', aide: 'Avant → la couleur choisie → après', couleur: true },
+  flash: { nom: 'Flash', aide: 'Coupure franche avec un éclair blanc' },
+  balayage: { nom: 'Balayage', aide: 'La nouvelle couleur descend dans la lumière (ou monte)', sens: ['Du haut vers le bas', 'Du bas vers le haut'] },
+  cascade: { nom: 'Cascade', aide: 'Les lumières changent l\'une après l\'autre', sens: ['1 → 5', '5 → 1'] },
+  clignote: { nom: 'Clignotement', aide: 'Les deux couleurs alternent au tempo, puis la nouvelle reste' },
+};
 LT.effets = {
   // ===================== OVERLAYS (textures) =====================
   flamme: {
@@ -65,11 +76,20 @@ LT.effets = {
     nom: 'Dégradé', sorte: 'overlay', choix: { sens: SENS }, reglages: { sens: 'haut', defile: .3 },
     rendu(px, r) { const x = fr(pos(px, r.sens) - px.pb * r.defile * .25); px.k = x; px.b = .25 + .75 * x; },
   },
+  eclaircir: {   // fait pour « Réagir à » un stem, au volume : plus c'est fort, plus les lumières montent vers le blanc
+    nom: 'Éclaircir', sorte: 'overlay', eclat: 1, reagit: 'volume', reglages: { force: .8 },
+    rendu(px, r) { px.k = r.force; px.b = 1; },
+  },
+  assombrir: {   // l'inverse : baisse la lumière (avec « Réagir à » au volume : ça respire avec le stem)
+    nom: 'Assombrir', sorte: 'overlay', reagit: 'volume', reglages: { force: .7 },
+    rendu(px, r) { px.k = 0; px.b = 1 - r.force; },
+  },
   respire: {
     nom: 'Respiration', sorte: 'overlay', choix: { duree: DUREE }, reglages: { duree: 4, profondeur: .7 },
     rendu(px, r) { const v = .5 - .5 * Math.cos(fr(px.pb / r.duree) * PI2); px.b = 1 - r.profondeur * (1 - v); px.k = v * .5; },
   },
   pulsation: {
+    reagit: 'coups',
     nom: 'Pulsation au tempo', sorte: 'overlay', choix: { div: DIV }, reglages: { div: 1, chute: .5, largeur: .5 },
     rendu(px, r) {
       const e = Math.exp(-fr(px.pb * r.div) * (2 + 10 * r.chute)), d = Math.abs(px.v - .5) * 2, w = .15 + .85 * r.largeur * (.4 + .6 * e);
@@ -79,6 +99,7 @@ LT.effets = {
 
   // ===================== MOUVEMENTS (masques) =====================
   strobo: {
+    reagit: 'coups',
     nom: 'Stroboscope', sorte: 'mouvement', choix: { div: DIV }, reglages: { div: 2, allume: .35 },
     rendu(px, r) { px.a = fr(px.tb * r.div) < r.allume ? 1 : 0; },
   },
@@ -99,18 +120,22 @@ LT.effets = {
     },
   },
   points: {
+    reagit: 'coups',
     nom: 'Points', sorte: 'mouvement', choix: { sens: SENS, duree: DUREE }, reglages: { sens: 'haut', duree: 1, nombre: 4, largeur: .4 },
     rendu(px, r) { const f = fr(pos(px, r.sens) * r.nombre - px.tb / r.duree); px.a = f < r.largeur ? S(f / r.largeur * Math.PI) : 0; },
   },
   scintille: {
+    reagit: 'coups',
     nom: 'Scintillement', sorte: 'mouvement', choix: { div: DIV }, reglages: { div: 4, densite: .5, blocs: 16 },
     rendu(px, r) { const cel = Math.floor(px.v * r.blocs), pas = Math.floor(px.tb * r.div); px.a = H(cel * 13.1 + px.zi * 71.7 + pas * 3.3) < .25 + .6 * r.densite ? 1 : 0; },
   },
   codebarres: {
+    reagit: 'coups',
     nom: 'Code-barres', sorte: 'mouvement', choix: { div: DIV }, reglages: { div: 2, lignes: 24, remplissage: .5 },
     rendu(px, r) { const pas = Math.floor(px.tb * r.div), cel = Math.floor(px.v * r.lignes); px.a = H(cel * 7.7 + px.zi * 31.3 + pas * 5.1) < r.remplissage ? 1 : 0; },
   },
   projectile: {
+    reagit: 'coups',
     nom: 'Projectile', sorte: 'mouvement', choix: { depart: [['bas', 'En bas'], ['haut', 'En haut']] }, reglages: { depart: 'bas', taille: .08, eclair: .15 },
     rendu(px, r) {
       const y = r.depart === 'haut' ? px.v : 1 - px.v;
@@ -120,6 +145,7 @@ LT.effets = {
     },
   },
   chenillard: {
+    reagit: 'coups',
     nom: 'Chenillard', sorte: 'mouvement', choix: { div: DIV }, reglages: { div: 1 },
     rendu(px, r) { px.a = Math.floor(px.tb * r.div) % px.nz === px.zi ? 1 : 0; },   // une lumière à la fois, à chaque temps
   },

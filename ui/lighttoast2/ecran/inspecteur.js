@@ -48,6 +48,7 @@ class Inspecteur {
     if (sorte === 'peches') return this.peche(k);
     if (sorte === 'effets') return this.effet(k);
     if (sorte === 'declencheurs') return this.declencheur(k);
+    if (sorte === 'transitions') return this.transition(k);
     return this.couleur(k);
   }
 
@@ -108,6 +109,7 @@ class Inspecteur {
       <div class="lt2-slots">${cs.map((h, i) => `<button class="lt2-slot${this.slot === i ? ' on' : ''}" data-slot="${i}" style="background:${h}"></button>`).join('')}${multi ? `<button class="lt2-tb" data-c="+" title="Ajouter une couleur">+</button>${cs.length > 2 ? '<button class="lt2-tb" data-c="-" title="Enlever la couleur choisie">−</button>' : ''}` : ''}</div><div class="lt2-roue-ici"></div>
       ${this.zones(k, 'zones', 'Lumières couvertes')}
       <p class="lt2-vide">Coche les lumières que ce calque allume (elles n'ont pas besoin de se toucher). Il passe par-dessus les autres calques.</p>
+      ${this.reagirHTML(k, 'volume')}
       ${this.glisseur('force', k.force ?? 1, 0, 1, .01, 'Intensité')}
       <h4>Apparition</h4>${this.glisseur('entree', k.entree || 0, 0, 4, .05, 'Fondu d\'entrée')}${this.glisseur('sortie', k.sortie || 0, 0, 4, .05, 'Fondu de sortie')}`;
     this.couleursSlots = () => multi ? k.couleurs : [k.couleur];
@@ -116,7 +118,47 @@ class Inspecteur {
       c.querySelectorAll('[data-slot]').forEach(b => b.onclick = () => { this.slot = +b.dataset.slot; this.rendre(); });
       c.querySelectorAll('[data-c]').forEach(b => b.onclick = () => { this.debut(); if (b.dataset.c === '+') { k.couleurs.push(P.palette.find(x => !k.couleurs.includes(x)) || '#ffffff'); this.slot = k.couleurs.length - 1; } else { k.couleurs.splice(this.slot, 1); this.slot = 0; } k.couleur = k.couleurs[0]; this.fin(); this.rendre(); });
     }
+    this.brancherReagir(k, 'volume');
     this.brancher(k, 'zones', true);
+  }
+  // ---------- « Réagir à » un stem (calque de couleur, effet, fond) ----------
+  reagirHTML(k, defaut) {
+    const st = this.m.projet.stems || [], q = k.reagir || {};
+    if (!st.length) return '<h4>Réagir à un stem</h4><p class="lt2-vide">Ajoute d\'abord des stems (bouton + en haut de la timeline).</p>';
+    const mode = q.mode || defaut, vol = mode === 'volume';
+    return `<h4>Réagir à un stem</h4><label class="lt2-reg">Réagir à<select data-rs><option value="">Rien</option>${st.map(s => `<option value="${s.id}"${s.id === q.stem ? ' selected' : ''}>${esc(s.nom)}</option>`).join('')}</select></label>
+      ${q.stem ? `<div class="lt2-seg"><button data-rm="volume" class="${vol ? 'on' : ''}">Au volume</button><button data-rm="coups" class="${vol ? '' : 'on'}">Aux coups</button></div>
+      <p class="lt2-vide">${vol ? 'La force suit le volume du stem : fort = plein, silence = presque rien.' : 'Repart à chaque coup du stem, puis retombe.'}</p>
+      ${vol ? `<label class="lt2-reg">Seuil <b>${Math.round((q.seuil ?? .1) * 100)} %</b><input type="range" min="0" max=".8" step=".01" data-rq="seuil" value="${q.seuil ?? .1}"></label>`
+            : `<label class="lt2-reg">Chute <b>${q.chute ?? .5} temps</b><input type="range" min=".05" max="4" step=".05" data-rq="chute" value="${q.chute ?? .5}"></label>`}` : ''}`;
+  }
+  brancherReagir(k, defaut) {
+    const c = this.c, s = c.querySelector('[data-rs]'); if (!s) return;
+    s.onchange = () => { this.debut(); if (s.value) k.reagir = Object.assign({ mode: defaut, seuil: .1, chute: .5 }, k.reagir, { stem: s.value }); else delete k.reagir; this.fin(); this.rendre(); };
+    c.querySelectorAll('[data-rm]').forEach(b => b.onclick = () => { this.debut(); k.reagir.mode = b.dataset.rm; k.reagir.choisi = true; this.fin(); this.rendre(); });
+    c.querySelectorAll('[data-rq]').forEach(el => {
+      el.addEventListener('input', () => { this.pendant(() => { k.reagir[el.dataset.rq] = +el.value; }); el.parentElement.querySelector('b').textContent = el.dataset.rq === 'seuil' ? Math.round(el.value * 100) + ' %' : el.value + ' temps'; });
+      el.addEventListener('change', () => this.fin());
+    });
+  }
+
+  // ---------- une transition (à cheval sur une coupure entre deux calques) ----------
+  transition(k) {
+    const c = this.c, T = LT.TRANSITIONS, d = T[k.trans] || T.fondu, bps = (this.m.projet.bpm || 120) / 60, temps = (k.fin - k.debut) * bps;
+    const sens = d.sens ? `<div class="lt2-seg">${d.sens.map((n, i) => `<button data-sens="${i ? 'inverse' : 'normal'}" class="${(k.sens === 'inverse') === !!i ? 'on' : ''}">${n}</button>`).join('')}</div>` : '';
+    c.innerHTML = `<div class="lt2-titre">Transition</div>${this.temps(k)}
+      <label class="lt2-reg">Sorte<select data-tr>${Object.entries(T).map(([x, t]) => `<option value="${x}"${x === k.trans ? ' selected' : ''}>${t.nom}</option>`).join('')}</select></label>
+      <p class="lt2-vide">${d.aide}. Tire ses bords sur la timeline pour changer sa durée (${temps.toFixed(1)} temps).</p>
+      ${sens}
+      ${['clignote', 'flash', 'cascade', 'balayage'].includes(k.trans) ? '' : `<div class="lt2-seg"><button data-forme="douce" class="${k.forme !== 'nette' ? 'on' : ''}">Douce</button><button data-forme="nette" class="${k.forme === 'nette' ? 'on' : ''}">Nette</button></div>`}
+      ${d.couleur ? `<div class="lt2-slots"><button class="lt2-slot on" data-slot="0" style="background:${k.couleur}"></button></div><div class="lt2-roue-ici"></div>` : ''}
+      ${this.zones(k, 'zones', 'Lumières')}`;
+    this.couleursSlots = () => [k.couleur];
+    const place = c.querySelector('.lt2-roue-ici'); if (place) this.roue(place, k.couleur, col => { k.couleur = col; });
+    c.querySelector('[data-tr]').onchange = e => { this.debut(); k.trans = e.target.value; this.fin(); this.rendre(); };
+    c.querySelectorAll('[data-sens]').forEach(b => b.onclick = () => { this.debut(); k.sens = b.dataset.sens; this.fin(); this.rendre(); });
+    c.querySelectorAll('[data-forme]').forEach(b => b.onclick = () => { this.debut(); k.forme = b.dataset.forme; this.fin(); this.rendre(); });
+    this.brancher(k, 'zones', false);
   }
 
   // ---------- un effet (calque d'effet : agit sur ce qui est en dessous) ----------
@@ -128,10 +170,11 @@ class Inspecteur {
       <p class="lt2-vide">${ov ? 'La couleur du dessous devient cette texture, dans sa couleur.' : 'Découpe ce qui est en dessous (ou ajoute sa propre couleur en mode lumière).'}</p>
       ${ov ? this.glisseur('eclat', k.eclat ?? .35, 0, 1, .01) : `<div class="lt2-seg"><button data-mode="masque" class="${lum ? '' : 'on'}">Masque</button><button data-mode="lumiere" class="${lum ? 'on' : ''}">Lumière</button></div>`}
       ${lum ? `<div class="lt2-slots"><button class="lt2-slot on" data-slot="0" style="background:${k.couleur}"></button></div><div class="lt2-roue-ici"></div>` : ''}
-      ${this.zones(k)}<h4>Réglages</h4>${this.reglages(def, k)}${this.fondus(k)}`;
+      ${this.zones(k)}${this.reagirHTML(k, def.reagit || 'volume')}<h4>Réglages</h4>${this.reglages(def, k)}${this.fondus(k)}`;
     this.couleursSlots = () => [k.couleur];
     if (lum) this.roue(c.querySelector('.lt2-roue-ici'), k.couleur, col => { k.couleur = col; });
-    c.querySelector('[data-effet]').onchange = e => { this.debut(); k.effet = e.target.value; k.reglages = {}; this.fin(); this.rendre(); };
+    c.querySelector('[data-effet]').onchange = e => { this.debut(); k.effet = e.target.value; k.reglages = {}; const d = LT.effets[k.effet]; if (d && d.eclat) k.eclat = d.eclat; if (k.reagir && !k.reagir.choisi) k.reagir.mode = (d && d.reagit) || 'volume'; this.fin(); this.rendre(); };
+    this.brancherReagir(k, def.reagit || 'volume');
     c.querySelectorAll('[data-mode]').forEach(b => b.onclick = () => { this.debut(); k.mode = b.dataset.mode; this.fin(); this.rendre(); });
     this.brancher(k);
   }
@@ -177,7 +220,7 @@ class Inspecteur {
   // ---------- une pêche (et son type) ----------
   peche(k) {
     const c = this.c, P = this.m.projet, y = P.peches.types.find(q => q.id === k.type) || P.peches.types[0];
-    const n = P.peches.clips.filter(q => q.type === y.id).length;
+    const n = [P.peches.clips, ...(P.peches.autres || []).map(x => x.clips)].flat().filter(q => q.type === y.id).length;
     if (this.slot > 1) this.slot = 0;
     c.innerHTML = `<div class="lt2-titre">Pêche</div>${this.temps(k)}
       <label class="lt2-reg">Type<select data-type>${P.peches.types.map(q => `<option value="${q.id}"${q.id === y.id ? ' selected' : ''}>${esc(q.nom)}</option>`).join('')}<option value="+">+ Nouveau type…</option></select></label>
@@ -214,9 +257,6 @@ class Inspecteur {
       <label class="lt2-reg">Premier temps à (s)<input type="number" step="0.01" min="0" data-k="grille" value="${P.grille || 0}" title="Cale la grille des temps sur le 1er temps du morceau"></label>
       <h4>Palette du morceau</h4><div class="lt2-slots">${P.palette.map((h, i) => `<button class="lt2-slot${this.slot === i ? ' on' : ''}" data-slot="${i}" style="background:${h}"></button>`).join('')}<button class="lt2-tb" data-pal="+" title="Ajouter une couleur">+</button>${P.palette.length > 1 ? '<button class="lt2-tb" data-pal="-" title="Retirer la couleur choisie">−</button>' : ''}</div>
       <div class="lt2-roue-ici"></div>
-      <h4>Intensité des lumières</h4>
-      ${P.materiel.zones.map(z => `<label class="lt2-reg">${esc(z.nom)} <b>${Math.round(((P.intensites || {})[z.id] ?? 1) * 100)} %</b><input type="range" min="0" max="1" step="0.01" data-int="${z.id}" value="${(P.intensites || {})[z.id] ?? 1}"></label>`).join('')}
-      <p class="lt2-vide">Pour tout le morceau : baisse une lumière trop forte par rapport aux autres.</p>
       <h4>Décompte avant le début</h4>
       <label class="lt2-reg lt2-coche"><input type="checkbox" data-d="actif"${d.actif ? ' checked' : ''}> Ajouter un décompte</label>
       <div class="lt2-dc${d.actif ? '' : ' lt2-off'}">
@@ -231,7 +271,6 @@ class Inspecteur {
     c.querySelectorAll('[data-slot]').forEach(b => b.onclick = () => { this.slot = +b.dataset.slot; this.rendre(); });
     c.querySelectorAll('[data-pal]').forEach(b => b.onclick = () => { this.debut(); if (b.dataset.pal === '+') { P.palette.push(P.palette[this.slot] || '#ffffff'); this.slot = P.palette.length - 1; } else { P.palette.splice(this.slot, 1); this.slot = 0; } this.fin(); this.rendre(); this.m.biblio(); });
     c.querySelectorAll('[data-k]').forEach(el => this.lier(el, P, el.dataset.k));
-    c.querySelectorAll('[data-int]').forEach(el => { P.intensites = P.intensites || {}; this.lier(el, P.intensites, el.dataset.int); el.addEventListener('input', () => { el.parentElement.querySelector('b').textContent = Math.round(el.value * 100) + ' %'; }); });
     c.querySelectorAll('[data-d]').forEach(el => { this.lier(el, d, el.dataset.d); if (el.dataset.d === 'actif') el.addEventListener('change', () => { this.m.tl.toutVoir(); this.rendre(); }); });
     const coups = c.querySelector('input[data-d="coups"]'); coups.addEventListener('input', () => { coups.parentElement.querySelector('b').textContent = coups.value; });
     // taper le tempo
@@ -251,17 +290,15 @@ class Inspecteur {
       ${this.glisseur('sens', st.sens, 0, 1, .01, 'Sensibilité')}
       ${this.glisseur('ecart', st.ecart, 10, 500, 5, 'Écart mini').replace(/<b>[^<]*<\/b>/, `<b>${st.ecart} ms</b>`)}
       <div class="lt2-ligne"><span>Coups repérés</span><b data-n>${m.coupsDe(st).length}</b></div>
-      <label class="lt2-reg lt2-coche"><input type="checkbox" data-k="muet"${st.muet ? ' checked' : ''}> Ignorer ce stem (magnétisme, déclencheurs)</label>
+      <label class="lt2-reg lt2-coche"><input type="checkbox" data-k="muet"${st.muet ? ' checked' : ''}> Ignorer ce stem (magnétisme, réactions)</label>
       <p class="lt2-vide">Plus haut = plus de coups. Deux coups plus proches que l'écart mini n'en font qu'un (le plus fort reste). Le son du stem n'est pas gardé dans le projet : ses coups et son volume, oui.</p>
-      <button data-decl class="lt2-pri">+ Déclencheur sur tout le morceau</button>
-      <p class="lt2-vide">Ou double-clic sur la ligne du stem pour en poser un à un endroit.</p>
+      <p class="lt2-vide">Pour faire réagir les lumières : choisis un calque, un effet ou un fond, puis dans son Inspecteur « Réagir à » → ce stem (au volume ou aux coups).</p>
       <button data-suppr>Retirer ce stem</button>`;
     c.querySelectorAll('[data-k]').forEach(el => this.lier(el, st, el.dataset.k));
     const ec = c.querySelector('[data-k="ecart"]'), maj = () => { c.querySelector('[data-n]').textContent = m.coupsDe(st).length; ec.parentElement.querySelector('b').textContent = st.ecart + ' ms'; };
     c.querySelectorAll('input[type=range]').forEach(el => el.addEventListener('input', maj));
     c.querySelector('[data-k="nom"]').addEventListener('change', () => m.tl.redessiner());
     c.querySelector('[data-suppr]').onclick = () => { m.modifier(() => { const P = m.projet; P.stems.splice(P.stems.indexOf(st), 1); P.declencheurs = (P.declencheurs || []).filter(k => k.stem !== st.id); }); m.son.stems.delete(st.id); m.choisirStem(null); };
-    c.querySelector('[data-decl]').onclick = () => { const P = m.projet, k = LT.declencheurs.nouveau(st.id, Math.min(0, m.debutMin()), Math.max(m.duree(), 1), P); m.modifier(() => (P.declencheurs = P.declencheurs || []).push(k)); m.choisir(k); };
   }
 }
 LT.Inspecteur = Inspecteur;

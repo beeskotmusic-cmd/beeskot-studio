@@ -53,18 +53,18 @@ LT.studio = {
       },
       // le PLACEMENT réglé à la main avec l'outil « Placer les objets » (ecran/placer.js, version d'essai seulement) :
       //   { nom: { dx, dy, dz (m), r (degrés), k (taille, 1 = normal) } } — nom = une pièce, un tube (t1…), le panneau (p1) ou « poste:batterie »…
-      placement: {   // réglé par Dari le 12 nov. 2026 (page « Placer le studio », 18 h 13)
+      placement: {   // réglé par Dari le 13 nov. 2026 (bouton « Éditer 3D » de TOAST2, 0 h 55)
         'ampli-bas': { dx: -0.117, dy: 0.1, dz: 1.345, r: 20 },
         'ampli-basse': { dx: 0.135, dz: 0.073, k: 1.75, r: -30 },
         'ampli-haut': { dx: -0.082, dy: 0.06, dz: 1.331, k: 0.9, r: -70 },
-        basse: { dx: -0.266, dy: -0.38, dz: 0.305, main: 'basse', rx: -18, rz: -62 },
+        basse: { dx: -0.237, dy: -0.4, dz: 0.128, main: 'basse', rz: -52, r: -36, rx: 2, k: 0.95 },
         batterie: { dx: -0.217, dz: 0.047, r: 125 },
         bongos: { dx: 2.563, dz: 0.498, k: 0.7, r: 65 },
         'chaise-bureau': { k: 1.4 },
-        conga: { dx: 0.626, dz: 0.632 },
+        conga: { dx: 0.615, dz: 0.637 },
         etagere: { dx: -0.097, dz: -0.484, kx: 2.05, ky: 1.1, kz: 1.45 },
         fauteuil: { dx: 0.115, dz: 0.049, r: 130 },
-        'guitare-mur': { dx: 0.04, dz: -0.576 },
+        'guitare-mur': { dx: 0.156, dz: -0.706, r: -22, rz: 16 },
         'guitare-mur2': { dx: -0.661, dy: -1.15, dz: -2.557, k: 1.05, r: -15 },
         'guitare-mur3': { dx: 2.324, dy: -0.96, dz: 0.215, r: -128, rx: -4, rz: 30 },
         'lampe-ampli': { dx: 0.423, dy: 0.17, dz: -0.217 },
@@ -82,9 +82,11 @@ LT.studio = {
         orgue: { dx: 0.119, dz: 0.653, k: 1.2 },
         p1: { dx: 0.314, dy: -0.832, dz: 0.627, kx: 0.45, r: 11, rx: 54 },
         plante: { cache: true, dx: -1.199, dz: 3.661 },
-        'poste:basse': { dx: 0.115, dz: -0.262, r: -25 },
+        'poste:basse': { dx: 0.061, dz: -0.054 },
         'poste:batterie': { dx: -0.361, dz: -0.161, r: 20 },
         'poste:chant': { dx: 0.014, dz: 0.906 },
+        'poste:piano': { dx: 0.026, dz: 0.62 },
+        'poste:guitare': { dx: 0.404, dz: 0.003 },
         'rideau-d': { dx: -0.014, dy: -0.05, dz: 0.142, k: 1.15 },
         'rideau-g': { dx: 0.027, dy: -0.05, dz: 0.14, k: 1.15 },
         'suspension-1': { dx: 0.652, dy: 0.44, dz: 3.007, k: 2.05 },
@@ -291,7 +293,7 @@ LT.studio = {
       for (const s of [-1, 1]) { const b = capsule(.055, .6 * k, veste, s * .25, bas, 0, m); b.rotation.z = s * .12; }
       capsule(.05, .12, peau, 0, bas + .58 * k, 0, m);
       pose(new T.Mesh(new T.SphereGeometry(.105, 24, 18), peau), 0, bas + .62 * k + .16, 0, m).scale.set(.92, 1.08, 1);
-      etiquettes[p.nom] = pose(etiquette(p.nom), p.x, bas + .62 * k + .44, p.z, membres);
+      etiquettes[p.nom] = pose(etiquette(p.nom), p.x, bas + .62 * k + .44, p.z, membres); etiquettes[p.nom].visible = false;   // les noms au-dessus des membres : cachés (demande de Dari)
       pieces['membre:' + p.nom] = { objets: [m], parent: membres, x: p.x, z: p.z, h: p.assis ? p.taille * .74 : p.taille };
     }
     // tout projette et reçoit des ombres, sauf les murs, le sol et ce qui brille tout seul

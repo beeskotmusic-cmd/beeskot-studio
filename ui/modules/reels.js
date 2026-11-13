@@ -27,7 +27,7 @@ BK.passagesDuMorceau = async function (m, ms, { reels = false } = {}) {
   ms = ms || await BK.db.liste('morceaux');
   const l = [], vu = new Set(), ajout = p => { const k = p.debut + '-' + p.fin; if (!vu.has(k)) { vu.add(k); l.push(p); } };
   const deCeMorceau = nom => { const x = BK.inv.trouverMorceau(nom || '', ms); return x && x.id === m.id; };
-  if (reels) for (const r of await BK.db.liste('reels')) if (r.morceau === m.id && r.passage && r.passage.fin > r.passage.debut) ajout({ debut: r.passage.debut, fin: r.passage.fin, nom: '🎞 Reel · ' + (r.nom || r.titre || 'sans nom') });
+  if (reels) for (const r of await BK.db.liste('reels')) if (r.morceau === m.id && r.passage && r.passage.fin > r.passage.debut) ajout({ debut: r.passage.debut, fin: r.passage.fin, v: r.passage.v || 1, nom: '🎞 Reel · ' + (r.nom || r.titre || 'sans nom') });
   for (const t of await BK.db.liste('tournages')) for (const p of t.plans || []) {
     if (!deCeMorceau(p.reel) && !(t.morceau === m.nom && !p.reel)) continue;
     const ps = enSec(p.audio); if (ps) ajout({ ...ps, nom: '🎬 ' + (t.titre || 'Tournage') + (p.action ? ' · ' + p.action : '') });
@@ -539,11 +539,11 @@ BK.module('reels', function (page) {
   async function garderExport(chemin, nom, octets, tournage) {
     if (!chemin) return;
     const { m } = await morceauActuel().catch(() => ({}));
-    const e = { id: Date.now().toString(36) + (tournage ? 't' : ''), nom, chemin, morceau: m ? m.nom : R.nom, debut: R.debut, duree: R.duree, t: new Date().toISOString(), pour: tournage ? 'tournage' : 'montage' };
+    const e = { id: Date.now().toString(36) + (tournage ? 't' : ''), nom, chemin, morceau: m ? m.nom : R.nom, debut: R.debut, duree: R.duree, v: R.v || 1, t: new Date().toISOString(), pour: tournage ? 'tournage' : 'montage' };
     BK.reelsExports[e.id] = URL.createObjectURL(new Blob([octets], { type: 'audio/wav' }));
     await BK.exportsAudio.ajouter(e); if (!tournage) R.dernierExport = e;
     if (BK.suiviEnCours && !tournage) { try { const l = await BK.db.liste('reels'), r = l.find(x => x.id === BK.suiviEnCours);     // relié à la page Reels
-      if (r) { r.audio = e.id; r.passage = { debut: R.debut, fin: R.debut + R.duree }; if (r.statut === 'idee') r.statut = 'audio';
+      if (r) { r.audio = e.id; r.passage = { debut: R.debut, fin: R.debut + R.duree, v: R.v || 1 }; if (r.statut === 'idee') r.statut = 'audio';
         await BK.db.ecrire('reels', r); BK.suiviRecharger && BK.suiviRecharger(); } } catch (er) {} }
   }
   $('#reExport').onclick = async () => {
@@ -587,9 +587,9 @@ BK.module('reels', function (page) {
     $('#reFaits').appendChild(z);
     z.querySelector('button').onclick = async () => {
       const n = reels.filter(r => r.morceau === m.id).length + 1;
-      await BK.db.ecrire('reels', { titre: 'Reel ' + n + ' · ' + m.nom, morceau: m.id, statut: 'audio', audio: e.id, passage: { debut: e.debut, fin: e.debut + e.duree }, notes: '' });
+      await BK.db.ecrire('reels', { titre: 'Reel ' + n + ' · ' + m.nom, morceau: m.id, statut: 'audio', audio: e.id, passage: { debut: e.debut, fin: e.debut + e.duree, v: e.v || 1 }, notes: '' });
       const tout = await BK.partage.lire('passages.reels', {}), l = tout[m.id] = tout[m.id] || [];
-      if (!l.some(x => Math.abs(x.debut - e.debut) < .05)) { l.push({ debut: Math.round(e.debut * 10) / 10, fin: Math.round((e.debut + e.duree) * 10) / 10 }); await BK.partage.ecrire('passages.reels', tout); }
+      if (!l.some(x => Math.abs(x.debut - e.debut) < .05)) { l.push({ debut: Math.round(e.debut * 10) / 10, fin: Math.round((e.debut + e.duree) * 10) / 10, v: e.v || 1 }); await BK.partage.ecrire('passages.reels', tout); }
       BK.suiviRecharger && BK.suiviRecharger();
       z.innerHTML = '<span class="nt">✓ Reel créé dans Reels</span>'; msg('Reel créé dans Reels'); };
   }

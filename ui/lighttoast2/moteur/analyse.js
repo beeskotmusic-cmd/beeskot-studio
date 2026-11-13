@@ -58,5 +58,25 @@ LT.analyse = {
   },
   // volume (0-1) d'un stem à l'instant t
   volume(stem, t) { const v = stem.volume; if (!v || !v.length) return 0; const i = t * 50, a = Math.floor(i), f = i - a; if (a < 0) return 0; if (a >= v.length - 1) return (v[v.length - 1] || 0) / 100; return (v[a] + (v[a + 1] - v[a]) * f) / 100; },
+  // caler une nouvelle version d'un morceau sur l'ancienne (nouveau mix…) : où tombe, dans B, ce qui était à 0 s dans A ?
+  // → { d (secondes : ce qui était à t est maintenant à t + d), sur (0-1 : à quel point c'est sûr) }
+  caler(A, B) {
+    const env = (buf, hz, max) => {   // l'attaque du son (montées d'énergie), hz valeurs par seconde
+      const c0 = buf.getChannelData(0), c1 = buf.numberOfChannels > 1 ? buf.getChannelData(1) : null, pas = Math.max(1, Math.round(buf.sampleRate / hz));
+      const n = Math.min(Math.floor(c0.length / pas), Math.round(max * hz)), e = new Float32Array(n), o = new Float32Array(n);
+      for (let i = 0; i < n; i++) { let s = 0; for (let j = i * pas, f = j + pas; j < f; j++) { const x = c1 ? c0[j] + c1[j] : c0[j]; s += x * x; } e[i] = Math.sqrt(s / pas); }
+      let m = 0; for (let i = 1; i < n; i++) { o[i] = Math.max(0, e[i] - e[i - 1]); m += o[i]; } m /= n || 1; for (let i = 0; i < n; i++) o[i] -= m;
+      return o;
+    };
+    const correl = (a, b, de, a2) => { let s = 0; const i0 = Math.max(0, -de), i1 = Math.min(a.length, b.length - de); for (let i = i0; i < i1; i++) s += a[i] * b[i + de]; return s; };
+    // 1. en gros (100 par seconde, jusqu'à ±30 s, sur les 2 premières minutes)
+    const a = env(A, 100, 150), b = env(B, 100, 180); let best = 0, bs = -Infinity, somme = 0, n = 0;
+    for (let l = -3000; l <= 3000; l++) { const s = correl(a, b, l); somme += Math.abs(s); n++; if (s > bs) { bs = s; best = l; } }
+    const norm = Math.sqrt(correl(a, a, 0) * correl(b, b, 0)) || 1;
+    // 2. au millième de seconde, autour
+    const a2 = env(A, 1000, 90), b2 = env(B, 1000, 120); let fin = best * 10, fs = -Infinity;
+    for (let l = best * 10 - 15; l <= best * 10 + 15; l++) { const s = correl(a2, b2, l); if (s > fs) { fs = s; fin = l; } }
+    return { d: fin / 1000, sur: Math.max(0, Math.min(1, bs / norm)), net: bs / ((somme / n) || 1) };
+  },
 };
 })(typeof self !== 'undefined' ? self : this);
