@@ -2322,3 +2322,8 @@ div.to-as-tete{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
 .md-grille.md-liste .md-dos-badge{position:static!important;flex:none}
 .md-grille.md-liste .md-x{position:static!important;flex:none;min-width:34px;min-height:34px}
 html.tel #mdVue{display:none!important}   /* sur téléphone c'est toujours en liste */
+
+/* Tournages : glisser un reel pour changer l'ordre (trait jaune = où il tombe) */
+.tt-reel-t.ins-haut{box-shadow:inset 0 3px 0 #ffb23e}
+.tt-reel-t.ins-bas{box-shadow:inset 0 -3px 0 #ffb23e}
+.tt-reel-t[draggable="true"]{cursor:grab}

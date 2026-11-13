@@ -803,6 +803,20 @@ BK.module('tournage', function (page) {
       r.parent = ''; await BK.db.ecrire('tournages', r); if (avant) await synchroTour(avant); rendreFiche(); }));
     $$('[data-tz]', z).forEach(el => cible(el, med, dt => { const [doc, qui] = el.dataset.tz.split('|'); poserTous(dt, { doc, qui }); }));
     $$('.tt-reel-t', z).forEach(h => cible(h, med, dt => poserTous(dt, { doc: h.dataset.tid, mood: true })));
+    // changer l'ordre des reels : glisser un reel au-dessus / en dessous d'un autre (trait jaune = où il va tomber)
+    const placer = (h, e) => { const b = h.getBoundingClientRect(), bas = e.clientY > b.top + b.height / 2; h.classList.toggle('ins-bas', bas); h.classList.toggle('ins-haut', !bas); return bas; };
+    $$('.tt-reel-t', z).forEach(h => {
+      h.addEventListener('dragover', e => { if (tour([...e.dataTransfer.types])) { e.preventDefault(); e.stopPropagation(); e.dataTransfer.dropEffect = 'move'; placer(h, e); } }, true);
+      h.addEventListener('dragleave', e => { if (!h.contains(e.relatedTarget)) h.classList.remove('ins-haut', 'ins-bas'); });
+      h.addEventListener('drop', async e => { if (!tour([...e.dataTransfer.types]) || e._pris) return; e._pris = true; e.preventDefault(); e.stopPropagation();
+        const bas = placer(h, e); h.classList.remove('ins-haut', 'ins-bas');
+        const r = T.liste.find(x => x.id === e.dataTransfer.getData('text/bk-tournage')), cibleR = T.liste.find(x => x.id === h.dataset.tid);
+        if (!r || !cibleR || r.id === cibleR.id) return;
+        const tr = T.liste.find(x => x.id === cibleR.parent), avant = r.parent !== cibleR.parent ? T.liste.find(x => x.id === r.parent) : null; if (!tr) return;
+        const l = reelsDe(tr).filter(x => x.id !== r.id); l.splice(l.indexOf(cibleR) + (bas ? 1 : 0), 0, r); r.parent = tr.id;
+        for (let i = 0; i < l.length; i++) if (l[i].ordre !== i || l[i] === r) { l[i].ordre = i; await BK.db.ecrire('tournages', l[i]); }
+        await synchroTour(tr); if (avant) await synchroTour(avant); rendreListe(); rendreFiche(); }, true);
+    });
     $$('#toMood', z).forEach(m => cible(m, med, dt => poserTous(dt, { doc: (T.courant || {}).id, mood: true })));
   }
   async function versReels(t) {

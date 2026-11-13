@@ -3,6 +3,9 @@
 // Pour une nouvelle version : ajouter un bloc EN HAUT de la liste. Une ligne courte par point : « Onglet : ce qui change. »
 // =====================================================================
 BK.NOUVEAUTES = [
+  { v: '0.9.151', titre: 'Tournages : changer l\'ordre des reels', l: [
+    ['↕', 'Tournages › Les reels de ce tournage : attrape un reel et glisse-le au-dessus ou en dessous d\'un autre pour changer l\'ordre. Un trait jaune montre où il va tomber.'],
+  ] },
   { v: '0.9.150', titre: 'TOAST2 : caméra en contre-plongée', l: [
     ['🎥', 'TOAST2 › Studio 3D : la caméra peut maintenant passer en contre-plongée (regarder d\'en bas), sans jamais descendre sous le sol.'],
   ] },
