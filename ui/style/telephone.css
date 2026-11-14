@@ -535,3 +535,30 @@ html.tel .tt-reel-t.to-carte{flex-wrap:wrap;cursor:default}
 html.tel .tt-reel-t .to-c-txt{flex:1 1 calc(100% - 60px)}
 html.tel .tt-reel-t .to-c-txt b{white-space:normal}
 html.tel .tt-reel-t .to-c-btns{flex:1 1 100%;flex-direction:row;flex-wrap:wrap;justify-content:flex-end;gap:5px}
+/* Tournages › Découpage sur téléphone : chaque plan devient une petite carte lisible (au lieu d'un tableau écrasé)
+     [1]  Cadrage ............ Durée
+          Ce qu'on voit (toute la largeur)
+          Notes (toute la largeur)
+          Images                                  */
+html.tel table.to-plans{display:block!important;table-layout:auto!important;overflow:visible!important;width:100%}
+html.tel table.to-plans colgroup,html.tel table.to-plans thead{display:none!important}
+html.tel table.to-plans tbody{display:flex;flex-direction:column;gap:8px}
+html.tel table.to-plans tr{display:grid!important;grid-template-columns:30px minmax(0,1fr) auto;grid-template-areas:"n cad dur" "n act act" "n not not" "n img img" "n btn btn";
+  gap:4px 8px;padding:8px;border-radius:8px;background:rgba(255,255,255,.04);box-shadow:inset 0 0 0 1px rgba(239,230,210,.08)}
+html.tel table.to-plans td{display:block!important;width:auto!important;padding:0!important;border:0!important;min-width:0}
+html.tel table.to-plans td:nth-child(1){grid-area:n;font-size:15px}
+html.tel table.to-plans td:nth-child(2){grid-area:cad}
+html.tel table.to-plans td:nth-child(3){grid-area:act}
+html.tel table.to-plans td:nth-child(4){grid-area:dur;text-align:right}
+html.tel table.to-plans td:nth-child(5){grid-area:not}
+html.tel table.to-plans td:nth-child(6){grid-area:img;display:flex!important;flex-wrap:wrap;gap:6px}
+html.tel table.to-plans td:nth-child(7){grid-area:btn;display:flex!important;justify-content:flex-end;gap:6px}
+html.tel table.to-plans td:nth-child(3)::before{content:"Ce qu'on voit";display:block;font:600 8.5px Jost,sans-serif;letter-spacing:.12em;text-transform:uppercase;opacity:.55;margin-bottom:2px}
+html.tel table.to-plans td:nth-child(5)::before{content:"Notes";display:block;font:600 8.5px Jost,sans-serif;letter-spacing:.12em;text-transform:uppercase;opacity:.55;margin-bottom:2px}
+html.tel table.to-plans td:nth-child(5):not(:has(.fld:not(:placeholder-shown),span.lect-txt:not(:empty)))::before{display:none}
+html.tel table.to-plans .lect-txt,html.tel table.to-plans .fld{white-space:pre-wrap;word-break:normal;overflow-wrap:anywhere}
+html.tel table.to-plans .fld.court{width:64px;text-align:right}
+html.tel .tw-defile{overflow:visible!important}
+/* Tournages : « ✥ Cadrer » la couverture, seulement sur PC */
+html.tel .to-af-cad{display:none!important}
+html.tel .deux-box{grid-template-columns:1fr!important}   /* Tenues / Matériel : l'un sous l'autre sur téléphone */

@@ -3,6 +3,9 @@
 // Pour une nouvelle version : ajouter un bloc EN HAUT de la liste. Une ligne courte par point : « Onglet : ce qui change. »
 // =====================================================================
 BK.NOUVEAUTES = [
+  { v: '0.9.161', titre: 'Téléphone : découpage lisible', l: [
+    ['📱', 'Téléphone › Tournages : le découpage n\'est plus un tableau écrasé : chaque plan est une petite carte (cadrage et durée en haut, ce qu\'on voit et les notes en entier, les images dessous). Tenues et Matériel l\'un sous l\'autre. « Cadrer » la couverture reste sur PC.'],
+  ] },
   { v: '0.9.160', titre: 'Téléphone : Tournages', l: [
     ['📱', 'Téléphone › Tournages : le nom des reels n\'est plus coupé (les boutons passent en dessous), et ↑ ↓ pour changer leur ordre au doigt. Rien ne change sur PC.'],
   ] },
