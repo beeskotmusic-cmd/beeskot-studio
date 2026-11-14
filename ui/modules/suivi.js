@@ -244,19 +244,17 @@ BK.module('suivi', function (page) {
   // ---------- l'extrait audio et le lien avec Tournages ----------
   const enSec = txt => { const t = String(txt || '').trim().replace(',', '.'); if (!t) return null;
     const m = t.match(/^(?:(\d+):)?(\d+(?:\.\d+)?)$/); return m ? (+(m[1] || 0)) * 60 + +m[2] : null; };
-  // les passages gardés pour un morceau : ceux tapés ici, ceux de Reels Audio (exports, Discord)
+  // les passages d'un morceau : la liste commune de tout le logiciel (BK.passagesDuMorceau) + les exports de Reels Audio
   async function passagesDe(r) { const m = morceauDe(r); if (!m) return [];
-    const l = [], vu = new Set(), ajout = p => { if (!p || !(p.fin > p.debut)) return; const k = Math.round(p.debut * 10) + '-' + Math.round(p.fin * 10); if (!vu.has(k)) { vu.add(k); l.push(p); } };
-    ((await BK.partage.lire('passages.reels', {}))[m.id] || []).forEach(ajout);
+    const l = [], vu = new Set(), ajout = p => { if (!p || !(p.fin > p.debut)) return; const k = Math.round(p.debut) + '-' + Math.round(p.fin); if (!vu.has(k)) { vu.add(k); l.push(p); } };
+    (await BK.passagesDuMorceau(m).catch(() => [])).forEach(ajout);
     R.exports.filter(e => BK.inv.normaliser(e.morceau || '') === BK.inv.normaliser(m.nom) && e.duree).forEach(e => ajout({ debut: e.debut || 0, fin: (e.debut || 0) + e.duree }));
-    ((await BK.partage.lire('passages.discord', {}))[m.id] || []).forEach(ajout);
     return l.sort((a, b) => a.debut - b.debut); }
   async function passage(r, p) {
     r.passage = { debut: Math.round(p.debut * 10) / 10, fin: Math.round(p.fin * 10) / 10 }; delete sources[r.id];
     await BK.db.ecrire('reels', r);
     const m = morceauDe(r);
-    if (m) { const tout = await BK.partage.lire('passages.reels', {}), l = tout[m.id] = tout[m.id] || [];
-      if (!l.some(x => Math.abs(x.debut - r.passage.debut) < .05 && Math.abs(x.fin - r.passage.fin) < .05)) { l.push(r.passage); await BK.partage.ecrire('passages.reels', tout); } }
+    if (m) await BK.garderPassage(m, r.passage);
     await versTournage(r); msg(`Extrait ${BK.audio.temps(r.passage.debut)} → ${BK.audio.temps(r.passage.fin)} gardé`); rendre();
   }
   // le reel dans Tournages : créé au premier envoi (dans « Reels sans tournage »), puis tenu à jour
@@ -340,7 +338,7 @@ BK.module('suivi', function (page) {
         if (f <= d) return msg('La fin doit être après le début');
         await passage(r, { debut: d, fin: f }); }; });
     $$('[data-pass]', z).forEach(sel => { const r = R.l.find(x => x.id === sel.dataset.pass);
-      passagesDe(r).then(l => { sel._l = l; sel.innerHTML = `<option value="">${l.length ? 'Passage… (' + l.length + ')' : 'Aucun passage gardé'}</option>` + l.map((p, k) => `<option value="${k}">${BK.audio.temps(p.debut)} → ${BK.audio.temps(p.fin)}</option>`).join(''); });
+      passagesDe(r).then(l => { sel._l = l; sel.innerHTML = `<option value="">${l.length ? 'Passage… (' + l.length + ')' : 'Aucun passage gardé'}</option>` + l.map((p, k) => `<option value="${k}">${BK.audio.temps(p.debut)} → ${BK.audio.temps(p.fin)}${p.nom ? ' · ' + esc(String(p.nom).slice(0, 40)) : ''}</option>`).join(''); });
       sel.onchange = async () => { const p = (sel._l || [])[+sel.value]; if (p) await passage(r, { debut: p.debut, fin: p.fin }); }; });
     $$('[data-envt]', z).forEach(b => b.onclick = async () => { const r = R.l.find(x => x.id === b.dataset.envt); b.disabled = true;
       try { await versTournage(r, true); msg('« ' + nomCourt(r) + ' » est dans Tournages (Reels sans tournage) : glisse-le dans la bonne journée'); rendre(); }

@@ -5,7 +5,7 @@
 // page des invités, ui/live/index.html). Ici : seulement ce que le logiciel apporte à l'écran
 // (les morceaux de la Bibliothèque, les passages, les exports de Reels Audio, le lien des invités).
 //
-//   Passages créés dans Live : liste partagée « passages.live » (Drive) → { idMorceau: [{ nom, debut, fin }] }
+//   Passages créés dans Live : liste partagée « passages.live » (Drive) → { idMorceau: [{ nom, debut, fin }] } — lue aussi par tous les autres onglets (BK.passagesDuMorceau)
 //   Passages proposés par Reels Audio (tournages, PLAN, gardés, Discord) : lus, jamais modifiés ici
 //   Code de la salle commune : réglage partagé « live.salle » (le même pour tout le groupe)
 //   Lien des invités : fiche « partages » d'id « live-invites » (type 'live') → ouvre / ferme l'accès au fichier du morceau
@@ -17,7 +17,6 @@ const AUDIO = /\.(wav|mp3|aiff?|flac|m4a|ogg)$/i;
 const hasard = n => Array.from(crypto.getRandomValues(new Uint8Array(n)), x => 'abcdefghijkmnpqrstuvwxyz23456789'[x % 32]).join('');
 const clePass = p => p.export ? p.id + '|' + p.fichier : p.id;        // un export a sa propre liste de passages
 // « 0:42 - 1:05 » → { debut, fin } en secondes (comme dans Reels Audio)
-const enSec = txt => { const t = String(txt || '').replace(/\s*[:'’]\s*/g, ':'), m = t.match(/(\d{1,2}):(\d{2})\s*[-–—à>]+\s*(\d{1,2}):(\d{2})/); return m ? { debut: +m[1] * 60 + +m[2], fin: +m[3] * 60 + +m[4] } : null; };
 const morceau = async id => { const ms = await BK.db.liste('morceaux'); return { ms, m: ms.find(x => x.id === id) }; };
 
 BK.live = {
@@ -36,14 +35,10 @@ BK.live = {
       async passages(p) {
         const live = ((await BK.partage.lire('passages.live', {}))[clePass(p)] || []).map(x => ({ ...x, source: 'live' })); if (p.export) return live;
         const { ms, m } = await morceau(p.id); if (!m) return live;
-        const l = [...live], vu = new Set(live.map(x => x.debut + '-' + x.fin)), propre = t => String(t || '').replace(/[\p{Extended_Pictographic}\uFE0F]/gu, '').replace(/\s+/g, ' ').trim();
-        const ajout = (x, nom) => { const k = x.debut + '-' + x.fin; if (!(x.fin > x.debut) || vu.has(k)) return; vu.add(k); l.push({ nom: propre(nom).slice(0, 40) || 'Passage', debut: x.debut, fin: x.fin, v: 1, source: 'reels' }); };
-        const deCeMorceau = nom => { const x = BK.inv.trouverMorceau(nom || '', ms); return x && x.id === m.id; };
-        try { for (const t of await BK.db.liste('tournages')) for (const pl of t.plans || []) { if (!deCeMorceau(pl.reel) && !(t.morceau === m.nom && !pl.reel)) continue;
-          const ps = enSec(pl.audio); if (ps) ajout(ps, (t.titre || 'Tournage') + (pl.action ? ' · ' + pl.action : '')); } } catch (e) {}
-        for (const r of await BK.partage.lire('plan.lignes', [])) if (deCeMorceau(r.reel)) { const ps = enSec(r.audio); if (ps) ajout(ps, 'PLAN · ' + (r.jour || '') + (r.plans ? ' · ' + r.plans : '')); }
-        ((await BK.partage.lire('passages.reels', {}))[m.id] || []).forEach((x, n) => ajout(x, 'Reels Audio ' + (n + 1)));
-        for (const x of ((await BK.partage.lire('passages.discord', {}))[m.id] || [])) ajout(x, x.nom || 'Discord');
+        // + la liste commune de tout le logiciel (Tournages, PLAN, Reels, Reels Audio, Discord) : un passage ajouté ailleurs apparaît ici
+        const l = [...live], vu = new Set(live.map(x => Math.round(x.debut) + '-' + Math.round(x.fin))), propre = t => String(t || '').replace(/[\p{Extended_Pictographic}\uFE0F]/gu, '').replace(/\s+/g, ' ').trim();
+        for (const x of await BK.passagesDuMorceau(m, ms).catch(() => [])) { if (x.source === 'live') continue; const k = Math.round(x.debut) + '-' + Math.round(x.fin); if (vu.has(k)) continue; vu.add(k);
+          l.push({ nom: propre(x.nom).slice(0, 40) || 'Passage', debut: x.debut, fin: x.fin, v: 1, source: 'reels' }); }
         const caches = new Set((await BK.partage.lire('passages.caches', {}))[clePass(p)] || []);   // cachés dans Synch bread (pour tout le groupe)
         l.forEach(x => { if (x.source !== 'live' && caches.has(x.debut + '-' + x.fin)) x.cache = true; });
         return l.sort((a, b) => a.debut - b.debut);

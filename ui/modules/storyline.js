@@ -371,7 +371,7 @@ BK.storyline = {
     installerSouris($('.sb-board', zone));
     await relire(true); chargerVersions();
     clearInterval(S.minuterie); S.minuterie = setInterval(() => relire(false), 15000);
-    window.addEventListener('bk:change', e => { if (e.detail && e.detail.col === 'morceaux' && S.zone) remplirMorceaux(); });
+    if (!S.ecoute) { S.ecoute = true; window.addEventListener('bk:change', e => { if (e.detail && e.detail.col === 'morceaux' && S.zone) remplirMorceaux(); }); }   // une seule fois
   },
   _S: S,
 };

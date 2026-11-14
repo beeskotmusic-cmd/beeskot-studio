@@ -3,7 +3,7 @@
 // Le programme est dans ui/lighttoast2/ (moteur/ + ecran/). Ici : le chargement dans l'onglet (à la 1re ouverture),
 // et les « sources » branchées sur BEESKOT Studio :
 //   musique  → Bibliothèque (morceau → version), Médias, ou un fichier du PC
-//   passages → ceux de Reels Audio / Tournages (BK.passagesDuMorceau)
+//   passages → la liste commune de tout le logiciel (BK.passagesDuMorceau)
 //   poses    → Drive : BEESKOT Studio / Light Toast / Poses (fichiers Mixamo .fbx, jamais sur GitHub)
 //   projets  → Drive : BEESKOT Studio / Light Toast / TOAST2 (.json) + copie de secours sur ce PC
 // =====================================================================
@@ -128,9 +128,7 @@ function brancher() {
     // id du morceau ; sans id (ancien projet de Pierre…), on le retrouve par son nom (« 8_GLAMOROUS SKY » → Glamorous Sky)
     async passages(id, nom) {
       const ms = await BK.toast.morceaux(), m = ms.find(x => x.id === id) || (nom && BK.inv && BK.inv.trouverMorceau ? BK.inv.trouverMorceau(String(nom).replace(/^\d+[_\s.-]*/, '').replace(/_/g, ' '), ms) : null); if (!m) return [];
-      const l = (await BK.passagesDuMorceau(m, ms, { reels: true })).map(p => ({ debut: p.debut, fin: p.fin, v: p.v || 1, nom: p.nom || p.titre || 'Passage' }));
-      const vu = new Set(l.map(p => p.debut + '-' + p.fin));
-      for (const p of ((await BK.partage.lire('passages.live', {}))[m.id] || [])) if (!vu.has(p.debut + '-' + p.fin)) l.push({ debut: p.debut, fin: p.fin, v: p.v || 1, nom: '🍞 ' + (p.nom || 'Synch bread') });   // créés dans Synch bread
+      const l = (await BK.passagesDuMorceau(m, ms)).map(p => ({ debut: p.debut, fin: p.fin, v: p.v || 1, nom: p.nom || 'Passage' }));   // la liste commune (tous les onglets)
       return l.filter(p => p.fin > p.debut).sort((a, b) => a.debut - b.debut);
     },
     // les poses Mixamo : dans le Drive (envoyées une fois par « Charger les poses »)

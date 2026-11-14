@@ -528,3 +528,5 @@ html.tel .md-choix-c .md-grille .md-tuile:not(.md-dos):not(.md-plus){flex-direct
 html.tel .md-choix-c .md-grille .md-tuile:not(.md-dos):not(.md-plus) .md-img{width:100%;height:auto;aspect-ratio:1!important}
 html.tel .md-choix-c .md-grille .md-tuile:not(.md-dos):not(.md-plus) .md-nom{font-size:10.5px!important;text-align:center!important;width:100%}
 html.tel .md-choix-c .md-grille .md-tuile.choisie{box-shadow:0 0 0 3px #ffb23e!important}
+/* Social photo : les boutons de cadrage (Entière, Remplir, Centre, En deux) sur 2 lignes, sinon « En deux » sort de l'écran */
+html.tel .pv-seg:has(#pvDeux){grid-template-columns:repeat(2,1fr)!important}

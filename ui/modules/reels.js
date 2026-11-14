@@ -20,22 +20,43 @@ function fabriquerClic(sr, bpm, canaux) {
 }
 const coller = (a, b) => a.map((x, c) => { const y = new Float32Array(x.length + b[c].length); y.set(x); y.set(b[c], x.length); return y; });
 
-// ---------- les passages prévus pour un morceau (fiches Tournages, PLAN.xlsx, gardés dans Reels, Discord) ----------
-// partagé : Assistant audio Reel ET Light Toast s'en servent. reels:true = ajoute aussi les passages des cartes Reels.
-const enSec = txt => { const t = String(txt || '').replace(/\s*[:'’]\s*/g, ':'), m = t.match(/(\d{1,2}):(\d{2})\s*[-–—à>]+\s*(\d{1,2}):(\d{2})/); return m ? { debut: +m[1] * 60 + +m[2], fin: +m[3] * 60 + +m[4] } : null; };
-BK.passagesDuMorceau = async function (m, ms, { reels = false } = {}) {
+// ---------- LES PASSAGES D'UN MORCEAU : une seule liste pour tout le logiciel ----------
+// Reels Audio, Light Toast / TOAST2, Synch bread, Reels (cartes) et Tournages lisent TOUS cette liste :
+// un passage ajouté n'importe où apparaît partout. Chaque passage dit d'où il vient (source + petite icône).
+//   reel     🎞  cartes de l'onglet Reels (r.passage)
+//   tournage 🎬  reels des Tournages (passage gardé) et « m:ss – m:ss » écrits dans le découpage
+//   plan     📋  PLAN.xlsx
+//   reels    🎞  gardés dans Reels Audio / Reels (liste partagée passages.reels)
+//   discord  💬  trouvés sur Discord
+//   live     🍞  créés dans Synch bread (passages.live)
+const enSec = txt => { const t = String(txt || '').replace(/\s*[:'’]\s*/g, ':'), m = t.match(/(\d{1,2}):(\d{2})(?:\.\d)?\s*[-–—à>→]+\s*(\d{1,2}):(\d{2})/); return m ? { debut: +m[1] * 60 + +m[2], fin: +m[3] * 60 + +m[4] } : null; };
+BK.passageEnSec = enSec;
+BK.passagesDuMorceau = async function (m, ms) {
+  if (!m) return [];
   ms = ms || await BK.db.liste('morceaux');
-  const l = [], vu = new Set(), ajout = p => { const k = p.debut + '-' + p.fin; if (!vu.has(k)) { vu.add(k); l.push(p); } };
-  const deCeMorceau = nom => { const x = BK.inv.trouverMorceau(nom || '', ms); return x && x.id === m.id; };
-  if (reels) for (const r of await BK.db.liste('reels')) if (r.morceau === m.id && r.passage && r.passage.fin > r.passage.debut) ajout({ debut: r.passage.debut, fin: r.passage.fin, v: r.passage.v || 1, nom: '🎞 Reel · ' + (r.nom || r.titre || 'sans nom') });
-  for (const t of await BK.db.liste('tournages')) for (const p of t.plans || []) {
-    if (!deCeMorceau(p.reel) && !(t.morceau === m.nom && !p.reel)) continue;
-    const ps = enSec(p.audio); if (ps) ajout({ ...ps, nom: '🎬 ' + (t.titre || 'Tournage') + (p.action ? ' · ' + p.action : '') });
-  }
-  for (const r of await BK.partage.lire('plan.lignes', [])) if (deCeMorceau(r.reel)) { const ps = enSec(r.audio); if (ps) ajout({ ...ps, nom: '📋 PLAN · ' + (r.jour || '') + (r.plans ? ' · ' + r.plans : '') }); }
-  for (const p of ((await BK.partage.lire('passages.reels', {}))[m.id] || [])) ajout({ ...p, nom: '🎞 Gardé dans Reels' });
-  for (const p of ((await BK.partage.lire('passages.discord', {}))[m.id] || [])) ajout(p);
-  return l;
+  const l = [], vu = new Set(), cle = p => Math.round(p.debut) + '-' + Math.round(p.fin);   // à la seconde près : « 2:30 – 3:03 » écrit = 150.2 → 183.4 gardé
+  const ajout = (p, source, nom) => { if (!p || !(+p.fin > +p.debut)) return; const k = cle(p); if (vu.has(k)) return; vu.add(k);
+    l.push({ debut: +p.debut, fin: +p.fin, v: p.v || 1, nom: nom || p.nom || 'Passage', source }); };
+  const deCeMorceau = nom => { const x = BK.inv.trouverMorceau(nom || '', ms); return !!x && x.id === m.id; };
+  const sur = async (f) => { try { await f(); } catch (e) { console.warn('passages', e); } };
+  await sur(async () => { for (const r of await BK.db.liste('reels')) if (r.morceau === m.id && r.passage) ajout(r.passage, 'reel', '🎞 Reel · ' + (r.nom || r.titre || 'sans nom')); });
+  await sur(async () => { for (const t of await BK.db.liste('tournages')) {
+    const nomT = '🎬 ' + (t.titre || 'Tournage');
+    if (t.passage && (t.morceau === m.nom || deCeMorceau(t.morceau))) ajout(t.passage, 'tournage', nomT);
+    for (const p of t.plans || []) { if (!deCeMorceau(p.reel) && !((t.morceau === m.nom || deCeMorceau(t.morceau)) && !p.reel)) continue;
+      ajout(enSec(p.audio), 'tournage', nomT + (p.action ? ' · ' + p.action : '')); } } });
+  await sur(async () => { for (const r of await BK.partage.lire('plan.lignes', [])) if (deCeMorceau(r.reel)) ajout(enSec(r.audio), 'plan', '📋 PLAN · ' + (r.jour || '') + (r.plans ? ' · ' + r.plans : '')); });
+  await sur(async () => { for (const p of ((await BK.partage.lire('passages.reels', {}))[m.id] || [])) ajout(p, 'reels', p.nom ? '🎞 ' + p.nom : '🎞 Gardé dans Reels'); });
+  await sur(async () => { for (const p of ((await BK.partage.lire('passages.discord', {}))[m.id] || [])) ajout(p, 'discord', p.nom || '💬 Discord'); });
+  await sur(async () => { for (const p of ((await BK.partage.lire('passages.live', {}))[m.id] || [])) ajout(p, 'live', '🍞 ' + (p.nom || 'Synch bread')); });
+  return l.sort((a, b) => a.debut - b.debut);
+};
+// garder un passage dans la liste partagée (pour qu'il existe même sans carte Reels / tournage)
+BK.garderPassage = async function (m, p) {
+  if (!m || !p || !(p.fin > p.debut)) return;
+  const tout = await BK.partage.lire('passages.reels', {}), l = tout[m.id] = tout[m.id] || [];
+  if (l.some(x => Math.abs(x.debut - p.debut) < .5 && Math.abs(x.fin - p.fin) < .5)) return;
+  l.push({ debut: Math.round(p.debut * 10) / 10, fin: Math.round(p.fin * 10) / 10, ...(p.v && p.v !== 1 ? { v: p.v } : {}) }); await BK.partage.ecrire('passages.reels', tout);
 };
 
 BK.module('reels', function (page) {

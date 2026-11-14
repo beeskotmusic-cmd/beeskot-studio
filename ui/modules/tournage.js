@@ -630,12 +630,10 @@ BK.module('tournage', function (page) {
         <span class="to-c-btns"><button class="btn xs" data-ouvre="${x.id}">Ouvrir</button><button class="btn xs" data-reelx="${x.id}" title="Retirer ce reel (corbeille du Drive)">🗑</button></span></div>`;
     z.innerHTML = `<div class="to-jours">
       ${T.vrac.length ? `<div class="to-vrac"><span class="eng">Médias à ranger</span><div class="to-meds">${T.vrac.map(x => vign(x, 'vrac')).join('')}</div></div>` : ''}
-      <div class="ligne-titre"><span class="lb">Tournages</span><span class="nt" style="margin:0 0 0 10px">Un tournage = une journée. Glisse un reel sur un tournage pour l'y mettre.</span>
-        <button class="btn sm pri" id="toNvTour" style="margin-left:auto">+ Nouveau tournage</button></div>
+      <div class="ligne-titre"><span class="lb">Tournages</span><span class="nt" style="margin:0 0 0 10px">Un tournage = une journée. Glisse un reel sur un tournage pour l'y mettre.</span></div>
       ${tournagesL().length ? `<div class="to-grille">${tournagesL().map(affiche).join('')}</div>` : '<span class="nt">Pas encore de tournage.</span>'}
       <div class="to-jour sans" data-sans="1"><div class="to-jour-t"><span class="eng">Reels pas encore dans un tournage</span><span class="nt">${sans.length}</span></div>
         <div class="to-jour-l">${sans.map(carteReel).join('') || '<span class="nt to-jour-vide">Les reels validés (Miette propose) arrivent ici.</span>'}</div></div></div>`;
-    $('#toNvTour').onclick = () => $('#toNouveau').click();
     $$('.tt-aff', z).forEach(a => a.onclick = e => { if (e.target.closest('[data-trx],[data-trcad]') || a.classList.contains('cadrage')) return; ouvrirTour(a.dataset.tour); });
     $$('[data-trcad]', z).forEach(b => b.onclick = e => { e.stopPropagation(); const tr = T.liste.find(x => x.id === b.dataset.trcad); if (tr) cadrer(b.closest('.tt-aff'), tr, () => { rendreListe(); BK.tournageWeb && BK.tournageWeb.bientot && BK.tournageWeb.bientot(3000); }); });
     $$('[data-trx]', z).forEach(b => b.onclick = async e => { e.stopPropagation(); const tr = T.liste.find(x => x.id === b.dataset.trx); if (!tr) return;
@@ -883,12 +881,8 @@ BK.module('tournage', function (page) {
   const lectP = new Audio(); let lectPFin = 0; const srcP = {};
   BK.mini.suivre(lectP, { page: 'tournage', titre: () => lectP.titre || 'Passage du reel' });
   lectP.addEventListener('timeupdate', () => { if (lectPFin && lectP.currentTime >= lectPFin) lectP.pause(); });
-  async function passagesP(m) {
-    if (!m) return [];
-    const l = [], vu = new Set(), aj = p => { if (!p || !(p.fin > p.debut)) return; const k = Math.round(p.debut * 10) + '-' + Math.round(p.fin * 10); if (!vu.has(k)) { vu.add(k); l.push(p); } };
-    try { ((await BK.partage.lire('passages.reels', {}))[m.id] || []).forEach(aj); ((await BK.partage.lire('passages.discord', {}))[m.id] || []).forEach(aj); } catch (e) { console.warn(e); }
-    return l.sort((a, b) => a.debut - b.debut);
-  }
+  // la liste commune de tout le logiciel (Tournages, PLAN, Reels, Reels Audio, Discord, Synch bread)
+  async function passagesP(m) { return m ? BK.passagesDuMorceau(m, T.fiches).catch(e => { console.warn(e); return []; }) : []; }
   async function jouerPas(t) {
     const m = (T.fiches || []).find(x => x.nom === t.morceau), p = pasDe(t);
     if (!m) return msg('Choisis d\'abord le morceau');
@@ -918,9 +912,8 @@ BK.module('tournage', function (page) {
     for (const r of (T.reels || []).filter(x => x.tournage === t.id)) {
       if (p) r.passage = { debut: p.debut, fin: p.fin }; else delete r.passage;
       await BK.db.ecrire('reels', r);
-      if (p && m) { const tout = await BK.partage.lire('passages.reels', {}), l = tout[m.id] = tout[m.id] || [];
-        if (!l.some(x => Math.abs(x.debut - p.debut) < .05 && Math.abs(x.fin - p.fin) < .05)) { l.push({ debut: p.debut, fin: p.fin }); await BK.partage.ecrire('passages.reels', tout); } }
     }
+    if (p && m) await BK.garderPassage(m, p).catch(e => console.warn(e));      // partagé avec tous les onglets, même sans carte Reels
     BK.suiviRecharger && BK.suiviRecharger();
   }
   function brancherPas(z, t) {
@@ -936,7 +929,7 @@ BK.module('tournage', function (page) {
     const sel = z.querySelector('[data-pas-sel]');
     sel.onfocus = sel.onmousedown = async () => { if (sel._ok) return; sel._ok = 1;
       const l = await passagesP((T.fiches || []).find(x => x.nom === t.morceau)); sel._l = l;
-      sel.innerHTML = `<option value="">${l.length ? 'Passage… (' + l.length + ')' : (t.morceau ? 'Aucun passage gardé' : 'Choisis le morceau')}</option>` + l.map((p, k) => `<option value="${k}">${tpsP(p.debut)} → ${tpsP(p.fin)}</option>`).join(''); };
+      sel.innerHTML = `<option value="">${l.length ? 'Passage… (' + l.length + ')' : (t.morceau ? 'Aucun passage gardé' : 'Choisis le morceau')}</option>` + l.map((p, k) => `<option value="${k}">${tpsP(p.debut)} → ${tpsP(p.fin)}${p.nom ? ' · ' + esc(String(p.nom).slice(0, 40)) : ''}</option>`).join(''); };
     sel.onchange = () => { const p = (sel._l || [])[+sel.value]; if (!p) return; d.value = tpsP(p.debut); f.value = tpsP(p.fin); lire(); };
   }
 
@@ -1174,9 +1167,11 @@ BK.module('tournage', function (page) {
   const rafrBientot = (ms = 8000) => { clearTimeout(tRafr); tRafr = setTimeout(rafraichirT, ms); };
   window.addEventListener('bk:change', e => { if (e.detail && /^(tournages|morceaux|reels)$/.test(e.detail.col)) rafrBientot(); });
   async function rafraichirT() {
-    if (!BK.drive || !BK.drive.relie() || !T.liste.length || T.rafrEnCours) return; T.rafrEnCours = true;
+    if (!BK.drive || !BK.drive.relie() || !T.liste.length) return;
+    if (T.rafrEnCours) { T.rafrEncore = true; return; }                  // une modif pendant une mise à jour : on en refait une juste après (rien n'est oublié)
+    T.rafrEnCours = true; T.rafrEncore = false;
     try { for (const l of (await liensT()).filter(x => x.actif !== false)) await garderT(l).catch(err => console.warn('lien cameraman', err)); }
-    catch (err) { console.warn('lien cameraman', err); } finally { T.rafrEnCours = false; }
+    catch (err) { console.warn('lien cameraman', err); } finally { T.rafrEnCours = false; if (T.rafrEncore) rafrBientot(2000); }
   }
   async function fenetreLien() {
     if (!BK.drive || !BK.drive.relie()) return BK.avis('Relie d\'abord le Drive (Réglages › Drive) : le lien passe par le Drive du groupe.');

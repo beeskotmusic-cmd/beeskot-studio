@@ -111,6 +111,7 @@ BK.db = {
     if (!sansAnnuler) BK.annuler.noter(col, id, 'supprimer');
     if (BK.db.photo[col]) delete BK.db.photo[col][id];
     if (BK.db.cache[col]) delete BK.db.cache[col][id];
+    setTimeout(() => window.dispatchEvent(new CustomEvent('bk:change', { detail: { col, id, suppr: true } })), 0);   // les autres onglets (et le lien cameraman) le savent aussi
     if (!BK.db.drive()) { BK.db.memoire(col, null, id); return; }
     try { await BK.drive.supprimer(col, id); } catch (e) { BK.db.attendre({ col, id, suppr: true }); }
   },

@@ -3,6 +3,14 @@
 // Pour une nouvelle version : ajouter un bloc EN HAUT de la liste. Une ligne courte par point : « Onglet : ce qui change. »
 // =====================================================================
 BK.NOUVEAUTES = [
+  { v: '0.9.154', titre: 'Passages : une seule liste partout', l: [
+    ['🎵', 'Passages : Reels Audio, TOAST2 / Light Toast, Synch bread, Reels et Tournages montrent maintenant TOUS les mêmes passages. Un passage ajouté n\'importe où apparaît partout, avec une petite icône qui dit d\'où il vient (🎬 Tournage, 🎞 Reels, 📋 PLAN, 💬 Discord, 🍞 Synch bread).'],
+    ['🎬', 'Tournages : un passage tapé dans un reel est partagé même si le reel n\'a pas encore de carte dans l\'onglet Reels.'],
+    ['🔗', 'Lien cameraman : une modification faite pendant une mise à jour n\'est plus oubliée, et supprimer quelque chose met aussi le lien à jour.'],
+    ['🅱', 'Retours : le bouton B est lisible (texte foncé quand il n\'est pas choisi).'],
+    ['🧹', 'Tournages : un seul bouton « + Nouveau tournage » (celui de droite). Storyline : plus de ralentissement qui s\'accumule à force de l\'ouvrir.'],
+    ['🏷', 'Tournages : un nom de tournage très long reste sur une ligne (plus de blocs blancs dans l\'étiquette). Téléphone › Social photo : « En deux » ne sort plus de l\'écran.'],
+  ] },
   { v: '0.9.153', titre: 'Lien cameraman : les bonnes photos', l: [
     ['🖼', 'Lien cameraman : les photos ne se mélangent plus quand on change l\'ordre des reels ou qu\'on ajoute des images. Chaque photo garde sa place.'],
   ] },
