@@ -2372,3 +2372,19 @@ html.tel #mdVue{display:none!important}   /* sur téléphone c'est toujours en l
 .md-col-att{padding:10px}
 .md-zone.md-colonnes .md-grille{flex:1;min-width:230px;overflow:auto;padding:10px}
 html.tel #mdCol{display:none}
+
+/* ---------- Pain-ture ---------- */
+.pt-etape{display:flex;align-items:center;gap:10px;margin:8px 0}
+.pt-etape>b{flex:none;width:24px;height:24px;border-radius:50%;display:grid;place-items:center;background:#E7D5AE;color:#2a1a0e;font-size:12px}
+.pt-etape .nt{white-space:normal}
+.pt-refs{display:flex;gap:8px;flex-wrap:wrap;margin:6px 0}
+.pt-ref{position:relative;display:inline-flex;align-items:center}
+.pt-ref img{width:64px;height:64px;object-fit:cover;border-radius:8px;display:block}
+.pt-ref .btn{position:absolute;top:-6px;right:-6px;min-height:22px;padding:0 6px}
+.pt-case{display:flex;align-items:center;gap:6px;margin-top:6px}
+#ptIdee{width:100%;resize:vertical;min-height:80px}
+.pt-images{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:12px;align-items:start}
+.pt-img{display:flex;flex-direction:column;gap:6px}
+.pt-img img{width:100%;border-radius:8px;cursor:zoom-in;display:block}
+.pt-attente{min-height:180px;justify-content:center;align-items:center;border:2px dashed rgba(231,213,174,.35);border-radius:8px}
+.pt-idee{white-space:normal;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}

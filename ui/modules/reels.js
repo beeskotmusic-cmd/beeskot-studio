@@ -503,7 +503,7 @@ BK.module('reels', function (page) {
     src.onended = () => { R.src = null; stop(); };
     const tic = () => { let e = ctx.currentTime - t0 - f.decal; if (src.loop) e = ((ctx.currentTime - t0) % ab.duration) - f.decal; if (e >= 0) montrerTete(R.debut + e * v); R.lecture = requestAnimationFrame(tic); };
     R.lecture = requestAnimationFrame(tic);
-    BK.mini.lance({ page: 'reels', titre: () => 'Reels Audio · ' + (tournage ? 'version tournage ×' + x2(R.v) : 'version montage') + ' · ' + (($('#reFich') || {}).textContent || ''),
+    BK.mini.lance({ page: 'reels', titre: () => 'Slice · ' + (tournage ? 'version tournage ×' + x2(R.v) : 'version montage') + ' · ' + (($('#reFich') || {}).textContent || ''),
       temps: () => Math.max(0, src.loop ? (ctx.currentTime - t0) % ab.duration : ctx.currentTime - t0), duree: () => ab.duration, joue: () => R.src === src,
       jouer: () => ecouter(tournage), pause: () => { if (R.src === src) stop(); } });
   }

@@ -172,7 +172,7 @@ L.monter = function (racine, hote) {
           : `<button type="button" class="lv-b pointille" data-a="nouveau" ${p ? '' : 'disabled'}>+ Nouveau passage</button>${!p ? '<p class="lv-petit">Choisis d\'abord un morceau en haut.</p>' : ''}`) : '');
       corps = U.edite ? edition + lignes : lignes + edition;            // pendant la création, l'éditeur passe en haut (près de la forme d'onde)
     } else if (U.onglet === 'exports') {
-      corps = U.exports == null ? '<p class="lv-petit">Recherche des exports…</p>' : !U.exports.length ? '<p class="lv-petit">Aucun passage exporté pour ce morceau (Reels Audio › Exporter).</p>'
+      corps = U.exports == null ? '<p class="lv-petit">Recherche des exports…</p>' : !U.exports.length ? '<p class="lv-petit">Aucun passage exporté pour ce morceau (Slice › Exporter).</p>'
         : U.exports.map((x, i) => `<div class="lv-ligne${p && p.fichier === x.fichier ? ' on' : ''}"><button type="button" class="lv-pass" data-a="export" data-i="${i}" ${ch ? '' : 'disabled'}><b>${esc(x.nom)}</b><em>${esc(x.detail || 'fichier exporté, joué tel quel')}</em></button></div>`).join('')
           + (p && p.export ? '<button type="button" class="lv-b" data-a="retour">Revenir au morceau</button>' : '');
     }
@@ -196,7 +196,7 @@ L.monter = function (racine, hote) {
       <label><span>Élan</span>${sel('elan', ELANS, o.elan, v => v ? v + ' s avant' : 'aucun')}</label>
       <label><span>Vitesse</span>${sel('v', VITESSES, o.v, pc)}</label>
       <label><span>Boucle</span><button type="button" class="lv-inter${o.boucle ? ' on' : ''}" role="switch" aria-checked="${!!o.boucle}" data-a="boucle" aria-label="Rejouer le passage en boucle" ${ch ? '' : 'disabled'}><i></i></button></label>`;
-    z('note').textContent = U.msg || (S.erreur ? 'La salle commune ne répond pas (' + S.erreur + '). Vérifie le réseau.' : !p ? (ch ? 'Choisis un morceau en haut.' : 'Le lead témoin n\'a pas encore choisi de morceau.') : U.charge ? 'Chargement du morceau…' : o.v !== 1 ? 'Vitesse ' + pc(o.v) + ' : la musique change de hauteur, comme un disque. Pour garder la note, joue un export de Reels Audio.' : '');
+    z('note').textContent = U.msg || (S.erreur ? 'La salle commune ne répond pas (' + S.erreur + '). Vérifie le réseau.' : !p ? (ch ? 'Choisis un morceau en haut.' : 'Le lead témoin n\'a pas encore choisi de morceau.') : U.charge ? 'Chargement du morceau…' : o.v !== 1 ? 'Vitesse ' + pc(o.v) + ' : la musique change de hauteur, comme un disque. Pour garder la note, joue un export de Slice.' : '');
     dessinerZone(); peindreVoile();
   }
 

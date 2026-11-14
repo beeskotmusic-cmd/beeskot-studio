@@ -3,6 +3,11 @@
 // Pour une nouvelle version : ajouter un bloc EN HAUT de la liste. Une ligne courte par point : « Onglet : ce qui change. »
 // =====================================================================
 BK.NOUVEAUTES = [
+  { v: '0.9.156', titre: 'Pain-ture : une idée → une image', l: [
+    ['🖼', 'Nouvel onglet Pain-ture (PC) : écris une idée, choisis le format, ✨ Générer. L\'image arrive en 1 minute environ, gratuitement, avec le compte Google BEESKOT. Jusqu\'à 3 photos de Médias en référence pour garder nos têtes.'],
+    ['☁', 'Pain-ture : ☁ Garder envoie l\'image dans Médias › Photos/Vidéos › Pain-ture. La 1re fois sur un PC : Installer, Se connecter, Vérifier (tout est expliqué dans l\'onglet).'],
+    ['🎧', 'Reels Audio s\'appelle maintenant Slice.'],
+  ] },
   { v: '0.9.155', titre: 'Médias : colonnes et dossiers favoris', l: [
     ['▥', 'Médias (PC) : nouveau bouton ▥ à côté de ☰ / ▦ : les dossiers s\'ouvrent en colonnes, comme dans le Finder. Un dossier ouvert = une colonne de plus à droite, les fichiers restent à droite avec toutes leurs actions.'],
     ['★', 'Médias : clique ☆ sur un dossier (ou « ☆ Ce dossier ») pour l\'épingler dans la barre des favoris en haut. Clic = y aller, ✕ = retirer, glisse pour changer l\'ordre. Chacun a ses propres favoris.'],
@@ -743,7 +748,7 @@ BK.TUTO = [
       ['S\'y retrouver dans une fiche', 'Avancement tout en haut. Puis 3 ensembles : FICHIERS (Exports, Projets Ableton), ORGA (Paroles, Infos, Étiquettes, Notes du groupe), RETOURS (Notes du mix : un lien qui ouvre ce morceau dans Notes et retours).'],
       ['Faire le point Discord sur un morceau', 'Orga › Notes du groupe → bouton biscotte « Faire le point Discord » : Miette relit tout ce que le groupe a dit sur ce morceau et résume où il en est.'],
       ['Créer une fiche', '« + Créer la fiche » à droite. Les fichiers du Drive se relient tout seuls (↻ Relire le Drive en bas pour les voir tout de suite) ; « À ranger » propose ce qui n\'est pas encore relié. Les dossiers de ce PC (Scanner ce PC) ne servent que pour ce qui n\'est pas encore dans le Drive.'],
-      ['Choisir le bon export d\'un morceau', 'Ouvre la fiche → clique ☆ à côté de l\'export : il devient ★. C\'est lui qu\'utilisent Reels Audio et les autres onglets.'],
+      ['Choisir le bon export d\'un morceau', 'Ouvre la fiche → clique ☆ à côté de l\'export : il devient ★. C\'est lui qu\'utilisent Slice et les autres onglets.'],
       ['Changer l\'avancement', 'Ouvre la fiche → clique l\'étape (maquette, enregistrement, mixage, master, sortie, promo).'],
       ['Changer la photo', 'Clique la photo de la fiche → la fenêtre Médias s\'ouvre sur les photos du morceau → double-clic sur la photo. Elle reste dans le Drive : la fiche garde juste son adresse.'],
       ['Mettre le bon BPM', 'Écris-le dans la fiche : ce que vous écrivez passe avant tout. Sinon : 🎛 Ableton (le tempo du projet), ou le bouton biscotte « Vérifier les infos des morceaux » (ce qui a été dit sur Discord).'],
@@ -756,7 +761,7 @@ BK.TUTO = [
       'Une couleur par étape : maquette rouge, enregistrement orange, mixage jaune, master bleu-vert, sortie bleu, promo vert.' ] },
   { o: 'Médias', ic: '🖼', quoi: 'Toutes les photos, vidéos et musiques du groupe : les dossiers du Drive, plus celles postées sur Discord. Partout dans le logiciel, on importe une photo ou une vidéo depuis une fenêtre Médias. On les range avec des étiquettes (un morceau, un tournage, Instagram…), sans jamais déplacer les fichiers.',
     comment: [
-      ['Envoyer un fichier ailleurs', 'Clic droit sur le fichier → ☁ Ouvrir dans le Drive, ou ↗ Envoyer vers ▸ Notes et retours, Reels Audio, Social Photo, Reels Vidéo, Tournages, Reels, Bibliothèque (selon le type de fichier).'],
+      ['Envoyer un fichier ailleurs', 'Clic droit sur le fichier → ☁ Ouvrir dans le Drive, ou ↗ Envoyer vers ▸ Notes et retours, Slice, Social Photo, Reels Vidéo, Tournages, Reels, Bibliothèque (selon le type de fichier).'],
       ['Voir seulement les musiques (ou les vidéos)', 'En haut : Tout / Images / Vidéos / Musiques. Dans un dossier, ça trie ce dossier ; tout en haut (« Tous les dossiers »), ça cherche dans tout Médias (Musiques : aussi les sons postés sur Discord). ▶ sur un son pour l\'écouter.'],
       ['Envoyer un média vers un autre outil', 'Attrape la photo (ou plusieurs), garde-la une demi-seconde sur l\'onglet voulu dans le menu (Social Photo, Reels Vidéo, Tournages) : il s\'ouvre. Lâche-la là où elle va. Les onglets grisés ne prennent pas de média.'],
       ['Créer une étiquette', 'Réglages › Drive › « Étiquettes des Médias » : écris le nom, choisis la rubrique, « + Créer l\'étiquette ». Elle apparaît pour tout le groupe.'],
@@ -777,7 +782,7 @@ BK.TUTO = [
       ['Voir un reel en couleur', 'Les cartes sont en noir et blanc : passe la souris dessus pour la couleur. Si le reel a une vidéo étiquetée, elle se lance (sans le son).'],
       ['Créer un reel', 'À droite, « Nouveau reel » : choisis le morceau → + Créer le reel. Un poster apparaît.'],
       ['Remplir un reel', 'Clique le poster : la fiche s\'ouvre dessous. Choisis le morceau (ou « Autre… »), puis remplis lieu, cadrage, équipement, outfit et notes. Tout s\'enregistre seul.'],
-      ['Choisir l\'extrait audio', 'Tape le Début et la Fin (ex. 0:08.0 et 0:30.0) puis Entrée : l\'extrait est gardé pour ce morceau et revient dans le menu « Passage ». ▶ pour l\'écouter, « → Reels Audio » pour en faire l\'export.'],
+      ['Choisir l\'extrait audio', 'Tape le Début et la Fin (ex. 0:08.0 et 0:30.0) puis Entrée : l\'extrait est gardé pour ce morceau et revient dans le menu « Passage ». ▶ pour l\'écouter, « → Slice » pour en faire l\'export.'],
       ['Envoyer dans Tournages', 'Bouton « Envoyer dans Tournages » : le reel arrive dans Tournages (Reels sans tournage) avec toutes ses infos. Glisse-le ensuite dans la bonne journée. Ce que tu changes ensuite dans la fiche suit dans Tournages.'],
       ['Changer l\'image du poster', '🖼 sur le poster → la fenêtre Médias s\'ouvre sur le morceau → choisis l\'image. ↺ revient à l\'image automatique.'],
       ['Prévoir la sortie', 'Sortie prévue : tape une période (« début novembre ») ou clique 📅 pour une date. Une date va toute seule dans le Calendrier.'] ],
@@ -872,7 +877,7 @@ BK.TUTO = [
       ['Les sauvegardes automatiques', 'Toutes les 30 min, les projets Ableton de ce PC qui ont changé sont copiés dans le Drive (BEESKOT Studio / Sauvegardes Ableton), avec la date et l\'heure dans le nom. Seulement le fichier .als, rien n\'est effacé. Case « 💾 Sauvegardes automatiques » pour couper ou sauvegarder tout de suite.'],
       ['Préparer pour le mixage', 'Ouvre le projet dans Ableton → Lire les pistes → Trier / Couleurs par groupe / Geler automatiquement → Appliquer dans Ableton → Zipper le projet → Envoyer dans le Drive.'] ],
     astuces: [ 'Le tempo lu dans Ableton peut aller dans la fiche du morceau (🎛 dans la Bibliothèque).' ] },
-  { o: 'Reels Audio', ic: '🎧', quoi: 'Coupe le bon passage d\'un morceau pour un reel, à la bonne durée, et prépare la version ralentie ou accélérée pour le tournage.',
+  { o: 'Slice', ic: '🎧', quoi: 'Coupe le bon passage d\'un morceau pour un reel, à la bonne durée, et prépare la version ralentie ou accélérée pour le tournage.',
     comment: [
       ['Faire l\'audio d\'un reel', 'Choisis le morceau (son export ★) → place le passage (glisse le bloc, ou I / O) → durée → Exporter.'],
       ['Tourner au ralenti', 'Règle la vitesse de tournage (ex. 50 %) : l\'export donne 2 fichiers, MONTAGE (vitesse normale) et TOURNAGE (à jouer pendant le tournage).'],
@@ -881,6 +886,13 @@ BK.TUTO = [
       ['Régler le volume, écouter en boucle', 'Le petit triangle à côté du bouton d\'écoute (molette dessus, double-clic = normal). La version pour le Reel tourne en boucle. Espace = écouter à partir de là où tu as cliqué ; si c\'est dans le passage choisi, il tourne en boucle.'],
       ['Reprendre un passage dit sur Discord', 'Bouton biscotte « Trouver les passages » : les timings donnés sur Discord pour ce morceau arrivent dans la liste des passages.'] ],
     astuces: [ 'Après l\'export : 📂 Ouvrir le dossier, ⇪ Upload Drive → ☁ Ouvrir le dossier du Drive.' ] },
+  { o: 'Pain-ture', ic: '🖼', quoi: 'Fabrique une image à partir d\'une idée (pour dépanner un reel, un moodboard…). Gratuit, avec le compte Google BEESKOT. PC seulement.',
+    comment: [
+      ['Préparer le PC (une seule fois)', '① Installer : l\'outil Google s\'installe tout seul. ② Se connecter : une fenêtre noire s\'ouvre ; appuie sur Entrée jusqu\'à « Login with Google », choisis le compte BEESKOT, copie le code de la page Google, colle-le dans la fenêtre noire (clic droit) puis Entrée, et ferme-la. ③ Vérifier : un petit essai, et c\'est prêt.'],
+      ['Faire une image', 'Écris ton idée (en français, ça marche), choisis le format (9:16 pour un reel), puis ✨ Générer. Environ 1 minute. Une image à la fois.'],
+      ['Mettre nos têtes', '🖼 Choisir dans Médias : jusqu\'à 3 photos de référence (une par membre, par exemple). L\'image essaie de garder les visages, les cheveux et les tenues.'],
+      ['Garder, refaire, jeter', '☁ Garder : l\'image part dans le Drive (Médias › Photos/Vidéos › Pain-ture). ↻ Refaire : la même idée, une autre image. 🗑 Jeter : elle disparaît de la liste. Clic sur l\'image : elle s\'ouvre en grand.'] ],
+    astuces: [ '« Pas de texte ni de logo inventé » est coché par défaut : sinon l\'image invente souvent des enseignes ou des noms de groupe.', 'Le quota gratuit est partagé par tout le groupe : s\'il est épuisé, il revient au bout de quelques heures (parfois quelques jours).' ] },
   { o: 'Social Photo', ic: '📸', quoi: 'Prépare des photos ou un carrousel Instagram : format, cadrage, couleur, effet vintage, légende.',
     comment: [
       ['Faire un post', '+ Ajouter des photos → la fenêtre Médias s\'ouvre (dossiers, Discord, et « Filtrer » en haut : clique une rubrique puis une étiquette en dessous pour voir ce qu\'elle contient) → choisis les photos → Ajouter au post. Puis De quoi parle le post ? ▾, le format (Story 9:16, Portrait 4:5, Carré, Paysage), règle chaque photo → Exporter les images.'],
@@ -895,7 +907,7 @@ BK.TUTO = [
     comment: [
       ['Importer', 'De quoi parle la vidéo ? ▾ → ＋ Importer… → la fenêtre Médias (ou Ce PC) → choisis. 1 vidéo seule : elle se charge directement. Des photos ou plusieurs fichiers : la fenêtre du montage s\'ouvre déjà remplie.'],
       ['Faire une vidéo avec des photos et des vidéos', '＋ Importer… → choisis plusieurs fichiers → 🖼 Depuis Médias… ou 💻 Ce PC… → pour chacun : durée et animation (zoom avant, zoom arrière, glisser, fixe) → Transition et Effet → Importer ces fichiers.'],
-      ['Mettre la musique', 'À droite, Musique : un export de Reels Audio, le passage ouvert dans Reels Audio, un morceau de la Bibliothèque (Morceau ▸ la version ; ★ = l\'export principal), ou une musique de ce PC.'],
+      ['Mettre la musique', 'À droite, Musique : un export de Slice, le passage ouvert dans Slice, un morceau de la Bibliothèque (Morceau ▸ la version ; ★ = l\'export principal), ou une musique de ce PC.'],
       ['Ajouter des sous-titres', 'Choisis les paroles d\'un morceau → ⏺ Caler en écoutant → appuie sur Espace au début de chaque phrase.'],
       ['Exporter', 'Exporter en MP4 → 📂 Ouvrir le dossier ou ⇪ Upload Drive.'],
       ['Revoir en boucle', '▶ Lire : la vidéo tourne en boucle entre le début et la fin choisis (I / O). ■ Stop pour arrêter.'] ],
@@ -912,8 +924,8 @@ BK.TUTO = [
       ['Le lead témoin', 'Un seul lead témoin à la fois : c\'est lui qui lance, et c\'est sur son son que les autres se calent. « Prendre la main » pour le devenir, « Passer la main à… » pour la donner. Tout le monde peut appuyer sur STOP.'],
       ['Lancer une prise', 'LANCER : un décompte (4 coups), puis la musique part chez tout le monde. STOP arrête tout. REPRENDRE relance le même passage. Sur PC : la barre d\'espace.'],
       ['Synchroniser (début de tournage)', 'Sur ton appareil : SYNCHRONISER → tiens ton écouteur et celui du lead témoin tout près du micro de ton téléphone → « Synchroniser maintenant ». 6 secondes, et ton téléphone est calé. À refaire si tu changes d\'écouteurs. Secours : « Lancer les clics » et le curseur, à l\'oreille.'],
-      ['Les passages', 'À gauche : le morceau entier, les passages déjà proposés dans Reels Audio (tournages, PLAN, gardés, Discord), et ceux créés ici. « + Nouveau passage » : donne un nom, glisse les deux bords sur la forme d\'onde → Garder. Tout le groupe le voit.'],
-      ['Les exports', 'Onglet « Exports » : les fichiers déjà exportés par Reels Audio. Ils sont joués tels quels ; tu peux aussi changer leur vitesse et y créer des passages.'],
+      ['Les passages', 'À gauche : le morceau entier, les passages déjà proposés dans Slice (tournages, PLAN, gardés, Discord), et ceux créés ici. « + Nouveau passage » : donne un nom, glisse les deux bords sur la forme d\'onde → Garder. Tout le groupe le voit.'],
+      ['Les exports', 'Onglet « Exports » : les fichiers déjà exportés par Slice. Ils sont joués tels quels ; tu peux aussi changer leur vitesse et y créer des passages.'],
       ['Décompte, élan, vitesse, boucle', 'Sous les boutons (le lead témoin les règle). Élan = la musique démarre quelques secondes avant le passage. Vitesse : la musique change de hauteur, comme un disque. Boucle = le passage se rejoue tout seul.'],
       ['Inviter le cameraman', '« Inviter (QR code) » → il scanne avec son téléphone (iPhone ou Android), écrit son prénom, et entre. Il peut prendre la main et lancer. « Fermer les invitations » à la fin du tournage.'],
       ['Couper la synchro sur un appareil', 'L\'interrupteur « Synchro » en haut à droite : cet appareil ne suit plus la musique. Les autres le voient « synchro coupée ».'],

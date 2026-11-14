@@ -131,7 +131,7 @@ BK.module('suivi', function (page) {
           <div class="su-tc"><span class="eng">Fin</span><input class="fld vfd-in" data-tc="fin" value="${pas ? BK.audio.temps(pas.fin) : ''}" placeholder="0:30.0"></div>
           <select class="fld su-pass" data-pass="${r.id}"><option value="">Passage…</option></select>
           <button class="btn xs" data-play="${r.id}" title="Écouter l'extrait"${pas ? '' : ' disabled'}>▶</button>
-          <button class="btn xs" data-au="${r.id}" title="Ouvre Reels Audio avec ce passage">→ Reels Audio</button>
+          <button class="btn xs" data-au="${r.id}" title="Ouvre Slice avec ce passage">→ Slice</button>
           ${a ? `<span class="nt">✓ export : ${esc(a.nom)}</span>` : ''}</div>
         <label><span class="eng">📍 Localisation</span><input class="fld" data-f="lieu" value="${esc(r.lieu || '')}" placeholder="ex. extérieur, paysage d'automne, montagne au loin"></label>
         <label><span class="eng">🎥 Cadrage</span><input class="fld" data-f="cadrage" value="${esc(r.cadrage || '')}" placeholder="ex. plan fixe, plein pied"></label>
@@ -222,7 +222,7 @@ BK.module('suivi', function (page) {
           const oct = src.drive ? await BK.drive.telecharger(src.drive) : await BK.fichier.lireOctets(src.chemin);
           url = URL.createObjectURL(new Blob([oct], { type: 'audio/wav' }));
         }
-        if (!url) return msg('Aucun son à écouter : choisis le passage dans Reels Audio');
+        if (!url) return msg('Aucun son à écouter : choisis le passage dans Slice');
         sources[r.id] = url;
       }
       if (lect.dataset.r !== r.id) { lect.src = url; lect.dataset.r = r.id; }
@@ -364,7 +364,7 @@ BK.module('suivi', function (page) {
       if (!await BK.confirmer(`Retirer « ${r.titre || 'ce reel'} » du suivi ?`)) return;
       R.l = R.l.filter(x => x !== r); await BK.db.supprimer('reels', r.id); msg('Retiré'); rendre(); });
     $$('[data-au]', z).forEach(b => b.onclick = async () => { const r = R.l.find(x => x.id === b.dataset.au), m = morceauDe(r);
-      if (!m) return msg(r.morceauAutre != null ? 'Reels Audio ne marche qu\'avec un morceau de la Bibliothèque' : 'Choisis d\'abord le morceau');
+      if (!m) return msg(r.morceauAutre != null ? 'Slice ne marche qu\'avec un morceau de la Bibliothèque' : 'Choisis d\'abord le morceau');
       BK.suiviEnCours = r.id;
       if (r.passage) BK.reelsPasser({ morceau: m, debut: r.passage.debut, fin: r.passage.fin });
       else { BK.ouvrir('reels'); BK.reelsPasser({ morceau: m }); } });

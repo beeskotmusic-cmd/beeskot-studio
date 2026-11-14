@@ -10,7 +10,7 @@ BK.mini = {
     const s = { el, page, titre, precedent, suivant }; BK.mini.sources.push(s); el.volume = BK.reglage('mini.volume', 1);
     el.addEventListener('play', () => {
       for (const x of BK.mini.sources) if (x !== s && !x.el.paused) x.el.pause();      // un seul son à la fois
-      const e = BK.mini.actuel; if (e && e.ext && e !== s && e.joue()) e.pause();       // (aussi Écoute, Reels Audio…)
+      const e = BK.mini.actuel; if (e && e.ext && e !== s && e.joue()) e.pause();       // (aussi Écoute, Slice…)
       BK.mini.actuel = s; BK.mini.cache = false; BK.mini.maj();
     });
     ['pause', 'ended', 'timeupdate', 'durationchange'].forEach(t => el.addEventListener(t, () => { if (BK.mini.actuel === s) BK.mini.maj(); }));
@@ -51,7 +51,7 @@ BK.mini = {
         <span class="mini-vol" title="Volume"><span class="mini-hp" data-mi="muet">🔊</span><span class="mini-equerre"><span class="mini-niveau"></span><input type="range" min="0" max="1" step="0.01" class="mini-range"></span></span>
         <button class="btn xs" data-mi="page"></button><button class="btn xs" data-mi="fermer" title="Arrêter">✕</button>`;
       z.addEventListener('click', e => { const b = e.target.closest('[data-mi]'), s = BK.mini.actuel; if (!s) return;
-        if (s.ext) { const k = b && b.dataset.mi;                        // Écoute, Reels Audio…
+        if (s.ext) { const k = b && b.dataset.mi;                        // Écoute, Slice…
           if (!b) { const barre = e.target.closest('.mini-barre'), d = s.duree(); if (barre && d && s.aller) { const r = barre.getBoundingClientRect(); s.aller((e.clientX - r.left) / r.width * d); } }
           else if (k === 'jouer') { s.joue() ? s.pause() : s.jouer(); }
           else if (k === 'stop') { if (s.joue()) s.pause(); s.aller && s.aller(0); }

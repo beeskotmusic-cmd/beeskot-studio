@@ -164,6 +164,130 @@ async fn drive_envoyer(chemin: String, nom: String, dossier: String, jeton: Stri
     }).await.map_err(|e| e.to_string())?
 }
 
+
+// ---------- PAIN-TURE : des images avec l'outil Google « agy » (compte BEESKOT, gratuit) ----------
+// Tout tourne caché (pas de fenêtre noire) et en priorité basse : le PC n'est jamais bloqué.
+//   pain_etat      → où est agy sur ce PC ("" = pas installé)
+//   pain_installer → l'installe (le programme officiel de Google)
+//   pain_connecter → ouvre la petite fenêtre de connexion (une seule fois par PC)
+//   pain_dossier   → un dossier de travail tout neuf (on y pose les images de référence)
+//   pain_generer   → lance une image, renvoie { status, reponse, images:[chemins] }
+use std::process::Command;
+#[cfg(windows)]
+use std::os::windows::process::CommandExt;
+
+const PATH_FRAIS: &str = "$env:Path=[Environment]::GetEnvironmentVariable('Path','User')+';'+[Environment]::GetEnvironmentVariable('Path','Machine');";
+
+fn cache(c: &mut Command) {
+    #[cfg(windows)]
+    c.creation_flags(0x0800_0000 | 0x0000_4000);   // pas de fenêtre + priorité « en dessous de la normale »
+    let _ = &c;
+}
+
+fn trouver_agy() -> Option<String> {
+    let mut c = Command::new("powershell");
+    c.args(["-NoProfile", "-NonInteractive", "-Command", &format!("{PATH_FRAIS} (Get-Command agy -ErrorAction SilentlyContinue).Source")]);
+    cache(&mut c);
+    let o = c.output().ok()?;
+    let s = String::from_utf8_lossy(&o.stdout).trim().to_string();
+    if s.is_empty() { None } else { Some(s) }
+}
+
+#[tauri::command]
+async fn pain_etat() -> Result<String, String> {
+    tauri::async_runtime::spawn_blocking(|| Ok(trouver_agy().unwrap_or_default())).await.map_err(|e| e.to_string())?
+}
+
+#[tauri::command]
+async fn pain_installer() -> Result<String, String> {
+    tauri::async_runtime::spawn_blocking(|| {
+        let mut c = Command::new("powershell");
+        c.args(["-NoProfile", "-NonInteractive", "-ExecutionPolicy", "Bypass", "-Command", "irm https://antigravity.google/cli/install.ps1 | iex"]);
+        cache(&mut c);
+        let o = c.output().map_err(|e| format!("Installation impossible : {e}"))?;
+        match trouver_agy() {
+            Some(p) => Ok(p),
+            None => Err(format!("L'installation n'a pas abouti. {}", String::from_utf8_lossy(&o.stderr).chars().take(300).collect::<String>())),
+        }
+    }).await.map_err(|e| e.to_string())?
+}
+
+#[tauri::command]
+fn pain_connecter() -> Result<(), String> {
+    let mut c = Command::new("powershell");
+    c.args(["-NoExit", "-NoProfile", "-Command", &format!("{PATH_FRAIS} $Host.UI.RawUI.WindowTitle='Connexion Pain-ture'; agy")]);
+    #[cfg(windows)]
+    c.creation_flags(0x0000_0010);                 // une vraie fenêtre (on doit y coller le code de Google)
+    c.spawn().map(|_| ()).map_err(|e| format!("Fenêtre de connexion impossible : {e}"))
+}
+
+#[tauri::command]
+fn pain_dossier() -> Result<String, String> {
+    let ms = std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).map(|d| d.as_millis()).unwrap_or(0);
+    let d = std::env::temp_dir().join("beeskot-painture").join(ms.to_string());
+    std::fs::create_dir_all(&d).map_err(|e| e.to_string())?;
+    Ok(d.to_string_lossy().to_string())
+}
+
+fn est_image(p: &std::path::Path) -> bool {
+    matches!(p.extension().and_then(|x| x.to_str()).map(|x| x.to_lowercase()).as_deref(), Some("png" | "jpg" | "jpeg" | "webp"))
+}
+
+#[tauri::command]
+async fn pain_generer(dossier: String, demande: String) -> Result<String, String> {
+    tauri::async_runtime::spawn_blocking(move || {
+        let agy = trouver_agy().ok_or("Pain-ture n'est pas installé sur ce PC")?;
+        let debut = std::time::SystemTime::now() - Duration::from_secs(5);
+        let mut c = Command::new(&agy);
+        c.args(["-p", &demande, "--output-format", "json", "--print-timeout", "10m", "--disable-slash-commands"]).current_dir(&dossier);
+        cache(&mut c);
+        let o = c.output().map_err(|e| format!("Lancement impossible : {e}"))?;
+        let sortie = String::from_utf8_lossy(&o.stdout).to_string();
+        let j: serde_json::Value = serde_json::from_str(sortie.trim()).unwrap_or(serde_json::Value::Null);
+        let id = j.get("conversation_id").and_then(|v| v.as_str()).unwrap_or("").to_string();
+        let reponse = j.get("response").and_then(|v| v.as_str()).unwrap_or("").to_string();
+        let mut images: Vec<String> = Vec::new();
+        // 1) le dossier de la conversation (là où agy range ses images)
+        if let Ok(home) = std::env::var("USERPROFILE").or_else(|_| std::env::var("HOME")) {
+            let d = std::path::Path::new(&home).join(".gemini").join("antigravity-cli").join("brain").join(&id);
+            if !id.is_empty() {
+                if let Ok(l) = std::fs::read_dir(&d) {
+                    for e in l.filter_map(|e| e.ok()) {
+                        let p = e.path();
+                        let recent = e.metadata().and_then(|m| m.modified()).map(|t| t >= debut).unwrap_or(true);
+                        if p.is_file() && est_image(&p) && recent { images.push(p.to_string_lossy().to_string()); }
+                    }
+                }
+            }
+        }
+        // 2) sinon : les liens file:/// de la réponse
+        if images.is_empty() {
+            for bout in reponse.split("file:///").skip(1) {
+                let fin = bout.find(|ch: char| ch == ')' || ch == ' ' || ch == '\n' || ch == '"').unwrap_or(bout.len());
+                let p = bout[..fin].replace('/', "\\");
+                if est_image(std::path::Path::new(&p)) && std::path::Path::new(&p).exists() { images.push(p); }
+            }
+        }
+        // 3) ou dans le dossier de travail
+        if images.is_empty() {
+            if let Ok(l) = std::fs::read_dir(&dossier) {
+                for e in l.filter_map(|e| e.ok()) { let p = e.path(); let n = p.file_name().and_then(|x| x.to_str()).unwrap_or("");
+                    if p.is_file() && est_image(&p) && !n.starts_with("ref") { images.push(p.to_string_lossy().to_string()); } }
+            }
+        }
+        images.sort();
+        let erreur: String = String::from_utf8_lossy(&o.stderr).chars().rev().take(400).collect::<Vec<_>>().into_iter().rev().collect();
+        Ok(serde_json::json!({
+            "status": j.get("status").and_then(|v| v.as_str()).unwrap_or(if sortie.trim().is_empty() { "VIDE" } else { "?" }),
+            "raison": j.get("finished_reason").cloned().unwrap_or(serde_json::Value::Null),
+            "reponse": reponse,
+            "images": images,
+            "erreur": erreur,
+            "brut": if j.is_null() { sortie.chars().take(400).collect::<String>() } else { String::new() },
+        }).to_string())
+    }).await.map_err(|e| e.to_string())?
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
@@ -173,7 +297,7 @@ pub fn run() {
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_http::init())
         .plugin(tauri_plugin_updater::Builder::new().build())
-        .invoke_handler(tauri::generate_handler![ableton, zipper, oauth_port, oauth_code, drive_envoyer, ressources])
+        .invoke_handler(tauri::generate_handler![ableton, zipper, oauth_port, oauth_code, drive_envoyer, ressources, pain_etat, pain_installer, pain_connecter, pain_dossier, pain_generer])
         .run(tauri::generate_context!())
         .expect("BEESKOT Studio n'a pas pu démarrer");
 }

@@ -43,7 +43,7 @@ class Montage {
         <span class="lt2-grp lt2-lect"><button data-a="debut" title="Début (Origine)">⏮</button><button data-a="lire" class="lt2-pri" title="Lecture / pause (Espace)">▶</button><button data-a="fin" title="Fin (Fin)">⏭</button></span>
         <span class="lt2-lcd" title="minutes : secondes : images">0:00:00</span>
         <span class="lt2-grp"><button data-a="zmoins" title="Zoom − (-)">−</button><button data-a="tout" title="Tout voir (\\)">⟷</button><button data-a="zplus" title="Zoom + (+)">+</button></span>
-        <span class="lt2-grp lt2-pass"><select class="lt2-passage" title="Les passages des Reels du morceau (Reels Audio, Tournages, Discord, Synch bread) : en choisir un pose I / O"><option value="">Passage : morceau entier</option><option disabled>(choisis d'abord la musique)</option></select><button data-a="ralenti" hidden title="Jouer (et exporter) à la vitesse du tournage">Vitesse tournage</button></span>
+        <span class="lt2-grp lt2-pass"><select class="lt2-passage" title="Les passages des Reels du morceau (Slice, Tournages, Discord, Synch bread) : en choisir un pose I / O"><option value="">Passage : morceau entier</option><option disabled>(choisis d'abord la musique)</option></select><button data-a="ralenti" hidden title="Jouer (et exporter) à la vitesse du tournage">Vitesse tournage</button></span>
         <span class="lt2-aide">J K L · I / O · C · V · S · Ctrl+K couper · Suppr</span>
       </div>
       <div class="lt2-tl"></div>`;

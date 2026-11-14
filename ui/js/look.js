@@ -11,7 +11,7 @@ const $ = s => document.querySelector(s);
 const SECTIONS = {
   general:  { titre: '',             ids: ['accueil', 'renforts'] },
   musique:  { titre: 'Musique',      ids: ['biblio', 'ecoute', 'notesvid', 'mixprep'] },
-  contenus: { titre: 'Contenus',     ids: ['suivi', 'reels', 'reelvis', 'postvis', 'medias'] },
+  contenus: { titre: 'Contenus',     ids: ['suivi', 'reels', 'reelvis', 'postvis', 'painture', 'medias'] },
   orga:     { titre: 'Organisation', ids: ['agenda', 'tournage', 'taches', 'budget'] },
   show:     { titre: 'Show',         ids: ['live', 'lighttoast'] },
   reglages: { titre: '',             ids: ['reglages'] },
@@ -20,7 +20,7 @@ const PAS_PRETS = ['lumieres', 'repete', 'concert'];                  // cachés
 // les onglets réunis : une seule entrée dans le menu, des sous-onglets en haut de la page (chaque module reste à part)
 const GROUPES = {
   accueil: { titre: 'Accueil', ids: ['accueil', 'renforts'],                    noms: ['Accueil', 'Miette AI'] },
-  suivi:  { titre: 'Reels',    ids: ['suivi', 'reels', 'reelvis'],               noms: ['Suivi', 'Audio', 'Montage'] },
+  suivi:  { titre: 'Reels',    ids: ['suivi', 'reels', 'reelvis'],               noms: ['Suivi', 'Slice', 'Montage'] },
   ecoute: { titre: 'Retours',  ids: ['ecoute', 'notesvid'],                       noms: ['Mix', 'Vidéo'] },
   agenda: { titre: 'Planning', ids: ['agenda', 'taches', 'budget'],               noms: ['Calendrier', 'To-do', 'Budget'] },
 };

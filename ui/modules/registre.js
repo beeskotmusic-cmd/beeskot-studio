@@ -16,13 +16,14 @@ BK.onglets = [
   { id: 'suivi',    cote: 'outils',  titre: 'Reels',          sous: 'Suivi : audio, tournage, médias', couleur: 'var(--teal)', pret: true , defaut: true },
   { id: 'mixprep',  cote: 'assist',  titre: 'Ableton Live',   sous: 'Noms, couleurs, gel, zip',      couleur: 'var(--rust)', pret: true , defaut: true },
   { id: 'postvis',  cote: 'assist',  titre: 'Social Photo',   sous: 'Photos, carrousel Insta',       couleur: 'var(--navy)', pret: true , defaut: true },
+  { id: 'painture', cote: 'assist',  titre: 'Pain-ture',      sous: 'Une idée → une image',          couleur: 'var(--ox)',   pret: true, defaut: true },
   { id: 'tournage', cote: 'assist',  titre: 'Tournages',      sous: 'Plan, moodboard, PDF',          couleur: 'var(--navy)', pret: true, defaut: true },
   { id: 'agenda',   cote: 'outils',  titre: 'Calendrier',     sous: 'Agenda BEESKOT, promo',         couleur: 'var(--mus)',  pret: true , defaut: true },
   { id: 'taches',   cote: 'outils',  titre: 'To-do list',     sous: 'À faire',                       couleur: 'var(--crm)',  pret: true , defaut: true },
   { id: 'budget',   cote: 'outils',  titre: 'Budget',         sous: 'Dépenses, qui doit à qui',      couleur: 'var(--olv)',  pret: true , defaut: true },
   { id: 'ecoute',   cote: 'outils',  titre: 'Notes et retours', sous: 'Mix A/B et notes minutées',     couleur: 'var(--rust)', pret: true , defaut: true },
 
-  { id: 'reels',    cote: 'assist',  titre: 'Reels Audio',    sous: 'Passage, durée, vitesse',       couleur: 'var(--teal)', pret: true , defaut: true },
+  { id: 'reels',    cote: 'assist',  titre: 'Slice',          sous: 'Passage, durée, vitesse',       couleur: 'var(--teal)', pret: true , defaut: true },
   { id: 'reelvis',  cote: 'assist',  titre: 'Reels Vidéo',    sous: 'Montage, sous-titres, MP4',     couleur: 'var(--teal)', pret: true , defaut: true },
 
   { id: 'notesvid', cote: 'show',    titre: 'Notes vidéos',   sous: 'Retours minutés sur une vidéo',  couleur: 'var(--mus)',  pret: true, defaut: true },
