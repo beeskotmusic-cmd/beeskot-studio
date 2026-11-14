@@ -264,15 +264,17 @@ BK.module('painture', function (page) {
   };
 
   // ---------- la barre de progression : selon le temps moyen des dernières images (elle apprend toute seule) ----------
-  const moyenne = () => { const l = BK.reglage('painture.durees', []); return l.length ? l.reduce((a, b) => a + b, 0) / l.length : 60; };
+  const moyenne = () => { const l = BK.reglage('painture.durees', []); return l.length ? l.reduce((a, b) => a + b, 0) / l.length : 90; };
   const noterDuree = s => { const l = BK.reglage('painture.durees', []); l.push(s); BK.regler('painture.durees', l.slice(-6)); };
   let minuterie = null;
   const barre = (on, t0) => {
     const z = $('#ptBarre', page); z.classList.toggle('hidden', !on); clearInterval(minuterie); if (!on) return;
     const moy = moyenne();
-    const maj = () => { const s = (Date.now() - t0) / 1000, pc = Math.min(95, s / moy * 95), reste = Math.max(0, Math.round(moy - s));
+    // 80 % au temps prévu, puis elle continue d'avancer doucement vers 99 % (elle ne s'arrête jamais)
+    const maj = () => { const s = (Date.now() - t0) / 1000, reste = Math.max(0, Math.round(moy - s));
+      const pc = s < moy ? s / moy * 80 : 80 + 19 * (1 - Math.exp(-(s - moy) / (moy * 0.6)));
       z.querySelector('i').style.width = pc + '%';
-      z.querySelector('span').textContent = `Fabrication… ${Math.round(pc)} %` + (reste ? ` · ~${reste} s restantes` : ' · encore un instant'); };
+      z.querySelector('span').textContent = `Fabrication… ${Math.round(pc)} %` + (reste ? ` · ~${reste} s restantes` : ' · presque fini…'); };
     maj(); minuterie = setInterval(maj, 500);
   };
 

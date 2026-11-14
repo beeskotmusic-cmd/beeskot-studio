@@ -3,6 +3,9 @@
 // Pour une nouvelle version : ajouter un bloc EN HAUT de la liste. Une ligne courte par point : « Onglet : ce qui change. »
 // =====================================================================
 BK.NOUVEAUTES = [
+  { v: '0.9.158', titre: 'Pain Ture : la barre ne bloque plus', l: [
+    ['⏳', 'Pain Ture : la barre de progression ne reste plus bloquée à 95 % : elle avance toujours, de plus en plus doucement, jusqu\'à ce que l\'image arrive.'],
+  ] },
   { v: '0.9.157', titre: 'Pain Ture : les membres, les ambiances, la barre', l: [
     ['👥', 'Pain Ture : boutons Pierre, Yacine, Baptiste. Un clic = il est dans l\'image (sa photo de référence apparaît dans la boîte Références). ✎ = sa fiche : photo, taille, vêtements, attributs. Tout le groupe partage les fiches.'],
     ['📸', 'Pain Ture : les fiches de Pierre (1,73 m), Yacine (1,92 m) et Baptiste (1,80 m) sont déjà remplies avec une photo de référence. ✎ pour changer.'],
