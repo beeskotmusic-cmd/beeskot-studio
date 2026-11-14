@@ -3,6 +3,9 @@
 // Pour une nouvelle version : ajouter un bloc EN HAUT de la liste. Une ligne courte par point : « Onglet : ce qui change. »
 // =====================================================================
 BK.NOUVEAUTES = [
+  { v: '0.9.153', titre: 'Lien cameraman : les bonnes photos', l: [
+    ['🖼', 'Lien cameraman : les photos ne se mélangent plus quand on change l\'ordre des reels ou qu\'on ajoute des images. Chaque photo garde sa place.'],
+  ] },
   { v: '0.9.152', titre: 'Tournages : cadrer la photo de couverture', l: [
     ['✥', 'Tournages : passe la souris sur un tournage › « ✥ Cadrer », glisse la photo pour choisir la partie qu\'on voit, puis « ✓ OK ». Le lien cameraman garde le même cadrage.'],
   ] },

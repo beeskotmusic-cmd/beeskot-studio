@@ -1116,7 +1116,7 @@ BK.module('tournage', function (page) {
     });
   }
   // la « photo » HTML des tournages choisis : { html, images: [ids Drive] }
-  async function htmlWeb(ids) {
+  async function htmlWeb(ids, avant) {
     const trs = (ids || []).map(id => T.liste.find(x => x.id === id && estTour(x))).filter(Boolean).sort((a, b) => (a.date || '9').localeCompare(b.date || '9'));
     const tmp = document.createElement('div'), sons = [];
     tmp.innerHTML = trs.map(tr => { const img = tr.couverture || '';
@@ -1134,10 +1134,14 @@ BK.module('tournage', function (page) {
         + (k >= 0 ? `<button class="btn to-pas-play tw-play" data-tw data-son="__SON__/${k}" data-debut="${p.debut}" data-fin="${p.fin}" title="Écouter le passage">▶</button>` : '')
         + `<span class="vfd tw-pas-t">${esc(tpsC(p.debut))} → ${esc(tpsC(p.fin))}</span><span class="nt">${Math.round(p.fin - p.debut)} s${k < 0 ? ' · le son n\'est pas dans le Drive' : ''}</span></div>`; }
     lectureWeb(tmp);
-    const images = [];
+    // chaque image garde son numéro d'une mise à jour à l'autre (sinon le navigateur du cameraman, qui garde
+    // les images en mémoire, montre l'ancienne image n° n quand la liste change → mauvaises photos)
+    // (une image qui n'est plus utilisée laisse une place vide : son numéro ne sert plus jamais à une autre)
+    let images = (avant || []).map(x => typeof x === 'string' ? x : ''); const vues = new Set();
     for (const el of tmp.querySelectorAll('[data-ref]')) { const id = BK.img.estDrive(el.dataset.ref) ? BK.img.id(el.dataset.ref) : ''; el.removeAttribute('data-ref'); if (!id) continue;
-      let n = images.indexOf(id); if (n < 0) { n = images.length; images.push(id); }
+      let n = images.indexOf(id); if (n < 0) { n = images.length; images.push(id); } vues.add(id);
       if (el.tagName === 'IMG') el.setAttribute('src', '__IMG__/' + n); else el.style.backgroundImage = `url('__IMG__/${n}')`; }
+    images = images.map(x => vues.has(x) ? x : '');
     tmp.querySelectorAll('img[src^="blob:"]').forEach(i => i.removeAttribute('src'));
     tmp.querySelectorAll('[style*="blob:"]').forEach(e => { e.style.backgroundImage = ''; });
     // les sons passent après les images dans la liste des fichiers du lien (Cloudflare : /i/n pour une image, /s/n pour un son)
@@ -1154,9 +1158,9 @@ BK.module('tournage', function (page) {
   const liensT = async () => (await BK.db.liste('partages')).filter(l => l.type === 'tournage');
   // refait la photo et l'enregistre (seulement si elle a changé) ; ouvre / ferme les accès du lien et de ses images
   async function garderT(l, forcer) {
-    const w = await htmlWeb(l.tournages), h = habillageWeb();
-    const neuf = { html: w.html, images: w.images, sons: w.sons, elements: [...w.images.map(id => ({ image: id })), ...w.sons.map(id => ({ fichier: id }))], section: 'orga', ...h };
-    const change = forcer || ['html', 'images', 'sons', 'css', 'corps'].some(k => JSON.stringify(neuf[k]) !== JSON.stringify(l[k])) || JSON.stringify(neuf.chaine) !== JSON.stringify(l.chaine);
+    const w = await htmlWeb(l.tournages, l.imgFixes ? l.images : (l.images || []).map(() => '')), h = habillageWeb();   // 1re fois : numéros tout neufs
+    const neuf = { html: w.html, images: w.images, sons: w.sons, elements: [...w.images.map(id => ({ image: id })), ...w.sons.map(id => ({ fichier: id }))], section: 'orga', imgFixes: true, ...h };
+    const change = forcer || !l.imgFixes || ['html', 'images', 'sons', 'css', 'corps'].some(k => JSON.stringify(neuf[k]) !== JSON.stringify(l[k])) || JSON.stringify(neuf.chaine) !== JSON.stringify(l.chaine);
     if (!change) return false;
     Object.assign(l, neuf); l.type = 'tournage'; l.maj = new Date().toISOString();
     await BK.db.ecrire('partages', l, { sansAnnuler: true });
