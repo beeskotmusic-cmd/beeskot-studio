@@ -187,7 +187,7 @@ BK.module('tournage', function (page) {
             <td class="to-btns"><button class="btn xs" data-haut="${i}" title="Monter">↑</button><button class="btn xs" data-px="${i}" title="Retirer">✕</button></td></tr>`).join('')}</tbody></table>
         <button class="btn xs" id="toPlan" style="margin-top:8px">+ Ajouter un plan</button></div>
       <div class="deux-box">
-        ${zoneTenues(t, 'Tenues · rien que pour ce reel').replace('<span class="lb">', '<div class="ligne-titre"><span class="lb">').replace('</span>', '</span><button class="btn xs miette-aide" id="toTenuesMiette" style="margin-left:auto" title="Miette cherche sur Discord les photos de tenues, et qui les porte">Qui porte quoi ?</button></div>')}
+        ${zoneTenues(t, 'Tenues').replace('<span class="lb">', '<div class="ligne-titre"><span class="lb">').replace('</span>', '</span><button class="btn xs miette-aide" id="toTenuesMiette" style="margin-left:auto" title="Miette cherche sur Discord les photos de tenues, et qui les porte">Qui porte quoi ?</button></div>')}
         <div class="box"><span class="lb">Matériel et notes</span>
           <textarea class="fld" data-c="materiel" rows="3" placeholder="ex. 2 caméras, trépied, lampes Globe en rouge, machine à fumée">${esc(t.materiel)}</textarea>
           <textarea class="fld" data-c="notes" rows="3" placeholder="Notes pour l'équipe…" style="margin-top:8px">${esc(t.notes)}</textarea>
@@ -597,14 +597,39 @@ BK.module('tournage', function (page) {
     if (tg.includes('c:lumiere') || tg.includes('c:scenographie')) return 'Lumière / déco';
     if (/^video\//.test(x.mime || '')) return 'Vidéo';
     return 'Divers'; };
-  // une zone « tenues » : une ligne par membre, on y glisse des photos
-  const zoneTenues = (d, titre) => `<div class="box tt-tenues"><span class="lb">${titre}</span>
-      ${T.membres.map(m => { const l = (d.tenuesPhotos || {})[m] || [], pr = propTenues(d, m);
-        return `<div class="to-tenue2 tt-zone" data-tz="${d.id}|${esc(m)}"><span class="eng">${esc(m)}</span>
-          <div class="to-tenue-ph">${l.map((u, i) => `<div class="to-tph" draggable="true" data-med="${esc(JSON.stringify({ u }))}" data-src="tenue"${BK.img.bg(u)}>${pastille((d.qui || {})[u])}<button class="md-x" data-ttx="${d.id}|${esc(m)}|${i}">✕</button></div>`).join('')}
-            ${pr.map(f => `<div class="to-tph mi-prop"${BK.img.bg(BK.img.ref(f.id))} title="Étiqueté tenue de ${esc(m)} dans Médias : ✓ pour valider"><button class="mi-val" data-tpv="${d.id}|${esc(m)}|${f.id}">✓</button></div>`).join('')}
-            <button class="to-tph to-tph-plus" data-tph2="${d.id}|${esc(m)}" title="Choisir dans Médias">＋<small>Photo</small></button></div>
-          <input class="fld to-tenue-txt" data-tt="${d.id}|${esc(m)}" value="${esc((d.tenues || {})[m] || '')}" placeholder="en quelques mots (facultatif)"></div>`; }).join('')}</div>`;
+  // une zone « tenues » : toutes les photos sur une rangée, et sous chacune qui la porte (« Yacine », « Pierre, Baptiste »…)
+  // (dans la fiche, rien ne change : tenuesPhotos[membre] = [photos] ; une même photo peut être chez plusieurs membres)
+  const quiPorte = (d, u) => T.membres.filter(m => ((d.tenuesPhotos || {})[m] || []).includes(u));
+  const photosTenues = d => { const l = []; for (const m of [...T.membres, ...Object.keys(d.tenuesPhotos || {})]) for (const u of (d.tenuesPhotos || {})[m] || []) if (!l.includes(u)) l.push(u); return l; };
+  const zoneTenues = (d, titre, note = '') => {
+    const props = {}; for (const m of T.membres) for (const f of propTenues(d, m)) (props[f.id] = props[f.id] || []).push(m);
+    return `<div class="box tt-tenues"><span class="lb">${titre}${note ? ` <small class="tt-note">· ${note}</small>` : ''}</span>
+      <div class="to-tenue-ph tt-zone" data-tz="${d.id}|">
+        ${photosTenues(d).map(u => { const q = quiPorte(d, u); return `<div class="to-tph-c"><div class="to-tph" draggable="true" data-med="${esc(JSON.stringify({ u }))}" data-src="tenue"${BK.img.bg(u)}>${pastille((d.qui || {})[u])}<button class="md-x" data-ttx="${d.id}|${esc(u)}" title="Retirer cette photo">✕</button></div>
+          <button class="to-tph-qui${q.length ? '' : ' vide'}" data-tqui="${d.id}|${esc(u)}" title="Changer qui la porte">${esc(q.join(', ') || 'Qui ?')}</button></div>`; }).join('')}
+        ${Object.entries(props).map(([f, q]) => `<div class="to-tph-c"><div class="to-tph mi-prop"${BK.img.bg(BK.img.ref(f))} title="Étiqueté tenue dans Médias : ✓ pour valider"><button class="mi-val" data-tpv="${d.id}|${esc(q.join(','))}|${f}">✓</button></div><span class="to-tph-qui">${esc(q.join(', '))}</span></div>`).join('')}
+        <button class="to-tph to-tph-plus" data-tph2="${d.id}|" title="Choisir dans Médias (ou glisse une photo ici)">＋<small>Photo</small></button></div></div>`; };
+  // la petite fenêtre « Qui la porte ? » : une case par membre (plusieurs possibles)
+  const choisirQui = (actuels = []) => new Promise(ok => {
+    const v = document.createElement('div'); v.className = 'voile';
+    v.innerHTML = `<div class="stopbox to-qui-box"><span class="dymo" style="align-self:center">Qui la porte ?</span>
+      <div class="chips" style="justify-content:center">${T.membres.map(m => `<button class="btn sm${actuels.includes(m) ? ' on' : ''}" data-m="${esc(m)}">${esc(m)}</button>`).join('')}</div>
+      <div class="stopbox-btns"><button class="btn pri" data-c="ok">OK</button><button class="btn" data-c="x">Annuler</button></div></div>`;
+    document.body.appendChild(v);
+    v.onclick = e => { const b = e.target.closest('button'); if (!b) { if (e.target === v) { v.remove(); ok(null); } return; }
+      if (b.dataset.m) return b.classList.toggle('on');
+      const l = [...v.querySelectorAll('[data-m].on')].map(x => x.dataset.m); v.remove(); ok(b.dataset.c === 'ok' ? l : null); };
+  });
+  // changer qui porte une photo déjà là
+  async function changerQui(d, u) {
+    const avant = quiPorte(d, u), apres = await choisirQui(avant); if (!apres) return;
+    if (!apres.length) return msg('Choisis au moins une personne (ou ✕ pour retirer la photo)');
+    d.tenuesPhotos = d.tenuesPhotos || {}; const id = idDe(u);
+    for (const m of T.membres) { const l = d.tenuesPhotos[m] = d.tenuesPhotos[m] || [], dedans = l.includes(u);
+      if (apres.includes(m) && !dedans) { l.push(u); if (id) await BK.etiquettes.basculer(id, 'c:m-' + slug(m), true).catch(() => {}); }
+      if (!apres.includes(m) && dedans) { l.splice(l.indexOf(u), 1); if (id) await BK.etiquettes.basculer(id, 'c:m-' + slug(m), false).catch(() => {}); } }
+    await BK.db.ecrire('tournages', d); msg('Tenue : ' + apres.join(', ') + ' ✓'); rendreFiche();
+  }
   const zoneAssets = d => { const val = d.assets || [], pr = propAssets(d);
     const plus = `<button class="btn xs to-as-plus" data-asadd="${d.id}" title="Choisis des médias dans Médias : ils arrivent dans les Assets de ce tournage">＋ Ajouter</button>`;
     if (!val.length && !pr.length) return `<div class="to-assets"><div class="to-as-tete"><span class="eng">Assets</span><span class="nt">Aucun média pour l'instant</span>${plus}</div></div>`;
@@ -720,7 +745,7 @@ BK.module('tournage', function (page) {
               <button class="btn xs" data-sortir="${r.id}" title="Le sortir de ce tournage">↩</button><button class="btn xs tt-pli" data-plir="${r.id}">${r.id === ouvert ? '▾ Replier' : '▸ Déplier'}</button></span></div>
           ${r.id === ouvert ? '<div class="tt-reel-corps" id="toReelCorps"></div>' : ''}</div>`).join('') || '<span class="nt">Pas encore de reel : « + Ajouter un reel », ou glisse un reel sur ce tournage depuis la liste des tournages.</span>'}</div>
       ${boiteItineraire(tr, rs)}
-      ${zoneTenues(tr, 'Tenues · pour tous les reels du tournage')}
+      ${zoneTenues(tr, 'Tenues', 'pour tous les reels')}
       ${zoneAssets(tr)}
       <div class="box"><span class="lb">Matériel et notes · tout le tournage</span>
         <textarea class="fld" data-tc="materiel" rows="3" placeholder="ex. 2 caméras, trépied, lampes Globe en rouge">${esc(tr.materiel)}</textarea>
@@ -784,12 +809,15 @@ BK.module('tournage', function (page) {
   // les boutons des zones médias (tenues, assets, propositions vertes)
   function brancherMedias(z) {
     $$('[data-asouv]', z).forEach(b => b.onclick = e => { if (e.target.closest('[data-asadd]')) return; const o = BK.reglage('tournage.assetsOuverts', {}); o[b.dataset.asouv] = !o[b.dataset.asouv]; BK.regler('tournage.assetsOuverts', o); rendreFiche(); });
-    $$('[data-tt]', z).forEach(c => c.oninput = () => { const [id, m] = c.dataset.tt.split('|'), d = T.liste.find(x => x.id === id); (d.tenues = d.tenues || {})[m] = c.value; sauver(d); });
-    $$('[data-ttx]', z).forEach(b => b.onclick = async e => { e.stopPropagation(); if (!await BK.confirmer('Retirer cette photo de la tenue ? (elle reste dans le Drive)')) return; const [id, m, i] = b.dataset.ttx.split('|'), d = T.liste.find(x => x.id === id); d.tenuesPhotos[m].splice(+i, 1); await BK.db.ecrire('tournages', d); rendreFiche(); });
-    $$('[data-tpv]', z).forEach(b => b.onclick = async e => { e.stopPropagation(); const [id, m, f] = b.dataset.tpv.split('|'); await poser({ x: { id: f }, src: 'prop' }, { doc: id, qui: m }); });
-    $$('[data-tph2]', z).forEach(b => b.onclick = async () => { if (!BK.drive.relie()) return msg('Relie d\'abord le Drive'); const [id, m] = b.dataset.tph2.split('|');
-      const l = await BK.choisirDansMedias({ titre: 'Tenue de ' + m, bouton: 'Ajouter', type: 'image', sujet: 'c:outfits' }); if (!l || !l.length) return;
-      for (const x of l) { try { const d = await BK.img.depuisChoix(x, 'outfits'); await poser({ x: { u: d.ref, id: d.id || '' }, src: 'choix' }, { doc: id, qui: m }); } catch (er) { console.warn(er); } } });
+    $$('[data-ttx]', z).forEach(b => b.onclick = async e => { e.stopPropagation(); if (!await BK.confirmer('Retirer cette photo des tenues ? (elle reste dans le Drive)')) return;
+      const k = b.dataset.ttx.indexOf('|'), d = T.liste.find(x => x.id === b.dataset.ttx.slice(0, k)), u = b.dataset.ttx.slice(k + 1); if (!d) return;
+      for (const m of Object.keys(d.tenuesPhotos || {})) d.tenuesPhotos[m] = (d.tenuesPhotos[m] || []).filter(x => x !== u); await BK.db.ecrire('tournages', d); rendreFiche(); });
+    $$('[data-tqui]', z).forEach(b => b.onclick = e => { e.stopPropagation(); const k = b.dataset.tqui.indexOf('|'), d = T.liste.find(x => x.id === b.dataset.tqui.slice(0, k)); if (d) changerQui(d, b.dataset.tqui.slice(k + 1)); });
+    $$('[data-tpv]', z).forEach(b => b.onclick = async e => { e.stopPropagation(); const [id, q, f] = b.dataset.tpv.split('|'); for (const m of q.split(',').filter(Boolean)) await poser({ x: { id: f }, src: 'prop' }, { doc: id, qui: m }); });
+    $$('[data-tph2]', z).forEach(b => b.onclick = async () => { if (!BK.drive.relie()) return msg('Relie d\'abord le Drive'); const id = b.dataset.tph2.split('|')[0];
+      const l = await BK.choisirDansMedias({ titre: 'Tenues', bouton: 'Ajouter', type: 'image', sujet: 'c:outfits' }); if (!l || !l.length) return;
+      const qui = await choisirQui(); if (!qui || !qui.length) return msg('Photo pas ajoutée : choisis qui la porte');
+      for (const x of l) { try { const d = await BK.img.depuisChoix(x, 'outfits'); for (const m of qui) await poser({ x: { u: d.ref, id: d.id || '' }, src: 'choix' }, { doc: id, qui: m }); } catch (er) { console.warn(er); } } });
     $$('[data-medx]', z).forEach(b => b.onclick = async e => { e.stopPropagation(); const x = JSON.parse(b.closest('[data-med]').dataset.med), src = b.dataset.medx;
       if (src.startsWith('prop:')) { T.non.add(src.slice(5) + '|' + x.id); await BK.partage.ecrire('tournage.assetsNon', [...T.non]); } else await retirerDe(src, x); rendreFiche(); });
     $$('[data-asadd]', z).forEach(b => b.onclick = async e => { e.stopPropagation(); const d = T.liste.find(y => y.id === b.dataset.asadd); if (!d) return;
@@ -825,7 +853,9 @@ BK.module('tournage', function (page) {
       else poserTous(dt, { doc: a.dataset.tour }); }));
     $$('[data-sans]', z).forEach(s => cible(s, tour, async dt => { const r = T.liste.find(x => x.id === dt.getData('text/bk-tournage')); if (!r || !r.parent) return; const avant = T.liste.find(x => x.id === r.parent);
       r.parent = ''; await BK.db.ecrire('tournages', r); if (avant) await synchroTour(avant); rendreFiche(); }));
-    $$('[data-tz]', z).forEach(el => cible(el, med, dt => { const [doc, qui] = el.dataset.tz.split('|'); poserTous(dt, { doc, qui }); }));
+    $$('[data-tz]', z).forEach(el => cible(el, med, async dt => { const doc = el.dataset.tz.split('|')[0], l = lus(dt);       // lu tout de suite (le glisser s'efface ensuite)
+      if (!l.length) return msg('Range d\'abord ce média de Discord dans le Drive (Médias)');
+      const qui = await choisirQui(); if (!qui || !qui.length) return; for (const it of l) for (const m of qui) await poser(it, { doc, qui: m }); }));
     $$('.tt-reel-t', z).forEach(h => cible(h, med, dt => poserTous(dt, { doc: h.dataset.tid, mood: true })));
     // changer l'ordre des reels : glisser un reel au-dessus / en dessous d'un autre (trait jaune = où il va tomber)
     const placer = (h, e) => { const b = h.getBoundingClientRect(), bas = e.clientY > b.top + b.height / 2; h.classList.toggle('ins-bas', bas); h.classList.toggle('ins-haut', !bas); return bas; };

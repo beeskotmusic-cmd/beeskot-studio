@@ -2388,3 +2388,14 @@ html.tel #mdCol{display:none}
 .pt-img img{width:100%;border-radius:8px;cursor:zoom-in;display:block}
 .pt-attente{min-height:180px;justify-content:center;align-items:center;border:2px dashed rgba(231,213,174,.35);border-radius:8px}
 .pt-idee{white-space:normal;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+/* Tenues : une rangée de photos, qui la porte écrit dessous */
+.tt-tenues .to-tenue-ph{gap:10px;padding-top:6px}
+.to-tph-c{display:flex;flex-direction:column;align-items:center;gap:4px;width:72px}
+.to-tph-c .to-tph{width:72px;height:96px}
+.to-tph-qui{background:none;border:0;padding:0;font:600 10px/1.2 "Work Sans",sans-serif;color:#efe4cc;text-align:center;cursor:pointer;max-width:72px;overflow-wrap:anywhere}
+.to-tph-qui:hover{color:#ffb23e}
+.to-tph-qui.vide{color:#ff8a6a}
+span.to-tph-qui{cursor:default;color:#cfe8c2}
+.tt-tenues .to-tph-plus{width:72px;height:96px}
+.tt-note{font-size:9px;opacity:.6;letter-spacing:.06em}
+.to-qui-box{min-width:320px;gap:14px}
