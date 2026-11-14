@@ -2338,3 +2338,37 @@ html.tel #mdVue{display:none!important}   /* sur téléphone c'est toujours en l
 .to-af-aide{position:absolute;left:12px;bottom:10px;z-index:4;font-size:11px;font-weight:700;color:#fff;background:rgba(0,0,0,.55);padding:4px 8px;border-radius:4px;pointer-events:none}
 /* Tournages : un nom de tournage très long reste sur une ligne (coupé au bord) au lieu de casser l'étiquette */
 .to-af-txt .dymo{max-width:100%;white-space:nowrap;overflow:hidden;text-overflow:clip}   /* (la police Impact Label n'aime pas « … » ni les retours à la ligne : ça laisse des blocs blancs) */
+/* ---------- Médias : dossiers favoris (★) en haut ---------- */
+.box.md-favs{flex-direction:row!important;flex-wrap:wrap;align-items:center;gap:6px!important;padding:5px 8px!important;min-height:0}
+.md-favs-t{font-size:8.5px!important;margin-right:4px;color:#ffb23e}
+.md-favs-vide{font-size:11px;opacity:.6}
+.md-fav{display:inline-flex;align-items:stretch;border-radius:6px;overflow:hidden;background:rgba(255,178,62,.12);box-shadow:inset 0 0 0 1px rgba(255,178,62,.28);cursor:grab}
+.md-fav.on{background:rgba(255,178,62,.3)}
+.md-fav.glisse{opacity:.4}
+.md-fav.vise{box-shadow:inset 3px 0 0 #ffb23e,inset 0 0 0 1px rgba(255,178,62,.5)}
+.md-fav-go{border:0;background:none;color:inherit;font:600 11px Jost,sans-serif;padding:4px 8px;cursor:pointer;white-space:nowrap;max-width:220px;overflow:hidden;text-overflow:ellipsis}
+.md-fav-x{border:0!important;background:none!important;color:inherit;opacity:.5;font-size:10px!important;padding:0 7px!important;cursor:pointer;min-height:0!important;width:auto!important}
+.md-fav-x:hover{opacity:1;color:#ff6b5e}
+.md-fav-ici{border:1px dashed rgba(255,178,62,.45);background:none;color:#ffb23e;font:600 10.5px Jost,sans-serif;padding:3px 8px;border-radius:6px;cursor:pointer;margin-left:auto}
+.md-fav-t{position:absolute;top:6px;left:8px;font-size:15px;line-height:1;color:#ffb23e;opacity:.45;cursor:pointer;z-index:2}
+.md-fav-t:hover,.md-fav-t.on{opacity:1}
+.md-tuile.md-dos{position:relative}
+/* ---------- Médias : vue en colonnes (▥) ---------- */
+.md-cols{display:none}
+.md-zone.md-colonnes{display:flex!important;flex-direction:row!important;align-items:stretch!important;overflow:hidden!important;padding:0!important;gap:0!important}
+.md-zone.md-colonnes .md-cols{display:flex;flex:0 1 auto;max-width:74%;overflow-x:auto;overflow-y:hidden;border-right:1px solid rgba(239,230,210,.12)}
+.md-col{flex:none;width:190px;overflow-y:auto;padding:6px;border-right:1px solid rgba(239,230,210,.08);display:flex;flex-direction:column;gap:2px}
+.md-col:last-child{border-right:0}
+.md-col-l{position:relative;display:flex;align-items:center;gap:8px;width:100%;border:0;background:none;color:inherit;text-align:left;padding:6px 8px;border-radius:5px;font:500 12px Jost,sans-serif;cursor:pointer}
+.md-col-l:hover{background:rgba(255,255,255,.06)}
+.md-col-l.on{background:rgba(255,178,62,.18);color:#ffcf86}
+.md-col-l i{font-style:normal;flex:none}
+.md-col-l span{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.md-col-l em{font-style:normal;opacity:.45;flex:none}
+.md-col-l .md-fav-t{position:static;font-size:13px;opacity:0;flex:none}
+.md-col-l:hover .md-fav-t,.md-col-l .md-fav-t.on{opacity:1}
+.md-col-l .md-fav-t:not(.on){opacity:0}.md-col-l:hover .md-fav-t:not(.on){opacity:.5}
+.md-col-lier{opacity:.6}
+.md-col-att{padding:10px}
+.md-zone.md-colonnes .md-grille{flex:1;min-width:230px;overflow:auto;padding:10px}
+html.tel #mdCol{display:none}

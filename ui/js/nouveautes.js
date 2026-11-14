@@ -3,6 +3,10 @@
 // Pour une nouvelle version : ajouter un bloc EN HAUT de la liste. Une ligne courte par point : « Onglet : ce qui change. »
 // =====================================================================
 BK.NOUVEAUTES = [
+  { v: '0.9.155', titre: 'Médias : colonnes et dossiers favoris', l: [
+    ['▥', 'Médias (PC) : nouveau bouton ▥ à côté de ☰ / ▦ : les dossiers s\'ouvrent en colonnes, comme dans le Finder. Un dossier ouvert = une colonne de plus à droite, les fichiers restent à droite avec toutes leurs actions.'],
+    ['★', 'Médias : clique ☆ sur un dossier (ou « ☆ Ce dossier ») pour l\'épingler dans la barre des favoris en haut. Clic = y aller, ✕ = retirer, glisse pour changer l\'ordre. Chacun a ses propres favoris.'],
+  ] },
   { v: '0.9.154', titre: 'Passages : une seule liste partout', l: [
     ['🎵', 'Passages : Reels Audio, TOAST2 / Light Toast, Synch bread, Reels et Tournages montrent maintenant TOUS les mêmes passages. Un passage ajouté n\'importe où apparaît partout, avec une petite icône qui dit d\'où il vient (🎬 Tournage, 🎞 Reels, 📋 PLAN, 💬 Discord, 🍞 Synch bread).'],
     ['🎬', 'Tournages : un passage tapé dans un reel est partagé même si le reel n\'a pas encore de carte dans l\'onglet Reels.'],
