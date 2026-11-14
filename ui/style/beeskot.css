@@ -2399,3 +2399,24 @@ span.to-tph-qui{cursor:default;color:#cfe8c2}
 .tt-tenues .to-tph-plus{width:72px;height:96px}
 .tt-note{font-size:9px;opacity:.6;letter-spacing:.06em}
 .to-qui-box{min-width:320px;gap:14px}
+.pt-mb{display:inline-flex;align-items:center;gap:2px}
+.pt-mb .btn.xs{min-height:28px;padding:0 8px}
+.pt-pas{display:inline-grid;place-items:center;width:15px;height:15px;border-radius:50%;background:#ff8a6a;color:#2a1a0e;font:700 10px/1 sans-serif;font-style:normal}
+.pt-ref{flex-direction:column;gap:3px;width:72px}
+.pt-ref img{width:72px;height:90px}
+.pt-ref-n{font-size:10px;color:#efe4cc;text-align:center;max-width:72px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.pt-ref-plus{width:72px;height:90px;border:1px dashed rgba(239,230,210,.3);border-radius:8px;background:rgba(0,0,0,.2);color:#cbbfa8;cursor:pointer;justify-content:center}
+.pt-ref-plus:hover,.pt-ref-grande:hover{border-color:#ffb23e;color:#ffb23e}
+.pt-plus{display:flex;flex-direction:column;align-items:center;font-size:22px;gap:2px}
+.pt-plus small{font-size:9px;letter-spacing:.08em;text-transform:uppercase}
+.pt-fiche{min-width:440px;max-width:560px;gap:8px}
+.pt-fiche-c{display:flex;gap:14px;align-items:flex-start}
+.pt-fiche-ch{flex:1;display:flex;flex-direction:column;gap:4px}
+.pt-ref-grande{width:120px;height:160px;border:1px dashed rgba(239,230,210,.3);border-radius:8px;cursor:pointer;justify-content:center;align-items:center;overflow:hidden;color:#cbbfa8}
+.pt-ref-grande img{width:120px;height:160px;object-fit:cover;border-radius:8px}
+.pt-choix{min-width:320px;gap:14px}
+.pt-barre{position:relative;margin-top:10px;height:22px;border-radius:11px;background:rgba(0,0,0,.35);box-shadow:inset 0 0 0 1px rgba(239,230,210,.15);overflow:hidden}
+.pt-barre i{position:absolute;inset:0 auto 0 0;width:0;background:linear-gradient(90deg,#c9452f,#ffb23e);transition:width .5s linear}
+.pt-barre span{position:relative;display:block;text-align:center;font:600 11px/22px "Work Sans",sans-serif;color:#fbf1da;text-shadow:0 1px 2px rgba(0,0,0,.6)}
+.pt-plus-b{min-width:32px;justify-content:center}
+.box > .lb small,.lb small.nt{text-transform:none;letter-spacing:0;font-weight:400}
