@@ -5,6 +5,7 @@
 BK.NOUVEAUTES = [
   { v: '0.9.157', titre: 'Pain Ture : les membres, les ambiances, la barre', l: [
     ['👥', 'Pain Ture : boutons Pierre, Yacine, Baptiste. Un clic = il est dans l\'image (sa photo de référence apparaît dans la boîte Références). ✎ = sa fiche : photo, taille, vêtements, attributs. Tout le groupe partage les fiches.'],
+    ['📸', 'Pain Ture : les fiches de Pierre (1,73 m), Yacine (1,92 m) et Baptiste (1,80 m) sont déjà remplies avec une photo de référence. ✎ pour changer.'],
     ['✨', 'Pain Ture : boutons d\'ambiance tout prêts (Le groupe joue, Rétro 70s, Artistique, Néons la nuit, Lumière dorée, Pochette d\'album, Coulisses, Au studio). ＋ pour créer le vôtre, clic droit pour le modifier.'],
     ['🖼', 'Pain Ture : la boîte Références (3 max) : ＋ pour ajouter un lieu ou un objet depuis le PC ou Médias.'],
     ['⏳', 'Pain Ture : une barre de progression pendant la fabrication (elle apprend le temps moyen toute seule).'],

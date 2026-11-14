@@ -18,10 +18,10 @@ const MAX_REFS = 3;                                       // la limite de l'outi
 const TROP = 'Maximum trois références !';
 const MEMBRES = ['Pierre', 'Yacine', 'Baptiste'];
 // ce qu'on sait déjà de chacun (complété ensuite dans la fiche ✎, pour tout le groupe)
-const MEMBRES_DEFAUT = {
-  Pierre:   { photo: '', taille: '', vetements: '', attributs: 'bassiste, le plus petit des trois' },
-  Yacine:   { photo: '', taille: '', vetements: '', attributs: 'chanteur (joue aussi guitare, piano ou congas), le plus grand des trois' },
-  Baptiste: { photo: '', taille: '', vetements: '', attributs: 'batteur, grand' },
+const MEMBRES_DEFAUT = {         // les photos de départ sont livrées avec le logiciel (ui/look/membres/)
+  Pierre:   { photo: 'look/membres/pierre.jpg',   taille: '1,73 m', vetements: '', attributs: 'bassiste, le plus petit des trois ; cheveux courts châtains, lunettes rondes fines, moustache et petite barbe' },
+  Yacine:   { photo: 'look/membres/yacine.jpg',   taille: '1,92 m', vetements: '', attributs: 'chanteur (joue aussi guitare, piano ou congas), le plus grand des trois ; barbe noire fournie, souvent un bonnet' },
+  Baptiste: { photo: 'look/membres/baptiste.jpg', taille: '1,80 m', vetements: '', attributs: 'batteur ; cheveux châtains mi-longs, lunettes rondes, barbe' },
 };
 // les boutons de prompt tout prêts (le groupe peut en ajouter, les changer ou les retirer)
 const PRESETS_DEFAUT = [
