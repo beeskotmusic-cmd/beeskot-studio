@@ -3,6 +3,11 @@
 // Pour une nouvelle version : ajouter un bloc EN HAUT de la liste. Une ligne courte par point : « Onglet : ce qui change. »
 // =====================================================================
 BK.NOUVEAUTES = [
+  { v: '0.9.159', titre: 'Médias : filtre en menu, nouvelles étiquettes', l: [
+    ['🏷', 'Médias : « Filtrer » est maintenant un menu déroulant (prend moins de place). Le filtre choisi s\'affiche à côté, ✕ pour l\'enlever. Glisser des médias sur « Filtrer » l\'ouvre tout seul pour les lâcher sur une étiquette.'],
+    ['＋', 'Médias : on peut créer de nouvelles étiquettes (Tournage, Lumière, Réseaux, Membres) : « ＋ Nouvelle étiquette » dans le menu Filtrer, ou dans le clic droit sur un fichier (elle est mise tout de suite sur les fichiers choisis).'],
+    ['↰', 'Médias : le bouton retour n\'a plus que la flèche.'],
+  ] },
   { v: '0.9.158', titre: 'Pain Ture : images partagées 3 jours, envoi depuis Tournages', l: [
     ['⏳', 'Pain Ture : la barre de progression ne reste plus bloquée à 95 % : elle avance toujours, de plus en plus doucement, jusqu\'à ce que l\'image arrive.'],
     ['👥', 'Pain Ture : les images restent 3 jours dans la page, pour tout le groupe (qui l\'a faite, quand, combien de temps il reste). ☁ Garder = rangée pour de bon ; sinon elle part dans la corbeille du Drive au bout de 3 jours. 🗑 Jeter l\'enlève pour tout le monde.'],

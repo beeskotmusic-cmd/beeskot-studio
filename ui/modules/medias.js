@@ -26,7 +26,7 @@ BK.module('medias', function (page) {
         <div class="box md-favs" id="mdFavs"></div>
         <div class="box md-barre">
           <button class="md-haut md-maison" id="mdMaison" title="Tout en haut : tous les dossiers">⌂</button>
-          <button class="md-haut" id="mdHaut" title="Revenir au dossier d'avant">↰ Retour</button>
+          <button class="md-haut" id="mdHaut" title="Retour : revenir au dossier d'avant">↰</button>
           <div class="md-fil" id="mdFil"></div>
           <div class="seg md-types" id="mdTypes"><button data-ty="tout" class="on">Tout</button><button data-ty="image">Images</button><button data-ty="video">Vidéos</button><button data-ty="audio">Musiques</button></div>
           <div class="md-filtre"><span class="eng">Voir tout</span><button class="fld md-voir" id="mdVoirB" title="Tout ce qui porte cette étiquette, dans TOUT Médias (pas seulement le dossier)">Choisir… ▾</button><select class="fld hidden" id="mdFiltre"><option value="">Tout le dossier</option></select></div>
@@ -49,15 +49,25 @@ BK.module('medias', function (page) {
         <div class="box"><span class="lb">Rien n'est effacé</span></div>
       </section>
     </div>
-    <div class="pane md-ajouter${BK.reglage('medias.ajPlie', false) ? ' plie' : ''}" id="mdAjouter">
-      <div class="md-aj-tete"><button class="md-aj-plier" id="mdAjPlier" title="Réduire / montrer les étiquettes">▾</button><span class="eng md-lab">Filtrer</span><div class="seg" id="mdRub"><button data-rub="morceaux">♪ Morceaux</button><button data-rub="tournage">🎬 Tournage</button><button data-rub="lumiere">💡 Lumière</button><button data-rub="reseaux">📣 Réseaux</button><button data-rub="membres">◉ Membres</button></div>
-        <span class="nt md-aj-aide">Clic = filtrer le dossier · glisse des médias sur une étiquette pour les étiqueter</span></div>
-      <div class="md-paniers" id="mdPaniers"></div></div>
+    <div class="pane md-ajouter md-deroule" id="mdAjouter">
+      <div class="md-aj-tete"><button class="md-aj-btn" id="mdAjBtn" title="Filtrer par étiquette · glisse des médias ici pour les étiqueter">🏷 Filtrer ▾</button><span class="md-aj-etat" id="mdAjEtat"></span>
+        <span class="nt md-aj-aide">« Filtrer » = choisir une étiquette · glisse des médias dessus pour les étiqueter</span></div>
+      <div class="md-aj-pop" id="mdAjPop"><div class="seg" id="mdRub"><button data-rub="morceaux">♪ Morceaux</button><button data-rub="tournage">🎬 Tournage</button><button data-rub="lumiere">💡 Lumière</button><button data-rub="reseaux">📣 Réseaux</button><button data-rub="membres">◉ Membres</button></div>
+      <div class="md-paniers" id="mdPaniers"></div></div></div>
     <div class="pane abar"><span class="vfd" id="mdMsg">PRÊT</span>
       <span class="vfd hidden" id="mdSelN" style="margin-left:10px;color:#ffb23e"></span>
       <span class="nt" style="margin:0 12px">Clic = choisir · <b>Ctrl+clic</b> = en ajouter · <b>Maj+clic</b> = toute une suite · puis glisse-les sur une étiquette</span>
       <div class="right"><button class="btn" id="mdRelire">↻ Relire</button></div></div>`;
-  $('#mdAjPlier', page).onclick = () => { const z = $('#mdAjouter', page), p = !z.classList.contains('plie'); z.classList.toggle('plie', p); BK.regler('medias.ajPlie', p); };
+  // ---------- « 🏷 Filtrer ▾ » : un menu déroulant (prend moins de place) ----------
+  //   s'ouvre au clic, ou tout seul quand on y glisse des médias (pour les lâcher sur une étiquette)
+  const ajEl = () => document.getElementById('mdAjouter');          // (dans la fenêtre « Choisir dans Médias », il n'est plus dans la page)
+  const ouvrirPop = o => { const aj = ajEl(); if (!aj) return; o = o ?? !aj.classList.contains('ouvert'); aj.classList.toggle('ouvert', o);
+    if (o) aj.classList.toggle('vers-haut', aj.getBoundingClientRect().top > innerHeight / 2); };
+  M.ouvrirPop = ouvrirPop;
+  document.getElementById('mdAjBtn').onclick = e => { e.stopPropagation(); ouvrirPop(); };
+  ['dragenter', 'dragover'].forEach(t => document.getElementById('mdAjBtn').addEventListener(t, e => { if (e.dataTransfer.types.includes('text/bk-media') || e.dataTransfer.types.includes('Files')) { e.preventDefault(); ouvrirPop(true); } }));
+  document.addEventListener('pointerdown', e => { const aj = ajEl(); if (aj && aj.classList.contains('ouvert') && !aj.contains(e.target) && !e.target.closest('.md-tuile,.md-menu')) aj.classList.remove('ouvert'); }, true);
+  document.addEventListener('keydown', e => { if (e.key === 'Escape') { const aj = ajEl(); if (aj && aj.classList.contains('ouvert')) aj.classList.remove('ouvert'); } });
   // pourquoi les boutons « + » sont grisés : on le dit, au lieu de laisser deviner
   const aideAjout = ok => { const t = $('#mdAjoutTxt'); if (t) t.textContent = ok ? 'Glisse des fichiers sur la page, ou « + » : ils vont dans le dossier ouvert.' : 'Ouvre d\'abord un dossier du Drive : c\'est là que les fichiers iront.'; };
   const msg = t => $('#mdMsg').textContent = String(t).toUpperCase().slice(0, 90);
@@ -93,10 +103,25 @@ BK.module('medias', function (page) {
     };
     const perso = r => (BK.etiquettes.PERSO || []).filter(x => (x.rub || 'reseaux') === r).map(x => ({ k: x.k, nom: x.nom, ic: '•' }));
     c.membres = (M.membres || ['Yacine', 'Pierre', 'Baptiste']).map(n => ({ k: 'c:m-' + n.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, ''), nom: n, ic: '◉' }));
-    c.tournage.push(...perso('tournage')); c.lumiere.push(...perso('live')); c.reseaux.push(...perso('reseaux'));
+    c.tournage.push(...perso('tournage')); c.lumiere.push(...perso('live')); c.reseaux.push(...perso('reseaux')); c.membres.push(...perso('membres'));
     return c;
   }
   const nomCase = k => Object.values(cases()).flat().find(c => c.k === k);
+  // ---------- créer une nouvelle étiquette (pour tout le groupe) : un petit champ à la place du bouton « ＋ » ----------
+  // rubrique de Médias → rubrique des étiquettes (« lumiere » s'appelle « live » dans la liste partagée). Pas pour Morceaux (ils viennent de la Bibliothèque).
+  const RUB_ETQ = { tournage: 'tournage', lumiere: 'live', reseaux: 'reseaux', membres: 'membres' };
+  function saisirEtiquette(el, rub, ensuite) {
+    if (el.querySelector('input')) return;
+    const av = el.innerHTML; el.innerHTML = '<input class="fld md-nv-in" placeholder="Nom de l\'étiquette…" maxlength="40">';
+    const i = el.querySelector('input'); i.focus();
+    const finir = async ok => { const nom = i.value.trim(); if (!ok || !nom) { el.innerHTML = av; return; }
+      i.disabled = true;
+      try { const k = await BK.etiquettes.creerPerso(nom, RUB_ETQ[rub]); msg('Étiquette « ' + nom + ' » créée'); M.tags = await BK.etiquettes.tous(); paniers(); if (ensuite) await ensuite(k); }
+      catch (e) { BK.avis(e.message || 'Impossible de créer l\'étiquette'); el.innerHTML = av; } };
+    ['pointerdown', 'click'].forEach(t => i.addEventListener(t, e => e.stopPropagation()));
+    i.addEventListener('keydown', e => { e.stopPropagation(); if (e.key === 'Enter') finir(true); if (e.key === 'Escape') finir(false); });
+    i.addEventListener('blur', () => setTimeout(() => { if (i.isConnected && !i.disabled) finir(!!i.value.trim()); }, 150));
+  }
   // ---------- LES FILTRES DU BAS : seulement ce qui est dans le dossier ouvert ----------
   //   [MORCEAUX] → tout ce qui a une étiquette de morceau   ·   [MOON BLUE] → seulement Moon Blue
   //   re-clic sur ce qui est allumé → on enlève ce filtre. La ligne des étiquettes reste ouverte (pour y glisser des médias).
@@ -113,7 +138,15 @@ BK.module('medias', function (page) {
     z.innerHTML = (cases()[vue] || []).map(c => { const n = compte(c.k);
       return `<div class="md-panier${M.ff.k === c.k ? ' on' : ''}" data-pan="${esc(c.k)}" style="--tc:${couleurTag(c.k)}">${c.ph ? `<span class="md-pan-ph"${BK.img.bg(c.ph)}></span>` : `<span class="md-pan-ph">${c.ic}</span>`}<b>${esc(c.nom)}</b>${n ? `<em>${n}</em>` : ''}</div>`; }).join('')
       || '<span class="nt">Aucun morceau : crée d\'abord des fiches dans la Bibliothèque.</span>';
-    $$('.md-panier', z).forEach(p => {
+    if (RUB_ETQ[vue]) z.insertAdjacentHTML('beforeend', `<div class="md-panier md-pan-nv" id="mdPanNv" title="Créer une étiquette dans cette rubrique (pour tout le groupe)"><span class="md-pan-ph">＋</span><b>Nouvelle étiquette</b></div>`);
+    const nv = $('#mdPanNv', z); if (nv) nv.onclick = e => { e.stopPropagation(); saisirEtiquette(nv, vue, k => { if (M.sel.size) etiqueterTous([...M.sel], k); }); };
+    // ce qui est filtré, à côté du bouton (✕ = enlever le filtre)
+    const etat = $('#mdAjEtat'), btn = $('#mdAjBtn'), nomRub = r => { const b = $(`#mdRub [data-rub="${r}"]`); return b ? b.textContent : r; };
+    if (etat) { const t = M.ff.k ? ((nomCase(M.ff.k) || {}).nom || '') : M.ff.rub ? nomRub(M.ff.rub) : '';
+      etat.innerHTML = t ? `<span class="md-aj-f" style="--tc:${M.ff.k ? couleurTag(M.ff.k) : '#ffb23e'}">${esc(t)}<button id="mdAjSans" title="Enlever le filtre">✕</button></span>` : '';
+      const x = $('#mdAjSans'); if (x) x.onclick = e => { e.stopPropagation(); M.ff = { rub: '', k: '' }; paniers(); appliquer(); dire(); }; }
+    if (btn) btn.classList.toggle('on', !!(M.ff.k || M.ff.rub));
+    $$('.md-panier[data-pan]', z).forEach(p => {
       p.ondragover = e => { if (e.dataTransfer.types.includes('text/bk-media') || e.dataTransfer.types.includes('Files')) { e.preventDefault(); e.stopPropagation(); p.classList.add('survol'); } };
       p.ondragleave = () => p.classList.remove('survol');
       p.ondrop = e => { e.preventDefault(); e.stopPropagation(); p.classList.remove('survol');
@@ -123,7 +156,7 @@ BK.module('medias', function (page) {
         if (!M.choix && M.sel.size > 1) return etiqueterTous([...M.sel], p.dataset.pan);
         if (!M.choix && M.sel.size === 1 && M.choisi) return etiqueter(M.choisi, p.dataset.pan, null);
         const k = p.dataset.pan; M.ff = M.ff.k === k ? { rub: vue, k: '' } : { rub: vue, k };
-        paniers(); appliquer(); dire(); };
+        paniers(); appliquer(); dire(); if (M.ff.k) ouvrirPop(false); };
     });
   }
   // tout en haut (« Tous les dossiers »), le « dossier », c'est tout Médias : le filtre cherche partout
@@ -567,7 +600,7 @@ BK.module('medias', function (page) {
     const tous = M.sel.size > 1 && M.sel.has(id) ? [...M.sel] : [id];
     const x0 = pos ? pos.x : r.left, y0 = pos ? pos.y : r.bottom + 4;
     menu.style.left = Math.min(x0, innerWidth - 230) + 'px'; menu.style.top = Math.min(y0, innerHeight - 200) + 'px';
-    const rubs = cases(), f0 = M.fichiers.find(x => x.id === id) || (M.vus || {})[id];
+    let rubs = cases(); const f0 = M.fichiers.find(x => x.id === id) || (M.vus || {})[id];
     const son = f => /^audio\//.test(f.mimeType || '') || /\.(wav|mp3|aiff?|flac|m4a|ogg)$/i.test(f.name || ''), img = f => /^image\//.test(f.mimeType || ''), vid = f => /^video\//.test(f.mimeType || '');
     const ENVOIS = [['ecoute', '🎧 Notes et retours', son], ['reels', '🎵 Slice', son], ['postvis', '📸 Social Photo', img], ['reelvis', '🎞 Reels Vidéo', f => img(f) || vid(f)], ['notesvid', '🎬 Notes vidéos', vid],
       ['suivi', '🎬 Reels (affiche du reel ouvert)', img], ['tournage', '🎥 Tournages', f => img(f) || vid(f)], ['biblio', '🎵 Bibliothèque (fiche ouverte)', f => img(f) || son(f)]];
@@ -578,7 +611,7 @@ BK.module('medias', function (page) {
       menu.innerHTML = (tous.length > 1 ? `<span class="md-menu-t" style="color:var(--s-clair,#ffb23e)">${tous.length} fichiers choisis</span>` : '')
         + GROUPES.map(([r, t]) => { const n = rubs[r].filter(c => l.includes(c.k)).length;
           return `<div class="md-grp${ouverte === r ? ' ouvert' : ''}" data-grp="${r}"><button class="md-grp-b">${t}${n ? ` <em>${n}</em>` : ''}<span class="md-fl">▸</span></button>
-            <div class="md-sub">${rubs[r].length ? rubs[r].map(c => `<button data-m="${esc(c.k)}"${l.includes(c.k) ? ' class="on"' : ''}><i style="background:${BK.couleurTag(c.k)}"></i>${l.includes(c.k) ? '☑' : '☐'} ${esc(c.nom)}</button>`).join('') : '<span class="nt" style="padding:6px 10px">Rien ici</span>'}</div></div>`; }).join('')
+            <div class="md-sub">${rubs[r].length ? rubs[r].map(c => `<button data-m="${esc(c.k)}"${l.includes(c.k) ? ' class="on"' : ''}><i style="background:${BK.couleurTag(c.k)}"></i>${l.includes(c.k) ? '☑' : '☐'} ${esc(c.nom)}</button>`).join('') : '<span class="nt" style="padding:6px 10px">Rien ici</span>'}${RUB_ETQ[r] ? `<div class="md-nv" data-nv="${r}" tabindex="0">＋ Nouvelle étiquette…</div>` : ''}</div></div>`; }).join('')
         + `<span class="md-menu-sep"></span><button data-m="-"${l.includes('-') ? ' class="on"' : ''}>— Aucun morceau</button>${l.length ? '<button data-m="">↺ Tout enlever</button>' : ''}`
         + `<span class="md-menu-sep"></span>${(f0 && f0.webViewLink) || !dc ? '<button data-ouvdrive="1">☁ Ouvrir dans le Drive</button>' : ''}`
         + `<div class="md-grp${ouverte === 'envoi' ? ' ouvert' : ''}" data-grp="envoi"><button class="md-grp-b">↗ Envoyer vers<span class="md-fl">▸</span></button>
@@ -602,6 +635,9 @@ BK.module('medias', function (page) {
         const items = tous.map(i => { const f = M.fichiers.find(x => x.id === i) || (M.vus || {})[i] || {}; return { id: i, nom: f.name, mime: f.mimeType, dc: f.dc || null }; });
         const ok = await BK.glisse.envoyer(en.dataset.env, items);
         if (!ok) BK.avis('Ouvre d\'abord la fiche ou le reel où ça va'); return; }
+      const nv = e.target.closest('[data-nv]'); if (nv) { e.stopPropagation();          // créer une étiquette et la mettre tout de suite sur ces fichiers
+        return saisirEtiquette(nv, nv.dataset.nv, async k => { rubs = cases(); for (const i of tous) { if (String(i).startsWith('dc:')) await etiqueter(i, k, true); else await BK.etiquettes.basculer(i, k, true); }
+          M.tags = await BK.etiquettes.tous(); msg('Étiquette mise'); majTags(true); if (menu.isConnected) dessiner(); paniers(); }); }
       const x = e.target.closest('[data-m]'); if (!x) return; const k = x.dataset.m;
       if (k === '' || k === '-') { const d = await BK.etiquettes.charger(); for (const i of tous) { const ii = (String(i).startsWith('dc:') && BK.etiquettes.copieDe(i)) || i; if (k) d.map[ii] = ['-']; else delete d.map[ii]; } await BK.db.ecrire('config', d); menu.remove(); }
       else { const l = lireTags(id), mettre = !l.includes(k);
