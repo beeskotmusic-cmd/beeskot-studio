@@ -104,7 +104,8 @@ function demande(idee, format, refs, sansTexte) {
       L.push(`- ${n}${k >= 0 ? ` (reference photo: ref${k + 1}.jpg)` : ''}: ${[m.taille && 'height ' + m.taille, m.vetements && 'clothes: ' + m.vetements, m.attributs].filter(Boolean).join('; ') || 'band member'}.`); }
     L.push(`Only these ${gens.length} band member(s) appear as the main people.`);
   }
-  const autres = refs.map((r, i) => r.membre ? '' : `ref${i + 1}.jpg`).filter(Boolean);
+  refs.forEach((r, i) => { if (r.tenue) L.push(`Outfit reference for ${r.tenue}: ref${i + 1}.jpg (same clothes, not the face).`); });
+  const autres = refs.map((r, i) => r.membre || r.tenue ? '' : `ref${i + 1}.jpg`).filter(Boolean);
   if (autres.length) L.push(`Other reference images in the current folder (place, object or style to use): ${autres.join(', ')}.`);
   const styles = P.presets.filter(p => P.presetsOn.has(p.id)).map(p => p.texte).filter(Boolean);
   if (styles.length) L.push('Scene and style: ' + styles.join(' '));
@@ -113,6 +114,10 @@ function demande(idee, format, refs, sansTexte) {
   L.push('Rules: do not run any shell command, do not create, copy or move any file yourself. Only generate the image, then answer with one short sentence.');
   return L.join('\n');
 }
+
+// les autres onglets (Tournages) : BK.painture.envoyer({ membres, idee, format, refs, source }) ouvre Pain Ture déjà rempli
+BK.painture = { attente: null, remplir: null,
+  envoyer(o) { BK.ouvrir('painture'); if (BK.painture.remplir && P.membres) BK.painture.remplir(o); else BK.painture.attente = o; } };
 
 BK.module('painture', function (page) {
   $('.sub', page).textContent = 'Une idée → une image (compte BEESKOT, gratuit)';
@@ -223,7 +228,7 @@ BK.module('painture', function (page) {
   const majRefs = () => {
     const l = toutesRefs(), nm = refsMembres().length;
     $('#ptRefs', page).innerHTML = l.map((r, i) => `<span class="pt-ref" title="${esc(r.nom)}">${r.apercu ? `<img src="${esc(r.apercu)}" alt="">` : r.ref ? `<img ${BK.img.src(r.ref)} alt="">` : `<span class="nt">${esc(r.nom)}</span>`}
-        <small class="pt-ref-n">${esc(r.membre || 'Lieu / objet')}</small>${r.membre ? '' : `<button class="btn xs" data-x="${i - nm}" title="Retirer">✕</button>`}</span>`).join('')
+        <small class="pt-ref-n">${esc(r.membre || (r.tenue ? 'Tenue de ' + r.tenue : 'Lieu / objet'))}</small>${r.membre ? '' : `<button class="btn xs" data-x="${i - nm}" title="Retirer">✕</button>`}</span>`).join('')
       + `<button class="pt-ref pt-ref-plus" id="ptRefPlus" title="Ajouter un lieu, un objet… (PC ou Médias)"><span class="pt-plus">＋</span></button>`;
     BK.img.remplir && BK.img.remplir($('#ptRefs', page));
   };
@@ -278,25 +283,63 @@ BK.module('painture', function (page) {
     maj(); minuterie = setInterval(maj, 500);
   };
 
-  // ---------- les images ----------
+  // ---------- les images : partagées avec tout le groupe pendant 3 jours (Drive › Photos/Vidéos › Pain Ture › Récentes) ----------
+  //   liste partagée « painture.recentes » : [{ id (Drive), nom, resume, texte, refs, par, t, garde }]
+  //   au bout de 3 jours : retirée de la page ; si personne ne l'a gardée, elle part dans la corbeille du Drive (jamais effacée)
+  //   sans Drive relié : l'image reste seulement sur ce PC (P.images), comme avant
+  const TROIS_JOURS = 3 * 864e5;
+  const quand = t => { const m = Math.round((Date.now() - t) / 6e4); return m < 60 ? `il y a ${Math.max(1, m)} min` : m < 1440 ? `il y a ${Math.round(m / 60)} h` : `il y a ${Math.round(m / 1440)} j`; };
+  const reste = t => { const h = Math.round((t + TROIS_JOURS - Date.now()) / 36e5); return h > 24 ? `encore ${Math.round(h / 24)} j` : `encore ${Math.max(1, h)} h`; };
+  P.recentes = []; P.urls = {}; P.chemins = {};
+  let enLecture = null;                                    // une seule lecture à la fois (sinon la corbeille passerait deux fois)
+  const chargerRecentes = () => enLecture || (enLecture = lireRecentes().finally(() => { enLecture = null; }));
+  async function lireRecentes() {
+    if (!BK.drive.relie()) return;
+    const l = await BK.partage.lire('painture.recentes', []).catch(() => []), garder = [];
+    let change = false;
+    for (const x of Array.isArray(l) ? l : []) {
+      if (Date.now() - x.t < TROIS_JOURS) { garder.push(x); continue; }
+      change = true; if (!x.garde) BK.drive.corbeille(x.id).catch(() => {});
+    }
+    if (change) await BK.partage.ecrire('painture.recentes', garder);
+    P.recentes = garder; majImages();
+  }
+  async function changerRecentes(fn) {                     // relit la liste juste avant d'écrire (un autre PC a pu ajouter une image)
+    const l = await BK.partage.lire('painture.recentes', []).catch(() => []);
+    P.recentes = fn(Array.isArray(l) ? l : []); await BK.partage.ecrire('painture.recentes', P.recentes); majImages();
+  }
+  window.addEventListener('bk:distant', e => { const c = e.detail && e.detail.cols; if ((!c || !c.length || c.includes('config')) && !page.classList.contains('hidden')) chargerRecentes(); });
+  const tout = () => [...P.images.map((im, i) => ({ ...im, loc: i })), ...P.recentes.map(x => ({ ...x, url: P.urls[x.id] }))];
   const majImages = () => {
-    const z = $('#ptImages', page);
-    if (!P.images.length) { z.innerHTML = '<span class="nt">Les images fabriquées arrivent ici (environ 1 minute chacune).</span>'; return; }
-    z.innerHTML = P.images.map((im, i) => `<div class="pt-img"><img src="${esc(im.url)}" alt="" data-voir="${i}" title="Cliquer pour voir en grand">
-        <span class="nt pt-idee">${esc(im.resume)}</span>
-        <div class="chips">${im.garde ? '<span class="nt">☁ Gardée</span>' : `<button class="btn xs pri" data-g="${i}">☁ Garder</button>`}<button class="btn xs" data-r="${i}">↻ Refaire</button><button class="btn xs" data-j="${i}">🗑 Jeter</button></div></div>`).join('');
+    const z = $('#ptImages', page), l = tout();
+    if (!l.length) { z.innerHTML = '<span class="nt">Les images fabriquées arrivent ici (environ 1 minute chacune). Tout le groupe les voit pendant 3 jours.</span>'; return; }
+    z.innerHTML = l.map((im, i) => `<div class="pt-img">${im.url ? `<img src="${esc(im.url)}" alt="" data-voir="${i}">` : `<img ${BK.img.src(BK.img.ref(im.id))} alt="" data-voir="${i}">`}
+        <span class="nt pt-idee" title="${esc(im.resume)}">${esc(im.resume)}</span>
+        <span class="nt pt-par">${im.id ? `${esc(im.par || '?')} · ${quand(im.t)} · ${im.garde ? '☁ gardée' : reste(im.t)}` : 'Seulement sur ce PC (Drive pas relié)'}</span>
+        <div class="chips">${im.garde ? '' : `<button class="btn xs pri" data-g="${i}" title="La ranger pour de bon dans Médias › Photos/Vidéos › Pain Ture">☁ Garder</button>`}<button class="btn xs" data-r="${i}">↻ Refaire</button><button class="btn xs" data-j="${i}" title="${im.id ? 'L\'enlever pour tout le groupe (corbeille du Drive)' : 'L\'enlever'}">🗑 Jeter</button></div></div>`).join('');
+    BK.img.remplir && BK.img.remplir(z);
   };
   $('#ptImages', page).onclick = async e => {
     const b = e.target.closest('[data-g],[data-r],[data-j],[data-voir]'); if (!b) return;
-    if (b.dataset.voir != null) { const im = P.images[+b.dataset.voir]; try { BK.T.opener.openPath(im.chemin); } catch (er) {} return; }
-    if (b.dataset.j != null) { const im = P.images.splice(+b.dataset.j, 1)[0]; if (im) URL.revokeObjectURL(im.url); return majImages(); }
-    if (b.dataset.r != null) { const im = P.images[+b.dataset.r]; return generer(im.texte, im.refs, im.resume); }
+    const im = tout()[+(b.dataset.voir ?? b.dataset.g ?? b.dataset.r ?? b.dataset.j)]; if (!im) return;
+    if (b.dataset.voir != null) { const ch = im.chemin || P.chemins[im.id]; try { if (ch) await BK.T.opener.openPath(ch); else BK.ouvrirLien('https://drive.google.com/file/d/' + im.id + '/view'); } catch (er) {} return; }
+    if (b.dataset.r != null) return generer(im.texte, im.refs || [], im.resume);
+    if (b.dataset.j != null) {
+      if (!im.id) { P.images.splice(im.loc, 1); URL.revokeObjectURL(im.url); return majImages(); }
+      if (!await BK.confirmer('Enlever cette image pour tout le groupe ? (elle va dans la corbeille du Drive)')) return;
+      try { await BK.drive.corbeille(im.id); await changerRecentes(l => l.filter(x => x.id !== im.id)); } catch (er) { msg('⚠ ' + (er.message || er)); } return;
+    }
     if (b.dataset.g != null) {
-      const im = P.images[+b.dataset.g]; b.disabled = true; b.innerHTML = '<span class="spin"></span>Envoi…';
+      b.disabled = true; b.innerHTML = '<span class="spin"></span>Envoi…';
       try {
         if (!BK.drive.relie()) throw new Error('relie d\'abord le Drive (Réglages › Drive)');
-        await BK.drive.envoyerBlob(new Blob([im.octets], { type: im.type }), im.nom, await dossierPainTure());
-        im.garde = true; BK.dossiers.oublier && BK.dossiers.oublier(); msg('☁ Gardée dans Médias › Photos/Vidéos › Pain Ture'); majImages();
+        const dos = await dossierPainTure();
+        if (im.id) {                                         // déjà dans « Récentes » : on la déplace dans Pain Ture
+          const f = await (await BK.drive.api(`/files/${im.id}?fields=parents`)).json();
+          await BK.drive.api(`/files/${im.id}?addParents=${dos}&removeParents=${(f.parents || []).join(',')}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: '{}' });
+          await changerRecentes(l => l.map(x => x.id === im.id ? { ...x, garde: true } : x));
+        } else { await BK.drive.envoyerBlob(new Blob([im.octets], { type: im.type }), im.nom, dos); P.images[im.loc].garde = true; majImages(); }
+        BK.dossiers.oublier && BK.dossiers.oublier(); msg('☁ Gardée dans Médias › Photos/Vidéos › Pain Ture');
       } catch (er) { b.disabled = false; b.textContent = '☁ Garder'; msg('⚠ ' + (er.message || er)); }
     }
   };
@@ -316,10 +359,20 @@ BK.module('painture', function (page) {
         if (/eligib|sign.?in|login|auth/.test(t)) { BK.regler('painture.pret', false); verifierInstalle(); throw new Error('le compte n\'est plus connecté : refais « Se connecter ».'); }
         throw new Error('aucune image reçue. ' + String(r.reponse || r.erreur || r.brut || '').slice(0, 200));
       }
+      // les références que les autres PC pourront relire (Drive ou livrées avec le logiciel) — pas celles prises sur ce PC
+      const refsPartage = refs.filter(x => x.ref || x.f).map(x => ({ nom: x.nom || '', membre: x.membre || '', tenue: x.tenue || '', ref: x.ref || BK.img.ref(x.f.id) }));
       for (const chemin of r.images) {
         const octets = await BK.fichier.lireOctets(chemin), type = /\.png$/i.test(chemin) ? 'image/png' : /\.webp$/i.test(chemin) ? 'image/webp' : 'image/jpeg';
         const nom = 'PainTure_' + BK.auj() + '_' + new Date().toTimeString().slice(0, 8).replace(/:/g, '') + chemin.slice(chemin.lastIndexOf('.'));
-        P.images.unshift({ chemin, octets, type, nom, url: URL.createObjectURL(new Blob([octets], { type })), texte, refs: [...refs], resume });
+        const url = URL.createObjectURL(new Blob([octets], { type }));
+        let partagee = false;
+        if (BK.drive.relie()) {
+          try { const up = await BK.drive.envoyerBlob(new Blob([octets], { type }), nom, await dossierPainTure('Récentes'));
+            P.urls[up.id] = url; P.chemins[up.id] = chemin; partagee = true;
+            await changerRecentes(l => [{ id: up.id, nom, resume, texte, refs: refsPartage, par: BK.reglage('nomPc', '') || 'Membre', t: Date.now(), garde: false }, ...l]); }
+          catch (er) { console.warn(er); }
+        }
+        if (!partagee) P.images.unshift({ chemin, octets, type, nom, url, texte, refs: [...refs], resume });
       }
       const s = Math.round((Date.now() - t0) / 1000); noterDuree(s); msg('✓ Prête en ' + s + ' s');
     } catch (er) { msg('⚠ ' + (er.message || er)); }
@@ -333,7 +386,18 @@ BK.module('painture', function (page) {
     generer(demande(idee, P.format, refs, $('#ptSansTexte', page).checked), refs, resume);
   };
 
+  // ---------- « → Pain Ture » depuis Tournages : la page arrive déjà remplie ----------
+  BK.painture.remplir = o => {
+    P.actifs = new Set((o.membres || []).filter(n => MEMBRES.includes(n)));
+    P.manuels = []; for (const r of o.refs || []) if (toutesRefs().length < MAX_REFS) P.manuels.push(r);
+    if (o.format && FORMATS[o.format]) { P.format = o.format; majFmt(); }
+    $('#ptIdee', page).value = o.idee || '';
+    majMembres(); majRefs(); msg('Rempli depuis ' + (o.source || 'Tournages') + ' : relis, change si tu veux, puis ✨ Générer');
+  };
   verifierInstalle(); majImages();
-  lireFiches().then(() => { majMembres(); majPresets(); majRefs(); });
+  lireFiches().then(() => { majMembres(); majPresets(); majRefs(); if (BK.painture.attente) { BK.painture.remplir(BK.painture.attente); BK.painture.attente = null; } });
+  chargerRecentes().catch(() => {});
+  // chaque fois qu'on revient sur l'onglet : les nouvelles images du groupe
+  new MutationObserver(() => { if (!page.classList.contains('hidden')) chargerRecentes().catch(() => {}); }).observe(page, { attributes: true, attributeFilter: ['class'] });
 });
 })();

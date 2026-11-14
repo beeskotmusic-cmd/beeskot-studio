@@ -46,7 +46,7 @@ BK.module('tournage', function (page) {
       </section>
     </div>
     <div class="pane abar" id="toAbar"><span class="vfd" id="toMsg">PRÊT</span>
-      <div class="right"><button class="btn" id="toLienCam" title="Un lien web pour le cameraman : les tournages cochés, en lecture seule">🔗 Lien cameraman</button><button class="btn" id="toCal" disabled>📅 Mettre au Calendrier</button><button class="btn" id="toVeo" disabled title="Un prompt Veo 3 par plan, pour tester le reel en IA avant de tourner">🎬 Prompts Veo 3</button><button class="btn pri" id="toPdf" disabled title="Le PDF de la fiche : aperçu, couleur ou noir et blanc, enregistrer, imprimer">📄 PDF / Imprimer</button></div></div>`;
+      <div class="right"><button class="btn" id="toLienCam" title="Un lien web pour le cameraman : les tournages cochés, en lecture seule">🔗 Lien cameraman</button><button class="btn" id="toCal" disabled>📅 Mettre au Calendrier</button><button class="btn" id="toVeo" disabled title="Ouvre Pain Ture déjà rempli avec ce reel (lieu, idée, plan, membres, tenues) pour en faire une image">🖼 → Pain Ture</button><button class="btn pri" id="toPdf" disabled title="Le PDF de la fiche : aperçu, couleur ou noir et blanc, enregistrer, imprimer">📄 PDF / Imprimer</button></div></div>`;
   const msg = t => $('#toMsg').textContent = String(t).toUpperCase();
   // ---------- les deux sous-onglets : Tournages (les fiches) et Storyline - Mood (le grand board, js : modules/storyline.js) ----------
   function vueTo(v) { BK.regler('tournage.vue', v); $$('#toVues button').forEach(b => b.classList.toggle('on', b.dataset.v === v));
@@ -1001,11 +1001,41 @@ BK.module('tournage', function (page) {
     msg((tour ? 'Tournage entier · ' : '') + 'Choisis ton imprimante (ou « Enregistrer au format PDF »)');
   };
   // le vrai PDF : fabriqué par le logiciel, rangé dans Documents\BEESKOT Studio\Tournages PDF et dans le Drive, puis ouvert
-  // 🎬 les prompts Veo 3 (js/veo.js) : du reel ouvert, ou de tous les reels du tournage
-  $('#toVeo').onclick = () => { const tour = T.vue === 'tournage' && T.tour;
-    const reels = tour ? (T.courant && T.courant.parent === tour.id ? [T.courant, ...reelsDe(tour).filter(r => r.id !== T.courant.id)] : reelsDe(tour)) : [T.courant];
-    if (!reels.filter(Boolean).length) return msg('Ajoute d\'abord un reel à ce tournage');
-    BK.veo.ouvrir({ tour: tour || T.liste.find(x => T.courant && x.id === T.courant.parent) || null, reels, membres: T.membres, garder: r => BK.db.ecrire('tournages', r) }); };
+  // 🖼 → Pain Ture : une image du reel ouvert (ou d'un reel du tournage), déjà préparée avec tout ce qu'on sait
+  //   le lieu, l'idée, le plan choisi (cadrage + action), le morceau, qui joue (ceux qui ont une tenue, sinon les trois),
+  //   les tenues (les mots notés ; la description de chaque membre vient de sa fiche dans Pain Ture), une photo de tenue s'il reste de la place
+  $('#toVeo').onclick = async () => { const tour = T.vue === 'tournage' && T.tour;
+    const reels = (tour ? (T.courant && T.courant.parent === tour.id ? [T.courant, ...reelsDe(tour).filter(r => r.id !== T.courant.id)] : reelsDe(tour)) : [T.courant]).filter(Boolean);
+    if (!reels.length) return msg('Ajoute d\'abord un reel à ce tournage');
+    const choix = await choisirPlan(reels); if (!choix) return;
+    const { r, i } = choix, tr = tour || T.liste.find(x => x.id === r.parent) || null, p = i >= 0 ? (r.plans || [])[i] : null;
+    const photos = d => (d && d.tenuesPhotos) || {};
+    const avecTenue = T.membres.filter(m => (photos(r)[m] || []).length || (photos(tr)[m] || []).length);
+    const membres = (avecTenue.length ? avecTenue : T.membres).filter(m => ['Pierre', 'Yacine', 'Baptiste'].includes(m));
+    const mots = m => ((r.tenues || {})[m] || (tr && (tr.tenues || {})[m]) || '').trim();
+    const idee = [
+      `Image pour le reel « ${r.titre || 'BEESKOT'} »${r.morceau ? ` (morceau : ${r.morceau})` : ''}.`,
+      (r.lieu || (tr && tr.lieu)) ? `Lieu : ${r.lieu || tr.lieu}.` : '',
+      (r.idee || (tr && tr.idee)) ? `Ambiance : ${r.idee || tr.idee}.` : '',
+      p ? `Le plan : ${[p.cadrage, p.action].filter(Boolean).join(' — ')}${p.notes ? ` (${p.notes})` : ''}.`
+        : (r.plans || []).filter(x => x.action).length ? `Ce qui se passe : ${(r.plans || []).filter(x => x.action).slice(0, 3).map(x => x.action).join(' ; ')}.` : '',
+      membres.some(mots) ? 'Tenues : ' + membres.filter(mots).map(m => `${m} : ${mots(m)}`).join(' ; ') + '.' : '',
+    ].filter(Boolean).join('\n');
+    // une photo de tenue en référence, s'il reste de la place (3 max : les visages des membres passent avant)
+    const place = Math.max(0, 3 - membres.length), refs = [];
+    for (const m of membres) { if (refs.length >= place) break; const u = (photos(r)[m] || [])[0] || (photos(tr)[m] || [])[0]; if (u && !refs.some(x => x.ref === u)) refs.push({ nom: 'Tenue de ' + m, ref: u, tenue: m }); }
+    BK.painture.envoyer({ membres, idee, refs, format: /reel/i.test(r.type || 'Reel') ? '9:16' : '16:9', source: '« ' + (r.titre || 'le reel') + ' »' }); };
+  // la petite fenêtre : quel reel, quel plan (ou tout le reel)
+  const choisirPlan = reels => new Promise(ok => {
+    const v = document.createElement('div'); v.className = 'voile';
+    v.innerHTML = `<div class="stopbox to-qui-box"><span class="dymo" style="align-self:center">Envoyer vers Pain Ture</span>
+      ${reels.map((r, k) => `<div class="to-pt-reel"><b>${esc(r.titre || 'Reel')}</b><div class="chips"><button class="btn sm pri" data-r="${k}" data-i="-1">Tout le reel</button>
+        ${(r.plans || []).map((p, i) => (p.cadrage || p.action) ? `<button class="btn sm" data-r="${k}" data-i="${i}" title="${esc(p.action || '')}">Plan ${i + 1}${p.cadrage ? ' · ' + esc(p.cadrage) : ''}</button>` : '').join('')}</div></div>`).join('')}
+      <div class="stopbox-btns"><button class="btn" data-x="1">Annuler</button></div></div>`;
+    document.body.appendChild(v);
+    v.onclick = e => { const b = e.target.closest('button'); if (!b) { if (e.target === v) { v.remove(); ok(null); } return; }
+      v.remove(); ok(b.dataset.x ? null : { r: reels[+b.dataset.r], i: +b.dataset.i }); };
+  });
   // ---------- 📄 PDF / Imprimer : une fenêtre à nous (aperçu du vrai PDF, couleur ou noir et blanc, enregistrer, ouvrir, imprimer) ----------
   $('#toPdf').onclick = () => fenetrePdf();
   function fenetrePdf() {

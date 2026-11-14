@@ -3,8 +3,10 @@
 // Pour une nouvelle version : ajouter un bloc EN HAUT de la liste. Une ligne courte par point : « Onglet : ce qui change. »
 // =====================================================================
 BK.NOUVEAUTES = [
-  { v: '0.9.158', titre: 'Pain Ture : la barre ne bloque plus', l: [
+  { v: '0.9.158', titre: 'Pain Ture : images partagées 3 jours, envoi depuis Tournages', l: [
     ['⏳', 'Pain Ture : la barre de progression ne reste plus bloquée à 95 % : elle avance toujours, de plus en plus doucement, jusqu\'à ce que l\'image arrive.'],
+    ['👥', 'Pain Ture : les images restent 3 jours dans la page, pour tout le groupe (qui l\'a faite, quand, combien de temps il reste). ☁ Garder = rangée pour de bon ; sinon elle part dans la corbeille du Drive au bout de 3 jours. 🗑 Jeter l\'enlève pour tout le monde.'],
+    ['🖼', 'Tournages : « Prompts Veo 3 » devient « → Pain Ture ». Choisis « Tout le reel » ou un plan : Pain Ture s\'ouvre déjà rempli (lieu, ambiance, plan, morceau, membres avec une tenue, mots des tenues, une photo de tenue s\'il reste de la place).'],
   ] },
   { v: '0.9.157', titre: 'Pain Ture : les membres, les ambiances, la barre', l: [
     ['👥', 'Pain Ture : boutons Pierre, Yacine, Baptiste. Un clic = il est dans l\'image (sa photo de référence apparaît dans la boîte Références). ✎ = sa fiche : photo, taille, vêtements, attributs. Tout le groupe partage les fiches.'],
@@ -863,6 +865,7 @@ BK.TUTO = [
     astuces: [ 'Espace = lecture / pause. La vidéo tourne en boucle.', 'Miette annonce les nouveaux retours vidéo dans #annonce-miette sur Discord.', 'Une vidéo de ce PC : les autres voient les notes, mais pour la regarder il faut qu\'ils aient le fichier (mieux : passer par Médias / Drive).' ] },
   { o: 'Tournages', ic: '🎥', quoi: 'Une fiche par tournage ou shooting : l\'idée, le moodboard, des références, le découpage plan par plan, les tenues, le matériel. On l\'imprime en PDF pour l\'équipe.',
     comment: [
+      ['Faire une image du reel', '🖼 → Pain Ture (en bas) : choisis « Tout le reel » ou un plan. Pain Ture s\'ouvre déjà rempli avec le lieu, l\'ambiance, le plan, les membres et leurs tenues : relis, puis ✨ Générer.'],
       ['Storyline - Mood (le grand board)', 'Sous-onglet en haut. Choisis la chanson (ou Général), puis « ＋ Ajouter » : média, lien externe, texte, rond, rectangle ou flèche. Clic droit sur le fond = ajouter à cet endroit. Glisse les éléments où tu veux ; coin orange = agrandir ; double-clic = écrire. Clique un élément : la barre au-dessus change la couleur, la taille du texte, le gras, plein / contour, l\'épaisseur des flèches ; ⇡ met devant, ⧉ duplique, ✕ retire. Glisse le fond pour te déplacer, molette pour zoomer, « Tout voir » pour tout recadrer. Mets plusieurs éléments dans un rond ou un rectangle : ils bougent avec lui. Tu peux aussi glisser des fichiers du PC sur le board. Tout le groupe voit le même board.'],
       ['Écouter la chanson et poser des marqueurs', 'Sur le board d\'une chanson, la ligne « Son » : choisis la version, ▶ pour écouter (Espace aussi). Au bon moment, 📍 Marquer (ou touche M) : un marqueur avec le temps arrive sur le board, écris son nom puis Entrée. Clique le ▶ du marqueur (ou son trait rouge sur la barre du son) pour réécouter à partir de là. Relie-le à une image avec une flèche.'],
       ['Un tournage, ses reels', 'Un tournage = une journée (date, heure, lieu : il va dans le Calendrier). Clique son affiche : tu vois ses reels. Chaque reel se déplie (infos, moodboard, découpage, tenues, matériel). Glisse un reel sur l\'affiche d\'un tournage pour l\'y mettre.'],
@@ -899,6 +902,7 @@ BK.TUTO = [
     astuces: [ 'Après l\'export : 📂 Ouvrir le dossier, ⇪ Upload Drive → ☁ Ouvrir le dossier du Drive.' ] },
   { o: 'Pain Ture', ic: '🖼', quoi: 'Fabrique une image à partir d\'une idée (pour dépanner un reel, un moodboard…). Gratuit, avec le compte Google BEESKOT. PC seulement.',
     comment: [
+      ['Les images du groupe', 'Chaque image fabriquée reste 3 jours dans la page, pour tout le groupe (qui l\'a faite, quand). ☁ Garder la range pour de bon ; sinon elle part dans la corbeille du Drive au bout de 3 jours.'],
       ['Préparer le PC (une seule fois)', '① Installer : l\'outil Google s\'installe tout seul. ② Se connecter : une fenêtre noire s\'ouvre ; appuie sur Entrée jusqu\'à « Login with Google », choisis le compte BEESKOT, copie le code de la page Google, colle-le dans la fenêtre noire (clic droit) puis Entrée, et ferme-la. ③ Vérifier : un petit essai, et c\'est prêt.'],
       ['Faire une image', 'Écris ton idée (en français, ça marche), choisis le format (9:16 pour un reel), puis ✨ Générer. Environ 1 minute. Une image à la fois.'],
       ['Mettre nos têtes', 'Clique Pierre, Yacine ou Baptiste au-dessus de l\'idée : sa photo de référence arrive dans la boîte Références et sa description (taille, vêtements, attributs) part avec l\'idée. ✎ à côté du nom = sa fiche (une fois pour tout le groupe).'],
