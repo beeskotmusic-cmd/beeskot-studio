@@ -2445,3 +2445,5 @@ span.to-tph-qui{cursor:default;color:#cfe8c2}
 .md-menu .md-nv{padding:6px 10px;font-size:12px;color:#ffb23e;cursor:pointer;border-top:1px solid rgba(255,255,255,.08);margin-top:2px}
 .md-menu .md-nv:hover{background:rgba(255,178,62,.12)}
 .md-haut#mdHaut{min-width:30px;justify-content:center}
+/* Tournages : ↑ ↓ pour l'ordre des reels — seulement sur téléphone (sur PC, on glisse) */
+html:not(.tel) .tt-ordre{display:none!important}

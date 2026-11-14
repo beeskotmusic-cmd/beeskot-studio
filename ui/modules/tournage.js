@@ -742,7 +742,7 @@ BK.module('tournage', function (page) {
             <span class="to-c-txt"><span class="eng">${esc(r.type || 'Reel')}${r.morceau ? ' · ' + esc(r.morceau) : ''}${etape(r) ? ' · reel : ' + esc(etape(r)) : ''}</span><b>${esc(r.titre || 'Sans titre')}</b>
               <span class="nt">${pasTexte(r) ? '♪ ' + pasTexte(r) + ' · ' : ''}${(r.plans || []).length} plan(s) · ${(r.moodboard || []).length} image(s) · ${Object.values(r.tenuesPhotos || {}).flat().length} tenue(s)</span></span>
             <span class="to-c-btns">${(T.reels || []).some(x => x.tournage === r.id) ? `<button class="btn xs" data-voir="${r.id}">Voir le reel</button>` : `<button class="btn xs" data-reel="${r.id}" title="Crée la carte dans l'onglet Reels">→ Reels</button>`}
-              <button class="btn xs" data-sortir="${r.id}" title="Le sortir de ce tournage">↩</button><button class="btn xs tt-pli" data-plir="${r.id}">${r.id === ouvert ? '▾ Replier' : '▸ Déplier'}</button></span></div>
+              <button class="btn xs tt-ordre" data-monte="${r.id}" title="Monter">↑</button><button class="btn xs tt-ordre" data-descend="${r.id}" title="Descendre">↓</button><button class="btn xs" data-sortir="${r.id}" title="Le sortir de ce tournage">↩</button><button class="btn xs tt-pli" data-plir="${r.id}">${r.id === ouvert ? '▾ Replier' : '▸ Déplier'}</button></span></div>
           ${r.id === ouvert ? '<div class="tt-reel-corps" id="toReelCorps"></div>' : ''}</div>`).join('') || '<span class="nt">Pas encore de reel : « + Ajouter un reel », ou glisse un reel sur ce tournage depuis la liste des tournages.</span>'}</div>
       ${boiteItineraire(tr, rs)}
       ${zoneTenues(tr, 'Tenues', 'pour tous les reels')}
@@ -772,6 +772,12 @@ BK.module('tournage', function (page) {
     $('#toNvReel').onclick = async () => { const r = await BK.db.ecrire('tournages', { niveau: 'reel', parent: tr.id, ordre: rs.length, titre: 'Nouveau reel', type: 'Reel', morceau: '', idee: '', moodboard: [], plans: [], tenues: {}, materiel: '', notes: '' });
       T.neufs.add(r.id); T.liste.push(r); T.courant = r; await synchroTour(tr); rendreFiche(); const c = $('#toReelCorps [data-c="titre"]'); c && (c.focus(), c.select()); };
     $$('[data-plir]', z).forEach(b => b.onclick = e => { e.stopPropagation(); T.courant = T.courant && T.courant.id === b.dataset.plir ? null : T.liste.find(x => x.id === b.dataset.plir); rendreFiche(); });
+    // ↑ ↓ (téléphone : on ne peut pas glisser au doigt) : change l'ordre des reels du tournage
+    $$('[data-monte],[data-descend]', z).forEach(b => b.onclick = async e => { e.stopPropagation();
+      const r = T.liste.find(x => x.id === (b.dataset.monte || b.dataset.descend)), tr = r && T.liste.find(x => x.id === r.parent); if (!tr) return;
+      const l = reelsDe(tr), i = l.indexOf(r), j = i + (b.dataset.monte ? -1 : 1); if (i < 0 || j < 0 || j >= l.length) return;
+      [l[i], l[j]] = [l[j], l[i]]; for (let k = 0; k < l.length; k++) if (l[k].ordre !== k) { l[k].ordre = k; await BK.db.ecrire('tournages', l[k]); }
+      await synchroTour(tr); rendreListe(); rendreFiche(); });
     $$('.tt-reel-t', z).forEach(h => h.onclick = e => { if (e.target.closest('button')) return; h.querySelector('[data-plir]').click(); });
     $$('[data-sortir]', z).forEach(b => b.onclick = async e => { e.stopPropagation(); const r = T.liste.find(x => x.id === b.dataset.sortir); r.parent = ''; await BK.db.ecrire('tournages', r); if (T.courant === r) T.courant = null; await synchroTour(tr); msg('« ' + r.titre + ' » sorti du tournage'); rendreListe(); rendreFiche(); });
     $$('[data-reel]', z).forEach(b => b.onclick = async e => { e.stopPropagation(); await versReels(T.liste.find(x => x.id === b.dataset.reel)); rendreFiche(); });

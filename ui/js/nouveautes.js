@@ -3,6 +3,9 @@
 // Pour une nouvelle version : ajouter un bloc EN HAUT de la liste. Une ligne courte par point : « Onglet : ce qui change. »
 // =====================================================================
 BK.NOUVEAUTES = [
+  { v: '0.9.160', titre: 'Téléphone : Tournages', l: [
+    ['📱', 'Téléphone › Tournages : le nom des reels n\'est plus coupé (les boutons passent en dessous), et ↑ ↓ pour changer leur ordre au doigt. Rien ne change sur PC.'],
+  ] },
   { v: '0.9.159', titre: 'Médias : filtre en menu, nouvelles étiquettes', l: [
     ['🏷', 'Médias : « Filtrer » est maintenant un menu déroulant (prend moins de place). Le filtre choisi s\'affiche à côté, ✕ pour l\'enlever. Glisser des médias sur « Filtrer » l\'ouvre tout seul pour les lâcher sur une étiquette.'],
     ['＋', 'Médias : on peut créer de nouvelles étiquettes (Tournage, Lumière, Réseaux, Membres) : « ＋ Nouvelle étiquette » dans le menu Filtrer, ou dans le clic droit sur un fichier (elle est mise tout de suite sur les fichiers choisis).'],

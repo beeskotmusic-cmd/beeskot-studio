@@ -530,3 +530,8 @@ html.tel .md-choix-c .md-grille .md-tuile:not(.md-dos):not(.md-plus) .md-nom{fon
 html.tel .md-choix-c .md-grille .md-tuile.choisie{box-shadow:0 0 0 3px #ffb23e!important}
 /* Social photo : les boutons de cadrage (Entière, Remplir, Centre, En deux) sur 2 lignes, sinon « En deux » sort de l'écran */
 html.tel .pv-seg:has(#pvDeux){grid-template-columns:repeat(2,1fr)!important}
+/* Tournages : une carte de reel = le titre sur toute la largeur, les boutons en dessous (sinon le nom est coupé) */
+html.tel .tt-reel-t.to-carte{flex-wrap:wrap;cursor:default}
+html.tel .tt-reel-t .to-c-txt{flex:1 1 calc(100% - 60px)}
+html.tel .tt-reel-t .to-c-txt b{white-space:normal}
+html.tel .tt-reel-t .to-c-btns{flex:1 1 100%;flex-direction:row;flex-wrap:wrap;justify-content:flex-end;gap:5px}
