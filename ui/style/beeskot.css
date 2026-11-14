@@ -2373,7 +2373,7 @@ html.tel #mdVue{display:none!important}   /* sur téléphone c'est toujours en l
 .md-zone.md-colonnes .md-grille{flex:1;min-width:230px;overflow:auto;padding:10px}
 html.tel #mdCol{display:none}
 
-/* ---------- Pain-ture ---------- */
+/* ---------- Pain Ture ---------- */
 .pt-etape{display:flex;align-items:center;gap:10px;margin:8px 0}
 .pt-etape>b{flex:none;width:24px;height:24px;border-radius:50%;display:grid;place-items:center;background:#E7D5AE;color:#2a1a0e;font-size:12px}
 .pt-etape .nt{white-space:normal}

@@ -215,7 +215,7 @@ async fn pain_installer() -> Result<String, String> {
 #[tauri::command]
 fn pain_connecter() -> Result<(), String> {
     let mut c = Command::new("powershell");
-    c.args(["-NoExit", "-NoProfile", "-Command", &format!("{PATH_FRAIS} $Host.UI.RawUI.WindowTitle='Connexion Pain-ture'; agy")]);
+    c.args(["-NoExit", "-NoProfile", "-Command", &format!("{PATH_FRAIS} $Host.UI.RawUI.WindowTitle='Connexion Pain Ture'; agy")]);
     #[cfg(windows)]
     c.creation_flags(0x0000_0010);                 // une vraie fenêtre (on doit y coller le code de Google)
     c.spawn().map(|_| ()).map_err(|e| format!("Fenêtre de connexion impossible : {e}"))
@@ -236,7 +236,7 @@ fn est_image(p: &std::path::Path) -> bool {
 #[tauri::command]
 async fn pain_generer(dossier: String, demande: String) -> Result<String, String> {
     tauri::async_runtime::spawn_blocking(move || {
-        let agy = trouver_agy().ok_or("Pain-ture n'est pas installé sur ce PC")?;
+        let agy = trouver_agy().ok_or("Pain Ture n'est pas installé sur ce PC")?;
         let debut = std::time::SystemTime::now() - Duration::from_secs(5);
         let mut c = Command::new(&agy);
         c.args(["-p", &demande, "--output-format", "json", "--print-timeout", "10m", "--disable-slash-commands"]).current_dir(&dossier);

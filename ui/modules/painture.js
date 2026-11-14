@@ -5,7 +5,7 @@
 //   idée + format (+ jusqu'à 3 photos de Médias)
 //        │  le moteur (lib.rs) lance agy caché, en priorité basse : le PC n'est jamais bloqué
 //        ▼
-//   image → aperçu → Garder (Drive › Photos/Vidéos › Pain-ture) · Refaire · Jeter
+//   image → aperçu → Garder (Drive › Photos/Vidéos › Pain Ture) · Refaire · Jeter
 //
 // PC seulement (agy ne tourne pas sur téléphone). Une image à la fois.
 // La 1re fois sur un PC : ① Installer ② Se connecter ③ Vérifier — puis plus jamais.
@@ -40,7 +40,7 @@ async function octetsDe(x) {
 BK.module('painture', function (page) {
   $('.sub', page).textContent = 'Une idée → une image (compte BEESKOT, gratuit)';
   const g = $('.grid', page);
-  if (!BK.estExe || window.BK_MOBILE) { g.innerHTML = '<div class="pane vit"><span class="nt">Pain-ture marche seulement dans le logiciel installé sur un PC.</span></div>'; return; }
+  if (!BK.estExe || window.BK_MOBILE) { g.innerHTML = '<div class="pane vit"><span class="nt">Pain Ture marche seulement dans le logiciel installé sur un PC.</span></div>'; return; }
 
   g.innerHTML = `
     <div class="cols">
@@ -135,9 +135,9 @@ BK.module('painture', function (page) {
         if (!BK.drive.relie()) throw new Error('relie d\'abord le Drive (Réglages › Drive)');
         await BK.dossiers.assurer();
         const base = await BK.dossiers.get('photovideo'); if (!base) throw new Error('dossier Photos/Vidéos introuvable (Réglages › Vos dossiers du Drive)');
-        const dos = await BK.drive.dossier('Pain-ture', base.id);
+        const dos = await BK.drive.dossier('Pain Ture', base.id);
         await BK.drive.envoyerBlob(new Blob([im.octets], { type: im.type }), im.nom, dos);
-        im.garde = true; BK.dossiers.oublier && BK.dossiers.oublier(); msg('☁ Gardée dans Médias › Photos/Vidéos › Pain-ture'); majImages();
+        im.garde = true; BK.dossiers.oublier && BK.dossiers.oublier(); msg('☁ Gardée dans Médias › Photos/Vidéos › Pain Ture'); majImages();
       } catch (er) { b.disabled = false; b.textContent = '☁ Garder'; msg('⚠ ' + (er.message || er)); }
     }
   };
@@ -159,7 +159,7 @@ BK.module('painture', function (page) {
       }
       for (const chemin of r.images) {
         const octets = await BK.fichier.lireOctets(chemin), type = /\.png$/i.test(chemin) ? 'image/png' : /\.webp$/i.test(chemin) ? 'image/webp' : 'image/jpeg';
-        const nom = 'Pain-ture_' + BK.auj() + '_' + new Date().toTimeString().slice(0, 8).replace(/:/g, '') + chemin.slice(chemin.lastIndexOf('.'));
+        const nom = 'PainTure_' + BK.auj() + '_' + new Date().toTimeString().slice(0, 8).replace(/:/g, '') + chemin.slice(chemin.lastIndexOf('.'));
         P.images.unshift({ chemin, octets, type, nom, url: URL.createObjectURL(new Blob([octets], { type })), idee, format, refs: [...refs], sansTexte });
       }
       msg('✓ Prête en ' + Math.round((Date.now() - t0) / 1000) + ' s');

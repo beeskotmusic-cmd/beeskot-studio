@@ -3,9 +3,9 @@
 // Pour une nouvelle version : ajouter un bloc EN HAUT de la liste. Une ligne courte par point : « Onglet : ce qui change. »
 // =====================================================================
 BK.NOUVEAUTES = [
-  { v: '0.9.156', titre: 'Pain-ture : une idée → une image', l: [
-    ['🖼', 'Nouvel onglet Pain-ture (PC) : écris une idée, choisis le format, ✨ Générer. L\'image arrive en 1 minute environ, gratuitement, avec le compte Google BEESKOT. Jusqu\'à 3 photos de Médias en référence pour garder nos têtes.'],
-    ['☁', 'Pain-ture : ☁ Garder envoie l\'image dans Médias › Photos/Vidéos › Pain-ture. La 1re fois sur un PC : Installer, Se connecter, Vérifier (tout est expliqué dans l\'onglet).'],
+  { v: '0.9.156', titre: 'Pain Ture : une idée → une image', l: [
+    ['🖼', 'Nouvel onglet Pain Ture (PC) : écris une idée, choisis le format, ✨ Générer. L\'image arrive en 1 minute environ, gratuitement, avec le compte Google BEESKOT. Jusqu\'à 3 photos de Médias en référence pour garder nos têtes.'],
+    ['☁', 'Pain Ture : ☁ Garder envoie l\'image dans Médias › Photos/Vidéos › Pain Ture. La 1re fois sur un PC : Installer, Se connecter, Vérifier (tout est expliqué dans l\'onglet).'],
     ['🎧', 'Reels Audio s\'appelle maintenant Slice.'],
     ['👕', 'Tournages › Tenues : toutes les photos sur une seule rangée, et sous chacune qui la porte (« Yacine », « Pierre, Baptiste »…). Clique les noms pour changer. En ajoutant une photo, une petite fenêtre demande « Qui la porte ? ».'],
   ] },
@@ -887,12 +887,12 @@ BK.TUTO = [
       ['Régler le volume, écouter en boucle', 'Le petit triangle à côté du bouton d\'écoute (molette dessus, double-clic = normal). La version pour le Reel tourne en boucle. Espace = écouter à partir de là où tu as cliqué ; si c\'est dans le passage choisi, il tourne en boucle.'],
       ['Reprendre un passage dit sur Discord', 'Bouton biscotte « Trouver les passages » : les timings donnés sur Discord pour ce morceau arrivent dans la liste des passages.'] ],
     astuces: [ 'Après l\'export : 📂 Ouvrir le dossier, ⇪ Upload Drive → ☁ Ouvrir le dossier du Drive.' ] },
-  { o: 'Pain-ture', ic: '🖼', quoi: 'Fabrique une image à partir d\'une idée (pour dépanner un reel, un moodboard…). Gratuit, avec le compte Google BEESKOT. PC seulement.',
+  { o: 'Pain Ture', ic: '🖼', quoi: 'Fabrique une image à partir d\'une idée (pour dépanner un reel, un moodboard…). Gratuit, avec le compte Google BEESKOT. PC seulement.',
     comment: [
       ['Préparer le PC (une seule fois)', '① Installer : l\'outil Google s\'installe tout seul. ② Se connecter : une fenêtre noire s\'ouvre ; appuie sur Entrée jusqu\'à « Login with Google », choisis le compte BEESKOT, copie le code de la page Google, colle-le dans la fenêtre noire (clic droit) puis Entrée, et ferme-la. ③ Vérifier : un petit essai, et c\'est prêt.'],
       ['Faire une image', 'Écris ton idée (en français, ça marche), choisis le format (9:16 pour un reel), puis ✨ Générer. Environ 1 minute. Une image à la fois.'],
       ['Mettre nos têtes', '🖼 Choisir dans Médias : jusqu\'à 3 photos de référence (une par membre, par exemple). L\'image essaie de garder les visages, les cheveux et les tenues.'],
-      ['Garder, refaire, jeter', '☁ Garder : l\'image part dans le Drive (Médias › Photos/Vidéos › Pain-ture). ↻ Refaire : la même idée, une autre image. 🗑 Jeter : elle disparaît de la liste. Clic sur l\'image : elle s\'ouvre en grand.'] ],
+      ['Garder, refaire, jeter', '☁ Garder : l\'image part dans le Drive (Médias › Photos/Vidéos › Pain Ture). ↻ Refaire : la même idée, une autre image. 🗑 Jeter : elle disparaît de la liste. Clic sur l\'image : elle s\'ouvre en grand.'] ],
     astuces: [ '« Pas de texte ni de logo inventé » est coché par défaut : sinon l\'image invente souvent des enseignes ou des noms de groupe.', 'Le quota gratuit est partagé par tout le groupe : s\'il est épuisé, il revient au bout de quelques heures (parfois quelques jours).' ] },
   { o: 'Social Photo', ic: '📸', quoi: 'Prépare des photos ou un carrousel Instagram : format, cadrage, couleur, effet vintage, légende.',
     comment: [
