@@ -1156,6 +1156,7 @@ BK.module('tournage', function (page) {
   function lectureWeb(z) {
     z.querySelectorAll('.to-vrac, .to-fiche-barre, [data-sans], .mi-prop, input[type=file]').forEach(e => e.remove());
     z.querySelectorAll('button[data-itiurl]').forEach(b => { const a = document.createElement('a'); a.className = b.className; a.href = b.dataset.itiurl; a.target = '_blank'; a.rel = 'noopener'; a.textContent = b.textContent; b.replaceWith(a); });
+    z.querySelectorAll('button.to-tph-qui').forEach(b => { if (b.classList.contains('vide')) return b.remove(); const sp = document.createElement('span'); sp.className = b.className; sp.textContent = b.textContent; b.replaceWith(sp); });   // qui porte la tenue : écrit sous la photo
     z.querySelectorAll('button:not([data-tw])').forEach(b => b.remove());
     z.querySelectorAll('[draggable]').forEach(e => e.removeAttribute('draggable'));
     z.querySelectorAll('.box').forEach(b => { b.classList.add('lecture'); b.classList.remove('a-edit'); });
@@ -1204,10 +1205,19 @@ BK.module('tournage', function (page) {
     tmp.querySelectorAll('img[src^="blob:"]').forEach(i => i.removeAttribute('src'));
     tmp.querySelectorAll('[style*="blob:"]').forEach(e => { e.style.backgroundImage = ''; });
     // les sons passent après les images dans la liste des fichiers du lien (Cloudflare : /i/n pour une image, /s/n pour un son)
-    const html = tmp.innerHTML.replace(/__SON__\/(\d+)"/g, (x, k) => '__SON__/' + (images.length + +k) + '"');
+    const css = cssWeb(), html = (css ? `<style>${css}</style>` : '') + tmp.innerHTML.replace(/__SON__\/(\d+)"/g, (x, k) => '__SON__/' + (images.length + +k) + '"');
     return { html, images, sons, n: trs.length };
   }
   // l'habillage autour (les mêmes boîtes que dans le logiciel, pour que les styles s'appliquent pareil)
+  // les règles de style plus récentes que la copie lue par la page web (Tenues en rangée, qui la porte, nom de tournage…)
+  const CSS_WEB = /\.(to-tph|to-tenue|tt-tenues|tt-note|to-af-txt|to-plans|tw-defile)/;
+  function cssWeb() {
+    const out = [];
+    for (const f of document.styleSheets) { if (!/\/style\/[\w.-]+\.css/.test(f.href || '')) continue; let rs; try { rs = f.cssRules; } catch (e) { continue; }
+      for (const r of rs) { if (r.selectorText && CSS_WEB.test(r.selectorText)) out.push(r.cssText);
+        else if (r.media && r.cssRules) { const d = [...r.cssRules].filter(x => x.selectorText && CSS_WEB.test(x.selectorText)).map(x => x.cssText); if (d.length) out.push('@media ' + r.media.mediaText + '{' + d.join('') + '}'); } } }
+    return out.join('\n').replace(/<\//g, '<\\/');
+  }
   function habillageWeb() {
     const chaine = []; let e = $('#toFiche');
     while (e && e !== document.body) { chaine.unshift({ t: e.tagName.toLowerCase(), c: String(e.className || '').split(/\s+/).filter(x => x && x !== 'hidden').join(' '), id: e.id || '' }); e = e.parentElement; }

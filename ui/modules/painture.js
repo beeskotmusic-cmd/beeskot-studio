@@ -8,7 +8,9 @@
 //   Ton idée → ✨ Générer → barre de progression → Garder (Drive › Photos/Vidéos › Pain Ture) · Refaire · Jeter
 //
 // Partagé avec tout le groupe (Drive) : les fiches membres (painture.membres) et les boutons (painture.presets).
-// PC seulement (agy ne tourne pas sur téléphone). Une image à la fois.
+// L'image se fabrique sur un PC (agy ne tourne pas sur téléphone). Une image à la fois.
+// Sur téléphone (ou un PC pas encore préparé) : « Générer » envoie une COMMANDE (liste partagée « painture.commandes ») ;
+// un PC du groupe où BEESKOT Studio est ouvert et Pain Ture prêt la fabrique, et l'image arrive dans les images partagées.
 // La 1re fois sur un PC : ① Installer ② Se connecter ③ Vérifier — puis plus jamais.
 // =====================================================================
 (() => {
@@ -79,7 +81,7 @@ function choisirPhoto({ titre, plusieurs = true } = {}) {
   return new Promise(ok => {
     const v = document.createElement('div'); v.className = 'voile';
     v.innerHTML = `<div class="stopbox pt-choix"><span class="dymo" style="align-self:center">${esc(titre || 'Ajouter une photo')}</span>
-      <div class="chips" style="justify-content:center"><button class="btn pri" data-c="pc">💻 Ce PC</button><button class="btn pri" data-c="md">🖼 Médias</button></div>
+      <div class="chips" style="justify-content:center"><button class="btn pri" data-c="pc">${window.BK_MOBILE ? '📱 Ce téléphone' : '💻 Ce PC'}</button><button class="btn pri" data-c="md">🖼 Médias</button></div>
       <div class="stopbox-btns"><button class="btn" data-c="x">Annuler</button></div><input type="file" accept="image/*" ${plusieurs ? 'multiple' : ''} hidden></div>`;
     document.body.appendChild(v);
     const fin = l => { v.remove(); ok(l || []); };
@@ -122,7 +124,7 @@ BK.painture = { attente: null, remplir: null,
 BK.module('painture', function (page) {
   $('.sub', page).textContent = 'Une idée → une image (compte BEESKOT, gratuit)';
   const g = $('.grid', page);
-  if (!BK.estExe || window.BK_MOBILE) { g.innerHTML = '<div class="pane vit"><span class="nt">Pain Ture marche seulement dans le logiciel installé sur un PC.</span></div>'; return; }
+  const ICI = !!BK.estExe && !window.BK_MOBILE;           // ce PC peut fabriquer lui-même (sinon : commande à un PC du groupe)
 
   g.innerHTML = `
     <div class="cols">
@@ -150,6 +152,7 @@ BK.module('painture', function (page) {
         </div>
       </section>
       <section class="pane vit">
+        <div class="box hidden" id="ptFileB"><span class="lb">En fabrication sur un PC du groupe</span><div class="pt-file" id="ptFile"></div></div>
         <div class="box grow"><span class="lb">Images</span>
           <div class="pt-images" id="ptImages"></div></div>
       </section>
@@ -244,7 +247,7 @@ BK.module('painture', function (page) {
   // ---------- installation (1re fois) ----------
   const montrerInstall = on => { $('#ptInstall', page).classList.toggle('hidden', !on); $('#ptGo', page).disabled = on; };
   const verifierInstalle = async () => {
-    if (BK.reglage('painture.pret', false)) { montrerInstall(false); return; }
+    if (!ICI || BK.reglage('painture.pret', false)) { montrerInstall(false); return; }
     montrerInstall(true);
     try { const p = await inv('pain_etat'); if (p) $('#ptInstN', page).textContent = '✓ Déjà installé sur ce PC.'; } catch (e) {}
   };
@@ -323,7 +326,7 @@ BK.module('painture', function (page) {
     const b = e.target.closest('[data-g],[data-r],[data-j],[data-voir]'); if (!b) return;
     const im = tout()[+(b.dataset.voir ?? b.dataset.g ?? b.dataset.r ?? b.dataset.j)]; if (!im) return;
     if (b.dataset.voir != null) { const ch = im.chemin || P.chemins[im.id]; try { if (ch) await BK.T.opener.openPath(ch); else BK.ouvrirLien('https://drive.google.com/file/d/' + im.id + '/view'); } catch (er) {} return; }
-    if (b.dataset.r != null) return generer(im.texte, im.refs || [], im.resume);
+    if (b.dataset.r != null) return pretIci() ? generer(im.texte, im.refs || [], im.resume) : commander(im.texte, im.refs || [], im.resume);
     if (b.dataset.j != null) {
       if (!im.id) { P.images.splice(im.loc, 1); URL.revokeObjectURL(im.url); return majImages(); }
       if (!await BK.confirmer('Enlever cette image pour tout le groupe ? (elle va dans la corbeille du Drive)')) return;
@@ -345,9 +348,9 @@ BK.module('painture', function (page) {
   };
 
   // texte = la demande déjà prête (Refaire la renvoie telle quelle), refs = les photos à poser dans le dossier de travail
-  async function generer(texte, refs, resume) {
-    if (P.enCours) return msg('Une image est déjà en cours : attends-la.');
-    P.enCours = true; $('#ptGo', page).disabled = true; msg('');
+  async function generer(texte, refs, resume, o = {}) {
+    if (P.enCours) { msg('Une image est déjà en cours : attends-la.'); return 'occupé'; }
+    P.enCours = true; $('#ptGo', page).disabled = true; msg(o.par ? 'Commande de ' + o.par + ' : fabrication…' : ''); let erreur = '';
     const t0 = Date.now(); barre(true, t0);
     try {
       const d = await inv('pain_dossier');
@@ -369,21 +372,66 @@ BK.module('painture', function (page) {
         if (BK.drive.relie()) {
           try { const up = await BK.drive.envoyerBlob(new Blob([octets], { type }), nom, await dossierPainTure('Récentes'));
             P.urls[up.id] = url; P.chemins[up.id] = chemin; partagee = true;
-            await changerRecentes(l => [{ id: up.id, nom, resume, texte, refs: refsPartage, par: BK.reglage('nomPc', '') || 'Membre', t: Date.now(), garde: false }, ...l]); }
+            await changerRecentes(l => [{ id: up.id, nom, resume, texte, refs: refsPartage, par: o.par || BK.reglage('nomPc', '') || 'Membre', t: Date.now(), garde: false }, ...l]); }
           catch (er) { console.warn(er); }
         }
         if (!partagee) P.images.unshift({ chemin, octets, type, nom, url, texte, refs: [...refs], resume });
       }
-      const s = Math.round((Date.now() - t0) / 1000); noterDuree(s); msg('✓ Prête en ' + s + ' s');
-    } catch (er) { msg('⚠ ' + (er.message || er)); }
+      const s = Math.round((Date.now() - t0) / 1000); noterDuree(s); msg('✓ Prête en ' + s + ' s' + (o.par ? ' (commande de ' + o.par + ')' : ''));
+    } catch (er) { erreur = er.message || String(er); msg('⚠ ' + erreur); }
     barre(false); P.enCours = false; $('#ptGo', page).disabled = false; majImages();
+    return erreur;
   }
+
+  // ---------- les COMMANDES : un téléphone demande, un PC du groupe fabrique ----------
+  //   liste partagée « painture.commandes » : [{ id, texte, refs, resume, par, t, prise: { pc, t }?, erreur? }]
+  const pretIci = () => ICI && BK.reglage('painture.pret', false);
+  const nomIci = () => BK.reglage('nomPc', '') || 'Membre';
+  const lireCmd = async () => { const l = await BK.partage.lire('painture.commandes', []).catch(() => []); return (Array.isArray(l) ? l : []).filter(x => Date.now() - x.t < 864e5); };
+  const changerCmd = async fn => { const l = fn(await lireCmd()); await BK.partage.ecrire('painture.commandes', l); P.cmd = l; majFile(); return l; };
+  async function commander(texte, refs, resume) {
+    if (!BK.drive.relie()) return msg('⚠ Relie d\'abord le Drive (Réglages › Drive)');
+    const b = $('#ptGo', page); b.disabled = true; msg('Envoi des photos…');
+    try {
+      const rs = []; for (const x of refs) rs.push({ nom: x.nom || '', membre: x.membre || '', tenue: x.tenue || '', ref: await versDrive(x) });   // une photo du téléphone → Drive (Pain Ture › Références)
+      await changerCmd(l => [...l, { id: 'c' + Date.now().toString(36), texte, refs: rs, resume, par: nomIci(), t: Date.now() }]);
+      msg('📨 Envoyé : un PC du groupe va la fabriquer (environ 1 à 2 minutes). Elle arrivera dans Images.');
+    } catch (er) { msg('⚠ ' + (er.message || er)); }
+    b.disabled = false;
+  }
+  const majFile = () => {
+    const l = P.cmd || [], z = $('#ptFile', page); $('#ptFileB', page).classList.toggle('hidden', !l.length); if (!l.length) { z.innerHTML = ''; return; }
+    z.innerHTML = l.map(x => { const vieux = !x.prise && Date.now() - x.t > 3 * 6e4;
+      const etat = x.erreur ? '⚠ ' + esc(x.erreur) : x.prise ? `<span class="spin"></span> ${esc(x.prise.pc)} la fabrique…` : vieux ? 'En attente : aucun PC prêt pour l\'instant. Ce sera fait dès qu\'un PC du groupe ouvre BEESKOT Studio.' : '<span class="spin"></span> En attente d\'un PC…';
+      return `<div class="pt-cmd${x.erreur ? ' err' : ''}"><span class="pt-cmd-t"><b>${esc(x.par || '?')}</b> · ${esc(x.resume || 'image')}</span><span class="nt">${etat}</span><button class="btn xs" data-cx="${esc(x.id)}" title="Annuler / enlever">✕</button></div>`; }).join('');
+  };
+  $('#ptFile', page).onclick = async e => { const b = e.target.closest('[data-cx]'); if (b) await changerCmd(l => l.filter(x => x.id !== b.dataset.cx)); };
+  // sur un PC prêt : prendre la plus ancienne commande libre (ou abandonnée depuis 15 min), la fabriquer, l'enlever de la liste
+  let enTraitement = false;
+  async function traiterCommandes() {
+    P.cmd = await lireCmd(); majFile();
+    if (!pretIci() || P.enCours || enTraitement || !BK.drive.relie()) return;
+    const x = P.cmd.find(c => !c.erreur && (!c.prise || Date.now() - c.prise.t > 15 * 6e4)); if (!x) return;
+    enTraitement = true;
+    try {
+      const moi = { pc: nomIci() + ' (PC)', t: Date.now(), k: Math.random().toString(36).slice(2) };
+      await changerCmd(l => l.map(c => c.id === x.id ? { ...c, prise: moi } : c));
+      const v = (await lireCmd()).find(c => c.id === x.id); if (!v || !v.prise || v.prise.k !== moi.k) return;      // un autre PC l'a prise en même temps
+      const err = await generer(x.texte, x.refs || [], x.resume, { par: x.par });
+      if (err === 'occupé') await changerCmd(l => l.map(c => c.id === x.id ? { ...c, prise: null } : c));
+      else await changerCmd(l => err ? l.map(c => c.id === x.id ? { ...c, erreur: err, prise: null } : c) : l.filter(c => c.id !== x.id));
+    } catch (er) { console.warn('Pain Ture commande', er); } finally { enTraitement = false; }
+  }
+  window.addEventListener('bk:distant', e => { const c = e.detail && e.detail.cols; if ((!c || !c.length || c.includes('config')) && (pretIci() || !page.classList.contains('hidden'))) traiterCommandes().catch(() => {}); });
+  setInterval(() => { if (pretIci() || !page.classList.contains('hidden')) traiterCommandes().catch(() => {}); if (!ICI && !page.classList.contains('hidden')) chargerRecentes().catch(() => {}); }, ICI ? 45e3 : 20e3);
+  setTimeout(() => traiterCommandes().catch(() => {}), 8000);
   $('#ptGo', page).onclick = () => {
     const idee = $('#ptIdee', page).value.trim();
     if (!idee && !P.actifs.size && !P.presetsOn.size) return msg('Choisis au moins un membre, une ambiance, ou décris ton image.');
     const refs = toutesRefs().slice(0, MAX_REFS);
     const resume = [[...P.actifs].join(', '), P.presets.filter(p => P.presetsOn.has(p.id)).map(p => p.nom).join(', '), idee].filter(Boolean).join(' · ');
-    generer(demande(idee, P.format, refs, $('#ptSansTexte', page).checked), refs, resume);
+    const texte = demande(idee, P.format, refs, $('#ptSansTexte', page).checked);
+    pretIci() ? generer(texte, refs, resume) : commander(texte, refs, resume);
   };
 
   // ---------- « → Pain Ture » depuis Tournages : la page arrive déjà remplie ----------

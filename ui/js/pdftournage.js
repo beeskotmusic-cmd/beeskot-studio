@@ -118,20 +118,22 @@ BK.pdfTournage = async function ({ t, reels, membres, dateFr, mode, orient }) {
           cx += w; });
         y += h; });
       y += 2; }
-    const ten = (membres || []).filter(m => (x.tenues || {})[m] || ((x.tenuesPhotos || {})[m] || []).length);
-    if (ten.length) {
-      const th = 30, gx = 3, x0 = M + 24, wmax = LARG - 24;
-      const bloc = m => { const ph = ((x.tenuesPhotos || {})[m] || []).map(u => imgs[u]).filter(Boolean), lignes = []; let cur = [], cw = 0;
-        ph.forEach(im => { const w = Math.min(wmax, th * im.r); if (cw + w > wmax && cur.length) { lignes.push(cur); cur = []; cw = 0; } cur.push({ im, w }); cw += w + gx; }); if (cur.length) lignes.push(cur);
-        police(9.5); const txt = doc.splitTextToSize(net((x.tenues || {})[m] || ''), wmax);
-        return { m, lignes, txt, h: Math.max(8, lignes.length * (th + 3) + txt.length * lh(9.5) + 2) + 3 }; };
-      const blocs = ten.map(bloc);
-      titre('Tenues', sous, Math.min(blocs[0].h, 150) + 14);
-      blocs.forEach(B => { besoin(Math.min(B.h, 200));
-        police(10, true); doc.text(net(B.m), M, y + 4);
-        let yy = y; B.lignes.forEach(l => { let cx = x0; l.forEach(({ im, w }) => { doc.addImage(im.d, 'JPEG', cx, yy, w, th); cx += w + gx; }); yy += th + 3; });
-        police(9.5); B.txt.forEach(l => { doc.text(l, x0, yy + 3.4); yy += lh(9.5); });
-        y = Math.max(yy, y + 8) + 3; doc.setDrawColor(...TRAIT); doc.setLineWidth(0.2); doc.line(M, y - 1.5, L - M, y - 1.5); }); }
+    // Tenues (comme dans le logiciel) : toutes les photos sur une rangée, et sous chacune qui la porte (« Yacine », « Pierre, Baptiste »)
+    const tp = x.tenuesPhotos || {}, qui = u => (membres || []).filter(m => (tp[m] || []).includes(u)).concat(Object.keys(tp).filter(m => !(membres || []).includes(m) && (tp[m] || []).includes(u)));
+    const phT = []; for (const m of [...(membres || []), ...Object.keys(tp)]) for (const u of tp[m] || []) if (!phT.includes(u) && imgs[u]) phT.push(u);
+    const motsT = (membres || []).filter(m => net((x.tenues || {})[m] || ''));          // les mots écrits avant (anciennes fiches)
+    if (phT.length || motsT.length) {
+      const th = paysage ? 40 : 46, gx = 4, cap = 3 * lh(8.5) + 1;                  // hauteur des photos, place pour les prénoms dessous
+      titre('Tenues', sous, (phT.length ? th + cap : 0) + 14);
+      let cx = M;
+      for (const u of phT) { const im = imgs[u], w = Math.min(LARG, th * im.r);
+        if (cx > M && cx + w > M + LARG) { cx = M; y += th + cap + 2; }
+        if (besoin(th + cap)) cx = M;
+        doc.addImage(im.d, 'JPEG', cx, y, w, th);
+        police(8.5, true, GRIS); doc.splitTextToSize(net(qui(u).join(', ') || '—'), Math.max(w, 18)).slice(0, 3).forEach((l, k) => doc.text(l, cx + w / 2, y + th + 3.6 + k * lh(8.5), { align: 'center' }));
+        cx += w + gx; }
+      if (phT.length) y += th + cap + 2;
+      motsT.forEach(m => para(m + ' : ' + x.tenues[m], { pt: 9.5, apres: 0.6 })); y += 1; }
     if (x.materiel) { titre('Matériel', sous); para(x.materiel); }
     if (x.notes) { titre('Notes', sous); para(x.notes); } };
 

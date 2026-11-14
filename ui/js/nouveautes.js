@@ -3,6 +3,12 @@
 // Pour une nouvelle version : ajouter un bloc EN HAUT de la liste. Une ligne courte par point : « Onglet : ce qui change. »
 // =====================================================================
 BK.NOUVEAUTES = [
+  { v: '0.9.162', titre: 'Pain Ture sur téléphone, lien cameraman et PDF', l: [
+    ['📱', 'Pain Ture marche sur téléphone : même écran (membres, ambiances, références, idée). « Générer » envoie la demande à un PC du groupe où BEESKOT Studio est ouvert ; l\'image arrive dans Images pour tout le groupe. La demande s\'affiche avec son état (en attente, en fabrication, erreur).'],
+    ['💻', 'Pain Ture sur PC : un PC prêt fabrique tout seul les demandes envoyées par les téléphones (une à la fois).'],
+    ['🔗', 'Lien cameraman : les tenues en une rangée de photos, avec qui la porte écrit dessous ; sur téléphone, le découpage en petites cartes lisibles.'],
+    ['📄', 'PDF des tournages : les tenues en une rangée de photos, avec qui la porte écrit dessous (comme dans le logiciel).'],
+  ] },
   { v: '0.9.161', titre: 'Téléphone : découpage lisible', l: [
     ['📱', 'Téléphone › Tournages : le découpage n\'est plus un tableau écrasé : chaque plan est une petite carte (cadrage et durée en haut, ce qu\'on voit et les notes en entier, les images dessous). Tenues et Matériel l\'un sous l\'autre. « Cadrer » la couverture reste sur PC.'],
   ] },

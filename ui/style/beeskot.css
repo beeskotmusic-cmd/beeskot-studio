@@ -2447,3 +2447,10 @@ span.to-tph-qui{cursor:default;color:#cfe8c2}
 .md-haut#mdHaut{min-width:30px;justify-content:center}
 /* Tournages : ↑ ↓ pour l'ordre des reels — seulement sur téléphone (sur PC, on glisse) */
 html:not(.tel) .tt-ordre{display:none!important}
+/* Pain Ture : les commandes envoyées par un téléphone (fabriquées par un PC du groupe) */
+.pt-file{display:flex;flex-direction:column;gap:6px}
+.pt-cmd{display:grid;grid-template-columns:1fr auto;gap:2px 8px;align-items:center;padding:6px 8px;border-radius:6px;background:rgba(255,255,255,.04)}
+.pt-cmd .nt{grid-column:1;margin:0;font-size:11px;display:flex;align-items:center;gap:6px}
+.pt-cmd button{grid-row:1 / span 2;grid-column:2}
+.pt-cmd-t{font-size:12px;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.pt-cmd.err .nt{color:#ff8a6a}
